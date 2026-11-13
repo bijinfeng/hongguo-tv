@@ -23,7 +23,11 @@ tokio = { workspace = true, features = ["time", "sync", "fs", "io-util"] }
 [target.'cfg(unix)'.dependencies]
 rustix.workspace = true
 
+[target.'cfg(target_os = "android")'.dependencies]
+webpki-roots.workspace = true
+
 [dev-dependencies]
+webpki-roots.workspace = true
 tokio = { workspace = true, features = ["io-util", "sync"] }
 
 [lints]

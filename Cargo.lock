@@ -1058,6 +1058,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "utoipa",
+ "webpki-roots 1.0.12",
 ]
 
 [[package]]

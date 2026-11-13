@@ -29,6 +29,7 @@ tower = { version = "=0.5.3", features = ["util"] }
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls-no-provider"] }
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 rusqlite = { version = "=0.42.0", default-features = false, features = ["bundled"] }
+webpki-roots = "=1.0.12"
 rustix = { version = "=1.1.6", default-features = false, features = ["std", "fs"] }
 nsh-base = "=0.5.0"
 nsh-core = "=0.5.0"

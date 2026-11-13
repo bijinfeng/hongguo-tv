@@ -47,11 +47,7 @@ impl CatalogClient {
     }
 
     fn build(origin: Url) -> Result<Self, CatalogError> {
-        // reqwest's no-provider mode otherwise panics; retain a host's existing provider.
-        if rustls::crypto::CryptoProvider::get_default().is_none() {
-            let _ = rustls::crypto::ring::default_provider().install_default();
-        }
-        let http = Client::builder()
+        let http = crate::http::client_builder()
             .http1_only()
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()

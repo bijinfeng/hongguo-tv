@@ -292,3 +292,13 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 修复后的 TV native debug APK 构建／Android Lint 成功（`media-lock-package-final.log`），SHA256 `c91be35dcdb1f8addfb9b2276780db8cb3440f930805c850ebc053a89ad2e405`。实际已安装 base.apk 摘要一致、native runtime／生产入口 bytecode 一致且无18997／T0／合成启动入口，adb reverse 为空（`media-lock-installed-proof.log`）。安装启动进入共享空历史首页，截图／树为 `media-lock-ready.png/xml`，亲看焦点、字号、间距、对齐、颜色与既有布局；本修复没有新增视觉样式，浅深与大字启动状态继续见 C2 的合成宿主矩阵。
 - 此切片只解除 Android 原生初始化阻塞；官网搜索、真实媒体、切集、后台和重启续播尚未据此验收，任务3.1仍开放。macOS 锁屏、辅助技术、物理电视、既有安全发行门禁与其他 MVP 功能继续保留；未推送、归档或发布。
 - 独立审查 `native-business-tv/media-lock-independent-review.md` 结论为 ship，仅限文件锁初始化修复；已核对失败／ready 截图、实际安装摘要与功能证据。未独立操作设备，也未证明 Android 数据内容前后逐字节或跨进程锁专项；官网观看等 C3 行为继续单独验证。
+
+### C3 网络修复 · Android HTTPS 信任策略
+
+- 默认原生 APK 能启动，但真实中文搜索显示“核心请求失败”。Android 独立 Rust 探针确认 reqwest 默认的 rustls-platform-verifier 因 JVM 未初始化 panic，见 `artifacts/playback/native-business-tv/tls-probe-3.log`；原 UI 和日志为 `watch-dark-second-current.png`、`watch-dark-second.log`。没有将网络失败归为文件锁、目录协议或播放器故障。
+- catalog／playback identity／media 三处构造复用私有 `http::client_builder`；仅 Android 采用标准 rustls ClientConfig 与锁定 webpki-roots 1.0.12 的公共根证书，保留证书链及域名校验，没有自定义放行 verifier。非 Android 保持 reqwest 默认信任策略，原 timeout／no_proxy／redirect／重试边界不变。Android 此后不会自动采用系统、用户或企业信任库的增删，根证书更新须随依赖和应用更新维护；不是完整复刻 Android 平台策略。
+- Cargo.lock 只增加 core→已有 webpki-roots 的依赖边，没有新增、删除或升级包版本。公开自签 localhost end-entity DER 仅 cfg(test) 使用，不加入生产 roots，也不提交私钥；标准 WebPkiServerVerifier 明确拒绝 UnknownIssuer，见 `tls-policy-test.log`。首次 CA fixture 不符合目标断言，改为 CA:FALSE serverAuth 后通过，未放宽断言。
+- Android 使用生产 helper 的固定探针首次握手 EOF 保留为 `tls-probe-fixed.log`；再次取得 HTTP 403（`tls-probe-fixed-retry.log`），只证明该次 TLS 请求成功。当前实际已安装 native APK SHA256 `140304dd98b1b37dc8f7a706278b9ecf7efdc73d00c5acd884aaa0df893a8327`，包内 bytecode SHA256 `0c8daae65bb084d2f16f66352fb4ec713bec89e66e62c2ed3598fd2a6e410a30`，见 `installed-native.json`；已安装 APK／当前文件及 bytecode 一致，电脑 API 停止、reverse 为空。真实搜索、详情、官网媒体、后台恢复和第二集观看／重启续播另有第六轮三组 18＋7 项及六次 SQLite 核对证据，见下节；TLS 探针不代替这些业务断言。
+- 最终完整 `pnpm verify` 通过：101 Rust、21 工程、Web26／Desktop24／TV25，三端 check＋build、格式／lint、codegen:check、release check，见 `tls-final-verify-3.log`。初次工具 lint 失败与后续修复运行分别保留为 `tls-final-verify.log`、`tls-final-verify-2.log`。`pnpm security` 仍有既有两项未维护与六项许可证拒绝（`tls-security.log`），bans／sources 通过，未放宽门禁；单独 pnpm audit 无已知漏洞（`tls-pnpm-audit.log`）。DTO 未改。
+
+- 独立复评 `native-business-tv/tls-independent-review.md` 最终 disposition 为 ship，仅 Android HTTPS 修复范围；已亲看三主题实际内容／错误截图并核对当前安装、最终验证与业务证据，不代替验收工具审查、完整C3或安全发行通过。

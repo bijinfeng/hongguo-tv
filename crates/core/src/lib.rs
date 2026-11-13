@@ -1,5 +1,6 @@
 //! Platform-independent domain rules and anonymous catalog queries. No NSH or account state.
 pub mod catalog;
+mod http;
 pub mod library;
 pub mod media;
 pub mod playback;

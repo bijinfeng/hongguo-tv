@@ -234,10 +234,7 @@ impl MediaStore {
         Self::build(app_state, Some(url))
     }
     fn build(app_state: &Path, fixture: Option<Url>) -> Result<Self, PlaybackError> {
-        if rustls::crypto::CryptoProvider::get_default().is_none() {
-            let _ = rustls::crypto::ring::default_provider().install_default();
-        }
-        let http = Client::builder()
+        let http = crate::http::client_builder()
             .http1_only()
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
