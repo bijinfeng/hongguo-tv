@@ -1,6 +1,6 @@
 # 设计定稿后的实施路线
 
-日期：2026-11-14。状态：A 已实施，桌面系统字体缩放仍待验；B4c 已接通 TV 生产页面的 DPAD／媒体键与逐层焦点，Web 官网观看／重启续播保留 B4b 证据；C1 已增加原生 transport／会话基础；macOS 输入、全屏及原生独立业务尚未验收。用户已授权分批本地提交；不推送或归档。
+日期：2026-11-14。状态：A 已实施，桌面系统字体缩放仍待验；B4c 已接通 TV 生产页面的 DPAD／媒体键与逐层焦点，Web 官网观看／重启续播保留 B4b 证据；C1 已增加原生 transport／会话基础，C2.1 已注册两端 mixed 导出并验证真实 engine 生命周期；macOS 输入、全屏及原生独立业务尚未验收。用户已授权分批本地提交；不推送或归档。
 
 ## 目标与起点
 
@@ -57,4 +57,4 @@
 
 ## 当前可执行起点
 
-继续 [B tasks](../openspec/changes/migrate-rust-playback/tasks.md)：定稿 Player 已进入共享生产路由，Web 官网及合成解码证据见 VALIDATION B4b；TV APK 的 DPAD／定位确认取消／媒体键已接通，最终回归证据见 B4c；macOS Select／焦点／全屏／官网验收仍开着，本轮 CUA 再次确认 Mac 锁屏。A 字体缩放与跨端辅助技术仍保持未完成。C 的独立 OpenSpec `embed-native-core` 已建立，C1 transport／Rust 会话与媒体专用路由通过基础验证；继续 mixed 导出和生产装配，复用现有 T0 接原生业务；不得将 HTTP 开发宿主或合成视频验收视为原生独立运行。
+继续 [B tasks](../openspec/changes/migrate-rust-playback/tasks.md)：定稿 Player 已进入共享生产路由，Web 官网及合成解码证据见 VALIDATION B4b；TV APK 的 DPAD／定位确认取消／媒体键已接通，最终回归证据见 B4c；macOS Select／焦点／全屏／官网验收仍开着，本轮 CUA 再次确认 Mac 锁屏。A 字体缩放与跨端辅助技术仍保持未完成。C 的独立 OpenSpec `embed-native-core` 已建立，C1 transport／Rust 会话与媒体专用路由通过基础验证；两端 mixed 导出声明与真实 engine 生命周期已通过 C2.1；继续生产入口和开发／打包装配，复用现有 T0 接原生业务；不得将 HTTP 开发宿主或合成视频验收视为原生独立运行。

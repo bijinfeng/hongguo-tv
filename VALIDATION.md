@@ -258,3 +258,15 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 安全检查：`pnpm security` 实际执行 Cargo deny，仍由既有 NSH 间接依赖 advisory／license 阻塞退出（`native-foundation-security.log`），未放宽规则；因此脚本后面的 pnpm audit 未执行，已单独运行且通过（No known vulnerabilities found），日志 `native-foundation-pnpm-audit.log`。本次 Cargo.lock 只增加自有 native-bridge 包及其已锁定依赖关系，未升级第三方版本。
 
 - 独立复评：`artifacts/playback/native-foundation-independent-review.md` 最终 disposition 为 ship，仅 C1 基础切片；所有权修复和记录问题 resolved。没有新可见布局改动，审查确认 Player 仅释放回调变化；真实 mixed 导出／声明／显式 dispose 仍列任务 2.1，不由 Rust 内部测试或 TS fake 替代。
+
+### C2.1 · Desktop mixed／TV 注册与真实导出生命周期
+
+- Desktop 新增薄 native crate，TV 在既有 native module 注册同一共享 bridge 并保留 T0；生产 App 本切片仍经 HTTP，不改页面、主题或布局。两端 `pnpm check` 生成实际 NativeCore／NativeSession／NativeCall 声明，open、start、result、accept、cancel、close／dispose 与平台无关 adapter 相容，生成目录不提交。声明／首次 check 见 `artifacts/playback/native-mixed-check.log`。
+- 四项真实 mixed 测试使用公开 NSH Engine／Bundle／HostChannel，在 QuickJS 中实际 import 并调用共享导出：宿主私有目录 SQLite 写入／重开；缺目录与损坏库明确失败且原字节保留；pending result 的 cancel、单独 call.dispose、session.dispose 均 settle 499；未接收媒体 dispose 释放、accept 后保留、session.close 释放并拒绝新业务。测试模块只在 cfg(test) 注册合成 loopback 上游，不进入生产导出；十秒期限与 engine error 通道明确失败。日志 `native-mixed-tests-first.log`，收紧测试 feature 后四项仍通过 `native-mixed-minimal-engine-tests.log`。
+- 依赖核对：初版完整 js 引擎 feature 带入 RSA 预发行版并新增 RUSTSEC-2023-0071，见 `native-mixed-security.log`；尝试升级 rsa 0.10.0 被上游所需 sha2 feature 不兼容拒绝，见 `native-mixed-rsa-update.log`。最终改用锁定 NSH 公开 js-core feature，保留同一真实 QuickJS／native 调用，移除测试未使用的 crypto／zlib 模块。最终根锁文件新增 49 个包版本（含自有 Desktop crate），原有版本未删除或替换，无 rsa、nsh-testing、nsh-bundler 或 wgpu；不 patch 上游或放宽门禁。
+- 最终 `pnpm security` 仍失败（`native-mixed-minimal-security.log`）：仅剩既有 bincode／ttf-parser 停止维护及 Zlib／CDLA-Permissive-2.0／LLVM-exception 许可证阻塞，新增 RSA 漏洞已不在最终工作区依赖图；bans／sources 通过。安全脚本因此未执行后面的 JS audit，已单独运行通过（No known vulnerabilities found，`native-mixed-pnpm-audit.log`）。功能通过不代表安全门禁或发行通过。
+- 真实 engine 测试不替代生产入口原生默认装配、开发／打包模式、无电脑 API／reverse 的 TV 官网业务／重启续播、macOS 实际宿主、A／B 字体／输入／全屏／辅助技术与物理设备验收；这些任务继续开放。并行品牌文档保留，未推送、归档或发布。
+
+- 最终完整 `pnpm verify` 通过：99 Rust／16 工程／Web22／Desktop20／TV21，三端 check＋build、fmt/lint、codegen:check 与 release check，日志 `native-mixed-final-verify.log`。先前完整 js feature 的运行保留 `native-mixed-initial-verify.log`，不能代替最终依赖图验证；新增文档格式检查 `native-mixed-final-fmt.log`、OpenSpec strict `native-mixed-openspec.log` 均通过。
+
+- 独立审查 `native-mixed-independent-review.md` 最终两项均 resolved、disposition 为 ship，仅覆盖 C2.1；未独立操作宿主。新文档与任务进度最终格式／strict 复验见 `native-mixed-docs-fmt.log`、`native-mixed-final-openspec.log`。

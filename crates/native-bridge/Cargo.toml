@@ -17,6 +17,7 @@ serde_json.workspace = true
 [dev-dependencies]
 reqwest.workspace = true
 tower.workspace = true
+nsh-engine = { workspace = true, features = ["js-core"] }
 
 [lints]
 workspace = true

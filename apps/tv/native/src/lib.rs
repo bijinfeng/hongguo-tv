@@ -1,8 +1,4 @@
-//! The Android TV T0 mixed-host probe.
-//!
-//! This crate is deliberately small. It proves the fixed NSH mixed boundary
-//! and its owner-scoped task lifetime without pretending to be the migrated
-//! content core.
+//! Thin TV native assembly, retaining the existing T0 host probes.
 
 use std::time::Duration;
 
@@ -11,6 +7,7 @@ use nsh_core::prelude::*;
 /// The exports used by the TV T0 host probe.
 #[native_module("hongguo-tv/native")]
 fn native(registry: &mut Registry) {
+    hongguo_native_bridge::register(registry);
     registry
         .register::<T0Task>()
         .module::<T0Probe>()

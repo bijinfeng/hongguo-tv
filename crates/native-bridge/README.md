@@ -28,4 +28,8 @@ pnpm test
 pnpm verify
 ```
 
-本 crate 测试通过显式 loopback 上游提供合成目录、模型和 MP4；覆盖 HTTP 错误／DTO 对照、SQLite 重开、损坏原文件保留、取消与接收竞态、请求上限、监听停止、media-only 404、来源拒绝和真实 Range 字节。它们不访问官网，不证明真实 NSH mixed 导出、安装包业务、macOS 输入、Android TLS／解码、物理电视或发行；这些由 C 后续任务分别验收。
+本 crate 测试通过显式 loopback 上游提供合成目录、模型和 MP4；覆盖 HTTP 错误／DTO 对照、SQLite 重开、损坏原文件保留、取消与接收竞态、请求上限、监听停止、media-only 404、来源拒绝和真实 Range 字节。这些 Rust 夹具不访问官网，不证明安装包业务、macOS 输入、Android TLS／解码、物理电视或发行；这些由 C 后续任务分别验收。
+
+另有四项 `real_mixed` 测试，使用锁定 `nsh-engine` 的公开 Engine／Bundle／HostChannel，在真实 QuickJS 中调用同一注册函数导出的三个 class/module。覆盖宿主应用目录与 SQLite 重开、缺目录／损坏库明确失败且保留字节、pending result 的 cancel／call.dispose／session.dispose，以及未 accept 媒体释放／accept 后保留／close 后释放。测试专用 BridgeFixture 只在 cfg(test) 注册，用于合成 loopback 上游；生产 NativeCore.open 不接受上游或存储路径注入。
+
+Desktop mixed 与 TV 现有 native crate 只调用共享 register；各端 `pnpm check` 生成的声明验证其真实导出签名。生产页面在此切片仍经 HTTP，真实 engine 测试不等同两端安装包、官网、宿主销毁或物理设备验收。新增 engine 测试依赖的安全结果单独记录于 VALIDATION，不因功能测试通过宣称安全门禁通过。

@@ -105,6 +105,7 @@ struct Fixture {
     dir: PathBuf,
     source: tokio::task::JoinHandle<()>,
     upstream: Upstream,
+    origin: String,
 }
 impl Fixture {
     async fn new(stalled: bool) -> Self {
@@ -138,6 +139,7 @@ impl Fixture {
             dir,
             source,
             upstream,
+            origin,
         }
     }
     async fn call(&self, path: &str, body: Option<&str>) -> Reply {
@@ -162,6 +164,9 @@ impl Fixture {
         call
     }
 }
+
+#[path = "mixed_tests.rs"]
+mod mixed;
 fn upstream_handler() -> axum::routing::MethodRouter<Upstream> {
     axum::routing::any(upstream)
 }
