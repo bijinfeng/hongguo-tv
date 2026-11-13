@@ -1,6 +1,6 @@
 # GitHub 构建、分发与自动更新方案
 
-调研日期：2026-11-13。状态：技术方案，尚未实施。依据当前工作区、固定 NSH 0.5.0（f4d68f7）、本地 CLI/生成类型及官方资料；本文不代表远端流水线、正式签名或设备升级已经通过。
+调研日期：2026-11-13。状态：R0 基础与 R1 预览基础已实施，正式候选与设备升级仍未实施。依据当前工作区、固定 NSH 0.5.0（f4d68f7）、本地 CLI/生成类型及官方资料；本文不代表远端流水线、正式签名或设备升级已经通过。
 
 ## 1. 建议采用的方案
 
@@ -23,14 +23,14 @@ flowchart TD
   Release --> TV
 ```
 
-源码公开是已确定的方案前提；本次只更新设计，尚未修改 GitHub 仓库可见性。复核时远端仍返回 PRIVATE，转为公开及 Pages/生产签名配置留待实施阶段。
+源码公开是已确定的方案前提；本次复核远端已返回 PUBLIC。Pages、生产签名和正式发布配置仍留待实施阶段。
 
 ## 2. 当前能力与缺口
 
 | 项目     | 已核对的实现                                                                                     | 对本方案的影响                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| GitHub   | `gh repo view` 复核仍返回 PRIVATE，默认分支 `master`                                             | 目标改为公开源码、同仓库发行；不依赖改名为 main，客户端无 token                               |
-| 现有 CI  | `.github/workflows/ci.yml`：三系统 Rust、macOS 三端 NSH check/build/headless、security、required | 尚无正式发行、桌面安装/升级或 TV Android 构建发布 job；配置存在不等于远端已通过               |
+| GitHub   | `gh repo view` 复核返回 PUBLIC，默认分支 `master`                                                | 公开源码、同仓库发行；不依赖改名为 main，客户端无 token                                       |
+| 现有 CI  | `.github/workflows/ci.yml`：三系统 Rust、macOS 三端 NSH check/build/headless、security、required；`release-validation.yml`：确定 SHA 的源码验证；`release-preview.yml`：macOS arm64 与 TV T0 预览 | 尚无正式发行、桌面安装/升级或 TV Android 构建发布 job；配置存在不等于远端已通过 |
 | NSH      | `.nsh-version` 为 0.5.0；本机 CLI 为 f4d68f7；生成类型包含 `nsh/updater`                         | 可复用原生整包更新 API，无须引入 Electron/Tauri 更新框架                                      |
 | 桌面     | `apps/desktop/nsh.json` 无 native crate、无 updater；当前 package 命令要求外部 API               | 目前只能分发显式标记的预览包，独立产品需完成 Rust 业务内嵌                                    |
 | TV       | 自有 `NshView` embedding 宿主；`packageTvHost()` 执行 `assembleDebug` / `lintDebug`              | 给 NSH 命令加 keystore 参数不足以完成生产签名，最终 Gradle 宿主也必须有 release signingConfig |
@@ -39,7 +39,7 @@ flowchart TD
 | 版本     | 根 package.json 和三端 nsh.json 分别声明 0.1.0，各端 build 为 1                                  | 建立唯一产品版本源，避免包版本、APK versionCode 和清单漂移                                    |
 | 安全门禁 | VALIDATION 记录 NSH 间接依赖许可证及停止维护 advisory 导致 security 失败                         | 是已记录的发行阻塞，本次未重跑；不能在发行工作流中忽略或删除该检查                            |
 
-现状依据：README、ARCHITECTURE、ENGINEERING、DESIGN、VALIDATION、TV_DEVELOPMENT，以及 `tooling/src/cli.mjs`、`tooling/src/tv-host.mjs`、TV Gradle/manifest/Activity。并行中的界面修改不属于本方案实施。
+现状依据：README、ARCHITECTURE、ENGINEERING、DESIGN、VALIDATION、TV_DEVELOPMENT，以及 `tooling/src/cli.mjs`、`tooling/src/tv-host.mjs`、`tooling/src/release.mjs`、TV Gradle/manifest/Activity。并行中的界面修改不属于本方案实施。
 
 ## 3. 调研结果与方案取舍
 
@@ -153,15 +153,16 @@ https://bijinfeng.github.io/hongguo-tv/
 
 现有 CI 保留，新增真实 Android 构建/模拟器以及各桌面宿主 job；接通的产品目标纳入 required。工程入口沿用 pnpm/Cargo，不新增 Go 发行依赖。干净 runner 执行 frozen install、setup、setup:tools、doctor、verify；发行另外执行 security、包检查和安装/升级验收。缺工具、缺报告、缺平台或安全失败都应阻止正式晋级。
 
-| 工作流（拟新增）                    | 触发与权限                                                             | 交付                                                                       |
-| ----------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `preview.yml`（同仓库）             | 手动选择可验证的可信提交；无生产密钥                                   | 独立身份的预览包、源码 SHA、摘要、已通过/未运行项目；默认 Actions artifact |
-| `release-candidate.yml`（源码仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；构建后才进入受控签名阶段  | 最终签名候选、SBOM、完整验收记录；不自动投放 stable                        |
-| `publish.yml`（同仓库）             | 指定候选 run ID、源码 SHA、version/build、资产摘要；受保护环境审批晋级 | 上传并验证草稿 → 发布不可变 Release → Pages 指针晋级                       |
+| 工作流（拟新增）                        | 触发与权限                                                                    | 交付                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥       | 可追溯的源码验证记录；不产生可安装候选，不投放 stable |
+| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 预览包和 TV T0 APK，不拿生产密钥          | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable |
+| `release-candidate.yml`（后续，同仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；平台产物构建后才进入受控签名阶段 | 最终签名候选、SBOM、完整验收记录；不自动投放 stable   |
+| `publish.yml`（后续，同仓库）           | 指定候选 run ID、源码 SHA、version/build、资产摘要；受保护环境审批晋级        | 上传并验证草稿 → 发布不可变 Release → Pages 指针晋级  |
 
 版本必须先写入源码再形成候选。tag 先建或后补均需校验指向同一 SHA，禁止发布时自动重构建。候选过期、文件缺失、重签名或字节变化必须重新验收。正式标记前最终文件需完成平台验签及安装冒烟。
 
-候选验收后，`publish.yml` 读取同仓库的确定 run ID 和去敏验收记录，校验运行来源、workflow、源码 SHA、版本与产物摘要，再将同一批文件上传至草稿。不能只按 artifact 名称查找“最新成功构建”，也不能把任意 fork PR 的 artifact 当成可签名/可发布候选。GITHUB_TOKEN 按 job 分配所需权限即可完成同仓库晋级。
+候选验收后，未来的 `publish.yml` 读取同仓库的确定 run ID 和去敏验收记录，校验运行来源、workflow、源码 SHA、版本与产物摘要，再将同一批文件上传至草稿。不能只按 artifact 名称查找“最新成功构建”，也不能把任意 fork PR 的 artifact 当成可签名/可发布候选。GITHUB_TOKEN 按 job 分配所需权限即可完成同仓库晋级。
 
 顺序约束：
 
@@ -182,7 +183,7 @@ GITHUB_TOKEN 触发的常见仓库事件不会再次启动工作流，因此不�
 
 更新清单私钥与 macOS/Windows/Android 代码签名密钥分开，备份、责任人与轮换流程分别记录；签名材料临时落盘后清理，不进缓存或 artifact。清单签名保证更新来源，系统代码签名保证安装身份，GitHub 来源证明保证产物出处，三者不互相替代。单公钥 NSH 配置的密钥轮换需先用旧密钥发布信任新公钥的宿主，不能直接更换线上清单签名；旧密钥丢失/失陷有必须手动安装的恢复边界。
 
-公开仓库可配置 environment required reviewers。设置独立的 `release-signing` 和 `production` 环境：前者保护生产签名密钥，后者保护正式发行与 Pages 投放；仅允许已审核的分支/tag，按维护者配置防止自行批准及管理员绕过。签名 job 也必须在获得对应审批后才拿到密钥，不能只保护最后的发布步骤。单维护者阶段若无法提供独立审批人，应如实记录审批配置，不以 environment 名称冒充双人复核。仓库仍为 PRIVATE 时先确认套餐能力，再启用相应保护。见 [部署保护与套餐限制](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)。
+公开仓库可配置 environment required reviewers。设置独立的 `release-signing` 和 `production` 环境：前者保护生产签名密钥，后者保护正式发行与 Pages 投放；仅允许已审核的分支/tag，按维护者配置防止自行批准及管理员绕过。签名 job 也必须在获得对应审批后才拿到密钥，不能只保护最后的发布步骤。单维护者阶段若无法提供独立审批人，应如实记录审批配置，不以 environment 名称冒充双人复核。若未来调整仓库可见性，再按账号套餐重新确认保护能力。见 [部署保护与套餐限制](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)。
 
 ## 6. 双端更新实现边界
 
@@ -255,19 +256,19 @@ Android 的无人值守更新有安装者身份、权限和目标版本等条件
 
 ## 8. 实施顺序与退出条件
 
-以下为待实施清单，没有完成勾选，也不是新增的可执行命令。
+以下为实施边界与退出条件；已落地项目单独在本节末记录。
 
-| 阶段               | 交付                                                                                        | 退出条件                                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| R0：发行基础       | 公开现有源码仓库、明确 LICENSE/NOTICE、启用同仓库 Pages、应用身份、唯一版本源与受控签名路径 | 干净 checkout 版本检查可复现；源码/历史可公开，客户端无 token                          |
-| R1：构建和预览     | 各端候选 workflow、TV release Gradle、签名/摘要/SBOM、独立预览身份                          | 从 GitHub 下载原文件可安装；报告明确预览/T0/正式候选；不能因业务未完成误发正式版       |
-| R2：桌面更新闭环   | shared UpdateClient、桌面 NSH adapter、签名 Pages 清单                                      | 真实安装包 N-1 → N、重启保存、错误签名/断网/权限路径通过；macOS 优先，其他系统独立验收 |
-| R3：TV 更新闭环    | Rust 清单校验/下载、Android 权限/session adapter、共享 UI                                   | 同签名 N-1 → N 保留数据，拒绝错包/错证书/降级；模拟器与目标真机安装器分别通过          |
-| R4：正式晋级与恢复 | 不可变 Release、渠道串行晋级、停止投放/修复包演练、设备证据                                 | 最终签名资产满足业务、security、独立运行和真机门禁；公开匿名下载与升级复验通过         |
+| 阶段               | 交付                                                                                                  | 退出条件                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| R0：发行基础       | 公开现有源码仓库、明确 LICENSE/NOTICE、启用同仓库 Pages、应用身份、唯一版本源与受控签名路径           | 干净 checkout 版本检查可复现；源码/历史可公开，客户端无 token                                |
+| R1：构建和预览     | 源码验证 workflow、macOS arm64 桌面预览与 TV arm64 T0 预览 workflow、版本/摘要/校验和工具；正式签名仍待接入 | 当前只产生短期 Actions artifact；正式候选仍需从 GitHub 下载原文件可安装，不能因业务未完成误发正式版 |
+| R2：桌面更新闭环   | shared UpdateClient、桌面 NSH adapter、签名 Pages 清单                                                | 真实安装包 N-1 → N、重启保存、错误签名/断网/权限路径通过；macOS 优先，其他系统独立验收       |
+| R3：TV 更新闭环    | Rust 清单校验/下载、Android 权限/session adapter、共享 UI                                             | 同签名 N-1 → N 保留数据，拒绝错包/错证书/降级；模拟器与目标真机安装器分别通过                |
+| R4：正式晋级与恢复 | 不可变 Release、渠道串行晋级、停止投放/修复包演练、设备证据                                           | 最终签名资产满足业务、security、独立运行和真机门禁；公开匿名下载与升级复验通过               |
 
 R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本验证更新机制。正式产品发布仍依赖 TV_DEVELOPMENT 中真实观看闭环、独立客户端和首发验收，不以更新机制通过替代。
 
-实现时拟增加 `tooling/src/release.mjs` 与相关命令入口，输出稳定 JSON 摘要和明确退出码，使本地、CI 和 Agent 走同一路径；不增加只输出成功的占位命令。报告最少包含 `sourceSha/version/build/target/artifactSha256/signingIdentity/runId/checks`，失败区分构建、签名、网络、设备与业务问题。
+`tooling/src/release.mjs` 已提供 `check`、`sync`、`metadata` 和 `record` 命令，输出稳定 JSON 摘要和明确退出码，使本地、CI 和 Agent 走同一路径。`record` 生成不含本地路径的候选 `release.json` 与 `SHA256SUMS`，并拒绝非 HTTPS URL、重复 target、非法 Git SHA、缺失产物和不完整描述。报告包含 `sourceSha/version/build/target/artifactSha256/signingIdentity`；签名、网络、设备与业务问题仍由后续候选门禁分别报告。
 
 关键验收至少覆盖：
 
@@ -288,4 +289,4 @@ R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本�
 
 合成文件不是可安装归档；临时测试密钥和文件均已删除。以上实验只证明清单工具和签名格式，不证明下载、安装或升级行为。
 
-本次按用户确定的源码公开方向修订为单仓库方案，复核远端仍为 PRIVATE；未修改 GitHub 可见性或其他设置、上传资产、部署 Pages、接入 workflow 或修改应用代码。未执行本次完整 pnpm verify/security，也未安装/更新桌面或 TV。正式签名、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。
+本轮已确认远端为 PUBLIC，加入 `release-validation.yml`、`release-preview.yml`、唯一版本源检查、候选产物记录工具和对应测试；未修改 GitHub 设置、上传资产、部署 Pages、接入正式签名或修改应用更新宿主。`pnpm verify` 已通过；`pnpm security` 仍需单独处理已有依赖策略阻塞。正式签名、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。

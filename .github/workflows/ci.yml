@@ -54,6 +54,7 @@ jobs:
       - run: pnpm fmt:check
       - run: pnpm lint
       - run: pnpm codegen:check
+      - run: pnpm release:check
       - name: Validate squash title
         if: ${{ github.event_name == 'pull_request' }}
         env:

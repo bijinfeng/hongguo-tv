@@ -43,6 +43,19 @@ pnpm codegen         # Rust → OpenAPI → TypeScript；无需运行服务器
 pnpm codegen:check   # 只比较，不修改文件
 ```
 
+发行基础检查使用根级 `product-version.json` 作为版本与 build 的唯一编辑源：
+
+```sh
+pnpm release:check
+pnpm release:sync
+pnpm release:metadata --artifact <产物路径> --target <平台标识>
+pnpm release:record --input <候选描述 JSON> --out release.json --checksums SHA256SUMS
+```
+
+先编辑 `product-version.json`，再显式运行 `release:sync` 同步根 `package.json`、三个 NSH manifest；`release:check` 用于门禁。`release:metadata` 只生成带 SHA256、大小、版本、build 和源码 SHA 的摘要，不执行签名或发布。`release:record` 读取候选描述中的本地产物，生成不包含本地路径的确定性 `release.json` 和校验和文件；它会拒绝非 HTTPS URL、重复 target、非法 Git SHA 和缺失产物，不执行签名、上传或发布。正式桌面/TV 产物、平台签名、GitHub Release 和更新清单仍需通过发行门禁后接入。
+
+公开仓库的手动 `Release preview` workflow 会从指定源码 SHA 构建 macOS arm64 桌面预览包和 Android TV arm64 T0 技术包，上传短期 Actions artifact，并附带 `release.json`/`SHA256SUMS`。这些包需要外部 Rust API 或仍属于 T0 技术验证，不是正式 Release，也不会进入稳定更新渠道。
+
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 
 游客历史说明见 [crates/core/src/library/README.md](crates/core/src/library/README.md)。`pnpm dev:*` 自动传入独立数据目录 `.local/data/rust`，不读取旧客户端文件；直接启动 Rust binary 必须提供 `--data-dir <目录>`。数据库不兼容或损坏时启动失败并保留原文件，请先检查版本与备份，不要删除数据绕过错误。
