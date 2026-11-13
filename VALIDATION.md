@@ -202,3 +202,15 @@ core 新增 MP4 初始化、普通 AVC／HEVC 检查、合法模型携带密钥�
 - UI 审查：无页面／控件改动，真实 Web 图形宿主 3 项通过；查看浅深控件截图，圆角、字号、间距、对齐、颜色、focus／selected／disabled／error 和减少动态效果路径无本批回归。日志 `artifacts/playback/ui-media-web.log`；截图 `artifacts/browsing/web/controls-{light,dark}.png`。新播放器视觉／动效、系统字号、屏幕阅读器、macOS／TV 与真实解码保持各自待验收。
 - `pnpm security` 再次运行，仍被既有 foldhash／webpki-roots／winx／zlib-rs 许可和 NSH bincode／ttf-parser 未维护项阻塞；未放宽 gate。只扩展现有 Tokio 文件／IO features，无新增包，后续安全阶段因前置 gate 失败未完成。日志 `artifacts/playback/security-media.log`。
 - 尚未验证：真实官网媒体、真实宿主播放、Windows 文件清理、物理电视与独立原生业务；本批不声称首个 MVP 完成。未推送／发布。
+
+### B3 · 共享准备、HTTP 与生成契约
+
+Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放 capability 仅随显式服务装配开启。新增 play/info、幂等释放及同源媒体 GET／HEAD，PlayInfo 已由 Rust 生成；账号 DTO 仍为兼容手写类型。定稿 Player 和客户端退出释放将在 B4 接入。
+
+- 功能审查：相同请求共享带 owner／revision 的准备，成功等待者持有独立句柄；最后 owner、关闭及迟到结果均有取消边界。来源模型预算 30 秒、family 8／14／8 秒，只有媒体准备成功才发布；业务／CDN 拒绝不继续回退。官网探测发现外层数字选集 ID 与内层 CDN 视频 ID 属于不同命名空间，修复为精确外层绑定，保留不同数字集 ID、无绑定 direct CDN ID 与 fallback 身份／时长漂移的拒绝测试。
+- 完整 `pnpm verify` 通过：87 项 Rust、15 项工程、38 项 NSH，三端 check／build、契约和 release check 通过；日志 `artifacts/playback/verify-service-final.log`。首次验证发现 CoreError.name 改变既有错误文案，恢复兼容后重跑通过。最后补充 HTTP 取消测试后，6 项 HTTP playback 集成与全工作区 Clippy 通过；日志 `http-tests-final.log`、`service-clippy-final.log`。真实进程 5 项与 codegen:check 通过，日志 `process-tests.log`、`codegen-service-check.log`。
+- HTTP 审查：实际字节覆盖 200／206／416、闭区间／开放／后缀、HEAD、长度／Content-Range、no-store、精确 CORS、未知／过期 token 和释放；Body Drop、实际 TCP 读取中断、JSON 响应前断开与关闭取消均通过。客户端同源路径、legacy 只读兼容路径及生成 DTO 有回归。
+- 官网准备探测：匿名搜索与详情成功，最终 `prepared codec=hevc quality=1080P bytes=15175371 first=16 tail=16`；日志 `artifacts/playback/live-diagnostic.log`。此前 IdentityMismatch 失败保留在 `live-preparation.log`；成功日志中的临时脱敏来源诊断已从源码移除。没有记录 URL／密钥／设备／cookie，没有将探测当真实首帧／观看／历史验收。
+- UI 审查：真实 Web 图形宿主 3 项通过，查看浅深 controls 截图未发现本批回归；日志 `artifacts/playback/ui-service-web.log`，截图 `artifacts/browsing/web/controls-{light,dark}.png`。本批未改 Player 页面，新播放器布局、解码、系统字体、macOS 与 TV 业务仍各自待验收。
+- `pnpm security` 仍被既有 foldhash／webpki-roots／winx／zlib-rs 许可与 NSH bincode／ttf-parser 未维护项阻塞，未放宽门禁；日志 `artifacts/playback/security-service.log`。futures-util 已在锁文件中，本批仅加入直接依赖，没有新增包；后续安全阶段未完成。
+- 本批不等于 B 或首个 MVP 完成；A 6.2 字体缩放、真实宿主观看／seek／切集／重启续播、物理电视／长播及独立原生业务未验收。未推送／发布。

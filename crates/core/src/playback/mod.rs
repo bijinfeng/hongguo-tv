@@ -3,10 +3,12 @@ mod identity;
 mod model;
 mod protocol;
 mod provider;
+mod service;
 mod sign;
 pub use identity::PlaybackClient;
 pub use model::{PlaybackModel, Representation, parse_model};
 pub use provider::PlaybackSource;
+pub use service::PlaybackService;
 
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};

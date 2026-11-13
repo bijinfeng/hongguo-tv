@@ -174,6 +174,254 @@
         }
       }
     },
+    "/api/v1/play/info": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "operationId": "info",
+        "parameters": [
+          {
+            "name": "series_id",
+            "in": "query",
+            "description": "Exact drama ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vid",
+            "in": "query",
+            "description": "Exact episode ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "content_type",
+            "in": "query",
+            "description": "Ordinary drama: 1004",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "quality",
+            "in": "query",
+            "description": "Automatic or exact resolution",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "codec_mode",
+            "in": "query",
+            "description": "default, auto or software",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "range; unsupported layouts use bounded file preparation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/play/release": {
+      "post": {
+        "tags": [
+          "playback"
+        ],
+        "operationId": "release",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/search": {
       "get": {
         "tags": [
@@ -368,6 +616,118 @@
         "responses": {
           "200": {
             "description": "Process is ready"
+          }
+        }
+      }
+    },
+    "/minireel-proxy/media/{token}": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "operationId": "media",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque handle",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "description": "One byte range",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "video/mp4 bytes"
+          },
+          "206": {
+            "description": "Partial video/mp4 bytes"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Range unavailable"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "playback"
+        ],
+        "operationId": "head_media",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque handle",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "description": "One byte range",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Same representation headers as GET; no body"
+          },
+          "206": {
+            "description": "Same partial headers as GET; no body"
+          },
+          "410": {
+            "description": "Expired handle"
+          },
+          "416": {
+            "description": "Range unavailable"
           }
         }
       }
@@ -759,6 +1119,60 @@
           }
         }
       },
+      "PlayInfo": {
+        "type": "object",
+        "description": "Prepared local resource; never contains upstream addresses, keys or device IDs.",
+        "required": [
+          "path",
+          "vid",
+          "video_codec",
+          "quality",
+          "qualities"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Same-service opaque media route."
+          },
+          "qualities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Distinct resolutions available from this accepted source."
+          },
+          "quality": {
+            "type": "string",
+            "description": "Actual selected resolution."
+          },
+          "vid": {
+            "type": "string",
+            "description": "Selected episode video ID."
+          },
+          "video_codec": {
+            "type": "string",
+            "description": "Actual media codec; vendor bytevc2 is not supported."
+          }
+        }
+      },
+      "PlayResponse": {
+        "type": "object",
+        "description": "Media prepared by the core; contains no upstream secrets.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PlayInfo",
+            "description": "Episode-bound local media resource."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
       "Progress": {
         "type": "object",
         "description": "An explicit playback checkpoint. Media resolution alone never writes it.",
@@ -807,6 +1221,51 @@
           }
         },
         "additionalProperties": false
+      },
+      "ReleaseRequest": {
+        "type": "object",
+        "description": "Release a previously issued local playback path.",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Exact local path returned by play/info."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReleaseResponse": {
+        "type": "object",
+        "description": "Successful idempotent release.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReleaseResult",
+            "description": "Acknowledgment, including already expired resources."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "ReleaseResult": {
+        "type": "object",
+        "description": "Release acknowledgment.",
+        "required": [
+          "released"
+        ],
+        "properties": {
+          "released": {
+            "type": "boolean",
+            "description": "Always true after accepting a valid local path."
+          }
+        }
       },
       "SearchResponse": {
         "type": "object",

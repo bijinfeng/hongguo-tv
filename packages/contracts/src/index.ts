@@ -7,12 +7,9 @@ export type Entry = components['schemas']['Entry'];
 export type Library = components['schemas']['Library'];
 export type HistoryChange = components['schemas']['HistoryChange'];
 
-// Playback and account remain migration compatibility types.
-export interface PlayInfo {
-  path: string;
-  vid: string;
-  video_codec?: string;
-}
+export type PlayInfo = components['schemas']['PlayInfo'];
+
+// Account remains a migration compatibility type.
 export interface Account {
   logged_in: boolean;
   profile?: { name: string };

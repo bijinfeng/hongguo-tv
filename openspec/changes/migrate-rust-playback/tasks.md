@@ -10,7 +10,7 @@
 - [x] 2.1 新增 core 播放请求／结果／脱敏错误及严格输入验证，覆盖大字符串 ID、content type、quality、codec 和模型视频身份不匹配；离线测试证明非法参数在网络前失败、bytevc2 不被当成可播 HEVC，文档明确兼容边界。
 - [x] 2.2 实现实例级匿名设备身份注册与缓存，隔离账号 cookies，保留单次并发注册、revision fencing、有限刷新与冷却；loopback 测试覆盖并发、取消、失败冷却、迟到旧身份及数量／TTL 限制，不记录真实设备标识。
 - [x] 2.3 实现固定来源矩阵中的 video_tab、registered legacy 与 single 请求／响应适配，并将签名／模型行为与去敏向量对照；逐来源 loopback 测试验证请求字节、视频身份、响应限制、超时、codec／quality 和错误脱敏，不允许 fixture 跳到公网。
-- [ ] 2.4 连接来源顺序、媒体准备成功后才记成功的规则及总预算，覆盖空响应恢复、业务拒绝不绕过权限、停滞来源后可用来源、最后 owner 取消和并发租约；单测确认旧结果不能发布为当前集，补充 core 播放边界文档。
+- [x] 2.4 连接来源顺序、媒体准备成功后才记成功的规则及总预算，覆盖空响应恢复、业务拒绝不绕过权限、停滞来源后可用来源、最后 owner 取消和并发租约；单测确认旧结果不能发布为当前集，补充 core 播放边界文档。
 
 ## 3. 媒体读取与生命周期
 
@@ -20,9 +20,9 @@
 
 ## 4. HTTP 与生成契约
 
-- [ ] 4.1 将播放服务装配至实际 web-api binary，初始化失败不 ready；新增 play/info 和必要的幂等资源释放，按真实服务更新 capability。HTTP／进程测试覆盖输入、脱敏错误、未装配、取消与关闭，不改变游客历史或账号协议。
-- [ ] 4.2 实现媒体 GET／HEAD 及同源策略，复用 ByteRange；实际字节集成测试覆盖 200、闭区间／开放／后缀 206、416、HEAD 无 body、正确长度／Content-Range、CORS 暴露、no-store、未知／过期 token 和中途断开释放。
-- [ ] 4.3 执行 codegen，提交 OpenAPI 和 generated.ts，PlayInfo 改为生成类型；同步 core-client 的质量／错误／释放和同源媒体 URL 校验，运行 codegen:check、三端 check/build 与客户端协议回归，文档保留账号兼容 DTO 的实际状态。
+- [x] 4.1 将播放服务装配至实际 web-api binary，初始化失败不 ready；新增 play/info 和必要的幂等资源释放，按真实服务更新 capability。HTTP／进程测试覆盖输入、脱敏错误、未装配、取消与关闭，不改变游客历史或账号协议。
+- [x] 4.2 实现媒体 GET／HEAD 及同源策略，复用 ByteRange；实际字节集成测试覆盖 200、闭区间／开放／后缀 206、416、HEAD 无 body、正确长度／Content-Range、CORS 暴露、no-store、未知／过期 token 和中途断开释放。
+- [x] 4.3 执行 codegen，提交 OpenAPI 和 generated.ts，PlayInfo 改为生成类型；同步 core-client 的质量／错误／释放和同源媒体 URL 校验，运行 codegen:check、三端 check/build 与客户端协议回归，文档保留账号兼容 DTO 的实际状态。
 
 ## 5. 定稿播放器与共享会话
 

@@ -11,6 +11,17 @@ export function configureClient(origin: string) {
   coreOrigin = origin;
 }
 
+/** Stable core error category alongside the human recovery message. */
+export class CoreError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
+
 export async function request<T>(path: string, abort?: AbortSignal, body?: unknown): Promise<T> {
   if (!coreOrigin) throw new Error('Core client is not configured');
   const response = await fetch(coreOrigin + path, {
@@ -19,8 +30,13 @@ export async function request<T>(path: string, abort?: AbortSignal, body?: unkno
     headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
-  const result = (await response.json()) as { ok: boolean; error?: string; data: T };
-  if (!response.ok || !result.ok) throw new Error(result.error || `服务返回 ${response.status}`);
+  const result = (await response.json()) as { ok: boolean; error?: string; code?: string; data: T };
+  if (!response.ok || !result.ok)
+    throw new CoreError(
+      result.error || `服务返回 ${response.status}`,
+      result.code || 'CORE_REQUEST_FAILED',
+      response.status,
+    );
   return result.data;
 }
 export const search = (q: string, abort: AbortSignal) =>
@@ -30,19 +46,37 @@ export const detail = (drama: Drama, abort: AbortSignal) =>
     `/api/v1/series/detail?series_id=${drama.series_id}&content_type=${drama.content_type ?? ''}`,
     abort,
   );
-export const play = async (drama: Drama, episode: Episode, abort: AbortSignal) => {
+/** Options for one episode representation; automatic quality preserves the existing default. */
+export interface PlaybackOptions {
+  quality?: string;
+  codecMode?: 'default' | 'auto' | 'software';
+}
+export const play = async (
+  drama: Drama,
+  episode: Episode,
+  abort: AbortSignal,
+  options: PlaybackOptions = {},
+) => {
   const info = await request<PlayInfo>(
-    `/api/v1/play/info?series_id=${drama.series_id}&vid=${episode.video_id}&mode=range&codec_mode=default&content_type=${drama.content_type ?? ''}`,
+    `/api/v1/play/info?series_id=${encodeURIComponent(drama.series_id)}&vid=${encodeURIComponent(episode.video_id)}&mode=range&codec_mode=${options.codecMode ?? 'default'}&content_type=${encodeURIComponent(drama.content_type ?? '')}&quality=${encodeURIComponent(options.quality ?? '')}`,
     abort,
   );
-  return { ...info, url: mediaURL(info.path) };
+  const url = mediaURL(info.path);
+  if (info.vid !== episode.video_id)
+    throw new CoreError('视频来源与所选集数不一致，请重试', 'PLAYBACK_IDENTITY_MISMATCH', 409);
+  return { ...info, url };
 };
+const mediaPath = /^\/minireel-proxy\/media\/[a-f0-9]{64}$/;
 export function mediaURL(path: string) {
-  const url = new URL(path, coreOrigin);
-  // Playback is served through the core; never send native players to arbitrary schemes/hosts.
-  if (url.origin !== coreOrigin || !url.pathname.startsWith('/minireel-proxy/media/'))
+  // The 24-character .mp4 path is retained solely for the read-only legacy transport.
+  if (!coreOrigin || !/^\/minireel-proxy\/media\/(?:[a-f0-9]{64}|[a-f0-9]{24}\.mp4)$/.test(path))
     throw new Error('播放地址不受支持');
-  return url.href;
+  return coreOrigin + path;
+}
+/** Idempotent release of a ready representation, including one that has already expired. */
+export function releasePlay(path: string, abort?: AbortSignal) {
+  if (!mediaPath.test(path)) return Promise.reject(new Error('播放地址不受支持'));
+  return request<{ released: boolean }>('/api/v1/play/release', abort, { path });
 }
 
 /** Keep the library contract below the core's 32 KiB boundary. */

@@ -2,7 +2,7 @@
 
 NSH TSX + Rust 多端工程，采用 pnpm monorepo 和 Cargo workspace。Web、桌面和 Android TV 复用同一套界面与状态逻辑；目标原生客户端直接链接 Rust 核心。
 
-**当前是工程迁移第一阶段。** Rust API 已提供匿名官网搜索与详情、游客 SQLite 历史、生成契约和边界检查；账号与播放协议尚未迁移。三端业务通过 HTTP 连接 Rust 服务，尚未接入原生业务 bridge。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
+**当前是工程迁移第一阶段。** Rust API 已提供匿名官网搜索与详情、游客 SQLite 历史、播放解析与有界媒体服务、生成契约和边界检查；账号尚未迁移，定稿播放器与新链路真实观看仍在验收中。三端业务通过 HTTP 连接 Rust 服务，尚未接入原生业务 bridge。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
 
 ## 准备
 
@@ -69,7 +69,7 @@ fuzz 使用独立固定 nightly：先 `rustup toolchain install nightly-2026-11-
 
 也可分别运行 `pnpm fmt`、`fmt:check`、`lint`、`check`、`build`、`test`、`test:tooling`。check/build/test 可添加 `--target web|desktop|tv` 缩小范围；默认检查三端入口。NSH headless 测试使用真实引擎和网络 stub，不能证明 TV 遥控或硬件解码。
 
-`pnpm dev:*` 使用共享界面和 Rust 匿名官网搜索/详情。搜索只支持 `source=web`，与 App 搜索游标不同；游客历史支持读取、保存、删除/清空；账号与播放接口仍返回 `CORE_NOT_IMPLEMENTED`。官网验证挑战、超时和协议错误会明确失败。开发 API 只监听 `127.0.0.1`、校验精确 Host/Origin、限制请求体；不能直接公开到公网。Ctrl-C 关闭本次 API 和宿主。每个目标同时只运行一个会话。
+`pnpm dev:*` 使用共享界面和 Rust 匿名官网搜索/详情。搜索只支持 `source=web`，与 App 搜索游标不同；游客历史支持读取、保存、删除/清空；账号接口仍返回 `CORE_NOT_IMPLEMENTED`；播放接口通过 Rust 解析并准备同源不透明媒体，支持质量选择、幂等释放及 GET／HEAD Range，来源不可用或访问拒绝时明确失败。官网验证挑战、超时和协议错误会明确失败。开发 API 只监听 `127.0.0.1`、校验精确 Host/Origin、限制请求体；不能直接公开到公网。Ctrl-C 关闭本次 API 和宿主。每个目标同时只运行一个会话。
 
 Web/Desktop 预览打包需要显式提供 `HONGGUO_CORE_ORIGIN`，再运行 `pnpm package:web|desktop`；TV 在存在 `apps/tv/native` 时可运行 `pnpm package:tv` 生成 arm64 T0 技术验证 APK，否则同样需要外部 API。技术验证包仍不等于独立产品；桌面/TV 业务原生链接、公开 Web 身份隔离、签名与更新均是后续阶段。
 
@@ -81,7 +81,7 @@ packages/app/             共享页面、导航、状态、播放会话、行为
 packages/ui/              共享控件、主题与动效
 packages/core-client/     HTTP 适配和媒体/历史请求边界
 packages/contracts/       Rust 目录/历史契约 + 未迁移兼容 DTO
-crates/core/              目录查询/解析、有界 HTTP/TLS、SQLite 历史、媒体 Range
+crates/core/              目录/播放协议、有界 HTTP/TLS、SQLite 历史、媒体准备与 Range
 crates/http-api/          Axum 路由、开发来源策略、OpenAPI 导出
 services/web-api/         Tokio 进程、loopback 监听和优雅退出
 tooling/                  工程命令、生命周期、依赖边界测试

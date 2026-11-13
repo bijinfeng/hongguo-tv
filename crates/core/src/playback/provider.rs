@@ -198,9 +198,12 @@ impl PlaybackClient {
         if matches!(
             result,
             Err(PlaybackError::EmptySource | PlaybackError::UnsupportedMedia)
-        ) && let Some((fallback, duration)) = super::model::fallback_reference(&body, request)
+        ) && let Some((fallback, duration, media_id)) =
+            super::model::fallback_reference(&body, request)
         {
-            return self.fallback_model(request, &fallback, duration).await;
+            return self
+                .fallback_model(request, &fallback, duration, media_id.as_deref())
+                .await;
         }
         result
     }
@@ -210,6 +213,7 @@ impl PlaybackClient {
         request: &PlaybackRequest,
         raw: &str,
         duration: Option<f64>,
+        media_id: Option<&str>,
     ) -> Result<PlaybackModel, PlaybackError> {
         let original = Url::parse(raw).map_err(|_| PlaybackError::InvalidModel)?;
         let fixture = self
@@ -296,6 +300,17 @@ impl PlaybackClient {
                 }
             }
             let model = &root["video_info"]["data"];
+            if let Some(expected) = media_id {
+                let same = ["video_id", "vid"].iter().any(|field| {
+                    model[*field].as_str() == Some(expected)
+                        || model[*field]
+                            .as_number()
+                            .is_some_and(|n| n.to_string() == expected)
+                });
+                if !same {
+                    return Err(PlaybackError::IdentityMismatch);
+                }
+            }
             let actual_duration = model["video_duration"]
                 .as_f64()
                 .or_else(|| model["video_duration"].as_str()?.parse().ok());
@@ -304,8 +319,9 @@ impl PlaybackClient {
             {
                 return Err(PlaybackError::IdentityMismatch);
             }
-            let normalized = serde_json::to_vec(&json!({"code":0,"data":{"video_model":model}}))
-                .map_err(|_| PlaybackError::InvalidModel)?;
+            let normalized =
+                serde_json::to_vec(&json!({"code":0,"data":{request.vid():{"video_model":model}}}))
+                    .map_err(|_| PlaybackError::InvalidModel)?;
             match parse_model(&normalized, request) {
                 Ok(model) => return Ok(model),
                 Err(error @ (PlaybackError::UnsupportedMedia | PlaybackError::EmptySource)) => {

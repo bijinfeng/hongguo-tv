@@ -264,3 +264,9 @@ FFI/JNI 边界明确内存分配与释放方、线程、回调注销、异步取
 - [NSH 当前提交的 Cargo 配置](https://github.com/longbridge/nsh/blob/f4d68f7/Cargo.toml)：Edition 2024、resolver 3、Rust 最低版本 1.97。
 - [pnpm workspace 与 workspace 协议](https://pnpm.io/workspaces)、[Cargo workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html)。
 - Rust 基础库候选：[Axum](https://github.com/tokio-rs/axum)、[reqwest](https://github.com/seanmonstar/reqwest)、[rusqlite](https://github.com/rusqlite/rusqlite)、[utoipa](https://github.com/juhaku/utoipa)。具体组合尚待兼容性验证。
+
+## Rust 播放切片（B3，2026-11-14）
+
+在上述目录／历史基线上，`PlaybackService` 显式装配至 web-api；只有初始化全部成功才 ready。匿名协议、短期身份、来源预算和媒体准备归 core，HTTP 仅验证请求、映射脱敏错误与输出字节。每个等待者拥有 revision 绑定的租约，同集请求共享准备，最后 owner 取消终止任务；各成功调用获得独立随机句柄。媒体初始化和生命周期规则见 `crates/core/src/media/README.md`。
+
+`play/info`、`play/release` 与媒体 GET／HEAD 已注册 OpenAPI，PlayInfo 由 Rust 生成，账号仍为兼容 DTO。capability 随显式装配更新；仅目录／历史的测试 router 仍报告 playback=false。开发 Host／Origin 策略覆盖媒体，GET／HEAD 返回 no-store、精确长度及 Range；响应 body 被丢弃会取消其上游读取。binary 关闭先取消播放准备，再结束 HTTP。页面定稿、实际观看与解码、TV 原生独立业务和正式发行各自验收，不能由协议或字节 fixture 通过推导。

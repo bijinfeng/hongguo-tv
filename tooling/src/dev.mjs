@@ -116,7 +116,7 @@ export async function dev(target) {
     }
     if (closing) return;
     console.log(
-      `Rust API ${origin}; UI http://127.0.0.1:${port}. Anonymous catalog and guest history ready; account/playback migration pending.`,
+      `Rust API ${origin}; UI http://127.0.0.1:${port}. Anonymous catalog, guest history and playback services ready; account migration pending.`,
     );
     host = child(
       executable('nsh'),

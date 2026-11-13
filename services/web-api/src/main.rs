@@ -1,6 +1,6 @@
 //! Development API. Binds loopback only; never accesses legacy user data.
-use hongguo_core::{catalog::CatalogClient, library::LibraryStore};
-use hongguo_http_api::{DevPolicy, router_with_services};
+use hongguo_core::{catalog::CatalogClient, library::LibraryStore, playback::PlaybackService};
+use hongguo_http_api::{DevPolicy, router_with_playback};
 use std::{error::Error, io::Write};
 
 #[tokio::main]
@@ -36,12 +36,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     let library = LibraryStore::open(data_dir.join("guest.sqlite3")).await?;
     let catalog = CatalogClient::new()?;
+    let playback = PlaybackService::new(&data_dir)?;
     let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     let address = listener.local_addr()?;
-    let app = router_with_services(
+    let app = router_with_playback(
         DevPolicy::new(address.port(), origin),
         catalog,
         Some(library),
+        Some(playback.clone()),
     );
     println!(
         "{}",
@@ -49,7 +51,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     std::io::stdout().flush()?;
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown())
+        .with_graceful_shutdown(async move {
+            shutdown().await;
+            playback.close();
+        })
         .await?;
     Ok(())
 }

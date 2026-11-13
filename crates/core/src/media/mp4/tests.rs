@@ -181,3 +181,15 @@ fn rejects_invalid_boxes_and_requests_full_preparation_for_late_moov() {
     oversized.extend_from_slice(b"moov");
     assert_eq!(prefix_end(&oversized, 512 * 1024 * 1024).unwrap(), None);
 }
+
+#[test]
+fn existing_self_authored_t0_h264_aac_fixture_validates_without_patching() {
+    // Original test pattern; provenance and reproduction are next to the existing TV fixture.
+    let bytes = include_bytes!("../../../../../apps/tv/fixtures/t0-b.mp4");
+    let end = prefix_end(bytes, bytes.len() as u64).unwrap().unwrap();
+    let mut prefix = bytes[..end].to_vec();
+    let index = initialize(&mut prefix, 0, bytes.len() as u64, None).unwrap();
+    assert_eq!(index.codec, "h264");
+    assert!(index.samples.is_empty());
+    assert_eq!(prefix, bytes[..end]);
+}

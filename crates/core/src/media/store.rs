@@ -464,6 +464,9 @@ impl MediaStore {
         key: Option<[u8; 16]>,
     ) -> Result<Option<PreparedMedia>, PlaybackError> {
         let mut response = request_range(&self.inner.http, url, 0, PROBE - 1, None).await?;
+        if matches!(response.status().as_u16(), 401 | 403) {
+            return Err(PlaybackError::AccessDenied);
+        }
         if response.status().as_u16() == 200 {
             return Ok(None);
         }
@@ -556,6 +559,9 @@ impl MediaStore {
             .send()
             .await
             .map_err(network_error)?;
+        if matches!(response.status().as_u16(), 401 | 403) {
+            return Err(PlaybackError::AccessDenied);
+        }
         if response.status().as_u16() != 200 {
             return Err(PlaybackError::Transport);
         }

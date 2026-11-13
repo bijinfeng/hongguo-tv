@@ -9,7 +9,7 @@ const MODEL_LIMIT: usize = 4 * 1024 * 1024;
 pub(super) fn fallback_reference(
     body: &[u8],
     request: &PlaybackRequest,
-) -> Option<(String, Option<f64>)> {
+) -> Option<(String, Option<f64>, Option<String>)> {
     let root: Value = serde_json::from_slice(body).ok()?;
     let data = &root["data"];
     let keyed = if data["video_model_data"].is_object() {
@@ -36,7 +36,8 @@ pub(super) fn fallback_reference(
     let duration = scalar(&model["video_duration"])
         .and_then(|s| s.parse::<f64>().ok())
         .filter(|s| s.is_finite() && *s > 0.0);
-    Some((url.into(), duration))
+    let media_id = scalar(&model["video_id"]).or_else(|| scalar(&model["vid"]));
+    Some((url.into(), duration, media_id))
 }
 
 /// Parsed model tied to one validated episode. Media URLs remain private to core.
@@ -171,21 +172,28 @@ pub fn parse_model(body: &[u8], request: &PlaybackRequest) -> Result<PlaybackMod
     if !model.is_object() {
         return Err(PlaybackError::InvalidModel);
     }
+    let keyed_identity = !keyed[request.vid()]["video_model"].is_null();
+    let mut episode_identity = keyed_identity;
     for field in ["video_id", "vid"] {
         if !model[field].is_null() && scalar(&model[field]).is_none() {
             return Err(PlaybackError::InvalidModel);
         }
-        if let Some(id) = scalar(&model[field])
-            && id != request.vid()
-        {
-            return Err(PlaybackError::IdentityMismatch);
+        if let Some(id) = scalar(&model[field]) {
+            if id == request.vid() {
+                episode_identity = true;
+                continue;
+            }
+            // In exact keyed envelopes the model may identify the internal 32-byte CDN video.
+            // It is a different namespace from the decimal episode ID, never a replacement ID.
+            let internal = id.len() == 32
+                && id.bytes().all(|b| b.is_ascii_alphanumeric())
+                && id.bytes().any(|b| b.is_ascii_alphabetic());
+            if !keyed_identity || !internal {
+                return Err(PlaybackError::IdentityMismatch);
+            }
         }
     }
-    // Direct models need affirmative identity; exact keyed envelopes establish it themselves.
-    if keyed[request.vid()]["video_model"].is_null()
-        && scalar(&model["video_id"]).is_none()
-        && scalar(&model["vid"]).is_none()
-    {
+    if !episode_identity {
         return Err(PlaybackError::IdentityMismatch);
     }
     let rows: Vec<&Value> = match &model["video_list"] {

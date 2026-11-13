@@ -20,7 +20,13 @@ function fixture(request: StubRequest): StubResponse {
   if (url.pathname === '/api/v1/search') return ok({ items: [drama], has_more: false });
   if (url.pathname === '/api/v1/series/detail') return ok(drama);
   if (url.pathname === '/api/v1/play/info')
-    return ok({ path: '/minireel-proxy/media/test.mp4', vid: url.searchParams.get('vid') });
+    return ok({
+      path: '/minireel-proxy/media/' + 'a'.repeat(64),
+      vid: url.searchParams.get('vid'),
+      video_codec: 'h264',
+      quality: '720P',
+      qualities: ['720P'],
+    });
   return { status: 404, body: { ok: false, error: 'Unknown fixture' } };
 }
 

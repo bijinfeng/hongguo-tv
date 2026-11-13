@@ -1,6 +1,7 @@
 //! Loopback development transport. Public deployment requires session isolation first.
 mod catalog;
 mod library;
+mod playback;
 
 use axum::{
     Json, Router,
@@ -14,6 +15,7 @@ use hongguo_core::{
     CoreStatus,
     catalog::{CatalogClient, CatalogError},
     library::LibraryStore,
+    playback::PlaybackService,
 };
 use serde::Serialize;
 use utoipa::{OpenApi, ToSchema};
@@ -64,7 +66,7 @@ pub struct ApiError {
     pub error: String,
 }
 fn failure(status: StatusCode, code: &str, message: &str) -> Response {
-    (
+    let mut response = (
         status,
         Json(ApiError {
             ok: false,
@@ -72,13 +74,18 @@ fn failure(status: StatusCode, code: &str, message: &str) -> Response {
             error: message.into(),
         }),
     )
-        .into_response()
+        .into_response();
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response
 }
 
 #[utoipa::path(get, path = "/api/v1/status", responses((status = 200, body = StatusResponse), (status = 403, body = ApiError)))]
 async fn status(State(state): State<ApiState>) -> Json<StatusResponse> {
     let mut result = StatusResponse::default();
     result.data.capabilities.history = state.library.is_some();
+    result.data.capabilities.playback = state.playback.is_some();
     Json(result)
 }
 #[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Process is ready")))]
@@ -144,7 +151,7 @@ async fn boundary(State(policy): State<DevPolicy>, req: Request, next: Next) -> 
     } else {
         next.run(req).await
     };
-    if let Some(origin) = cors {
+    if let Some(origin) = cors.clone() {
         response
             .headers_mut()
             .insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin);
@@ -153,11 +160,20 @@ async fn boundary(State(policy): State<DevPolicy>, req: Request, next: Next) -> 
             .insert(header::VARY, HeaderValue::from_static("Origin"));
         response.headers_mut().insert(
             header::ACCESS_CONTROL_ALLOW_METHODS,
-            HeaderValue::from_static("GET, POST, OPTIONS"),
+            HeaderValue::from_static("GET, HEAD, POST, OPTIONS"),
         );
         response.headers_mut().insert(
             header::ACCESS_CONTROL_ALLOW_HEADERS,
             HeaderValue::from_static("Content-Type, Range"),
+        );
+    }
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    if cors.is_some() {
+        response.headers_mut().insert(
+            header::ACCESS_CONTROL_EXPOSE_HEADERS,
+            HeaderValue::from_static("Content-Range, Accept-Ranges, Content-Length"),
         );
     }
     response
@@ -177,6 +193,7 @@ pub fn router_with_catalog(policy: DevPolicy, catalog: CatalogClient) -> Router 
 pub(crate) struct ApiState {
     catalog: CatalogClient,
     library: Option<LibraryStore>,
+    playback: Option<PlaybackService>,
 }
 impl FromRef<ApiState> for CatalogClient {
     fn from_ref(state: &ApiState) -> Self {
@@ -190,12 +207,30 @@ pub fn router_with_services(
     catalog: CatalogClient,
     library: Option<LibraryStore>,
 ) -> Router {
+    router_with_playback(policy, catalog, library, None)
+}
+
+/// Attach an initialized playback service; omitted services remain explicitly unavailable.
+pub fn router_with_playback(
+    policy: DevPolicy,
+    catalog: CatalogClient,
+    library: Option<LibraryStore>,
+    playback: Option<PlaybackService>,
+) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/api/v1/status", get(status))
         .route("/api/v1/search", get(catalog::search))
         .route("/api/v1/series/detail", get(catalog::detail))
-        .route("/api/v1/play/info", get(unavailable))
+        .route("/api/v1/play/info", get(playback::info))
+        .route(
+            "/api/v1/play/release",
+            axum::routing::post(playback::release),
+        )
+        .route(
+            "/minireel-proxy/media/{token}",
+            get(playback::media).head(playback::head_media),
+        )
         .route("/api/v1/library", get(library::get).post(library::change))
         .route("/api/v1/account", get(unavailable))
         .route(
@@ -210,7 +245,11 @@ pub fn router_with_services(
                 "Method not allowed",
             )
         })
-        .with_state(ApiState { catalog, library })
+        .with_state(ApiState {
+            catalog,
+            library,
+            playback,
+        })
         .layer(middleware::from_fn_with_state(policy, boundary))
 }
 
@@ -222,7 +261,11 @@ pub fn router_with_services(
         catalog::search,
         catalog::detail,
         library::get,
-        library::change
+        library::change,
+        playback::info,
+        playback::release,
+        playback::media,
+        playback::head_media
     ),
     components(schemas(
         StatusResponse,
@@ -235,6 +278,11 @@ pub fn router_with_services(
         hongguo_core::catalog::Episode,
         hongguo_core::catalog::SearchResult,
         library::LibraryResponse,
+        playback::PlayResponse,
+        playback::ReleaseRequest,
+        playback::ReleaseResponse,
+        playback::ReleaseResult,
+        hongguo_core::playback::PlayInfo,
         hongguo_core::library::Entry,
         hongguo_core::library::Library,
         hongguo_core::library::HistoryChange,
@@ -244,7 +292,7 @@ pub fn router_with_services(
 )]
 struct ApiDoc;
 
-/// Export implemented endpoints only. Unmigrated account/playback DTOs remain separate.
+/// Export implemented endpoints only. Account compatibility DTOs remain separate.
 pub fn openapi() -> utoipa::openapi::OpenApi {
     use utoipa::openapi::{RefOr, schema::Schema};
     let mut doc = ApiDoc::openapi();

@@ -258,3 +258,27 @@ fn business_rejection_stops_recovery_and_errors_are_bounded_and_secret_free() {
         Err(PlaybackError::InvalidModel)
     ));
 }
+
+#[test]
+fn keyed_episode_identity_can_bind_a_distinct_internal_cdn_video_id() {
+    let mut value = legacy();
+    let internal = "v0123456789abcdef0123456789abcde";
+    value["data"][VID]["video_model"]["video_id"] = json!(internal);
+    assert!(parse(&value, "").is_ok());
+    let raw = value["data"][VID]["video_model"].clone();
+    assert!(matches!(
+        parse(&json!({"data":{"video_model":raw}}), ""),
+        Err(PlaybackError::IdentityMismatch)
+    ));
+    for wrong in [
+        "123",
+        "a-different-episode",
+        "v0123456789abcdef0123456789abcde!",
+    ] {
+        value["data"][VID]["video_model"]["video_id"] = json!(wrong);
+        assert!(matches!(
+            parse(&value, ""),
+            Err(PlaybackError::IdentityMismatch)
+        ));
+    }
+}

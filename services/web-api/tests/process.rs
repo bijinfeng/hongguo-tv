@@ -36,6 +36,23 @@ fn invalid_configuration_never_starts_a_listener() {
 }
 
 #[test]
+fn media_storage_initialization_failure_never_reports_ready() {
+    let temp = Temp::new();
+    std::fs::write(temp.0.join("media"), b"unrelated existing file").unwrap();
+    let result = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+        .arg("--data-dir")
+        .arg(&temp.0)
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(result.stdout.is_empty());
+    assert_eq!(
+        std::fs::read(temp.0.join("media")).unwrap(),
+        b"unrelated existing file"
+    );
+}
+
+#[test]
 fn binary_serves_real_loopback_requests_and_exits() {
     let temp = Temp::new();
     let child = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
@@ -65,7 +82,7 @@ fn binary_serves_real_loopback_requests_and_exits() {
     for (path, expected) in [
         ("/healthz", "200 OK"),
         ("/api/v1/status", "200 OK"),
-        ("/api/v1/play/info", "501 Not Implemented"),
+        ("/api/v1/play/info", "400 Bad Request"),
     ] {
         let mut socket = TcpStream::connect(address).unwrap();
         socket

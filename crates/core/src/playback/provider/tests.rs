@@ -343,3 +343,21 @@ async fn oversized_and_stalled_models_fail_without_raw_transport_details() {
     let _ = server.requests.try_recv();
 }
 use reqwest::ClientBuilder;
+
+#[tokio::test]
+async fn fallback_keeps_the_internal_media_identity_of_the_exact_episode_envelope() {
+    let internal = "v0123456789abcdef0123456789abcde";
+    for actual in [internal, "v1123456789abcdef0123456789abcde"] {
+        let envelope = json!({"data":{query().vid():{"video_model":{"video_id":internal,"video_duration":91,"video_list":[],"fallback_api":"{{origin}}/fallback?sig=synthetic"}}},"fixture_fallback":{"video_info":{"data":{"video_id":actual,"video_duration":91,"video_list":[{"codec_type":"h264","main_url":"https://media.example.invalid/video","vheight":1080}]}}}});
+        let server = server(&serde_json::to_vec(&envelope).unwrap(), 200, "", false).await;
+        let client = PlaybackClient::for_loopback_tests(&server.origin).unwrap();
+        let result = client
+            .candidates(&query(), PlaybackSource::RegisteredLegacy)
+            .await;
+        if actual == internal {
+            assert_eq!(result.unwrap().select(&query()).unwrap().codec(), "h264");
+        } else {
+            assert!(matches!(result, Err(PlaybackError::IdentityMismatch)));
+        }
+    }
+}

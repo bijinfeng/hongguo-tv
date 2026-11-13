@@ -20,6 +20,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/play/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/play/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -81,6 +113,22 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/minireel-proxy/media/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["media"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head: operations["head_media"];
         patch?: never;
         trace?: never;
     };
@@ -254,6 +302,26 @@ export interface components {
             /** @description Always true. */
             ok: boolean;
         };
+        /** @description Prepared local resource; never contains upstream addresses, keys or device IDs. */
+        PlayInfo: {
+            /** @description Same-service opaque media route. */
+            path: string;
+            /** @description Distinct resolutions available from this accepted source. */
+            qualities: string[];
+            /** @description Actual selected resolution. */
+            quality: string;
+            /** @description Selected episode video ID. */
+            vid: string;
+            /** @description Actual media codec; vendor bytevc2 is not supported. */
+            video_codec: string;
+        };
+        /** @description Media prepared by the core; contains no upstream secrets. */
+        PlayResponse: {
+            /** @description Episode-bound local media resource. */
+            data: components["schemas"]["PlayInfo"];
+            /** @description Always true. */
+            ok: boolean;
+        };
         /** @description An explicit playback checkpoint. Media resolution alone never writes it. */
         Progress: {
             /** @description Defaults to unfinished. */
@@ -279,6 +347,23 @@ export interface components {
             position: number;
             /** @description Nonzero decimal video ID, up to 32 digits. */
             video_id: string;
+        };
+        /** @description Release a previously issued local playback path. */
+        ReleaseRequest: {
+            /** @description Exact local path returned by play/info. */
+            path: string;
+        };
+        /** @description Successful idempotent release. */
+        ReleaseResponse: {
+            /** @description Acknowledgment, including already expired resources. */
+            data: components["schemas"]["ReleaseResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Release acknowledgment. */
+        ReleaseResult: {
+            /** @description Always true after accepting a valid local path. */
+            released: boolean;
         };
         /** @description Successful website search page. */
         SearchResponse: {
@@ -417,6 +502,189 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    info: {
+        parameters: {
+            query: {
+                /** @description Exact drama ID */
+                series_id: string;
+                /** @description Exact episode ID */
+                vid: string;
+                /** @description Ordinary drama: 1004 */
+                content_type?: string;
+                /** @description Automatic or exact resolution */
+                quality?: string;
+                /** @description default, auto or software */
+                codec_mode?: string;
+                /** @description range; unsupported layouts use bounded file preparation */
+                mode?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -610,6 +878,113 @@ export interface operations {
         responses: {
             /** @description Process is ready */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    media: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description One byte range */
+                Range?: string | null;
+            };
+            path: {
+                /** @description Opaque handle */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description video/mp4 bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Partial video/mp4 bytes */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Range unavailable */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    head_media: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description One byte range */
+                Range?: string | null;
+            };
+            path: {
+                /** @description Opaque handle */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Same representation headers as GET; no body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Same partial headers as GET; no body */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Expired handle */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Range unavailable */
+            416: {
                 headers: {
                     [name: string]: unknown;
                 };
