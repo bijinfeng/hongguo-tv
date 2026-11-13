@@ -179,6 +179,7 @@ function tvPage() {
     new: tvNew,
     ranking: tvRanking,
     settings: tvSettings,
+    updates: updatePage,
     account: tvAccount,
     support: supportPage,
     apps: appsPage,

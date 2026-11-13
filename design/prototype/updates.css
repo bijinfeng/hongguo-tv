@@ -1,0 +1,186 @@
+/* Extends the existing semantic palette; TV sizes remain browser preview units. */
+.update-page {
+  max-width: 1080px;
+  margin-inline: auto;
+}
+.update-heading {
+  margin-bottom: 36px;
+}
+.update-heading .update-back {
+  margin-bottom: 16px;
+  padding-left: 0;
+}
+.update-heading h1 {
+  margin: 0;
+}
+.update-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.85fr);
+  gap: 64px;
+  min-height: 325px;
+}
+.update-current {
+  color: var(--secondary);
+  margin: 0 0 24px;
+  font-variant-numeric: tabular-nums;
+}
+.update-status h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 12px;
+}
+.update-status p {
+  color: var(--secondary);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 34em;
+}
+.update-release {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 24px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.update-release span {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--secondary);
+}
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.update-actions a {
+  text-decoration: none;
+}
+.update-notes {
+  border-left: 1px solid var(--border);
+  padding-left: 32px;
+}
+.update-notes h2 {
+  font-size: 18px;
+  margin: 0 0 20px;
+}
+.update-notes ul {
+  padding-left: 20px;
+  margin: 0;
+  line-height: 1.8;
+}
+.update-notes li + li {
+  margin-top: 12px;
+}
+.update-fixture {
+  margin: 24px 0 0;
+  color: var(--secondary);
+  font-size: 14px;
+}
+.update-progress-block {
+  margin-top: 24px;
+}
+.update-progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--border);
+  accent-color: var(--primary);
+}
+.update-progress::-webkit-progress-bar {
+  background: var(--border);
+}
+.update-progress::-webkit-progress-value {
+  background: var(--primary);
+}
+.update-progress::-moz-progress-bar {
+  background: var(--primary);
+}
+.update-progress-caption,
+.update-wait,
+.update-recovery {
+  margin: 12px 0 0;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+.update-preferences {
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+  max-width: 660px;
+}
+.update-preferences .setting-row {
+  border: 0;
+}
+.update-tv {
+  max-width: 1560px;
+}
+#tv-content .update-heading {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 52px;
+}
+#tv-content .update-heading h1,
+#tv-content .update-heading .update-back {
+  margin: 0;
+}
+.update-tv .update-layout {
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 88px;
+  min-height: 400px;
+}
+.update-tv .update-current {
+  margin-bottom: 28px;
+}
+#tv-content .update-status h2 {
+  font-size: 32px;
+}
+.update-tv .update-status p {
+  max-width: 27em;
+}
+.update-tv .update-release {
+  font-size: 32px;
+  margin-top: 28px;
+}
+.update-tv .update-release span,
+.update-tv .update-fixture {
+  font-size: 24px;
+}
+.update-tv .update-notes {
+  padding-left: 48px;
+}
+#tv-content .update-notes h2 {
+  margin-bottom: 28px;
+  font-size: 28px;
+}
+.update-tv .update-actions {
+  margin-top: 36px;
+  gap: 20px;
+}
+.update-tv .update-progress {
+  height: 8px;
+}
+.update-tv .update-preferences {
+  max-width: none;
+  margin-top: 48px;
+}
+@media (max-width: 1450px) {
+  .update-layout {
+    gap: 40px;
+  }
+  .update-tv .update-layout {
+    gap: 48px;
+    min-height: 360px;
+  }
+  #tv-content .update-heading {
+    margin-bottom: 36px;
+  }
+  .update-tv .update-preferences {
+    margin-top: 32px;
+  }
+}

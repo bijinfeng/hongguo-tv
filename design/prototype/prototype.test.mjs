@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('./app.js', import.meta.url), 'utf8');
 const desktop = readFileSync(new URL('./desktop.js', import.meta.url), 'utf8');
+const updates = readFileSync(new URL('./updates.js', import.meta.url), 'utf8');
 const tv = readFileSync(new URL('./tv.js', import.meta.url), 'utf8');
 
 function prototype() {
@@ -27,7 +28,10 @@ function prototype() {
     clearTimeout,
   });
   // Skip browser bootstrap; exercise the actual model, rendering and event handlers.
-  vm.runInContext(desktop + tv + source.slice(0, source.lastIndexOf("$('#search-icon')")), context);
+  vm.runInContext(
+    desktop + tv + updates + source.slice(0, source.lastIndexOf("$('#search-icon')")),
+    context,
+  );
   vm.runInContext('render = () => {}; commentsPanel = () => {}; toast = () => {};', context);
   return {
     run: (code) => vm.runInContext(code, context),
@@ -288,4 +292,45 @@ test('focus restoration finds the field in the active dialog', () => {
   `);
   assert.equal(app.run("restoreFocus({ id: 'comment-draft' })"), true);
   assert.equal(app.run('focused'), true);
+});
+
+test('update demo state is isolated by platform and ignores replaced async callbacks', () => {
+  const app = prototype();
+  app.run(`
+    const pendingUpdates = [];
+    setTimeout = (callback) => { pendingUpdates.push(callback); return 1; };
+    clearTimeout = () => {};
+    setUpdateStage('checking');
+    setUpdateStage('verifyError', { run: false });
+    pendingUpdates[0]();
+  `);
+  assert.equal(app.run('updateDemos.desktop.stage'), 'verifyError');
+  app.run(`state.mode = 'tv'; setUpdateStage('downloading', { run: false });`);
+  assert.equal(app.run('updateDemos.tv.stage'), 'downloading');
+  assert.equal(app.run('updateDemos.desktop.stage'), 'verifyError');
+  assert.equal(app.run('updateDemos.desktop.version'), '0.1.0');
+});
+
+test('opening the installer never reports update success before version confirmation', () => {
+  const app = prototype();
+  app.run(`
+    const pendingUpdates = [];
+    setTimeout = (callback) => { pendingUpdates.push(callback); return 1; };
+    clearTimeout = () => {};
+    overlay.close = () => {};
+    overlay.dataset = {};
+    showDialog = () => {};
+    state.mode = 'tv';
+    updateModel().permission = true;
+    handleUpdateAction('update-install');
+  `);
+  assert.equal(app.run('updateModel().stage'), 'installing');
+  app.run(`handleUpdateAction('update-confirmed');`);
+  assert.equal(app.run('updateModel().stage'), 'installing');
+  assert.equal(app.run('updateModel().version'), '0.1.0');
+  app.run(`handleUpdateAction('update-reopen');`);
+  assert.equal(app.run('updateModel().stage'), 'confirming');
+  app.run('pendingUpdates[0]();');
+  assert.equal(app.run('updateModel().stage'), 'success');
+  assert.equal(app.run('updateModel().version'), '0.2.0');
 });

@@ -244,7 +244,12 @@ function statusContent() {
   return '';
 }
 function renderNav() {
-  const active = ['detail', 'player'].includes(state.route) ? '' : state.route;
+  const active =
+    state.route === 'updates'
+      ? 'settings'
+      : ['detail', 'player'].includes(state.route)
+        ? ''
+        : state.route;
   const item = ([route, label, symbol]) =>
     `<button class="nav-button" data-route="${route}" ${active === route ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${label}</span></button>`;
   $('#navigation').innerHTML =
@@ -300,6 +305,9 @@ function back() {
       if (state.mode === 'tv') focusTVInitial();
       else content.focus({ preventScroll: true });
     }
+  } else if (state.route === 'updates') {
+    state.settingTab = '关于';
+    navigate('settings', null, { push: false });
   } else if (state.mode === 'tv')
     confirmDialog(
       '退出观看？',
@@ -355,6 +363,7 @@ function render() {
     player: desktopPlayer,
     account: accountPage,
     settings: settingsPage,
+    updates: updatePage,
     support: supportPage,
     apps: appsPage,
     map: mapPage,
@@ -374,7 +383,8 @@ function render() {
     if (saved !== undefined) node.value = saved;
   }
   if ($('#danmaku-input')) $('#danmaku-input').value = state.danmakuDraft || '';
-  document.title = `红果 · ${{ detail: current().title, player: current().title, map: '页面地图', account: '账号', settings: '设置', support: '支持', apps: '应用推荐' }[state.route] || nav.find((n) => n[0] === state.route)?.[1] || '设计原型'}`;
+  syncUpdateReview();
+  document.title = `红果 · ${{ detail: current().title, player: current().title, map: '页面地图', account: '账号', settings: '设置', updates: '应用更新', support: '支持', apps: '应用推荐' }[state.route] || nav.find((n) => n[0] === state.route)?.[1] || '设计原型'}`;
 }
 
 function discoverItems({ query = '', genre = '全部', kind = '全部', sort = '综合' }) {
@@ -463,7 +473,7 @@ function settingsSections() {
     播放: `${settingRow('连续播放', switchControl('连续播放'))}${settingRow('默认清晰度', settingSelect('默认清晰度', ['自动', '1080P', '720P']))}${settingRow('默认倍速', settingSelect('默认倍速', ['1×', '1.25×', '1.5×', '2×']))}${settingRow('弹幕', switchControl('默认弹幕', state.danmaku))}${settingRow('弹幕字号', settingSelect('弹幕字号', ['标准', '大', '小']))}`,
     缓存与预加载: `${settingRow('预加载下一集', switchControl('预加载下一集'))}${settingRow('缓存上限', settingSelect('缓存上限', ['1 GB', '2 GB', '512 MB']))}${settingRow('本机缓存', button('清理缓存', 'clear-cache'), '演示占用 286 MB；不包含下载剧集')}`,
     诊断: `${settingRow('连接状态', '<span class="tag">设计演示 · 未连接核心</span>')}${settingRow('诊断日志', button('查看', 'diagnostics'), '不包含手机号、账号凭据或媒体地址')}${settingRow('网络恢复', button('演示网络失败', 'network-error'))}`,
-    关于: `${settingRow('红果 · NSH', '<span class="muted">设计原型</span>', '版本与发行信息待正式构建提供')}${settingRow('应用更新', button('检查更新', 'update'))}${settingRow('开源许可', button('查看', 'licenses'))}${settingRow('支持项目', button('查看', 'support'))}${settingRow('应用推荐', button('查看', 'apps'))}`,
+    关于: `${settingRow('红果 · NSH', '<span class="muted">设计原型</span>', '版本与发行信息待正式构建提供')}${settingRow('应用更新', button('查看更新', 'update'), updateModel().stage === 'idle' ? '' : updateStages[updateModel().stage])}${settingRow('开源许可', button('查看', 'licenses'))}${settingRow('支持项目', button('查看', 'support'))}${settingRow('应用推荐', button('查看', 'apps'))}`,
   };
 }
 function settingsPage() {
@@ -567,6 +577,7 @@ function showDialog(title, body, { sheet = false, footer = '' } = {}) {
     lastFocus = document.activeElement;
     lastFocusKey = focusKey(lastFocus);
   }
+  delete overlay.dataset.updateStep;
   overlay.dataset.context = `${state.id}:${title}`;
   overlay.className = sheet ? 'sheet' : '';
   overlay.innerHTML = `<div class="dialog-head"><h2 id="dialog-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭">${icon('close')}</button></div><div class="dialog-body">${body}</div>${footer}`;
@@ -639,8 +650,9 @@ function setTheme(theme) {
 }
 function setMode(mode) {
   if (overlay.open) overlay.close();
+  const updating = state.route === 'updates';
   state.mode = mode;
-  state.route = 'home';
+  state.route = updating ? 'updates' : 'home';
   state.season = 1;
   state.episodePage = 0;
   stack.length = 0;
@@ -781,6 +793,10 @@ const routeActions = new Set([
   'map',
 ]);
 function handleAction(action, value, source) {
+  if (action.startsWith('update-')) {
+    handleUpdateAction(action, value);
+    return;
+  }
   if (routeActions.has(action)) {
     navigate(action);
     return;
@@ -1249,10 +1265,7 @@ function handleAction(action, value, source) {
       );
       break;
     case 'update':
-      showDialog(
-        '检查更新',
-        `<p>当前是浏览器设计原型，未连接发行服务，无法获取更新。</p><div class="actions">${button('关闭', 'close')}${button('重试', 'update', { variant: 'primary' })}</div>`,
-      );
+      navigate('updates');
       break;
     case 'licenses':
       showDialog(
@@ -1415,6 +1428,12 @@ document.addEventListener('change', (event) => {
     $('#episode-range', overlay.open ? overlay : content)?.focus();
   }
   if (target.id === 'mode') setMode(target.value);
+  if (target.id === 'update-scenario') {
+    if (overlay.open) overlay.close();
+    updateModel().version = ['success', 'latest'].includes(target.value) ? '0.2.0' : '0.1.0';
+    updateModel().permission = false;
+    setUpdateStage(target.value, { run: false });
+  }
   if (target.id === 'scenario') {
     state.scenario = target.value;
     render();
@@ -1454,6 +1473,7 @@ overlay.addEventListener('cancel', (event) => {
   back();
 });
 overlay.addEventListener('close', () => {
+  closeUpdateSystemStep();
   if (lastFocus?.isConnected) lastFocus.focus({ preventScroll: true });
   else if (restoreFocus(lastFocusKey)) return;
   else if (state.mode === 'tv') focusTVInitial();
@@ -1629,5 +1649,12 @@ document.addEventListener('keydown', (event) => {
 $('#search-icon').innerHTML = icon('search');
 $('#history-icon').innerHTML = icon('history');
 $('.mobile-menu').innerHTML = icon('menu');
-if (new URLSearchParams(location.search).get('platform') === 'tv') setMode('tv');
+const previewParams = new URLSearchParams(location.search);
+if (previewParams.get('screen') === 'updates') {
+  state.route = 'updates';
+  state.settingTab = '关于';
+  updateDemos.desktop.stage = 'available';
+  updateDemos.tv.stage = 'available';
+}
+if (previewParams.get('platform') === 'tv') setMode('tv');
 else render();
