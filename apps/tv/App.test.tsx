@@ -1,5 +1,6 @@
 import {
   registerApplicationTests,
+  registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
 } from '@hongguo/app/testing';
@@ -21,6 +22,8 @@ test('TV T0 mixed bridge calls, cancels owner work and releases classes', async 
   expect(completedApp.shows('completed')).toBe(true);
 });
 
-registerApplicationTests();
+registerApplicationTests('tv');
 registerLibraryTests();
 registerPlaybackTests();
+
+registerBrowsingTests('tv');

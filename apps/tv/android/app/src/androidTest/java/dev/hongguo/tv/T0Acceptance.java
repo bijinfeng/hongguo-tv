@@ -73,6 +73,10 @@ public final class T0Acceptance extends Instrumentation {
     }
 
     @Override public void onStart() {
+        if ("browsing".equals(arguments.getString("suite"))) {
+            new BrowsingAcceptance(this, arguments.getString("appearance", "light")).run();
+            return;
+        }
         Bundle result = new Bundle();
         try {
             Intent launch = getTargetContext().getPackageManager()

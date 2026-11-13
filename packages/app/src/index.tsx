@@ -1,83 +1,218 @@
-import { Text, View, keymap, platform } from 'nsh';
+import { View, keymap, reduceMotion, type ImageAsset } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
-import { Button } from '@hongguo/ui';
-import { createStore, nav, type Route } from './store';
+import { Button, Controls, Logo, Product, tvUnit, type ProductTarget } from '@hongguo/ui';
+import { createStore, type Store } from './store';
+import { SearchForm } from './SearchForm';
 import { Search } from './pages/Search';
 import { Detail } from './pages/Detail';
 import { Player } from './pages/Player';
 import { History } from './pages/History';
 import { Account } from './pages/Account';
+import { Home } from './pages/Home';
 
-export function App() {
-  const store = createStore();
-  const back = () => {
-    if (nav.routes().length > 1) nav.pop();
-  };
-  keymap.bind('escape', back, { when: 'notEditing' });
-  const title = (route: Route) =>
-    ({ search: '找剧', detail: '详情', player: '观看', history: '继续观看', account: '账号' })[
-      route.name
-    ];
-  const header = (route: Route) => (
-    <View class="flex-row flex-wrap items-center gap-3 border-b border-border px-5 py-3 bg-background">
-      <If when={route.name !== 'search'}>
-        <Button label="返回" onPress={back} />
-      </If>
-      <Text class="text-xl font-semibold text-foreground flex-1">红果</Text>
-      <If when={route.name === 'search'}>
-        <Button
-          label="继续观看"
-          onPress={() => {
-            store.library.refetch();
-            nav.push({ name: 'history' });
-          }}
-        />
-        <Button
-          label={store.account()?.profile?.name || '账号'}
-          onPress={() => {
-            store.account.refetch();
-            nav.push({ name: 'account' });
-          }}
-        />
-      </If>
+function Navigation(props: { store: Store }) {
+  return (
+    <Controls
+      label="主导航"
+      vertical={props.store.target === 'desktop'}
+      class={props.store.target === 'desktop' ? 'gap-1' : ''}
+    >
+      <Button
+        testID="nav-home"
+        buttonRef={(ref) => props.store.primaryRef('home', ref)}
+        variant="navigation"
+        icon={props.store.target === 'desktop' ? 'home' : undefined}
+        label={props.store.target === 'tv' ? '精选' : '首页'}
+        selected={props.store.activePage('home')}
+        onPress={() => props.store.navigate('home')}
+      />
+      <Button
+        testID="nav-search"
+        buttonRef={(ref) => props.store.primaryRef('search', ref)}
+        variant="navigation"
+        icon={props.store.target === 'desktop' ? 'search' : undefined}
+        label="找剧"
+        selected={props.store.activePage('search')}
+        onPress={() => props.store.navigate('search')}
+      />
+      <Button
+        testID="nav-history"
+        buttonRef={(ref) => props.store.primaryRef('history', ref)}
+        variant="navigation"
+        icon={props.store.target === 'desktop' ? 'history' : undefined}
+        label={props.store.target === 'tv' ? '我的' : '继续观看'}
+        selected={props.store.activePage('history')}
+        onPress={() => props.store.navigate('history')}
+      />
+    </Controls>
+  );
+}
+function Browse(props: { store: Store }) {
+  // Keep page-local lists, anchors and refs alive; hidden sections have no input targets.
+  return (
+    <View class="flex-1">
+      <View class={props.store.section() === 'home' ? 'flex-1' : 'hidden'}>
+        <Home store={props.store} />
+      </View>
+      <View class={props.store.section() === 'search' ? 'flex-1' : 'hidden'}>
+        <Search store={props.store} />
+      </View>
+      <View class={props.store.section() === 'history' ? 'flex-1' : 'hidden'}>
+        <History store={props.store} />
+      </View>
     </View>
   );
+}
+function Pages(props: { store: Store }) {
   return (
-    <View class="flex-1 bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <NavStack state={nav} class="flex-1">
-        {(route) => (
-          <NavPage
-            title={title(route)}
-            header={header(route)}
-            headerVisible={platform.os !== 'android'}
+    <NavStack state={props.store.nav} class="flex-1" onChange={() => props.store.restoreFocus()}>
+      {(route) => (
+        <NavPage
+          class="flex-1 bg-background"
+          headerVisible={false}
+          animation={props.store.target === 'tv' || reduceMotion() ? 'none' : 'default'}
+        >
+          <View
+            class="flex-1 bg-background"
+            style={{ visibility: props.store.nav.routes().at(-1) === route ? 'visible' : 'hidden' }}
+            accessibilityElementsHidden={props.store.nav.routes().at(-1) !== route}
+            disabled={props.store.nav.routes().at(-1) !== route}
           >
-            <If when={platform.os === 'android'}>{header(route)}</If>
-            <If when={route.name === 'search'}>
-              <Search store={store} />
+            <If when={route.name !== 'browse'}>
+              <View
+                class={
+                  props.store.target === 'desktop' ? 'px-10 pt-6 pb-3 items-start' : 'items-start'
+                }
+                style={
+                  props.store.target === 'tv'
+                    ? { paddingTop: tvUnit(24), paddingBottom: tvUnit(12) }
+                    : undefined
+                }
+              >
+                <Button
+                  variant="quiet"
+                  compact
+                  icon="back"
+                  label="返回"
+                  onPress={() => props.store.nav.pop()}
+                />
+              </View>
+            </If>
+            <If when={route.name === 'browse'}>
+              <Browse store={props.store} />
             </If>
             <If when={route.name === 'detail'}>
               {() => (
-                <Detail drama={(route as Extract<Route, { name: 'detail' }>).drama} store={store} />
+                <Detail
+                  drama={(route as Extract<typeof route, { name: 'detail' }>).drama}
+                  store={props.store}
+                />
               )}
             </If>
             <If when={route.name === 'player'}>
               {() => (
                 <Player
-                  drama={(route as Extract<Route, { name: 'player' }>).drama}
-                  episode={(route as Extract<Route, { name: 'player' }>).episode}
-                  store={store}
+                  drama={(route as Extract<typeof route, { name: 'player' }>).drama}
+                  episode={(route as Extract<typeof route, { name: 'player' }>).episode}
+                  store={props.store}
                 />
               )}
             </If>
-            <If when={route.name === 'history'}>
-              <History store={store} />
-            </If>
             <If when={route.name === 'account'}>
-              <Account store={store} />
+              <Account store={props.store} />
             </If>
-          </NavPage>
-        )}
-      </NavStack>
+          </View>
+        </NavPage>
+      )}
+    </NavStack>
+  );
+}
+function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
+  return (
+    <View class="flex-1 flex-row">
+      <View class="w-[204px] border-r border-border bg-background px-4 pt-6 pb-4 gap-8">
+        <Logo mark={props.logoMark} class="px-3" />
+        <View class="flex-1">
+          <Navigation store={props.store} />
+        </View>
+        <Button
+          variant="quiet"
+          icon="user"
+          label={props.store.account()?.profile?.name || '账号'}
+          onPress={props.store.accountPage}
+        />
+      </View>
+      <View class="flex-1">
+        <View class="h-[88px] flex-row items-center justify-between gap-4 border-b border-border px-10">
+          <View class="w-[520px]">
+            <SearchForm store={props.store} />
+          </View>
+          <Controls label="账号与记录">
+            <Button
+              icon="history"
+              iconOnly
+              variant="quiet"
+              label="观看记录"
+              onPress={() => props.store.navigate('history')}
+            />
+            <Button
+              icon="user"
+              variant="quiet"
+              compact
+              label={props.store.account()?.profile?.name || '登录'}
+              onPress={props.store.accountPage}
+            />
+          </Controls>
+        </View>
+        <Pages store={props.store} />
+      </View>
     </View>
+  );
+}
+function TvShell(props: { store: Store; logoMark: ImageAsset }) {
+  return (
+    <View class="flex-1" style={{ paddingHorizontal: tvUnit(96), paddingBottom: tvUnit(32) }}>
+      <View
+        class="flex-row items-center border-b border-border"
+        style={{ height: tvUnit(120), gap: tvUnit(56) }}
+      >
+        <Logo mark={props.logoMark} />
+        <View class="flex-1">
+          <Navigation store={props.store} />
+        </View>
+        <Button
+          variant="quiet"
+          label={props.store.account()?.profile?.name || '账号'}
+          onPress={props.store.accountPage}
+        />
+      </View>
+      <Pages store={props.store} />
+    </View>
+  );
+}
+export function App(props: { target: ProductTarget; logoMark: ImageAsset }) {
+  const store = createStore(props.target);
+  keymap.bind(
+    'escape',
+    () => {
+      if (store.nav.routes().length > 1) store.nav.pop();
+      else store.navigate('home');
+    },
+    { when: 'notEditing' },
+  );
+  return (
+    <Product.Provider value={props.target}>
+      <View
+        testID={`app-${props.target}`}
+        class="flex-1 bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+      >
+        <If
+          when={props.target === 'tv'}
+          else={<DesktopShell store={store} logoMark={props.logoMark} />}
+        >
+          <TvShell store={store} logoMark={props.logoMark} />
+        </If>
+      </View>
+    </Product.Provider>
   );
 }

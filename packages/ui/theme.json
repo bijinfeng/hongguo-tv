@@ -1,6 +1,8 @@
 {
   "cssVars": {
-    "theme": { "radius": "12px" },
+    "theme": {
+      "radius": "12px"
+    },
     "light": {
       "background": "#f8f8f7",
       "foreground": "#20211f",
@@ -16,7 +18,10 @@
       "accent": "#fbe8e9",
       "accent-foreground": "#9f202a",
       "cinema": "#131514",
-      "cinema-foreground": "#f7f8f5"
+      "cinema-foreground": "#f7f8f5",
+      "cinema-muted": "#b8bdb6",
+      "cinema-transparent": "#13151400",
+      "destructive": "#a92330"
     },
     "dark": {
       "background": "#161816",
@@ -33,7 +38,10 @@
       "accent": "#42282a",
       "accent-foreground": "#ffb5b9",
       "cinema": "#0c0e0c",
-      "cinema-foreground": "#f7f8f5"
+      "cinema-foreground": "#f7f8f5",
+      "cinema-muted": "#b8bdb6",
+      "cinema-transparent": "#0c0e0c00",
+      "destructive": "#ff9ca2"
     }
   }
 }

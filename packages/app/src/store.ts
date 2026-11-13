@@ -1,4 +1,5 @@
-import { resource, signal } from 'nsh';
+import { cleanup, resource, signal, type ViewRef } from 'nsh';
+import type { ProductTarget } from '@hongguo/ui';
 import { createNavStack } from 'nsh/base';
 import {
   libraryDrama,
@@ -11,15 +12,24 @@ import {
   type Library,
 } from '@hongguo/core-client';
 
+export type Section = 'home' | 'search' | 'history';
 export type Route =
-  | { name: 'search' }
+  | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
   | { name: 'player'; drama: Drama; episode: Episode }
-  | { name: 'history' }
   | { name: 'account' };
-export const nav = createNavStack<Route>([{ name: 'search' }]);
-export const activePage = (name: Route['name']) => nav.routes().at(-1)?.name === name;
-export function createStore() {
+
+/** One navigation stack and resource lifetime per mounted application. */
+export function createStore(target: ProductTarget) {
+  const nav = createNavStack<Route>([{ name: 'browse' }]);
+  const section = signal<Section>('home');
+  const activePage = (name: Section) =>
+    nav.routes().at(-1)?.name === 'browse' && section() === name;
+  const sources = new Map<number, () => void>();
+  const primary = new Map<Section, ViewRef>();
+  let frame = 0;
+  cleanup(() => cancelAnimationFrame(frame));
+  const searchSelection = signal('');
   const draft = signal('');
   const query = signal('');
   const results = resource(
@@ -28,9 +38,52 @@ export function createStore() {
   );
   const library = resource(({ signal }) => request<Library>('/api/v1/library', signal));
   const account = resource(({ signal }) => request<Account>('/api/v1/account', signal));
+  const entries = () =>
+    (library()?.entries ?? [])
+      .filter((entry) => entry.last_played_at)
+      .slice()
+      .sort((a, b) => b.last_played_at! - a.last_played_at!);
+  const navigate = (next: Section) => {
+    nav.popToRoot();
+    section.set(next);
+    sources.clear();
+    if (next === 'history') library.refetch();
+  };
   const warning = signal('');
   let writes = Promise.resolve();
   return {
+    target,
+    nav,
+    section,
+    activePage,
+    navigate,
+    searchSelection,
+    catalog: results,
+    entries,
+    focusPrimary() {
+      primary.get(section())?.focus();
+    },
+    primaryRef(name: Section, ref: ViewRef) {
+      primary.set(name, ref);
+    },
+    restoreFocus() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          const source = sources.get(nav.routes().length);
+          if (source) source();
+          else if (nav.routes().length === 1) primary.get(section())?.focus();
+        });
+      });
+    },
+    play(drama: Drama, episode: Episode, origin?: ViewRef) {
+      if (origin) sources.set(nav.routes().length, () => origin.focus());
+      nav.push({ name: 'player', drama, episode });
+    },
+    accountPage() {
+      account.refetch();
+      nav.push({ name: 'account' });
+    },
     draft,
     query,
     results,
@@ -39,10 +92,14 @@ export function createStore() {
     warning,
     submit() {
       const q = draft().trim();
+      if (!q) return;
+      navigate('search');
+      searchSelection.set('');
       if (q === query()) results.refetch();
       else query.set(q);
     },
-    open(drama: Drama) {
+    open(drama: Drama, origin?: () => void) {
+      if (origin) sources.set(nav.routes().length, origin);
       nav.push({ name: 'detail', drama });
     },
     resume(drama: Drama) {

@@ -334,7 +334,11 @@ try {
       await doctor({ requireDevice: false });
       await runtimeConfig(target, process.env.HONGGUO_CORE_ORIGIN);
       await nsh('check', target);
-      await nsh('build', target);
+      await nsh(
+        'build',
+        target,
+        target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN ? ['T0Probe.tsx'] : [],
+      );
       if (target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN)
         console.log(
           'Packaging the Android TV T0 technical APK; content API migration is not included.',

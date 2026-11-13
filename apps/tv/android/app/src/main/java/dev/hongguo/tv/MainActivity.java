@@ -16,7 +16,11 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         nsh = new NshView(this);
         nsh.setErrorListener(message -> Log.e("HongguoTV", message));
-        FrameLayout frame = new FrameLayout(this);
+        FrameLayout frame = new FrameLayout(this) {
+            @Override public boolean dispatchKeyEventPreIme(KeyEvent event) {
+                return remote != null && remote.dispatchInputExit(event) || super.dispatchKeyEventPreIme(event);
+            }
+        };
         frame.addView(nsh, new FrameLayout.LayoutParams(-1, -1));
         remote = new TvRemote(this, nsh);
         frame.addView(remote, new FrameLayout.LayoutParams(-1, -1));

@@ -27,7 +27,7 @@ pnpm doctor                 # 通用工具检查，不等于真机通过
 pnpm doctor --target tv     # 另检查 JDK、SDK/NDK、Rust Android targets、NSH runtime 和设备
 ```
 
-原生桌面需要目标系统开发依赖（macOS 为 Xcode Command Line Tools）。TV 还需要 Android 35、Build Tools 35.0.1、NDK 27.2.12479018、Rust Android targets、NSH Android runtime 和一台 ready 设备；当前环境已补齐前述 SDK/NDK、Rust targets 和 runtime，但仍没有连接设备。NSH runtime 可以用 `nsh component add web android` 按需安装。
+原生桌面需要目标系统开发依赖（macOS 为 Xcode Command Line Tools）。TV 还需要 Android 35、Build Tools 35.0.1、NDK 27.2.12479018、Rust Android targets、NSH Android runtime 和一台 ready 设备；当前环境已补齐前述 SDK/NDK、Rust targets 和 runtime，T0 最终 APK 已在固定 Android TV 模拟器验收；物理电视与完整业务仍待验证。NSH runtime 可以用 `nsh component add web android` 按需安装。
 
 ## 开发与验证
 

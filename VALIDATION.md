@@ -1,5 +1,38 @@
 # 验证记录 · 2026-11-13
 
+## A 批浏览界面 · 定稿还原与业务验收
+
+本批实施 `implement-approved-browsing-ui`。第一版只接近主题与基础结构，未忠实还原定稿，已被用户指出；随后以 `design/prototype` 的实际 CSS／布局为依据重建壳、续播卡、海报、详情、区间 Select 与 TV 影院展示区。下列结果属于当前 NSH 工作区，不把设计原型、HTTP fixture、真实官网协议与真实播放混为一项通过。
+
+| 检查            | 本次结果与复跑入口                                                                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 完整门禁        | `pnpm verify`：格式、lint／包边界、契约漂移、Rust check／build／Clippy、35 项 nextest、7 项工程测试、三端 NSH check／build、35 项 NSH 用例通过；日志 `artifacts/browsing/verify.log`。NSH mixed headless runner 仍报告 1 条编译 warning，未隐藏   |
+| 原型保护        | `node --test design/prototype/prototype.test.mjs` 12 项通过；原型另有品牌／更新任务并行改动，本批不覆盖它们                                                                                                                                       |
+| OpenSpec        | `openspec validate implement-approved-browsing-ui --strict` 通过；修复外观 requirement 缺 scenario 的结构问题，未放宽范围                                                                                                                         |
+| 实际 Web／macOS | `node tooling/src/browsing-host.mjs web` 与 `macos`，每端 3 项通过。1440×1000 浅深：首页、搜索、详情、历史与键盘返回；1180×780 减少动态效果；1180×1000 控件浅深、禁用输入、失败封面与提示。Web 使用隐藏浏览器，macOS 后台宿主，不进入全屏         |
+| 实际 TV 业务    | `node tooling/src/tv-browsing.mjs`，固定 Android TV API34 arm64、1920×1080／density320；light、dark、真实 system font_scale=1.3 共 45 项通过。最终预览 APK 经 loopback fixture＋adb reverse，不能当作独立原生业务产品                             |
+| TV 覆盖         | 原生普通输入、InputConnection 合成 composition 的方向键所有权、结束组合后退出编辑、HTTP 查询、59集选段、501错误、系统返回、来源焦点、14步横向回收、项目身份及历史一致；请求记录中无 POST。合成 composition 与真实中文输入法候选选择不是同一项验收 |
+| T0 保护         | 默认 `pnpm package:tv` 后 `pnpm test:tv-emulator` 浅深各13项通过。默认仍为包内探针／合成视频；显式外部 API 才打业务入口，未拿 T0 代替业务验收                                                                                                     |
+| 契约／依赖      | 本批无 Rust DTO／OpenAPI／generated.ts 或锁文件变更；未引入 React／Vite／npm UI、Go 业务或发行依赖。安全门禁的既有 NSH 依赖问题保留，不把 verify 当作安全／发行通过                                                                               |
+
+修复的真实宿主问题：将原型 TV 1920 参考尺寸映射到 NSH 逻辑宽，避免 density320 后整体翻倍；NavPage 需要显式内容背景；覆盖页保留布局并退出输入／无障碍候选，原生适配层保留被覆盖来源的控件身份，在来源再次可见时恢复；横向虚拟列表每次方向键只前进一张海报。NSH 0.5 的 Android 按压控件 ref 不等同桌面键盘焦点，不能只依赖 headless 来源恢复证明 TV 通过。
+
+打包还发现 NSH `package` 可复用旧 release bundle。自定义 TV 宿主现在复制本次 `.nsh/out` 的 bundle／app.json／assets，并从最终 APK 解出 bundle 校验 SHA256；入口选择随外部 API 明确区分 App 与 T0Probe。先前错误／失败不计通过；后续以上述完整路径重跑。
+
+证据均忽略进 Git：`artifacts/browsing/{web,macos,tv}/` 截图与请求清单，`tv/{light,dark,large-text}.txt`，各 `*-run.log`、`t0-package.log`、`t0-regression.log`。截图使用合成剧目与本地设计资产，仅验 UI 和宿主链路；本次未重新对官网进行真实查询或调用真实账号／媒体。每个入口的运行配置和设备主题／字号在脚本退出时恢复。
+
+尚未通过：Web／macOS 真实系统字体放大（Chrome defaultFontSize 未改变 NSH fontScale，已移除该伪验收模式）、VoiceOver／TalkBack、真实中文候选输入、实体遥控、物理电视／硬解／长播、Windows／Linux、独立原生业务、正式签名／升级／远端 CI。减少动态效果已实际配置并运行主路径；截图不能证明所有动画逐帧表现。OpenSpec 6.2 保持未完成，不以其他项替代。
+
+首页与历史当前先进入详情并验证可用选集，再进入对应续播；尚不声称首页一键直接播放。已保存集缺失／锁定明确恢复，不套用其他集的旧时间；无 duration 的记录只呈现真实已看位置，不伪造比例。B 批 Rust 真实播放仍是 A 收尾后的下一项。
+
+2026-11-14 用户授权提交本批实现；不推送或归档，并行品牌／产品形态／更新设计修改保持原状。
+
+### 最终复审 · 2026-11-14
+
+独立复审基于 32 张实际宿主截图核对定稿：字级、摄影素材、明暗表面、桌面布局、TV 主视觉与控件状态为 match；新品牌、可用能力导航、先详情后续播、原生区间选择及历史动作属于有依据的适配。唯一 material fix 为 TV 普通海报取景；已按 `tv.css` 顶部对齐，影院图保留 `center 28%`、桌面普通封面保留居中，重新打包并捕获全部 TV 浅深／放大文字画面，三组各 15 项业务检查再次通过。
+
+同一复审者的 Verdict Pass 将该修复评为 resolved，disposition 为 ship；此结论仅覆盖列出的修复项，不扩展成全产品或未验证范围通过。最后源码的 `pnpm verify` 退出 0，原型 12 项与 OpenSpec strict、diff check 通过。OpenSpec 6.2 因桌面真实系统字体缩放仍未验证而保持未完成；其余完成项按实际证据更新，不自动开始 B 批。
+
 ## TV T0 · Android TV 模拟器验收
 
 本任务按用户确认的边界验收：**Android TV 模拟器通过；连接真实电视、硬件解码与厂商兼容属于另一条验收线，不阻塞本任务。** 这是 T0 技术验证包，不代表 Rust 业务迁移或正式客户端完成。

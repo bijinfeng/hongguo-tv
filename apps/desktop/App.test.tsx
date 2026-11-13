@@ -1,5 +1,6 @@
 import {
   registerApplicationTests,
+  registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
 } from '@hongguo/app/testing';
@@ -7,3 +8,5 @@ import {
 registerApplicationTests();
 registerLibraryTests();
 registerPlaybackTests();
+
+registerBrowsingTests();

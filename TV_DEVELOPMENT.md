@@ -1,18 +1,18 @@
 # TV 开发、验证与交付流程
 
-制定日期：2026-11-13。适用于 Android TV 和安卓电视盒子；是 [ENGINEERING.md](ENGINEERING.md) 在 TV 端的实施流程。以下阶段与新增门禁是待实施计划，不能作为已完成证明。实际结果记录在 [VALIDATION.md](VALIDATION.md)。
+制定日期：2026-11-13。适用于 Android TV 和安卓电视盒子；是 [ENGINEERING.md](ENGINEERING.md) 在 TV 端的实施流程。T0 技术包已完成固定 TV 模拟器验收；以下完整业务、物理电视与发行门禁仍按阶段实施，不能作为已完成证明。实际结果记录在 [VALIDATION.md](VALIDATION.md)。
 
 ## 1. 当前起点与交付目标
 
-| 项目       | 当前状态                                  | 完整 TV 客户端要求                                     |
-| ---------- | ----------------------------------------- | ------------------------------------------------------ |
-| 业务界面   | `apps/tv` 装配共享 TSX UI                 | 继续复用 `packages/app` 和 `packages/ui`，完成遥控适配 |
-| 核心       | 外部 Rust HTTP 服务；内容接口未迁移       | APK 内嵌 Rust 核心，业务调用使用 native bridge         |
-| 播放       | 保留旧链路验证；新 Android 播放未验收     | 真实设备上的首帧、切集、进度、音频与生命周期通过       |
-| 测试       | TV 入口共享 headless 用例                 | 增加 Android 宿主、安装包、遥控和真机测试              |
-| 打包       | `package:tv` 需要外部 API，是 UI 预览包   | 签名 APK，无电脑、开发服务、Go、Node 或 ADB 依赖       |
-| 工具与设备 | 上次检查缺 build-tools 35.0.1，未连接设备 | 干净环境可构建，设备矩阵与测试记录齐全                 |
-| 发布       | 尚无 TV 预览、签名发布和更新工作流        | 可追踪的预览包、候选包、正式发行与升级路径             |
+| 项目       | 当前状态                                               | 完整 TV 客户端要求                                     |
+| ---------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| 业务界面   | `apps/tv` 装配共享 TSX UI                              | 继续复用 `packages/app` 和 `packages/ui`，完成遥控适配 |
+| 核心       | Rust HTTP 已有匿名搜索／详情／游客历史；原生业务未接入 | APK 内嵌 Rust 核心，业务调用使用 native bridge         |
+| 播放       | T0 包内合成视频模拟器通过；真实业务未验收              | 真实设备上的首帧、切集、进度、音频与生命周期通过       |
+| 测试       | 共享 headless + T0 最终 APK 模拟器用例                 | 增加 Android 宿主、安装包、遥控和真机测试              |
+| 打包       | 默认 T0 包内技术 APK；指定 API 为 UI 预览              | 签名 APK，无电脑、开发服务、Go、Node 或 ADB 依赖       |
+| 工具与设备 | SDK／NDK 已齐，固定 TV 模拟器验收通过                  | 干净环境可构建，设备矩阵与测试记录齐全                 |
+| 发布       | 尚无 TV 预览、签名发布和更新工作流                     | 可追踪的预览包、候选包、正式发行与升级路径             |
 
 最低运行范围暂定 Android 8 / API 26，与固定 NSH 的官方支持范围一致；这会放弃参考项目的 Android 5/6 兼容范围。target SDK 按发布渠道要求独立管理，不能由 min SDK 推导。arm64 为首批真机目标；armv7 只有在依赖可构建且对应真机通过后才列为受支持，模拟器 ABI 也以实际可用的 TV 系统镜像为准。
 
@@ -95,15 +95,15 @@ pnpm dev:tv
 
 `setup:tools` 准备现有工程工具；上述命令不会自动补齐完整 Android SDK/NDK 或启动模拟器。TV `doctor` 会逐项校验固定 SDK、NDK、Rust targets、NSH runtime 和恰好一台 ready 设备，但通过仍不等于遥控、解码或独立 APK 验收。
 
-| 当前命令                  | 能证明什么                       | 不能证明什么                    |
-| ------------------------- | -------------------------------- | ------------------------------- |
-| `pnpm check --target tv`  | Rust 工作区检查、TV NSH 类型     | Android Rust 交叉编译、设备兼容 |
-| `pnpm build --target tv`  | Rust 本机工作区构建、TV bundle   | 已生成 APK                      |
-| `pnpm test --target tv`   | 工程/Rust/TV headless 行为       | Android 原生输入、遥控和解码    |
-| `pnpm verify`             | 现有公共门禁与三端入口           | TV SDK、安装或真机验收          |
-| `pnpm verify --target tv` | 额外 doctor 加现有 TV 入口门禁   | 完整 Android 宿主和真机通过     |
-| `pnpm dev:tv`             | 通过 ADB 连接电脑 API 的开发链路 | APK 脱离电脑运行                |
-| `pnpm package:tv`         | T0 native crate 存在时生成 arm64 技术验证 APK；指定 API 时生成 UI 预览包 | 生产签名和独立产品验收 |
+| 当前命令                  | 能证明什么                                                               | 不能证明什么                    |
+| ------------------------- | ------------------------------------------------------------------------ | ------------------------------- |
+| `pnpm check --target tv`  | Rust 工作区检查、TV NSH 类型                                             | Android Rust 交叉编译、设备兼容 |
+| `pnpm build --target tv`  | Rust 本机工作区构建、TV bundle                                           | 已生成 APK                      |
+| `pnpm test --target tv`   | 工程/Rust/TV headless 行为                                               | Android 原生输入、遥控和解码    |
+| `pnpm verify`             | 现有公共门禁与三端入口                                                   | TV SDK、安装或真机验收          |
+| `pnpm verify --target tv` | 额外 doctor 加现有 TV 入口门禁                                           | 完整 Android 宿主和真机通过     |
+| `pnpm dev:tv`             | 通过 ADB 连接电脑 API 的开发链路                                         | APK 脱离电脑运行                |
+| `pnpm package:tv`         | T0 native crate 存在时生成 arm64 技术验证 APK；指定 API 时生成 UI 预览包 | 生产签名和独立产品验收          |
 
 NSH 已提供 Android 宿主测试入口：
 
@@ -149,7 +149,7 @@ TV 必测场景：
 3. **正式候选。** 从默认分支中的确定提交，在受保护环境完成检查、生产签名及最终 APK 校验，形成不可变候选产物；设备验收安装的必须是这个签名文件。
 4. **正式发布。** 用户要求发布且候选验收满足后，版本标签指向同一提交，发布同一个 APK，不重新构建另一份文件。代码、版本、签名或依赖变化后重新形成候选并验证，旧证据不能转给新哈希。
 
-NSH 官方 `package` 能否直接满足 TV manifest、播放器和 mixed 锁定要求，由 T0 验证决定。若采用自有 Android 宿主，则同时提交 Gradle Wrapper、精确依赖/版本、校验配置与适用的 Java/Kotlin 工具门禁，不复制参考项目的整套版本组合。
+T0 已采用自有 Android embedding 宿主，补齐 TV manifest、遥控和最终 APK 校验；则同时提交 Gradle Wrapper、精确依赖/版本、校验配置与适用的 Java/Kotlin 工具门禁，不复制参考项目的整套版本组合。
 
 最小产物集：APK、SHA256、版本/构建号、Git SHA、工具链/SDK/ABI 清单、测试报告和构建日志；正式版本增加更新清单、SBOM、第三方 NOTICE、来源证明，以及私有归档的 Rust/Android 符号。报告和日志去敏，不包含账号、token 或签名媒体 URL。
 
@@ -184,7 +184,7 @@ NSH 官方 `package` 能否直接满足 TV manifest、播放器和 mixed 锁定�
 
 AI Agent 交接同时列出改动文件、状态所有者、当前命令、已完成门禁与下一步；不将文档任务勾选、截图存在或 workflow 配置存在当成运行通过。无法使用设备时继续完成独立可做的代码和自动化，但设备项保持“未运行”。
 
-下一步只启动 T0：补齐并锁定 Android 环境、建立 mixed 最小调用、TV 输入和可控视频验证、形成首个可脱离电脑运行的技术验证 APK。本流程的落地不代表这些实现已开始或完成。
+下一步按 [实施路线](docs/implementation-roadmap.md) 落地已确定的双端界面，再推进 T1 真实观看与原生业务。T0 的包内 Rust／合成视频／遥控／生命周期已在固定 TV 模拟器通过；不重复建立技术探针，也不据此认定物理电视或完整产品通过。
 
 ## 依据
 

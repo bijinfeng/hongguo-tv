@@ -63,7 +63,15 @@ export async function packageTvHost() {
   await cp(resolve(generated, 'classes.jar'), resolve(generated, 'nsh-classes.jar'));
   const apk = resolve(root, `apps/tv/.nsh/out/${metadata.name}.apk`);
   await rm(resolve(generated, 'assets'), { recursive: true, force: true });
-  await run('unzip', ['-oq', apk, 'assets/*', 'lib/arm64-v8a/libnsh.so', '-d', generated]);
+  await run('unzip', ['-oq', apk, 'lib/arm64-v8a/libnsh.so', '-d', generated]);
+  // NSH package can reuse an older release bundle. The custom host must use this build's entry.
+  const fresh = resolve(root, 'apps/tv/.nsh/out');
+  const assets = resolve(generated, 'assets/nsh');
+  await mkdir(assets, { recursive: true });
+  for (const file of ['bundle.nshc', 'app.json'])
+    await cp(resolve(fresh, file), resolve(assets, file));
+  if (existsSync(resolve(fresh, 'assets')))
+    await cp(resolve(fresh, 'assets'), resolve(assets, 'assets'), { recursive: true });
   await mkdir(resolve(generated, 'jni/arm64-v8a'), { recursive: true });
   await cp(
     resolve(generated, 'lib/arm64-v8a/libnsh.so'),
@@ -92,6 +100,14 @@ export async function packageTvHost() {
     { cwd: host, env },
   );
   await cp(resolve(host, 'app/build/outputs/apk/debug/app-debug.apk'), apk);
+  const packedBundle = resolve(generated, 'packed-bundle');
+  await run('unzip', ['-oq', apk, 'assets/nsh/bundle.nshc', '-d', packedBundle]);
+  const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+  if (
+    hash(await readFile(resolve(assets, 'bundle.nshc'))) !==
+    hash(await readFile(resolve(packedBundle, 'assets/nsh/bundle.nshc')))
+  )
+    throw new Error('TV APK bundle differs from the current NSH build');
   const buildTools = resolve(env.ANDROID_HOME, 'build-tools', toolchain.android.buildTools);
   output(resolve(buildTools, 'apksigner'), ['verify', '--verbose', apk]);
   output(resolve(buildTools, 'zipalign'), ['-c', '-P', '16', '4', apk]);

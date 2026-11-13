@@ -1,6 +1,6 @@
 # 多端工程架构
 
-> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 和匿名官网目录服务已落地（第一阶段基线）。当前业务仍经 HTTP 连接 Rust；原生业务 bridge、完整内容协议、原生独立包和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
+> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 和匿名官网目录服务已落地（第一阶段基线）。当前业务仍经 HTTP 连接 Rust；TV T0 的包内 Rust／合成视频已完成模拟器验收，原生业务 bridge、完整内容协议、原生独立产品和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
 
 状态：设计提案，2026-11-13。本文描述目标结构；新工作区已进入第一阶段实施，旧 `scripts/ + upstream/` 保留为行为对照，早期根级 `app/` demo 已删除，已验证边界见 [VALIDATION.md](VALIDATION.md)。工具链、Git、CI 与发布规范见 [ENGINEERING.md](ENGINEERING.md)。
 
@@ -174,6 +174,16 @@ core 必须支持实例化的账号上下文与独立存储，禁止全局可变
 首轮验收包括初始化/停止、后台/恢复、JNI 所有权、真实媒体解码、遥控确认/返回及焦点恢复。依赖电脑的端口反向转发不算独立 TV 验收。
 
 初期目标是 Android TV。webOS、Tizen、tvOS 不因采用 monorepo 自动得到支持，增加时需另有宿主与发布矩阵。
+
+### A 批浏览界面的实际所有权
+
+Web/Desktop 入口显式传 `desktop`，TV 传 `tv`，并从自身 assets 注入品牌图片；不以 OS 推导产品端型。`packages/app` 组合侧栏工作区／TV 顶部壳，`packages/ui` 提供统一语义主题、图标、海报、续播卡、影院展示区和选集 Select。入口不复制业务页。
+
+每次挂载创建自己的 `createStore`、NavStack、查询／library 资源和来源 Map；不存在模块级共享导航。页面保留查询、选集段和 List 的 ID+offset 锚点；返回后先恢复位置，再从当前行 refs 恢复来源焦点，来源失效回退到可用一级入口。覆盖页退出焦点候选但保留布局，避免原生虚拟列表在尺寸归零后丢失来源。
+
+Rust SQLite 仍拥有持久历史；TSX 只保留请求快照和派生最近排序。首页／完整历史／详情续播读取同一 library。播放会话继续在实际播放后串行保存紧凑 DTO，并检查 owner；浏览、详情和播放 501 不产生 progress。第一阶段没有完成所有持久状态向 Rust 迁移，账号及播放兼容 DTO 尚未生成。
+
+搜索仍仅接匿名首批，`has_more` 如实提示；分页、推荐与分季归后续批次。业务宿主验收使用显式 loopback HTTP fixture，生产入口不注入演示目录；它与官网协议 smoke、真实媒体和独立原生业务验收分别记录。
 
 ## 5. 契约与跨语言边界
 

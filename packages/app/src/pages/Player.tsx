@@ -10,7 +10,7 @@ import {
   type VideoRef,
 } from 'nsh';
 import { play, type Drama, type Episode } from '@hongguo/core-client';
-import { nav, type Store } from '../store';
+import { type Store } from '../store';
 import { progressSession } from '../playback';
 import { Button, Notice, Controls } from '@hongguo/ui';
 
@@ -36,7 +36,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store }) 
     const ep = next();
     if (ep) {
       save();
-      nav.replace({ name: 'player', drama: props.drama, episode: ep });
+      props.store.nav.replace({ name: 'player', drama: props.drama, episode: ep });
     }
   };
   const toggle = () => {
@@ -96,7 +96,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store }) 
             />
           )}
         </If>
-        <If when={info.loading() || (buffering() && !error())}>
+        <If when={info.loading() || (buffering() && !error() && !info.error())}>
           <Text class="text-base text-cinema-foreground p-4">正在准备播放…</Text>
         </If>
       </View>
