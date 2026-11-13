@@ -57,7 +57,7 @@ pnpm release:verify-record --record release.json --artifact-dir <下载目录>
 
 公开仓库的手动 `Release preview` workflow 会从指定源码 SHA 构建 macOS arm64 桌面预览包和 Android TV arm64 T0 技术包，上传短期 Actions artifact，并附带 `release.json`/`SHA256SUMS`。这些包需要外部 Rust API 或仍属于 T0 技术验证，不是正式 Release，也不会进入稳定更新渠道。
 
-`TV release candidate` workflow 只允许在 `release-signing` protected environment 中运行，读取 `TV_RELEASE_KEYSTORE_BASE64`、`TV_RELEASE_STORE_PASSWORD`、`TV_RELEASE_KEY_ALIAS` 和 `TV_RELEASE_KEY_PASSWORD`，生成正式签名候选并验证 applicationId、versionCode、证书摘要和 APK 完整性；它只上传候选 artifact，不创建 GitHub Release。
+`TV release candidate` workflow 使用 `release-signing` environment，读取 `TV_RELEASE_KEYSTORE_BASE64`、`TV_RELEASE_STORE_PASSWORD`、`TV_RELEASE_KEY_ALIAS` 和 `TV_RELEASE_KEY_PASSWORD`，生成正式签名候选并验证 applicationId、versionCode、证书摘要和 APK 完整性；它只上传候选 artifact，不创建 GitHub Release。正式发布前应在该 environment 增加 required reviewers 和分支/tag 限制。
 
 `Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成各自的 `latest.json`/签名文件，发布 GitHub Release 并部署 Pages 更新目录。桌面构建还要求同一 environment variable `HONGGUO_CORE_ORIGIN`，缺失时工作流失败，避免把本地 API 地址打进正式包。Pages 首次使用前需在仓库设置中选择 GitHub Actions 作为 Pages source。
 
