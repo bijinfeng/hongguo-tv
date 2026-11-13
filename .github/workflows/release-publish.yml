@@ -1,0 +1,292 @@
+name: Publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: 'Exact commit to build and tag'
+        required: true
+        type: string
+      tag:
+        description: 'SemVer release tag, for example v0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
+jobs:
+  desktop:
+    name: Build signed desktop release
+    runs-on: macos-15
+    environment: release-signing
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - run: npm install --global pnpm@11.1.3
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install pinned NSH
+        run: |
+          curl --fail --silent --show-error --location https://nsh.dev/install.sh -o "$RUNNER_TEMP/nsh-install.sh"
+          NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - run: pnpm setup
+      - name: Validate release identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          HONGGUO_CORE_ORIGIN: ${{ vars.HONGGUO_CORE_ORIGIN }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          test "$RELEASE_TAG" = "v$version"
+          test -n "${HONGGUO_CORE_ORIGIN:-}"
+      - name: Build desktop archive
+        env:
+          HONGGUO_CORE_ORIGIN: ${{ vars.HONGGUO_CORE_ORIGIN }}
+        run: |
+          set -euo pipefail
+          pnpm package:desktop
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          release_dir="$RUNNER_TEMP/desktop-release"
+          archive="$release_dir/hongguo-desktop-${version}-macos-arm64.tar.gz"
+          mkdir -p "$release_dir/pages/desktop/stable"
+          tar -C apps/desktop/.nsh/out -czf "$archive" 红果.app
+          printf '%s\n' "$archive"
+      - name: Sign desktop update manifest
+        env:
+          DESKTOP_UPDATE_MANIFEST_KEY: ${{ secrets.DESKTOP_UPDATE_MANIFEST_KEY }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          test -n "$DESKTOP_UPDATE_MANIFEST_KEY"
+          key="$RUNNER_TEMP/desktop-update.secret"
+          printf '%s' "$DESKTOP_UPDATE_MANIFEST_KEY" > "$key"
+          chmod 600 "$key"
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          archive="$RUNNER_TEMP/desktop-release/hongguo-desktop-${version}-macos-arm64.tar.gz"
+          nsh update-manifest \
+            --entry apps/desktop \
+            --key "$key" \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}" \
+            --out "$RUNNER_TEMP/desktop-release/pages/desktop/stable" \
+            "$archive"
+          sha=$(git rev-parse HEAD)
+          node - "$archive" "$RUNNER_TEMP/desktop-release/candidate.json" "$RELEASE_TAG" "$version" <<'NODE'
+          const fs = require('node:fs');
+          const [artifact, output, tag, version] = process.argv.slice(2);
+          fs.writeFileSync(output, JSON.stringify({
+            channel: 'stable',
+            artifacts: [{
+              target: 'desktop-macos-arm64',
+              path: artifact,
+              url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/${tag}/hongguo-desktop-${version}-macos-arm64.tar.gz`,
+              kind: 'installer',
+            }],
+          }, null, 2));
+          NODE
+          pnpm release:record \
+            --input "$RUNNER_TEMP/desktop-release/candidate.json" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$sha" \
+            --out "$RUNNER_TEMP/desktop-release/desktop-release.json" \
+            --checksums "$RUNNER_TEMP/desktop-release/desktop-SHA256SUMS"
+      - name: Upload desktop release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-release
+          path: ${{ runner.temp }}/desktop-release
+          if-no-files-found: error
+          retention-days: 14
+
+  tv:
+    name: Build signed TV release
+    runs-on: ubuntu-24.04
+    environment: release-signing
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - run: npm install --global pnpm@11.1.3
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install pinned NSH
+        run: |
+          curl --fail --silent --show-error --location https://nsh.dev/install.sh -o "$RUNNER_TEMP/nsh-install.sh"
+          NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - run: pnpm setup
+      - name: Materialize signing materials
+        env:
+          TV_RELEASE_KEYSTORE_BASE64: ${{ secrets.TV_RELEASE_KEYSTORE_BASE64 }}
+          TV_UPDATE_MANIFEST_KEY: ${{ secrets.TV_UPDATE_MANIFEST_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$TV_RELEASE_KEYSTORE_BASE64"
+          test -n "$TV_UPDATE_MANIFEST_KEY"
+          keystore="$RUNNER_TEMP/tv-release.jks"
+          printf '%s' "$TV_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          echo "TV_RELEASE_STORE_FILE=$keystore" >> "$GITHUB_ENV"
+          key="$RUNNER_TEMP/tv-update.secret"
+          printf '%s' "$TV_UPDATE_MANIFEST_KEY" > "$key"
+          chmod 600 "$key"
+          echo "TV_UPDATE_MANIFEST_KEY_FILE=$key" >> "$GITHUB_ENV"
+      - name: Build signed TV APK
+        env:
+          HONGGUO_TV_BUILD_TYPE: release
+          TV_RELEASE_STORE_PASSWORD: ${{ secrets.TV_RELEASE_STORE_PASSWORD }}
+          TV_RELEASE_KEY_ALIAS: ${{ secrets.TV_RELEASE_KEY_ALIAS }}
+          TV_RELEASE_KEY_PASSWORD: ${{ secrets.TV_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          pnpm package:tv
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          build=$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync('product-version.json')).build))")
+          release_dir="$RUNNER_TEMP/tv-release"
+          artifact="$release_dir/hongguo-tv-${version}-android-arm64.apk"
+          mkdir -p "$release_dir/pages/tv/stable"
+          cp apps/tv/.nsh/out/红果.apk "$artifact"
+          build_tools="$ANDROID_HOME/build-tools/$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('tooling/tv-toolchain.json')).android.buildTools)")"
+          "$build_tools/apksigner" verify --verbose "$artifact"
+          "$build_tools/aapt2" dump badging "$artifact" | grep -F "package: name='dev.hongguo.tv' versionCode='$build' versionName='$version'"
+          cert=$("$build_tools/apksigner" verify --print-certs "$artifact" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }')
+          test -n "$cert"
+          release_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ inputs.tag }}/hongguo-tv-${version}-android-arm64.apk"
+          nsh update-manifest \
+            --entry apps/tv \
+            --key "$TV_UPDATE_MANIFEST_KEY_FILE" \
+            --link "android=$release_url" \
+            --out "$release_dir/pages/tv/stable"
+          sha=$(git rev-parse HEAD)
+          node - "$artifact" "$release_dir/candidate.json" "$release_url" "$cert" <<'NODE'
+          const fs = require('node:fs');
+          const [artifact, output, url, certificate] = process.argv.slice(2);
+          fs.writeFileSync(output, JSON.stringify({
+            channel: 'stable',
+            artifacts: [{
+              target: 'tv-android-arm64',
+              path: artifact,
+              url,
+              kind: 'installer',
+              signingIdentity: `sha256:${certificate}`,
+            }],
+          }, null, 2));
+          NODE
+          pnpm release:record \
+            --input "$release_dir/candidate.json" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$sha" \
+            --out "$release_dir/tv-release.json" \
+            --checksums "$release_dir/tv-SHA256SUMS"
+      - name: Upload TV release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tv-release
+          path: ${{ runner.temp }}/tv-release
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release and Pages metadata
+    needs: [desktop, tv]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/release
+      - name: Validate downloaded release evidence
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          test "$RELEASE_TAG" = "v$version"
+          for file in \
+            "$RUNNER_TEMP/release/desktop-release/hongguo-desktop-${version}-macos-arm64.tar.gz" \
+            "$RUNNER_TEMP/release/tv-release/hongguo-tv-${version}-android-arm64.apk" \
+            "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json" \
+            "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json.sig" \
+            "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json" \
+            "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json.sig"; do
+            test -s "$file"
+          done
+          grep -F '"sourceSha": "'"$SOURCE_SHA"'"' "$RUNNER_TEMP/release/desktop-release/desktop-release.json"
+          grep -F '"sourceSha": "'"$SOURCE_SHA"'"' "$RUNNER_TEMP/release/tv-release/tv-release.json"
+      - name: Publish immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          desktop="$RUNNER_TEMP/release/desktop-release"
+          tv="$RUNNER_TEMP/release/tv-release"
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "${{ inputs.source_sha }}" \
+            --draft \
+            --title "Hongguo TV $version" \
+            --notes "Signed desktop and Android TV artifacts for $RELEASE_TAG."
+          gh release upload "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            "$desktop/hongguo-desktop-${version}-macos-arm64.tar.gz" \
+            "$tv/hongguo-tv-${version}-android-arm64.apk" \
+            "$desktop/pages/desktop/stable/latest.json#desktop-latest.json" \
+            "$desktop/pages/desktop/stable/latest.json.sig#desktop-latest.json.sig" \
+            "$tv/pages/tv/stable/latest.json#tv-latest.json" \
+            "$tv/pages/tv/stable/latest.json.sig#tv-latest.json.sig" \
+            "$desktop/desktop-release.json#desktop-release.json" \
+            "$desktop/desktop-SHA256SUMS#desktop-SHA256SUMS" \
+            "$tv/tv-release.json#tv-release.json" \
+            "$tv/tv-SHA256SUMS#tv-SHA256SUMS"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+      - name: Prepare Pages site
+        run: |
+          set -euo pipefail
+          pages="$RUNNER_TEMP/pages"
+          mkdir -p "$pages/desktop/stable" "$pages/tv/stable"
+          cp "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json" "$pages/desktop/stable/latest.json"
+          cp "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json.sig" "$pages/desktop/stable/latest.json.sig"
+          cp "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json" "$pages/tv/stable/latest.json"
+          cp "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json.sig" "$pages/tv/stable/latest.json.sig"
+          cat > "$pages/index.html" <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Hongguo updates</title>
+          <p>Hongguo update metadata.</p>
+          HTML
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: ${{ runner.temp }}/pages
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

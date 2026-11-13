@@ -59,6 +59,8 @@ pnpm release:verify-record --record release.json --artifact-dir <下载目录>
 
 `TV release candidate` workflow 只允许在 `release-signing` protected environment 中运行，读取 `TV_RELEASE_KEYSTORE_BASE64`、`TV_RELEASE_STORE_PASSWORD`、`TV_RELEASE_KEY_ALIAS` 和 `TV_RELEASE_KEY_PASSWORD`，生成正式签名候选并验证 applicationId、versionCode、证书摘要和 APK 完整性；它只上传候选 artifact，不创建 GitHub Release。
 
+`Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成各自的 `latest.json`/签名文件，发布 GitHub Release 并部署 Pages 更新目录。桌面构建还要求同一 environment variable `HONGGUO_CORE_ORIGIN`，缺失时工作流失败，避免把本地 API 地址打进正式包。Pages 首次使用前需在仓库设置中选择 GitHub Actions 作为 Pages source。
+
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 
 游客历史说明见 [crates/core/src/library/README.md](crates/core/src/library/README.md)。`pnpm dev:*` 自动传入独立数据目录 `.local/data/rust`，不读取旧客户端文件；直接启动 Rust binary 必须提供 `--data-dir <目录>`。数据库不兼容或损坏时启动失败并保留原文件，请先检查版本与备份，不要删除数据绕过错误。
