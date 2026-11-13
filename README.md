@@ -88,3 +88,5 @@ pnpm legacy:verify
 旧入口也使用 `packages/app`，避免复制两套业务 UI。搜索结果、播放前不写历史、完成状态、历史裁剪及串行持久写入的回归测试随共享包保留。Go 核心固定为 `de9712bf358d`；`pnpm upstream:sync` 校验上游，不覆盖修改。
 
 设计与阶段边界见 [ARCHITECTURE.md](ARCHITECTURE.md)、[ENGINEERING.md](ENGINEERING.md)、[DESIGN.md](DESIGN.md)；真实检查结果、尚未验证的设备与功能见 [VALIDATION.md](VALIDATION.md)。
+
+TV 的实施顺序、遥控与真机测试、设备预览、签名发布和升级流程见 [TV_DEVELOPMENT.md](TV_DEVELOPMENT.md)。

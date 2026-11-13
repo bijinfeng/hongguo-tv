@@ -2,6 +2,8 @@
 
 > 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 骨架及工程门禁已落地（第一阶段基线）。当前 NSH 仍为 TSX + HTTP 开发模式；native bridge、完整内容协议、原生独立包和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
 
+TV 的阶段任务、命令现状、设备门禁与签名 APK 交付顺序见 [TV_DEVELOPMENT.md](TV_DEVELOPMENT.md)。
+
 状态：设计提案，2026-11-13。与 [ARCHITECTURE.md](ARCHITECTURE.md) 配套，覆盖 TypeScript/NSH、Rust 和 Android 宿主。目标产品及正常开发、CI、发布均不依赖 Go；当前旧验证工程只在迁移期保留。以下是完整产品的规范；当前阶段仅实现 README 与 VALIDATION 明确列出的子集。
 
 ## 1. 工具链所有权与版本
