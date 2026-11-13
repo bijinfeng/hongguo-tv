@@ -14,6 +14,6 @@
 
 ## 3. Independent host acceptance and review
 
-- [ ] 3.1 Install native business TV APK and remove computer API/reverse; verify real search→detail→play→next→return and process-restart resume, background/recovery, light/dark/font1.3 and remote input; review screenshots and functional evidence independently, record emulator/physical boundaries.
+- [x] 3.1 Install native business TV APK and remove computer API/reverse; verify real search→detail→play→next→return and process-restart resume, background/recovery, light/dark/font1.3 and remote input; review screenshots and functional evidence independently, record emulator/physical boundaries.
 - [ ] 3.2 Verify actual Desktop mixed host search/view/restart resume and UI focus/Select behavior in both approved desktop sizes and themes when host access is available; preserve pending A/B checks and do not equate headless with native host.
 - [ ] 3.3 Run complete pnpm verify, codegen:check, dependency security and OpenSpec strict; update feature ledger/roadmap/VALIDATION with per-slice review verdicts, remaining platform gaps and local commit state. Do not push, archive or publish.

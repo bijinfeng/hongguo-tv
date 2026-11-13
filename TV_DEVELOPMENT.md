@@ -95,15 +95,18 @@ pnpm dev:tv
 
 `setup:tools` 准备现有工程工具；上述命令不会自动补齐完整 Android SDK/NDK 或启动模拟器。TV `doctor` 会逐项校验固定 SDK、NDK、Rust targets、NSH runtime 和恰好一台 ready 设备，但通过仍不等于遥控、解码或独立 APK 验收。
 
-| 当前命令                  | 能证明什么                                                      | 不能证明什么                    |
-| ------------------------- | --------------------------------------------------------------- | ------------------------------- |
-| `pnpm check --target tv`  | Rust 工作区检查、TV NSH 类型                                    | Android Rust 交叉编译、设备兼容 |
-| `pnpm build --target tv`  | Rust 本机工作区构建、TV bundle                                  | 已生成 APK                      |
-| `pnpm test --target tv`   | 工程/Rust/TV headless 行为                                      | Android 原生输入、遥控和解码    |
-| `pnpm verify`             | 现有公共门禁与三端入口                                          | TV SDK、安装或真机验收          |
-| `pnpm verify --target tv` | 额外 doctor 加现有 TV 入口门禁                                  | 完整 Android 宿主和真机通过     |
-| `pnpm dev:tv`             | 默认包内 Rust；显式 HTTP preview 才连接电脑 API                 | APK 脱离电脑运行                |
-| `pnpm package:tv`         | 默认 arm64 原生业务 APK；HONGGUO_RUNTIME_MODE=t0 明确生成技术包 | 生产签名和独立产品验收          |
+| 当前命令                       | 能证明什么                                                                  | 不能证明什么                       |
+| ------------------------------ | --------------------------------------------------------------------------- | ---------------------------------- |
+| `pnpm check --target tv`       | Rust 工作区检查、TV NSH 类型                                                | Android Rust 交叉编译、设备兼容    |
+| `pnpm build --target tv`       | Rust 本机工作区构建、TV bundle                                              | 已生成 APK                         |
+| `pnpm test --target tv`        | 工程/Rust/TV headless 行为                                                  | Android 原生输入、遥控和解码       |
+| `pnpm verify`                  | 现有公共门禁与三端入口                                                      | TV SDK、安装或真机验收             |
+| `pnpm verify --target tv`      | 额外 doctor 加现有 TV 入口门禁                                              | 完整 Android 宿主和真机通过        |
+| `pnpm dev:tv`                  | 默认包内 Rust；显式 HTTP preview 才连接电脑 API                             | APK 脱离电脑运行                   |
+| `pnpm package:tv`              | 默认 arm64 原生业务 APK；HONGGUO_RUNTIME_MODE=t0 明确生成技术包             | 生产签名和独立产品验收             |
+| `pnpm test:tv-native-business` | 唯一 API 34 TV 模拟器，原生官网观看／后台／SQLite／重启续播，浅深与字号 1.3 | 物理遥控、电视硬解、长播和签名发行 |
+
+原生业务验收先检查电脑 API 18997 未运行且 adb reverse 为空，存在规则时拒绝运行并保留规则；不清数据库。命令重新打包安装 native，核对已安装 APK 和包内 bytecode，分阶段强停后复制新的 SQLite／WAL／SHM 快照。每阶段最多经现有按钮重试一次播放错误，保留错误截图与日志，仍须满足实际解码时钟、短窗定位和持久化断言。正常退出、失败或 SIGINT／SIGTERM 均恢复本次修改的主题、字号及 runtime；SIGKILL 无法保证恢复。测试会强停本次接管的应用，运行前请结束观看。结果及设备边界见 VALIDATION。
 
 NSH 已提供 Android 宿主测试入口：
 

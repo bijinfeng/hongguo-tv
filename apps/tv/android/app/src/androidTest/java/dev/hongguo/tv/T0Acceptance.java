@@ -73,6 +73,10 @@ public final class T0Acceptance extends Instrumentation {
     }
 
     @Override public void onStart() {
+        if ("native-business".equals(arguments.getString("suite"))) {
+            new NativeBusinessAcceptance(this, arguments.getString("appearance", "light"), arguments.getString("phase", "watch")).run();
+            return;
+        }
         if ("player".equals(arguments.getString("suite"))) {
             new PlayerAcceptance(this, arguments.getString("appearance", "light")).run();
             return;

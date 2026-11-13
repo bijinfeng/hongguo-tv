@@ -1,6 +1,6 @@
 # 设计定稿后的实施路线
 
-日期：2026-11-14。状态：A 已实施，桌面系统字体缩放仍待验；B4c 已接通 TV 生产页面的 DPAD／媒体键与逐层焦点，Web 官网观看／重启续播保留 B4b 证据；C1／C2 已完成原生 transport、mixed 注册、默认生产入口和显式预览装配，原生包已构建，启动重试与既有 TV fixture 已验；macOS 输入、全屏及原生独立业务尚未验收。用户已授权分批本地提交；不推送或归档。
+日期：2026-11-14。状态：A 已实施，桌面系统字体缩放仍待验；B4c 已接通 TV 生产页面的 DPAD／媒体键与逐层焦点，Web 官网观看／重启续播保留 B4b 证据；C1／C2 已完成原生 transport、mixed 注册、默认生产入口和显式预览装配，原生包已构建，TV 原生官网观看／后台／重启续播已在三组模拟器外观验收；macOS 输入、全屏及独立业务尚未验收。用户已授权分批本地提交；不推送或归档。
 
 ## 目标与起点
 
@@ -8,13 +8,13 @@
 
 设计依据为 [原型规格](design/prototype-system.md)、[页面地图](design/ui-map.md)、[桌面修复](design/desktop-review-fixes.md) 和 [TV 修复](design/tv-review-fixes.md)。`design/prototype/` 是交互参考，演示数据、DOM 实现及模拟成功状态不进入生产。`DESIGN.md` 顶部 A 批映射记录当前实现，下方保留迁移前快照。不能把定稿等同于已通过 NSH 宿主验收。
 
-| 已有基础                                         | 当前边界                                                            |
-| ------------------------------------------------ | ------------------------------------------------------------------- |
-| pnpm／Cargo、契约生成、三端 check/build/headless | A/B 已运行 verify；最新源码与结果见 `VALIDATION.md`                 |
-| Rust 匿名官网搜索／详情、SQLite 游客历史         | Web 经 HTTP，Desktop／TV 已有原生默认入口；独立业务待 C3，账号未迁移，搜索只展示首批 |
-| TV T0 包内 Rust、合成视频、遥控与生命周期        | 最终 APK 已在 TV 模拟器深浅各 13 项通过；不是完整业务或物理电视验收 |
-| 浏览器桌面／TV 原型及行为修复                    | 原型全屏、TV 新筛选布局／IME 等仍有未完成的宿主观察                 |
-| 旧 Web／macOS 真实播放对照                       | legacy 仅供对照；新增 Rust + Web 官网闭环见 B4b，macOS 仍待验       |
+| 已有基础                                         | 当前边界                                                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| pnpm／Cargo、契约生成、三端 check/build/headless | A/B 已运行 verify；最新源码与结果见 `VALIDATION.md`                                                             |
+| Rust 匿名官网搜索／详情、SQLite 游客历史         | Web 经 HTTP，Desktop／TV 已有原生默认入口；TV 独立观看／重启续播已验，Desktop 待 C3，账号未迁移，搜索只展示首批 |
+| TV T0 包内 Rust、合成视频、遥控与生命周期        | 最终 APK 已在 TV 模拟器深浅各 13 项通过；不是完整业务或物理电视验收                                             |
+| 浏览器桌面／TV 原型及行为修复                    | 原型全屏、TV 新筛选布局／IME 等仍有未完成的宿主观察                                                             |
+| 旧 Web／macOS 真实播放对照                       | legacy 仅供对照；新增 Rust + Web 官网闭环见 B4b，macOS 仍待验                                                   |
 
 `TV_DEVELOPMENT.md` 的部分“当前状态／下一步 T0”和 README 的无设备描述早于最新验收。实施以最新 `VALIDATION.md` 和实际源码为起点；第一批修正文档中的这些过时状态，不重复建立已经通过的 T0。
 
@@ -57,4 +57,4 @@
 
 ## 当前可执行起点
 
-继续 [B tasks](../openspec/changes/migrate-rust-playback/tasks.md)：定稿 Player 已进入共享生产路由，Web 官网及合成解码证据见 VALIDATION B4b；TV APK 的 DPAD／定位确认取消／媒体键已接通，最终回归证据见 B4c；macOS Select／焦点／全屏／官网验收仍开着，此前 CUA 确认 Mac 锁屏，未反复请求解锁。A 字体缩放与跨端辅助技术仍保持未完成。C 的独立 OpenSpec `embed-native-core` 中，C1 transport／Rust 会话与媒体专用路由、C2 mixed 导出／生产入口／开发打包已实施；最终 verify、原生包与启动重试／既有 TV fixture 证据见 VALIDATION C2.2／C2.3。继续 C3：安装默认原生业务 APK，停止电脑 API、清 reverse，验证真实搜索／观看／重启续播；macOS 宿主仍单列开放。不得将 HTTP fixture、合成启动或包构建视为原生独立业务通过。
+继续 [B tasks](../openspec/changes/migrate-rust-playback/tasks.md)：定稿 Player 已进入共享生产路由，Web 官网及合成解码证据见 VALIDATION B4b；TV APK 的 DPAD／定位确认取消／媒体键已接通，最终回归证据见 B4c；macOS Select／焦点／全屏／官网验收仍开着，此前 CUA 确认 Mac 锁屏，未反复请求解锁。A 字体缩放与跨端辅助技术仍保持未完成。C 的独立 OpenSpec `embed-native-core` 中，C1 transport／Rust 会话与媒体专用路由、C2 mixed 导出／生产入口／开发打包已实施；最终 verify、原生包与启动重试／既有 TV fixture 证据见 VALIDATION C2.2／C2.3。C3 的 TV native APK 已在电脑 API 停止、reverse 为空时完成真实搜索／观看／后台／重启续播，浅色、深色和字号 1.3 共三组，原始失败及重试恢复如实保留；macOS 宿主与最终安全门禁仍单列开放。下一独立切片为 D 的匿名内容发现，先核对官网分页与定稿搜索交互；不因 Mac 锁屏删除 C3 未完成项。不得将 HTTP fixture、合成启动或包构建视为原生独立业务通过。

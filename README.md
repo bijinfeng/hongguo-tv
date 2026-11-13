@@ -2,7 +2,7 @@
 
 NSH TSX + Rust 多端工程，采用 pnpm monorepo 和 Cargo workspace。Web、桌面和 Android TV 复用同一套界面与状态逻辑；目标原生客户端直接链接 Rust 核心。
 
-**当前是工程迁移第一阶段。** Rust API 已提供匿名官网搜索与详情、游客 SQLite 历史、播放解析与有界媒体服务、生成契约和边界检查；定稿播放器已接入，Web 的官网观看与 Rust 历史重启续播已验证；TV 生产页面的媒体键／DPAD 已在模拟器验收；账号、macOS 与原生独立业务仍在迁移／验收中。Web 使用 Rust HTTP 服务；Desktop／TV 已有共享原生 bridge 与默认生产入口，独立安装业务仍待宿主验收。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
+**当前是工程迁移第一阶段。** Rust API 已提供匿名官网搜索与详情、游客 SQLite 历史、播放解析与有界媒体服务、生成契约和边界检查；定稿播放器已接入，Web 的官网观看与 Rust 历史重启续播已验证；TV 原生安装包的官网观看、后台和重启续播已在模拟器浅深与大字号验收；账号、macOS 与物理电视仍在迁移／验收中。Web 使用 Rust HTTP 服务；Desktop／TV 已有共享原生 bridge 与默认生产入口，Desktop 独立业务仍待宿主验收。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
 
 ## 准备
 
@@ -84,6 +84,7 @@ pnpm test:tv-browsing # 显式 HTTP fixture，与原生独立业务分开
 pnpm test:tv-player
 pnpm test:tv-native-startup # 原生入口的合成启动／失败／重试，非独立业务验收
 pnpm test:tv-native-retry   # 生产 TV 宿主适配层的合成失败／遥控重试
+pnpm test:tv-native-business # 原生安装包、官网媒体、SQLite 与进程重启；需要唯一 TV API 34 模拟器
 ```
 
 HTTP preview 开发会启动电脑 API（TV 使用并清理本次 reverse）；native／t0 只启动宿主并拥有其退出清理。原生启动失败复用现有 Notice 和重试，不清数据、不回退外部服务。正常 UI 卸载先收集最终播放 checkpoint 并排空所属写队列，再关闭原生会话；OS 强杀／引擎直接销毁只保障已提交记录，不承诺执行完 JS 清理。三端自动测试的 HTTP 业务场景使用显式 fixture 入口，不能计为原生业务验收。
