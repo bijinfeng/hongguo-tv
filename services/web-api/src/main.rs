@@ -25,12 +25,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     let address = listener.local_addr()?;
+    let app = router(DevPolicy::new(address.port(), origin))?;
     println!(
         "{}",
         serde_json::json!({"event":"ready", "origin":format!("http://{address}")})
     );
     std::io::stdout().flush()?;
-    axum::serve(listener, router(DevPolicy::new(address.port(), origin)))
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown())
         .await?;
     Ok(())

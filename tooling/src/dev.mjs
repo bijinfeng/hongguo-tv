@@ -1,7 +1,16 @@
 import { createServer } from 'node:net';
 import { createInterface } from 'node:readline';
 import { resolve } from 'node:path';
-import { cargo, child, executable, nativeTarget, root, run, runtimeConfig } from './process.mjs';
+import {
+  cargo,
+  child,
+  executable,
+  nativeTarget,
+  root,
+  run,
+  runtimeConfig,
+  rustEnvironment,
+} from './process.mjs';
 
 async function freePort() {
   const server = createServer();
@@ -108,7 +117,7 @@ export async function dev(target) {
     host = child(
       executable('nsh'),
       ['run', '--target', nativeTarget(target), '--port', String(port)],
-      { cwd: resolve(root, 'apps', target) },
+      { cwd: resolve(root, 'apps', target), env: rustEnvironment() },
     );
     await Promise.race([
       host.done,

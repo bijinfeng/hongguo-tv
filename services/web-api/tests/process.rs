@@ -60,7 +60,7 @@ fn binary_serves_real_loopback_requests_and_exits() {
     for (path, expected) in [
         ("/healthz", "200 OK"),
         ("/api/v1/status", "200 OK"),
-        ("/api/v1/search?q=test", "501 Not Implemented"),
+        ("/api/v1/play/info", "501 Not Implemented"),
     ] {
         let mut socket = TcpStream::connect(address).unwrap();
         socket

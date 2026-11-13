@@ -1,4 +1,6 @@
 //! Loopback development transport. Public deployment requires session isolation first.
+mod catalog;
+
 use axum::{
     Json, Router,
     extract::{Request, State},
@@ -7,7 +9,10 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
-use hongguo_core::CoreStatus;
+use hongguo_core::{
+    CoreStatus,
+    catalog::{CatalogClient, CatalogError},
+};
 use serde::Serialize;
 use utoipa::{OpenApi, ToSchema};
 
@@ -155,12 +160,17 @@ async fn boundary(State(policy): State<DevPolicy>, req: Request, next: Next) -> 
 }
 
 /// Build the API with bounded JSON and explicit content migration failures.
-pub fn router(policy: DevPolicy) -> Router {
+pub fn router(policy: DevPolicy) -> Result<Router, CatalogError> {
+    Ok(router_with_catalog(policy, CatalogClient::new()?))
+}
+
+/// Build with an explicitly initialized catalog; fixture tests can inject a loopback client.
+pub fn router_with_catalog(policy: DevPolicy, catalog: CatalogClient) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/api/v1/status", get(status))
-        .route("/api/v1/search", get(unavailable))
-        .route("/api/v1/series/detail", get(unavailable))
+        .route("/api/v1/search", get(catalog::search))
+        .route("/api/v1/series/detail", get(catalog::detail))
         .route("/api/v1/play/info", get(unavailable))
         .route("/api/v1/library", get(unavailable).post(unavailable))
         .route("/api/v1/account", get(unavailable))
@@ -176,17 +186,28 @@ pub fn router(policy: DevPolicy) -> Router {
                 "Method not allowed",
             )
         })
+        .with_state(catalog)
         .layer(middleware::from_fn_with_state(policy, boundary))
 }
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(status, health),
-    components(schemas(StatusResponse, CoreStatus, hongguo_core::Capabilities, ApiError))
+    paths(status, health, catalog::search, catalog::detail),
+    components(schemas(
+        StatusResponse,
+        CoreStatus,
+        hongguo_core::Capabilities,
+        ApiError,
+        catalog::SearchResponse,
+        catalog::DetailResponse,
+        hongguo_core::catalog::Drama,
+        hongguo_core::catalog::Episode,
+        hongguo_core::catalog::SearchResult
+    ))
 )]
 struct ApiDoc;
 
-/// Export implemented endpoints only. Compatibility DTOs remain explicitly separate.
+/// Export implemented endpoints only. Unmigrated account/playback DTOs remain separate.
 pub fn openapi() -> utoipa::openapi::OpenApi {
     ApiDoc::openapi()
 }

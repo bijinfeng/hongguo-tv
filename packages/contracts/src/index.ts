@@ -1,26 +1,10 @@
-// Compatibility DTOs for the migration reference; new Rust endpoints use generated.ts.
-export interface Episode {
-  index: number;
-  video_id: string;
-  title?: string;
-  locked: boolean;
-}
-export interface Drama {
-  series_id: string;
-  title: string;
-  cover: string;
-  cover_fallback?: string;
-  intro: string;
-  episode_count?: number;
-  content_type?: string;
-  episodes?: Episode[];
-  tags?: string[];
-}
-export interface SearchResult {
-  items: Drama[];
-  has_more: boolean;
-  next_offset: number;
-}
+import type { components } from './generated';
+
+export type Episode = components['schemas']['Episode'];
+export type Drama = components['schemas']['Drama'];
+export type SearchResult = components['schemas']['SearchResult'];
+
+// Playback, library and account remain migration compatibility types.
 export interface PlayInfo {
   path: string;
   vid: string;

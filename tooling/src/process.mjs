@@ -2,7 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { resolve } from 'node:path';
+import { delimiter, dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -40,6 +40,18 @@ export function executable(name, env = process.env) {
       ? ['.local/bin', '.nsh/bin'].map((dir) => resolve(homedir(), dir, filename))
       : [resolve(homedir(), '.cargo/bin', filename)];
   return candidates.find(existsSync) || filename;
+}
+/** Give NSH's Cargo subprocesses the same rustup tools the workspace resolves. */
+export function rustEnvironment(env = process.env) {
+  const cargo = executable('cargo', env);
+  if (!isAbsolute(cargo)) return { ...env };
+  const key =
+    (process.platform === 'win32' &&
+      Object.keys(env).find((key) => key.toUpperCase() === 'PATH')) ||
+    'PATH';
+  const bin = dirname(cargo);
+  const paths = (env[key] || '').split(delimiter).filter(Boolean);
+  return { ...env, [key]: [bin, ...paths.filter((path) => path !== bin)].join(delimiter) };
 }
 export function output(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: root, encoding: 'utf8', ...options });
@@ -94,7 +106,10 @@ export async function nsh(command, target, args = []) {
   if (version.split(/\s+/)[1] !== nshVersion)
     throw new Error(`Expected NSH ${nshVersion}: ${version}`);
   await runtimeConfig(target);
-  await run(cli, [command, ...args], { cwd: resolve(root, 'apps', target) });
+  await run(cli, [command, ...args], {
+    cwd: resolve(root, 'apps', target),
+    env: rustEnvironment(),
+  });
 }
 export function baseDoctor() {
   const results = [];

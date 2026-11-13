@@ -1,0 +1,15 @@
+{
+  "series_id": "7690163276214176792",
+  "title": "测试短剧",
+  "cover": "https://example.invalid/cover.jpg",
+  "intro": "合成简介，包含 } 和 \" 引号",
+  "episode_count": 5,
+  "tags": ["测试"],
+  "episodes": [
+    { "index": 1, "video_id": "11", "title": "第1集", "locked": false },
+    { "index": 2, "video_id": "22", "title": "第2集", "locked": false },
+    { "index": 3, "video_id": "33", "title": "第3集", "locked": false },
+    { "index": 4, "video_id": "44", "title": "第4集", "locked": true },
+    { "index": 5, "video_id": "55", "title": "第5集", "locked": true }
+  ]
+}

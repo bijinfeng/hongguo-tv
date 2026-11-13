@@ -1,11 +1,12 @@
-//! Platform independent domain rules. No HTTP, NSH, filesystem or account side effects.
+//! Platform-independent domain rules and anonymous catalog queries. No NSH or account state.
+pub mod catalog;
 pub mod media;
 
 use serde::Serialize;
 use utoipa::ToSchema;
 
 /// Implemented capabilities, shared by every transport.
-#[derive(Debug, Default, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema)]
 #[non_exhaustive]
 pub struct Capabilities {
     /// Real content search is available.
@@ -14,6 +15,16 @@ pub struct Capabilities {
     pub playback: bool,
     /// Persistent account and history are available.
     pub account: bool,
+}
+
+impl Default for Capabilities {
+    fn default() -> Self {
+        Self {
+            search: true,
+            playback: false,
+            account: false,
+        }
+    }
 }
 
 /// Runtime readiness is separate from content migration progress.

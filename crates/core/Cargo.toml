@@ -7,7 +7,14 @@ publish.workspace = true
 
 [dependencies]
 serde.workspace = true
+serde_json = { workspace = true, features = ["arbitrary_precision"] }
 utoipa.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+tokio = { workspace = true, features = ["time"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["io-util", "sync"] }
 
 [lints]
 workspace = true

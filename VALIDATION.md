@@ -1,5 +1,37 @@
 # 验证记录 · 2026-11-13
 
+## Rust 匿名目录迁移 · 当前结果
+
+OpenSpec：`migrate-rust-catalog`。不修改共享页面或设计稿；官网搜索/详情已接入同一 Rust 服务，账号、播放、历史仍为 501，业务原生 bridge 尚未接入。
+
+| 范围           | 结果                                                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 离线目录契约   | 5 项解析/校验测试通过：数值大 ID 精确字符串化、32 位 ID、搜索去重/分页/空页、详情身份、router JSON 与选集锁定；样本为合成数据，固定参考 SHA 见 contracts/fixtures/catalog/README.md |
+| 有界客户端     | 6 项测试通过：生产 TLS 初始化、loopback 限制、编码/页码、无 Cookie/授权、重定向拒绝、403 挑战、5xx/截断响应有限重试、两类大小上限、单次/总超时、drop 关闭连接且不重试               |
+| API 与进程     | 新增 4 项集成测试通过；原有来源、请求体、路由和真实进程启动/停止测试通过。client/router 在 ready 输出之前初始化；未实现端点仍 501                                                   |
+| Rust/工程      | 全工作区 locked check/build、rustfmt、Clippy `-D warnings`、22 项 nextest、doctest 通过；7 项 Node 工程测试通过                                                                     |
+| 契约           | OpenAPI 和 generated.ts 已更新；codegen:check 无漂移，目录 TS 类型改为生成 alias；账号/历史/播放兼容类型仍手写                                                                      |
+| NSH 共享回归   | Web/Desktop/TV check/build 通过；headless 分别 5/5/6 项通过，共 16 项，含 TV T0 bridge、资源释放及异步任务取消/正常完成验证；headless 不等于 Android 真机                           |
+| 官网显式 smoke | `cargo run --locked -p hongguo-core --example catalog_probe -- 重生` 成功：10 项结果、has_more=true，首项详情 166 集。只检查当时匿名官网，不证明 App 搜索、播放或账号               |
+| fuzz 兼容      | 因 core 新增依赖刷新独立 fuzz/Cargo.lock；稳定版 locked check 通过。未声称已运行 nightly fuzz 或覆盖率                                                                              |
+| 供应链         | npm 官方 registry audit 未发现已知漏洞。已审查并限定四项 TLS 依赖许可证例外，见 docs/dependencies/catalog-tls.md；全工作区安全检查仍失败，见下文                                    |
+
+本机直接执行 `pnpm verify`，无需手动设置 PATH 或 RUSTUP_TOOLCHAIN。工程脚本向 NSH 构建、测试和开发子进程传入已解析的 Rust 工具目录，遵循仓库固定工具链；受限 PATH、环境不变及重复调用有工程测试。TV 的 T0Session 增加 Default 以满足 Clippy；取消测试使用手动时钟推进 1000ms，超过 Rust 任务的 500ms 定时器，并用未取消任务正常完成作为对照。
+
+**完整 `pnpm verify` 已通过：** 格式、Oxlint/包边界、契约无漂移、Rust/NSH check/build 和全部上述测试通过。此前 TV T0 探针失败已修复，并在完整回归中通过，未删除或过滤测试。macOS mixed headless runner 链接仍有一项 warning：`__eh_frame section too large (max 16MB)`，链接器提示异常处理性能可能受影响；它不是 TSX bundler 警告或测试失败，未全局屏蔽。安全检查单列如下，不能据 verify 通过推定全部发行门禁通过。
+
+**安全门禁仍失败：** `pnpm security` 中 cargo-deny 阻止了 TV NSH 依赖的许可证（foldhash/zlib-rs 的 Zlib、webpki-roots 的 CDLA-Permissive-2.0、winx 的 LLVM exception），并报告 bincode 1.3.3（RUSTSEC-2025-0141）和 ttf-parser 0.25.1（RUSTSEC-2026-0192）停止维护，无安全升级建议。这些不等同已证实可利用漏洞，但当前政策仍阻止合入；没有添加 advisory ignore 或放宽全局许可证策略。cargo-deny 的 bans/sources 通过，重复版本仍有 warning。
+
+当前没有重新验收视觉设计、Android ABI/JNI/TLS、真实遥控/解码、正式安装包、Windows/Linux 或远端 CI。未自动提交、推送、发布或归档 OpenSpec。
+
+## TV T0 Android 打包 · 当前结果
+
+TV 的 mixed/native T0 已在 headless runner 验证：`PATH="$HOME/.cargo/bin:$PATH" RUSTUP_TOOLCHAIN=1.97.0 pnpm check --target tv`、`pnpm build --target tv`、`pnpm test --target tv`、`pnpm fmt:check` 和 `pnpm lint` 均通过；6 项 TV 测试包含 bridge 调用、class dispose、owner 任务取消及原有搜索/播放/账号/历史行为。
+
+`pnpm doctor --target tv` 和 `pnpm package:tv` 均在打包前置检查处失败。NSH 0.5.0（`f4d68f7`）、JDK 25.0.3、adb 和 Android runtime 已就绪；缺少 `platforms;android-35`、`build-tools;35.0.1`、NDK `27.2.12479018`、`aarch64-linux-android`/`armv7-linux-androideabi`/`x86_64-linux-android` Rust targets，且没有 ready adb 设备。当前没有生成 APK。
+
+准备工具链时，Homebrew 的 `android-commandlinetools` 下载在 Google 源无进展后中止（缓存留下约 96 MiB 的 `.incomplete` 文件，未安装 SDK）；`rustup target add` 又因已有不完整 target 文件报告 `detected conflict` 并回滚。没有把这些环境残留纳入仓库，也没有伪造 Android、遥控、解码或正式安装包通过结论。
+
 ## pnpm / Rust 工程基线
 
 环境：Apple Silicon macOS；Node 26.12.1、pnpm 11.1.3、NSH 0.5.0（f4d68f7）、Rust/Cargo 1.97.0。nextest 0.9.151、cargo-deny 0.20.2 使用官方预编译包并校验官方 SHA256；安装过程未修改 shell PATH 配置。
@@ -19,7 +51,7 @@
 
 当前新增 6 项工程自动化测试。旧播放的真实网络/界面证据保留在下文，本次结构迁移未重新做真实账号扫码和全量视频验收。
 
-本阶段仍未完成：Rust 内容/账号/存储协议迁移；NSH mixed/native bridge；桌面/TV 独立安装包；公网身份与会话隔离。Android doctor 实际因缺少 build-tools 35.0.1 失败，且无连接设备。cargo-llvm-cov/fuzz 的命令与手动 CI 已配置，fuzz 的独立锁文件及稳定版编译检查通过；本机尚未完成 LLVM/nightly 安装与覆盖率/实际 fuzz 运行。GitHub CI 配置尚未远端执行；Windows/Linux 的实际运行结果不作本机通过声明。签名、更新、SBOM、secret scan 与发行保护按后续阶段落实，未宣称工业化发行已完成。
+工程基线时仍未完成：Rust 内容/账号/存储协议迁移；NSH mixed/native bridge；桌面/TV 独立安装包；公网身份与会话隔离。Android doctor 实际因缺少 build-tools 35.0.1 失败，且无连接设备。cargo-llvm-cov/fuzz 的命令与手动 CI 已配置，fuzz 的独立锁文件及稳定版编译检查通过；本机尚未完成 LLVM/nightly 安装与覆盖率/实际 fuzz 运行。GitHub CI 配置尚未远端执行；Windows/Linux 的实际运行结果不作本机通过声明。签名、更新、SBOM、secret scan 与发行保护按后续阶段落实，未宣称工业化发行已完成。
 
 ## 迁移前真实功能验证
 

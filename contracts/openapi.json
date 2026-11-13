@@ -9,6 +9,167 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/search": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Trimmed term, 1–80 Unicode characters",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Website pages consumed, 0–100000",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only web is supported",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/series/detail": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "series_id",
+            "in": "query",
+            "description": "Nonzero decimal ID, 1–32 digits",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "content_type",
+            "in": "query",
+            "description": "Creator albums (1003) are unsupported",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/status": {
       "get": {
         "tags": [],
@@ -115,6 +276,159 @@
           "version": {
             "type": "string",
             "description": "Build version."
+          }
+        }
+      },
+      "DetailResponse": {
+        "type": "object",
+        "description": "Successful ordinary drama detail.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Requested drama and ordered episodes."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "Drama": {
+        "type": "object",
+        "description": "Shared drama summary; detail adds ordered episodes without leaking upstream payloads.",
+        "required": [
+          "series_id",
+          "title",
+          "cover",
+          "intro"
+        ],
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "description": "Content family; creator albums are outside this service."
+          },
+          "cover": {
+            "type": "string",
+            "description": "Original cover address."
+          },
+          "cover_fallback": {
+            "type": "string",
+            "description": "Website JPEG alternative for supported HEIC covers."
+          },
+          "episode_count": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Reported episode count.",
+            "minimum": 0
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Episode"
+            },
+            "description": "Ordered detail episodes; absent in search summaries."
+          },
+          "intro": {
+            "type": "string",
+            "description": "Plain description."
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Exact series identifier."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Genre labels."
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title."
+          }
+        }
+      },
+      "Episode": {
+        "type": "object",
+        "description": "Episode identity and access state; indexes are one-based.",
+        "required": [
+          "index",
+          "video_id",
+          "locked"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "description": "One-based episode number.",
+            "minimum": 0
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "Whether the episode is outside the website's accessible range."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional display title."
+          },
+          "video_id": {
+            "type": "string",
+            "description": "Exact upstream video identifier, never a floating-point number."
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "description": "Successful website search page.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SearchResult",
+            "description": "Normalized website page."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "SearchResult": {
+        "type": "object",
+        "description": "Website page result; continuation offsets count pages already consumed.",
+        "required": [
+          "items",
+          "has_more",
+          "next_offset"
+        ],
+        "properties": {
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether a further website page is available."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Drama"
+            },
+            "description": "Unique drama summaries, including an empty array for no matches."
+          },
+          "next_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Consumed website page number; send as the next offset.",
+            "minimum": 0
+          },
+          "source": {
+            "type": "string",
+            "description": "Catalog source. Optional for legacy fixture compatibility; this service always emits web."
           }
         }
       },

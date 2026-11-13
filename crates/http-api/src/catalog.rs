@@ -1,0 +1,86 @@
+use crate::{ApiError, failure};
+use axum::{
+    Json,
+    extract::{Query, State, rejection::QueryRejection},
+    http::StatusCode,
+    response::Response,
+};
+use hongguo_core::catalog::{CatalogClient, CatalogError, Drama, SearchQuery, SearchResult};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+/// Successful website search page.
+#[derive(Serialize, ToSchema)]
+pub struct SearchResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Normalized website page.
+    pub data: SearchResult,
+}
+/// Successful ordinary drama detail.
+#[derive(Serialize, ToSchema)]
+pub struct DetailResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Requested drama and ordered episodes.
+    pub data: Drama,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SearchParams {
+    q: String,
+    #[serde(default)]
+    offset: u32,
+    source: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DetailParams {
+    series_id: String,
+    content_type: Option<String>,
+}
+
+#[utoipa::path(get, path = "/api/v1/search",
+    params(("q" = String, Query, description = "Trimmed term, 1–80 Unicode characters"),
+        ("offset" = Option<u32>, Query, description = "Website pages consumed, 0–100000"),
+        ("source" = Option<String>, Query, description = "Only web is supported")),
+    responses((status = 200, body = SearchResponse), (status = 400, body = ApiError),
+        (status = 403, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn search(
+    State(client): State<CatalogClient>,
+    params: Result<Query<SearchParams>, QueryRejection>,
+) -> Result<Json<SearchResponse>, Response> {
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = SearchQuery::new(&params.q, params.offset, params.source.as_deref())
+        .map_err(catalog_failure)?;
+    let data = client.search(&query).await.map_err(catalog_failure)?;
+    Ok(Json(SearchResponse { ok: true, data }))
+}
+
+#[utoipa::path(get, path = "/api/v1/series/detail",
+    params(("series_id" = String, Query, description = "Nonzero decimal ID, 1–32 digits"),
+        ("content_type" = Option<String>, Query, description = "Creator albums (1003) are unsupported")),
+    responses((status = 200, body = DetailResponse), (status = 400, body = ApiError),
+        (status = 403, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn detail(
+    State(client): State<CatalogClient>,
+    params: Result<Query<DetailParams>, QueryRejection>,
+) -> Result<Json<DetailResponse>, Response> {
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let data = client
+        .detail(&params.series_id, params.content_type.as_deref())
+        .await
+        .map_err(catalog_failure)?;
+    Ok(Json(DetailResponse { ok: true, data }))
+}
+fn catalog_failure(error: CatalogError) -> Response {
+    let status = match error {
+        CatalogError::InvalidInput
+        | CatalogError::UnsupportedSource
+        | CatalogError::UnsupportedContent => StatusCode::BAD_REQUEST,
+        CatalogError::Timeout => StatusCode::GATEWAY_TIMEOUT,
+        _ => StatusCode::BAD_GATEWAY,
+    };
+    failure(status, error.code(), &error.to_string())
+}

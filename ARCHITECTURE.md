@@ -1,6 +1,6 @@
 # 多端工程架构
 
-> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 骨架及工程门禁已落地（第一阶段基线）。当前 NSH 仍为 TSX + HTTP 开发模式；native bridge、完整内容协议、原生独立包和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
+> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 和匿名官网目录服务已落地（第一阶段基线）。当前业务仍经 HTTP 连接 Rust；原生业务 bridge、完整内容协议、原生独立包和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
 
 状态：设计提案，2026-11-13。本文描述目标结构；新工作区已进入第一阶段实施，旧 `app/ + scripts/ + upstream/` 保留为行为对照，已验证边界见 [VALIDATION.md](VALIDATION.md)。工具链、Git、CI 与发布规范见 [ENGINEERING.md](ENGINEERING.md)。
 
@@ -177,7 +177,11 @@ core 必须支持实例化的账号上下文与独立存储，禁止全局可变
 
 ## 5. 契约与跨语言边界
 
-HTTP 契约由 Rust HTTP DTO 与路由导出到 `contracts/core-api.openapi.json`，建议使用 utoipa；再用固定版本的 `openapi-typescript` 生成 TS wire types。Rust DTO 是该契约的唯一编辑源，生成结果提交并在 CI 检查漂移。
+已实现的目录切片位于 `crates/core/src/catalog/`：Rust DTO、纯解析和可克隆 `CatalogClient`。生产固定官网 origin，HTTP/1.1、无 Cookie/代理/重定向；搜索 4 MiB、详情 12 MiB，每次 5 秒、整体 12 秒，最多两次尝试。drop 取消 pending future，核心不 spawn 脱离调用者的查询任务。loopback origin 仅由测试显式注入，API 请求不能指定上游地址。
+
+`http-api` 将搜索/详情接入相同服务，输入错误 400、上游失败 502、超时 504；TLS/client 初始化成功后，binary 才发布 ready。状态声明 search=true、playback/account=false。目录 DTO 已由 Rust → `contracts/openapi.json` → TypeScript 生成；其他兼容 DTO、账号、播放和持久化继续按后续阶段迁移。官网/App 的分页不同，本切片明确使用 source=web，不支持创作者合集。离线 fixtures 和 opt-in probe 说明见 `contracts/fixtures/catalog/README.md`。
+
+HTTP 契约由 Rust HTTP DTO 与路由导出到 `contracts/openapi.json`，建议使用 utoipa；再用固定版本的 `openapi-typescript` 生成 TS wire types。Rust DTO 是该契约的唯一编辑源，生成结果提交并在 CI 检查漂移。
 
 原生 API 类型由 NSH 从 Rust 导出生成。原生与 HTTP adapter 映射到同一 TS `CoreClient` 接口，使用同一组契约场景验证；取消、错误码与进度语义不得因传输方式不同而漂移。
 

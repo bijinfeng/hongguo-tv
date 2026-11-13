@@ -1,0 +1,22 @@
+{
+  "searchList": [
+    {
+      "video_data": {
+        "series_id": 7690163276214176792,
+        "series_title": "测试短剧",
+        "series_cover": "https://example.invalid/cover.jpg",
+        "series_intro": "合成简介",
+        "episode_cnt": 5,
+        "tags": ["测试"]
+      }
+    },
+    { "video_data": { "series_id": "7690163276214176792", "series_title": "重复" } },
+    { "user_info": { "id": "9876543210987654321" } },
+    { "video_data": { "series_id": "0" } },
+    { "video_data": { "series_id": "invalid" } },
+    { "video_data": { "series_id": "888", "content_type": "1003" } }
+  ],
+  "pageNum": 1,
+  "totalPages": 2,
+  "hasMore": true
+}

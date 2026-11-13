@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "series_id": "7690163276214176792",
+      "title": "测试短剧",
+      "cover": "https://example.invalid/cover.jpg",
+      "intro": "合成简介",
+      "episode_count": 5,
+      "tags": ["测试"]
+    }
+  ],
+  "has_more": true,
+  "next_offset": 1,
+  "source": "web"
+}

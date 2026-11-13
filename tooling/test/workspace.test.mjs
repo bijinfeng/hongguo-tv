@@ -5,7 +5,15 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { boundaries } from '../src/boundaries.mjs';
-import { nativeTarget, parseArgs, runtimeConfig, root, child } from '../src/process.mjs';
+import {
+  nativeTarget,
+  parseArgs,
+  runtimeConfig,
+  root,
+  child,
+  rustEnvironment,
+  rustVersion,
+} from '../src/process.mjs';
 import { ready, stop } from '../src/dev.mjs';
 import { hookArgs } from '../src/lefthook.mjs';
 
@@ -31,6 +39,20 @@ test('target selection rejects unsupported targets and malformed options', () =>
   assert.equal(nativeTarget('tv'), 'android');
   assert.throws(() => nativeTarget('desktop', 'freebsd'));
 });
+
+test('NSH child environment finds Cargo without changing the caller PATH', () =>
+  temp(async (dir) => {
+    const key = Object.keys(process.env).find((key) => key.toUpperCase() === 'PATH') || 'PATH';
+    const env = { ...process.env, [key]: dir, RUSTUP_TOOLCHAIN: rustVersion };
+    const snapshot = { ...env };
+    const resolved = rustEnvironment(env);
+    assert.deepEqual(env, snapshot);
+    assert.equal(resolved[key].endsWith(dir), true);
+    assert.deepEqual(rustEnvironment(resolved), resolved);
+    const result = spawnSync('cargo', ['--version'], { env: resolved, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr || result.error?.message);
+    assert.match(result.stdout, new RegExp(`^cargo ${rustVersion.replaceAll('.', '\\.')}`));
+  }));
 
 test('runtime setup preserves existing configuration and never touches data', () =>
   temp(async (dir) => {

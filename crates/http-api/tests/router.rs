@@ -23,6 +23,7 @@ async fn request(
         8080,
         Some("http://127.0.0.1:8790".parse().unwrap()),
     ))
+    .unwrap()
     .oneshot(req.body(Body::from(body.to_owned())).unwrap())
     .await
     .unwrap()
@@ -35,7 +36,8 @@ async fn status_is_honest_about_capabilities() {
         serde_json::from_slice(&to_bytes(response.into_body(), 32768).await.unwrap()).unwrap();
     assert_eq!(value["data"]["api_version"], "v1");
     assert_eq!(value["data"]["capabilities"]["playback"], false);
-    let response = request("/api/v1/search?q=test", "GET", &[], "").await;
+    assert_eq!(value["data"]["capabilities"]["search"], true);
+    let response = request("/api/v1/play/info", "GET", &[], "").await;
     assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
     let value: serde_json::Value =
         serde_json::from_slice(&to_bytes(response.into_body(), 32768).await.unwrap()).unwrap();

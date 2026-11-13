@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/series/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/status": {
         parameters: {
             query?: never;
@@ -67,6 +99,72 @@ export interface components {
             /** @description Build version. */
             version: string;
         };
+        /** @description Successful ordinary drama detail. */
+        DetailResponse: {
+            /** @description Requested drama and ordered episodes. */
+            data: components["schemas"]["Drama"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Shared drama summary; detail adds ordered episodes without leaking upstream payloads. */
+        Drama: {
+            /** @description Content family; creator albums are outside this service. */
+            content_type?: string;
+            /** @description Original cover address. */
+            cover: string;
+            /** @description Website JPEG alternative for supported HEIC covers. */
+            cover_fallback?: string;
+            /**
+             * Format: int32
+             * @description Reported episode count.
+             */
+            episode_count?: number;
+            /** @description Ordered detail episodes; absent in search summaries. */
+            episodes?: components["schemas"]["Episode"][];
+            /** @description Plain description. */
+            intro: string;
+            /** @description Exact series identifier. */
+            series_id: string;
+            /** @description Genre labels. */
+            tags?: string[];
+            /** @description Display title. */
+            title: string;
+        };
+        /** @description Episode identity and access state; indexes are one-based. */
+        Episode: {
+            /**
+             * Format: int32
+             * @description One-based episode number.
+             */
+            index: number;
+            /** @description Whether the episode is outside the website's accessible range. */
+            locked: boolean;
+            /** @description Optional display title. */
+            title?: string;
+            /** @description Exact upstream video identifier, never a floating-point number. */
+            video_id: string;
+        };
+        /** @description Successful website search page. */
+        SearchResponse: {
+            /** @description Normalized website page. */
+            data: components["schemas"]["SearchResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Website page result; continuation offsets count pages already consumed. */
+        SearchResult: {
+            /** @description Whether a further website page is available. */
+            has_more: boolean;
+            /** @description Unique drama summaries, including an empty array for no matches. */
+            items: components["schemas"]["Drama"][];
+            /**
+             * Format: int32
+             * @description Consumed website page number; send as the next offset.
+             */
+            next_offset: number;
+            /** @description Catalog source. Optional for legacy fixture compatibility; this service always emits web. */
+            source?: string;
+        };
         /** @description Successful status result using the shared response envelope. */
         StatusResponse: {
             /** @description Core state. */
@@ -83,6 +181,120 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    search: {
+        parameters: {
+            query: {
+                /** @description Trimmed term, 1–80 Unicode characters */
+                q: string;
+                /** @description Website pages consumed, 0–100000 */
+                offset?: number;
+                /** @description Only web is supported */
+                source?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    detail: {
+        parameters: {
+            query: {
+                /** @description Nonzero decimal ID, 1–32 digits */
+                series_id: string;
+                /** @description Creator albums (1003) are unsupported */
+                content_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     status: {
         parameters: {
             query?: never;
