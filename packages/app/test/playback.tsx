@@ -1,8 +1,152 @@
 import { expect, test } from 'nsh/test';
-import { configureClient, mediaURL } from '@hongguo/core-client';
+import {
+  CoreError,
+  configureClient,
+  configureTransport,
+  mediaURL,
+  play,
+  request,
+} from '@hongguo/core-client';
+import { createNativeTransport, type NativeCall } from '@hongguo/core-client/native';
 import { isPlaybackCommand, playbackLease, progressSession } from '../src/playback';
 
 export function registerPlaybackTests() {
+  test('native transport preserves errors and cancels an unaccepted late media result', async () => {
+    let resolve: (reply: string) => void = () => {};
+    const events: string[] = [];
+    const adapter = createNativeTransport({
+      origin: () => 'http://127.0.0.1:8765',
+      start(path, body) {
+        events.push(path, body ?? 'GET');
+        return {
+          result: () =>
+            new Promise((done) => {
+              resolve = done;
+            }),
+          accept: () => events.push('accept'),
+          cancel: () => events.push('cancel'),
+          dispose: () => events.push('dispose'),
+        } satisfies NativeCall;
+      },
+      close: () => events.push('close'),
+      dispose: () => events.push('session-dispose'),
+    });
+    configureTransport(adapter);
+    const abort = new AbortController();
+    const pending = request('/api/v1/play/info', abort.signal).catch((error) => error);
+    abort.abort();
+    resolve(
+      JSON.stringify({
+        status: 200,
+        body: { ok: true, data: { path: '/minireel-proxy/media/' + 'a'.repeat(64) } },
+      }),
+    );
+    const cancelled = await pending;
+    expect(cancelled instanceof CoreError).toBe(true);
+    if (!(cancelled instanceof CoreError)) throw new Error('Expected cancellation');
+    expect(cancelled.code).toBe('CORE_CANCELLED');
+    expect(events.includes('accept')).toBe(false);
+    expect(events.at(-1)).toBe('dispose');
+
+    const failed = request('/api/v1/account').catch((error) => error);
+    resolve(
+      JSON.stringify({
+        status: 501,
+        body: { ok: false, code: 'CORE_NOT_IMPLEMENTED', error: '此功能尚未开放' },
+      }),
+    );
+    const error = await failed;
+    if (!(error instanceof CoreError)) throw new Error('Expected unavailable error');
+    expect(error.code).toBe('CORE_NOT_IMPLEMENTED');
+    expect(error.status).toBe(501);
+    const succeeded = request<{ entries: unknown[] }>('/api/v1/library', undefined, {
+      action: 'clear',
+      kind: 'history',
+    });
+    resolve(JSON.stringify({ status: 200, body: { ok: true, data: { entries: [] } } }));
+    expect(await succeeded).toEqual({ entries: [] });
+    expect(events.includes('accept')).toBe(true);
+    const accepted = events.filter((event) => event === 'accept').length;
+    const malformed = request('/api/v1/status').catch((error) => error);
+    resolve(JSON.stringify({ body: { ok: true } }));
+    const invalid = await malformed;
+    if (!(invalid instanceof CoreError)) throw new Error('Expected invalid response');
+    expect(invalid.code).toBe('CORE_RESPONSE_INVALID');
+    expect(events.filter((event) => event === 'accept').length).toBe(accepted);
+    const before = events.length;
+    await request('/api/v1/search', abort.signal).catch(() => {});
+    expect(events.length).toBe(before);
+    adapter.close();
+    adapter.close();
+    expect(events.filter((event) => event === 'close').length).toBe(1);
+    const closed = await request('/api/v1/library').catch((error) => error);
+    if (!(closed instanceof CoreError)) throw new Error('Expected closed error');
+    expect(closed.code).toBe('CORE_CLOSED');
+    configureClient('http://127.0.0.1:8765');
+  });
+  test('playback resolves its media origin from the transport that prepared it', async () => {
+    let done: (reply: unknown) => void = () => {};
+    const released: unknown[] = [];
+    configureTransport({
+      mediaOrigin: 'http://127.0.0.1:8765',
+      request: (path, _, body) => {
+        if (path === '/api/v1/play/release') {
+          released.push(body);
+          return Promise.resolve({ released: true });
+        }
+        return new Promise((resolve) => {
+          done = resolve;
+        });
+      },
+    });
+    const pending = play(
+      { series_id: '123', title: '', intro: '', cover: '' },
+      { index: 1, video_id: '456', locked: false },
+      new AbortController().signal,
+    );
+    configureClient('http://127.0.0.1:9999');
+    done({ path: '/minireel-proxy/media/' + 'a'.repeat(64), vid: '456' });
+    const media = await pending;
+    expect(media.url.startsWith('http://127.0.0.1:8765/')).toBe(true);
+    await media.release();
+    expect(released).toEqual([{ path: '/minireel-proxy/media/' + 'a'.repeat(64) }]);
+    configureTransport({
+      mediaOrigin: 'http://127.0.0.1:8765',
+      request: (path, _, body) => {
+        if (path === '/api/v1/play/release') {
+          released.push(body);
+          return Promise.resolve({ released: true });
+        }
+        return Promise.resolve({ path: '/minireel-proxy/media/' + 'b'.repeat(64), vid: 'wrong' });
+      },
+    });
+    const rejected = play(
+      { series_id: '123', title: '', intro: '', cover: '' },
+      { index: 1, video_id: '456', locked: false },
+      new AbortController().signal,
+    ).catch((error) => error);
+    configureClient('http://127.0.0.1:9999');
+    const error = await rejected;
+    if (!(error instanceof CoreError)) throw new Error('Expected identity rejection');
+    expect(error.code).toBe('PLAYBACK_IDENTITY_MISMATCH');
+    expect(released.at(-1)).toEqual({ path: '/minireel-proxy/media/' + 'b'.repeat(64) });
+    const count = released.length;
+    configureTransport({
+      mediaOrigin: 'http://127.0.0.1:8765',
+      request: (path, _, body) => {
+        if (path === '/api/v1/play/release') released.push(body);
+        return Promise.resolve({ path: 'https://foreign.test/media', vid: '456' });
+      },
+    });
+    const invalid = await play(
+      { series_id: '123', title: '', intro: '', cover: '' },
+      { index: 1, video_id: '456', locked: false },
+      new AbortController().signal,
+    ).catch((reason) => reason);
+    expect(invalid instanceof Error).toBe(true);
+    expect(released.length).toBe(count);
+    configureClient('http://127.0.0.1:8765');
+  });
   test('host playback commands reject unknown and structured payloads', () => {
     for (const command of [
       'reveal',

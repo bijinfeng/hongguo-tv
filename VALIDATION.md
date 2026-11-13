@@ -246,3 +246,15 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 失败与修复分别保留：旧 UiAutomation clock／focus 缓存、错误 role 属性、Android dialog class 映射和缺失 RangeInfo 均有实际诊断；改用公开 API，没有放宽 seek 断言。`tv-apk-player-{beam,select,selection,final-input}.log` 记录 portal 排除、菜单值误判、初始选项假设及旧来源抢焦点；已以真实 DPAD 定位目标并断言菜单关闭后的值。`tv-browsing-input-reviewed.log` 的 13 项后失败来自返回来源恢复过度收紧，最终 16×3 重跑通过。早期误并发打包造成的 zipalign 缺包单列工具失败，后续全部串行。`verify-tv-input-final.log` 的 no-unsafe-finally 已修复：主验收和逐项清理错误汇总后再抛出，正常 verify 重跑通过；没有关闭规则。
 - UI 与独立审查：亲看新 `tv-apk/paused-{light,large-text}.png`、`preview-dark.png`、`settings-{light,large-text}.png`，圆角、字号、间距、对齐、颜色及 selected／disabled 延续定稿；大字号无重叠出屏，设置焦点留在当前字段，暂停焦点环绕播放而非禁用整舞台。预览仍以舞台确认动作显示焦点，确认／取消语义保持。Web／减少动态效果与失败／重试沿用本批回归和 B4b 证据；TV 不制造 hover 行为。独立复审及原问题复评分记录在 `artifacts/playback/tv-input-independent-review.md`，最终 disposition 为 ship，仅覆盖 B4c TV 模拟器输入与焦点；与整体 B 的跨端审查分别记录。
 - 仍未完成：本轮 CUA 再次报告 Mac 锁屏；macOS Select／完整键盘焦点／官网观看续播／真实全屏、A 的桌面字体缩放、TalkBack／屏幕阅读器、物理遥控／电视硬解／长播、C 原生独立业务及其他首期功能继续保留。没有自动打开原生 Chrome／进入全屏、读取 legacy 数据、推送、归档或发布；并行品牌文档改动不纳入本批提交。
+
+### C1 · 原生 transport 与 Rust 会话基础
+
+- 已新增平台无关 transport 注入，HTTP 兼容入口保留；原生 adapter 的取消／关闭和 accept 握手阻止迟到准备结果失去所有者。播放准备绑定原 transport 的媒体 origin 及 release 闭包，避免切换配置后错误拼接或释放到新会话；身份拒绝同样经原 transport 释放已准备的合法句柄。生产入口／UI 页面布局和样式本批未改，Player 只改资源释放回调，尚未切换原生默认入口。
+- `crates/native-bridge` 直接调用目录、游客 SQLite 与播放核心；仅本机媒体使用 HTTP。宿主公开 data_dir／Tokio 所有权、八个未接收请求上限、幂等关闭、持久写入边界和错误语义见该 crate README。media-only 路由不暴露业务／health，保留 Host／Origin／Range 和原媒体限制。
+- 定向验证：原生 Rust 七项夹具测试通过（`artifacts/playback/native-bridge-tests.log`），包括 HTTP 错误与生成 domain DTO 对照、重开续播记录、损坏文件保留、已开始准备的取消、未接收／迟到完成媒体释放、接收后媒体保留、容量与监听停止、GET／HEAD 真实 Range 字节和来源／业务端点拒绝；Clippy 日志 `native-bridge-clippy.log`。均为显式合成 loopback 上游，没有官网或用户账号写入。首轮测试误预期非数据库字节返回 DATABASE_INVALID，实际沿用既有 STORAGE_UNAVAILABLE；修正测试预期，未改变／放宽数据库失败处理，原文件字节断言保留；首轮原始日志被重跑覆盖，仅保留本段诊断记录，不重构造失败输出。
+- 三端 transport 回归 check／build／test 已通过（`native-transport-{check,build,tests}.log`，Web22／desktop20／TV21）；覆盖新 adapter 迟到取消、结构错误码、关闭幂等与 origin 隔离，以及既有浏览／播放行为。新增同源 release 和身份拒绝回归后，完整 `native-foundation-final-verify.log` 通过（95 Rust／16 工程／Web22／desktop20／TV21，三端 check＋build、格式／lint／契约／release check）。最后补充任意外部媒体地址不转发 release 的断言后，三端补跑记录分别为 `native-release-final-tests.log` 和 `native-release-final-desktop-tv.log`；没有把 headless 当作真实宿主验收。
+- 仍未完成：真实 mixed 导出与原生入口装配、默认开发／打包切换、TV 去电脑 API／reverse 后真实业务和重启续播、macOS 实际宿主以及此前 A／B 字体／全屏／辅助技术／物理设备缺口。并行品牌文档未纳入；未推送、归档或发布。
+
+- 安全检查：`pnpm security` 实际执行 Cargo deny，仍由既有 NSH 间接依赖 advisory／license 阻塞退出（`native-foundation-security.log`），未放宽规则；因此脚本后面的 pnpm audit 未执行，已单独运行且通过（No known vulnerabilities found），日志 `native-foundation-pnpm-audit.log`。本次 Cargo.lock 只增加自有 native-bridge 包及其已锁定依赖关系，未升级第三方版本。
+
+- 独立复评：`artifacts/playback/native-foundation-independent-review.md` 最终 disposition 为 ship，仅 C1 基础切片；所有权修复和记录问题 resolved。没有新可见布局改动，审查确认 Player 仅释放回调变化；真实 mixed 导出／声明／显式 dispose 仍列任务 2.1，不由 Rust 内部测试或 TS fake 替代。

@@ -14,7 +14,7 @@ import {
   type ViewRef,
 } from 'nsh';
 import { currentWindow, isAvailable, type WindowMode } from 'nsh/desktop';
-import { CoreError, play, releasePlay, type Drama, type Episode } from '@hongguo/core-client';
+import { CoreError, play, type Drama, type Episode } from '@hongguo/core-client';
 import { type Store } from '../store';
 import { playbackLease, progressSession } from '../playback';
 import {
@@ -202,9 +202,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       layer.set('controls');
     },
     release(info) {
-      // Legacy paths are read-only; only Rust's new opaque handles have a release endpoint.
-      if (/^\/minireel-proxy\/media\/[a-f0-9]{64}$/.test(info.path))
-        void releasePlay(info.path).catch(() =>
+      void info
+        .release()
+        .catch(() =>
           console.warn('Playback resource release failed; core idle expiry remains active'),
         );
     },

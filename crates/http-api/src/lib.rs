@@ -201,6 +201,32 @@ impl FromRef<ApiState> for CatalogClient {
     }
 }
 
+#[derive(Clone)]
+pub(crate) struct MediaState {
+    playback: Option<PlaybackService>,
+}
+impl FromRef<ApiState> for MediaState {
+    fn from_ref(state: &ApiState) -> Self {
+        Self {
+            playback: state.playback.clone(),
+        }
+    }
+}
+
+/// Native loopback listener: opaque media only, with no business or health routes.
+pub fn media_router(policy: DevPolicy, playback: PlaybackService) -> Router {
+    Router::new()
+        .route(
+            "/minireel-proxy/media/{token}",
+            get(playback::media).head(playback::head_media),
+        )
+        .fallback(not_found)
+        .with_state(MediaState {
+            playback: Some(playback),
+        })
+        .layer(middleware::from_fn_with_state(policy, boundary))
+}
+
 /// Attach explicitly initialized services; absence of storage keeps library unavailable.
 pub fn router_with_services(
     policy: DevPolicy,

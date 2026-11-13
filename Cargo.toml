@@ -1,5 +1,5 @@
 [workspace]
-members = ["apps/tv/native", "crates/core", "crates/http-api", "services/web-api"]
+members = ["apps/tv/native", "crates/core", "crates/http-api", "crates/native-bridge", "services/web-api"]
 exclude = ["fuzz"]
 resolver = "3"
 
@@ -12,6 +12,7 @@ publish = false
 [workspace.dependencies]
 hongguo-core = { path = "crates/core", version = "=0.1.0" }
 hongguo-http-api = { path = "crates/http-api", version = "=0.1.0" }
+hongguo-native-bridge = { path = "crates/native-bridge", version = "=0.1.0" }
 axum = "=0.8.9"
 futures-util = { version = "=0.3.34", default-features = false, features = ["std"] }
 tokio = { version = "=1.54.1", features = ["macros", "rt-multi-thread", "net", "signal"] }

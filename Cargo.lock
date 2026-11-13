@@ -917,6 +917,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hongguo-native-bridge"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "hongguo-core",
+ "hongguo-http-api",
+ "nsh-core",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
+]
+
+[[package]]
 name = "hongguo-tv-native"
 version = "0.1.0"
 dependencies = [

@@ -1,4 +1,4 @@
-use crate::{ApiError, ApiState, failure, unavailable};
+use crate::{ApiError, ApiState, MediaState, failure, unavailable};
 use axum::{
     Json,
     body::{Body, Bytes},
@@ -132,7 +132,7 @@ fn valid_token(token: &str) -> bool {
 
 #[utoipa::path(get,path="/minireel-proxy/media/{token}",params(("token"=String,Path,description="Opaque handle"),("Range"=Option<String>,Header,description="One byte range")),responses((status=200,description="video/mp4 bytes"),(status=206,description="Partial video/mp4 bytes"),(status=403,body=ApiError),(status=410,body=ApiError),(status=416,description="Range unavailable"),(status=501,body=ApiError)))]
 pub(crate) async fn media(
-    State(state): State<ApiState>,
+    State(state): State<MediaState>,
     Path(token): Path<String>,
     method: Method,
     headers: HeaderMap,
@@ -205,7 +205,7 @@ pub(crate) async fn media(
 }
 #[utoipa::path(head,path="/minireel-proxy/media/{token}",params(("token"=String,Path,description="Opaque handle"),("Range"=Option<String>,Header,description="One byte range")),responses((status=200,description="Same representation headers as GET; no body"),(status=206,description="Same partial headers as GET; no body"),(status=410,description="Expired handle"),(status=416,description="Range unavailable")))]
 pub(crate) async fn head_media(
-    state: State<ApiState>,
+    state: State<MediaState>,
     token: Path<String>,
     headers: HeaderMap,
 ) -> Response {
