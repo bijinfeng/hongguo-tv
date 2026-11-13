@@ -69,6 +69,13 @@ function currentTransport() {
   return transport;
 }
 
+/** Bind queued application writes to the core that owns their mounted store. */
+export function captureRequest() {
+  const owner = currentTransport();
+  return async <T>(path: string, abort?: AbortSignal, body?: unknown): Promise<T> =>
+    (await owner.request(path, abort, body)) as T;
+}
+
 export async function request<T>(path: string, abort?: AbortSignal, body?: unknown): Promise<T> {
   return (await currentTransport().request(path, abort, body)) as T;
 }

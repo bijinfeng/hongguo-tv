@@ -51,6 +51,7 @@ jobs:
           echo "TV_RELEASE_STORE_FILE=$keystore" >> "$GITHUB_ENV"
       - name: Build signed release APK
         env:
+          HONGGUO_RUNTIME_MODE: native
           HONGGUO_TV_BUILD_TYPE: release
           TV_RELEASE_STORE_PASSWORD: ${{ secrets.TV_RELEASE_STORE_PASSWORD }}
           TV_RELEASE_KEY_ALIAS: ${{ secrets.TV_RELEASE_KEY_ALIAS }}

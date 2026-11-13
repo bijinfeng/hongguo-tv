@@ -3,10 +3,13 @@ import {
   registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
+  registerNativeStartupTests,
 } from '@hongguo/app/testing';
 
-registerApplicationTests();
+registerApplicationTests('desktop', './HttpFixture.tsx');
 registerLibraryTests();
 registerPlaybackTests();
 
-registerBrowsingTests();
+registerBrowsingTests('desktop', './HttpFixture.tsx');
+
+registerNativeStartupTests();

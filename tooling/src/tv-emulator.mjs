@@ -25,6 +25,10 @@ if (
 )
   throw new Error('This gate requires the pinned Android TV API 34 arm64 emulator.');
 
+const runtime = JSON.parse(await readFile(resolve(root, 'apps/tv/runtime.generated.json'), 'utf8'));
+if (runtime.mode !== 't0')
+  throw new Error('T0 acceptance requires an explicitly packaged t0 runtime.');
+
 const artifacts = resolve(root, 'artifacts/tv-emulator');
 await mkdir(artifacts, { recursive: true });
 await nsh('test', 'tv', [
@@ -46,7 +50,9 @@ const apk = resolve(root, `apps/tv/.nsh/out/${metadata.name}.apk`);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const digest = hash(await readFile(apk));
 if (digest !== hash(await readFile(resolve(host, 'app/build/outputs/apk/debug/app-debug.apk'))))
-  throw new Error('The final APK differs from this host build. Run pnpm package:tv first.');
+  throw new Error(
+    'The final APK differs from this host build. Run HONGGUO_RUNTIME_MODE=t0 pnpm package:tv first.',
+  );
 await run(adb, ['-s', serial, 'install', '-r', apk]);
 await run(adb, [
   '-s',

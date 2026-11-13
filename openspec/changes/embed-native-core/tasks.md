@@ -9,8 +9,8 @@
 ## 2. Desktop mixed and TV embedding
 
 - [x] 2.1 Register the shared bridge in Desktop mixed and existing TV native crate; verify generated declarations plus real mixed exports, initialization failure, cancellation and disposal in NSH headless tests.
-- [ ] 2.2 Wire native production entries, app-owned lifecycle and explicit HTTP preview mode without changing shared UI; verify existing browser/player headless and TV fixture suites, and document mode selection.
-- [ ] 2.3 Update dev/package/release checks to select native business by default and explicit T0/HTTP previews; verify tooling failure/cleanup tests, native builds and no bundled computer address dependency.
+- [x] 2.2 Wire native production entries, app-owned lifecycle and explicit HTTP preview mode without changing shared UI; verify existing browser/player headless and TV fixture suites, and document mode selection.
+- [x] 2.3 Update dev/package/release checks to select native business by default and explicit T0/HTTP previews; verify tooling failure/cleanup tests, native builds and no bundled computer address dependency.
 
 ## 3. Independent host acceptance and review
 

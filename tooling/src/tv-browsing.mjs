@@ -54,7 +54,11 @@ const errors = [];
 try {
   // This is an external-core preview; adb reverse is deliberately not independent-install evidence.
   await run('pnpm', ['package:tv'], {
-    env: { ...process.env, HONGGUO_CORE_ORIGIN: fixture.origin },
+    env: {
+      ...process.env,
+      HONGGUO_RUNTIME_MODE: 'http-preview',
+      HONGGUO_CORE_ORIGIN: fixture.origin,
+    },
   });
   console.log(`Packaged runtime: ${await readFile(runtime, 'utf8')}`);
   await run('./gradlew', ['--no-daemon', 'assembleDebugAndroidTest', 'lintDebug'], {

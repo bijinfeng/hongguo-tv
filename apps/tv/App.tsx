@@ -1,14 +1,15 @@
 import { host, mount } from 'nsh';
-import { App } from '@hongguo/app';
-import { configureClient } from '@hongguo/core-client';
+import { NativeApp } from '@hongguo/app';
+import { NativeCore } from 'hongguo-tv/native';
 import runtime from './runtime.generated.json';
 import logoMark from './assets/hongguo-logo.png';
 
-configureClient(runtime.coreOrigin);
 mount(() => (
-  <App
+  <NativeApp
     target="tv"
     logoMark={logoMark}
+    runtime={runtime}
+    openCore={() => NativeCore.open()}
     subscribePlayerCommands={(receive) => host.on('player-command', receive)}
   />
 ));

@@ -4,15 +4,15 @@
 
 ## 1. 当前起点与交付目标
 
-| 项目       | 当前状态                                               | 完整 TV 客户端要求                                     |
-| ---------- | ------------------------------------------------------ | ------------------------------------------------------ |
-| 业务界面   | `apps/tv` 装配共享 TSX UI                              | 继续复用 `packages/app` 和 `packages/ui`，完成遥控适配 |
-| 核心       | Rust HTTP 已有匿名搜索／详情／游客历史；原生业务未接入 | APK 内嵌 Rust 核心，业务调用使用 native bridge         |
-| 播放       | T0 包内合成视频模拟器通过；真实业务未验收              | 真实设备上的首帧、切集、进度、音频与生命周期通过       |
-| 测试       | 共享 headless + T0 最终 APK 模拟器用例                 | 增加 Android 宿主、安装包、遥控和真机测试              |
-| 打包       | 默认 T0 包内技术 APK；指定 API 为 UI 预览              | 签名 APK，无电脑、开发服务、Go、Node 或 ADB 依赖       |
-| 工具与设备 | SDK／NDK 已齐，固定 TV 模拟器验收通过                  | 干净环境可构建，设备矩阵与测试记录齐全                 |
-| 发布       | 尚无 TV 预览、签名发布和更新工作流                     | 可追踪的预览包、候选包、正式发行与升级路径             |
+| 项目       | 当前状态                                                  | 完整 TV 客户端要求                                     |
+| ---------- | --------------------------------------------------------- | ------------------------------------------------------ |
+| 业务界面   | `apps/tv` 装配共享 TSX UI                                 | 继续复用 `packages/app` 和 `packages/ui`，完成遥控适配 |
+| 核心       | Rust 目录／历史／播放与共享原生 bridge 已接；独立业务待验 | APK 内嵌 Rust 核心，业务调用使用 native bridge         |
+| 播放       | T0 包内合成视频模拟器通过；真实业务未验收                 | 真实设备上的首帧、切集、进度、音频与生命周期通过       |
+| 测试       | 共享 headless + T0 最终 APK 模拟器用例                    | 增加 Android 宿主、安装包、遥控和真机测试              |
+| 打包       | 默认 native 业务包；T0／HTTP 预览显式选择                 | 签名 APK，无电脑、开发服务、Go、Node 或 ADB 依赖       |
+| 工具与设备 | SDK／NDK 已齐，固定 TV 模拟器验收通过                     | 干净环境可构建，设备矩阵与测试记录齐全                 |
+| 发布       | 尚无 TV 预览、签名发布和更新工作流                        | 可追踪的预览包、候选包、正式发行与升级路径             |
 
 最低运行范围暂定 Android 8 / API 26，与固定 NSH 的官方支持范围一致；这会放弃参考项目的 Android 5/6 兼容范围。target SDK 按发布渠道要求独立管理，不能由 min SDK 推导。arm64 为首批真机目标；armv7 只有在依赖可构建且对应真机通过后才列为受支持，模拟器 ABI 也以实际可用的 TV 系统镜像为准。
 
@@ -71,7 +71,7 @@
 
 1. **明确行为与边界。** 列出参考行为、受影响端、状态所有者、加载/空/错误/取消路径，以及遥控按键、焦点和返回规则。UI 变化先更新对应 `DESIGN.md` 的状态与动效约定。
 2. **写最小可证明的测试。** 协议/存储在 Rust，状态与导航在共享 TSX，JNI/输入/播放器在 Android；默认使用去敏 fixtures 和受控时间，不依赖实时上游。可复现缺陷先留下回归用例。
-3. **实现并运行定向验证。** Rust DTO 变更同步生成契约；NSH 必须 check 和 build。Rust 业务进入 `crates/core`，跨端桥接进入 `crates/native-bridge`，TV 装配留在 `apps/tv`；这些新增位置按架构逐步创建，当前不是已存在能力。
+3. **实现并运行定向验证。** Rust DTO 变更同步生成契约；NSH 必须 check 和 build。Rust 业务进入 `crates/core`，跨端桥接进入 `crates/native-bridge`，TV 装配留在 `apps/tv`；共享 bridge 与两端薄 native crate 已建立，实际生产宿主结果单独记录。
 4. **在 Android 宿主观察。** 涉及输入、布局、视频、后台或存储的变更，要运行对应宿主用例并观察结果；headless 通过不能将此步骤勾选为完成。
 5. **完整门禁与评审。** 运行现有 `pnpm verify`；依赖变化运行 `pnpm security`；接入后的 Android 门禁同时必需。共享实现变化验证 Web/Desktop，Android 依赖纳入新增扫描，不能认为现有 security 已覆盖。
 6. **设备预览与合入。** 为需要硬件验证的改动生成预览 APK，记录具体 SHA、APK 哈希、设备和结果。可安全隔离的未完功能允许合入，但不得对用户宣称可用；硬件结果缺失必须写明。
@@ -95,15 +95,15 @@ pnpm dev:tv
 
 `setup:tools` 准备现有工程工具；上述命令不会自动补齐完整 Android SDK/NDK 或启动模拟器。TV `doctor` 会逐项校验固定 SDK、NDK、Rust targets、NSH runtime 和恰好一台 ready 设备，但通过仍不等于遥控、解码或独立 APK 验收。
 
-| 当前命令                  | 能证明什么                                                               | 不能证明什么                    |
-| ------------------------- | ------------------------------------------------------------------------ | ------------------------------- |
-| `pnpm check --target tv`  | Rust 工作区检查、TV NSH 类型                                             | Android Rust 交叉编译、设备兼容 |
-| `pnpm build --target tv`  | Rust 本机工作区构建、TV bundle                                           | 已生成 APK                      |
-| `pnpm test --target tv`   | 工程/Rust/TV headless 行为                                               | Android 原生输入、遥控和解码    |
-| `pnpm verify`             | 现有公共门禁与三端入口                                                   | TV SDK、安装或真机验收          |
-| `pnpm verify --target tv` | 额外 doctor 加现有 TV 入口门禁                                           | 完整 Android 宿主和真机通过     |
-| `pnpm dev:tv`             | 通过 ADB 连接电脑 API 的开发链路                                         | APK 脱离电脑运行                |
-| `pnpm package:tv`         | T0 native crate 存在时生成 arm64 技术验证 APK；指定 API 时生成 UI 预览包 | 生产签名和独立产品验收          |
+| 当前命令                  | 能证明什么                                                      | 不能证明什么                    |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------- |
+| `pnpm check --target tv`  | Rust 工作区检查、TV NSH 类型                                    | Android Rust 交叉编译、设备兼容 |
+| `pnpm build --target tv`  | Rust 本机工作区构建、TV bundle                                  | 已生成 APK                      |
+| `pnpm test --target tv`   | 工程/Rust/TV headless 行为                                      | Android 原生输入、遥控和解码    |
+| `pnpm verify`             | 现有公共门禁与三端入口                                          | TV SDK、安装或真机验收          |
+| `pnpm verify --target tv` | 额外 doctor 加现有 TV 入口门禁                                  | 完整 Android 宿主和真机通过     |
+| `pnpm dev:tv`             | 默认包内 Rust；显式 HTTP preview 才连接电脑 API                 | APK 脱离电脑运行                |
+| `pnpm package:tv`         | 默认 arm64 原生业务 APK；HONGGUO_RUNTIME_MODE=t0 明确生成技术包 | 生产签名和独立产品验收          |
 
 NSH 已提供 Android 宿主测试入口：
 
@@ -114,7 +114,7 @@ pnpm exec nsh test --target android
 
 当前共享用例仍有模拟桌面配置；需要先补 TV 平台用例与遥控断言，再将以上命令接入设备门禁。固定 CLI 使用 adb 列表中的首个设备，自动化必须先验证唯一目标设备和身份，不能误装到其他设备。设备缺失时明确失败。
 
-当前 `package:tv` 已明确区分 T0 技术验证 APK 与指定外部 API 的 UI 预览包；正式签名、设备验收和发布命令仍需在对应阶段连同真实实现及失败用例落地。未来不得让正式 TV 发行链静默生成外部 API 预览包，保留预览能力时使用明确的独立入口。
+当前 `package:tv` 默认选择 native；`HONGGUO_RUNTIME_MODE=t0` 明确生成探针，`HONGGUO_CORE_ORIGIN` 或 http-preview 模式明确选择外部 API。HTTP preview 打包必须给 origin，与 native／t0 同时配置地址会失败；签名／发布 workflow 显式选择 native。正式签名、设备验收与发布的运行结果仍单列，不因脚本存在而记为通过。
 
 ## 6. 测试矩阵与验收
 
@@ -184,7 +184,7 @@ T0 已采用自有 Android embedding 宿主，补齐 TV manifest、遥控和最�
 
 AI Agent 交接同时列出改动文件、状态所有者、当前命令、已完成门禁与下一步；不将文档任务勾选、截图存在或 workflow 配置存在当成运行通过。无法使用设备时继续完成独立可做的代码和自动化，但设备项保持“未运行”。
 
-下一步按 [实施路线](docs/implementation-roadmap.md) 落地已确定的双端界面，再推进 T1 真实观看与原生业务。T0 的包内 Rust／合成视频／遥控／生命周期已在固定 TV 模拟器通过；不重复建立技术探针，也不据此认定物理电视或完整产品通过。
+下一步按 [实施路线](docs/implementation-roadmap.md) 验收原生业务包：停止电脑 API、清除 reverse，完成真实观看与重启续播；已完成的共享界面／输入回归继续保留。T0 的包内 Rust／合成视频／遥控／生命周期已在固定 TV 模拟器通过；不重复建立技术探针，也不据此认定物理电视或完整产品通过。
 
 ## 依据
 

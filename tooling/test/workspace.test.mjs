@@ -9,12 +9,13 @@ import {
   nativeTarget,
   parseArgs,
   runtimeConfig,
+  runtimeMode,
   root,
   child,
   rustEnvironment,
   rustVersion,
 } from '../src/process.mjs';
-import { ready, stop } from '../src/dev.mjs';
+import { ready, stop, nativeDev } from '../src/dev.mjs';
 import { hookArgs } from '../src/lefthook.mjs';
 import { tvBuildType } from '../src/tv-host.mjs';
 
@@ -80,6 +81,45 @@ test('runtime setup preserves existing configuration and never touches data', ()
     assert.equal(await readFile(resolve(dir, '.local/data/sentinel'), 'utf8'), 'preserve');
   }));
 
+test('native modes exclude computer addresses and previews require an explicit selection', () =>
+  temp(async (dir) => {
+    assert.equal(runtimeMode('desktop', {}), 'native');
+    assert.equal(runtimeMode('tv', {}), 'native');
+    assert.equal(runtimeMode('web', {}), 'http-preview');
+    assert.equal(runtimeMode('tv', { HONGGUO_RUNTIME_MODE: 't0' }), 't0');
+    assert.equal(
+      runtimeMode('tv', { HONGGUO_CORE_ORIGIN: 'http://127.0.0.1:18000' }),
+      'http-preview',
+    );
+    for (const [target, env] of [
+      ['tv', { HONGGUO_RUNTIME_MODE: 'unknown' }],
+      ['web', { HONGGUO_RUNTIME_MODE: 'native' }],
+      ['desktop', { HONGGUO_RUNTIME_MODE: 't0' }],
+      ['tv', { HONGGUO_RUNTIME_MODE: 'native', HONGGUO_CORE_ORIGIN: 'http://127.0.0.1:18000' }],
+    ])
+      assert.throws(() => runtimeMode(target, env));
+    const file = resolve(dir, 'apps/tv/runtime.generated.json');
+    await runtimeConfig('tv', 'http://127.0.0.1:18000', dir);
+    await runtimeConfig('tv', undefined, dir, 'native');
+    assert.deepEqual(JSON.parse(await readFile(file)), { mode: 'native' });
+    await runtimeConfig('tv', undefined, dir);
+    assert.deepEqual(JSON.parse(await readFile(file)), { mode: 'native' });
+    await assert.rejects(runtimeConfig('tv', undefined, dir, 'http-preview'));
+    await assert.rejects(runtimeConfig('tv', 'http://127.0.0.1:18000', dir, 'native'));
+    for (const value of [
+      {},
+      { mode: 'unknown' },
+      { mode: 'native', secret: 'extra' },
+      { mode: false },
+      { mode: 0 },
+      { mode: '' },
+      { mode: 'native', coreOrigin: false },
+    ]) {
+      await writeFile(file, JSON.stringify(value));
+      await assert.rejects(runtimeConfig('tv', undefined, dir));
+    }
+  }));
+
 test('package boundaries prevent reverse imports and cross-package relative escapes', () =>
   temp(async (dir) => {
     for (const name of ['app', 'ui', 'core-client', 'contracts'])
@@ -121,6 +161,61 @@ test('API process readiness validates its address, fails early, and cleans up', 
   await assert.rejects(ready(invalid), /Invalid API/);
   await stop(invalid);
 });
+
+test('native dev propagates host failure and cleans up its only child on shutdown', () =>
+  temp(async (dir) => {
+    const previous = process.env.NSH_BIN;
+    process.env.NSH_BIN = process.execPath;
+    const cwd = resolve(dir, 'apps/desktop');
+    const marker = resolve(dir, 'host.json');
+    await mkdir(cwd, { recursive: true });
+    const entry = resolve(cwd, 'run');
+    const counts = ['SIGINT', 'SIGTERM'].map((name) => process.listenerCount(name));
+    const record =
+      "require('node:fs').writeFileSync('../../host.json',JSON.stringify({pid:process.pid,args:process.argv.slice(2)}));";
+    let running;
+    try {
+      await writeFile(entry, record + 'process.exit(7);');
+      await assert.rejects(nativeDev('desktop', 'native', dir), /exited: 7/);
+      assert.deepEqual(JSON.parse(await readFile(marker)).args, [
+        '--target',
+        nativeTarget('desktop'),
+      ]);
+      assert.deepEqual(JSON.parse(await readFile(resolve(cwd, 'runtime.generated.json'))), {
+        mode: 'native',
+      });
+      await rm(marker);
+      await writeFile(entry, record + 'setInterval(()=>{},1000);');
+      running = nativeDev('desktop', 'native', dir);
+      // The child reports actual readiness; never infer it from an arbitrary delay.
+      let state;
+      for (let attempt = 0; attempt < 100; attempt++) {
+        try {
+          state = JSON.parse(await readFile(marker));
+          break;
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error;
+        }
+        await new Promise((done) => setTimeout(done, 20));
+      }
+      assert.ok(state, 'native host did not start');
+      process.emit('SIGTERM');
+      await running;
+      running = undefined;
+      assert.throws(() => process.kill(state.pid, 0), { code: 'ESRCH' });
+      assert.deepEqual(
+        ['SIGINT', 'SIGTERM'].map((name) => process.listenerCount(name)),
+        counts,
+      );
+    } finally {
+      if (running) {
+        process.emit('SIGTERM');
+        await running;
+      }
+      if (previous === undefined) delete process.env.NSH_BIN;
+      else process.env.NSH_BIN = previous;
+    }
+  }));
 
 test('commit rules accept conventional commits and hooks never change partial staging', () =>
   temp(async (dir) => {

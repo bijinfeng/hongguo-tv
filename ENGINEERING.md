@@ -1,6 +1,6 @@
 # 工程工具链与交付规范
 
-> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 骨架及工程门禁已落地（第一阶段基线）。当前 NSH 仍为 TSX + HTTP 开发模式；native bridge、完整内容协议、原生独立包和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
+> 2026-11-14 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 及工程门禁已落地（第一阶段基线）。Web 使用 HTTP；Desktop／TV 已注册共享 native bridge，并默认装配包内核心，HTTP preview／T0 需显式选择。完整内容协议、原生独立业务验收与真机发行仍未完成。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
 
 TV 的阶段任务、命令现状、设备门禁与签名 APK 交付顺序见 [TV_DEVELOPMENT.md](TV_DEVELOPMENT.md)。
 

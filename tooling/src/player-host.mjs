@@ -11,7 +11,7 @@ await mkdir(artifacts, { recursive: true });
 const file = resolve(app, `.nsh/PlayerHost-${target}.test.tsx`);
 await writeFile(
   file,
-  `import { registerPlayerHost } from '@hongguo/app/testing/player-host';\nregisterPlayerHost('../App.tsx', ${JSON.stringify(artifacts)}, '${target}');\n`,
+  `import { registerPlayerHost } from '@hongguo/app/testing/player-host';\nregisterPlayerHost('${target === 'android' ? '../HttpFixture.tsx' : '../App.tsx'}', ${JSON.stringify(artifacts)}, '${target}');\n`,
 );
 await run(executable('nsh'), ['test', file, '--target', target], {
   cwd: app,

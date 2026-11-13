@@ -38,9 +38,9 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - run: pnpm setup
-      - name: Build the explicit API-backed preview
+      - name: Build the native desktop preview
         env:
-          HONGGUO_CORE_ORIGIN: http://127.0.0.1:18997
+          HONGGUO_RUNTIME_MODE: native
         run: pnpm package:desktop
       - name: Archive and describe preview
         env:
@@ -98,6 +98,8 @@ jobs:
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - run: pnpm setup
       - name: Build the T0 technical APK
+        env:
+          HONGGUO_RUNTIME_MODE: t0
         run: pnpm package:tv
       - name: Describe TV preview
         env:

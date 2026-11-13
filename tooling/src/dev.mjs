@@ -75,7 +75,33 @@ export async function stop(subprocess) {
     clearTimeout(timer);
   }
 }
-export async function dev(target) {
+export async function nativeDev(target, mode, base = root) {
+  await runtimeConfig(target, undefined, base, mode);
+  const host = child(
+    executable('nsh'),
+    ['run', ...(mode === 't0' ? ['T0Probe.tsx'] : []), '--target', nativeTarget(target)],
+    { cwd: resolve(base, 'apps', target), env: rustEnvironment() },
+  );
+  let closing = false;
+  const close = () => {
+    closing = true;
+    void stop(host);
+  };
+  process.once('SIGINT', close);
+  process.once('SIGTERM', close);
+  try {
+    console.log(`Native ${target}: ${mode}; no computer API or adb reverse.`);
+    await host.done;
+  } catch (error) {
+    if (!closing) throw error;
+  } finally {
+    await stop(host);
+    process.off('SIGINT', close);
+    process.off('SIGTERM', close);
+  }
+}
+export async function dev(target, mode) {
+  if (mode !== 'http-preview') return nativeDev(target, mode);
   await cargo(['build', '--locked', '-p', 'hongguo-web-api']);
   const port = await freePort();
   const binary = resolve(

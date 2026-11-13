@@ -1,4 +1,4 @@
-import { View, keymap, reduceMotion, type ImageAsset } from 'nsh';
+import { cleanup, View, keymap, reduceMotion, type ImageAsset } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
 import { currentWindow, isAvailable } from 'nsh/desktop';
 import { Button, Controls, Logo, Product, tvUnit, type ProductTarget } from '@hongguo/ui';
@@ -224,9 +224,13 @@ export function App(props: {
   target: ProductTarget;
   logoMark: ImageAsset;
   subscribePlayerCommands?: PlaybackCommandSource;
+  onShutdown?: (drained: Promise<void>) => void;
+  onReady?: () => void;
 }) {
   const store = createStore(props.target, props.subscribePlayerCommands);
+  cleanup(() => props.onShutdown?.(store.shutdown()));
   keymap.bind('escape', store.back, { when: 'notEditing' });
+  props.onReady?.();
   return (
     <Product.Provider value={props.target}>
       <View
@@ -243,3 +247,5 @@ export function App(props: {
     </Product.Provider>
   );
 }
+
+export { NativeApp } from './NativeApp';

@@ -3,6 +3,7 @@ import {
   registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
+  registerNativeStartupTests,
 } from '@hongguo/app/testing';
 import { expect, open, test } from 'nsh/test';
 
@@ -22,8 +23,10 @@ test('TV T0 mixed bridge calls, cancels owner work and releases classes', async 
   expect(completedApp.shows('completed')).toBe(true);
 });
 
-registerApplicationTests('tv');
+registerApplicationTests('tv', './HttpFixture.tsx');
 registerLibraryTests();
 registerPlaybackTests();
 
-registerBrowsingTests('tv');
+registerBrowsingTests('tv', './HttpFixture.tsx');
+
+registerNativeStartupTests();

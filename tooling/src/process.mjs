@@ -79,26 +79,68 @@ export async function run(command, args, options) {
 export const cargo = (args, options) => run(executable('cargo'), args, options);
 export const pnpm = (args, options) =>
   run('pnpm', args, { shell: process.platform === 'win32', ...options });
-export async function runtimeConfig(target, origin, base = root) {
+/** Explicit modes prevent a stale preview address from entering native packages. */
+export function runtimeMode(target, env = process.env) {
   if (!targets.includes(target)) throw new Error(`Unknown target: ${target}`);
-  const file = resolve(base, 'apps', target, 'runtime.generated.json');
-  if (!origin) {
-    try {
-      const config = JSON.parse(await readFile(file, 'utf8'));
-      const existing = new URL(config.coreOrigin);
-      if (!['http:', 'https:'].includes(existing.protocol) || existing.origin !== config.coreOrigin)
-        throw new Error(`Invalid runtime configuration: ${file}`);
-      return;
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-    origin = 'http://127.0.0.1:18997';
+  const mode =
+    env.HONGGUO_RUNTIME_MODE ||
+    (env.HONGGUO_CORE_ORIGIN || target === 'web' ? 'http-preview' : 'native');
+  if (
+    !['native', 'http-preview', 't0'].includes(mode) ||
+    (target === 'web' && mode !== 'http-preview') ||
+    (mode === 't0' && target !== 'tv')
+  )
+    throw new Error(`Unsupported runtime mode ${mode} for ${target}`);
+  if (mode !== 'http-preview' && env.HONGGUO_CORE_ORIGIN)
+    throw new Error('HONGGUO_CORE_ORIGIN requires http-preview mode');
+  return mode;
+}
+function checkedRuntime(target, config) {
+  if (
+    !config ||
+    typeof config !== 'object' ||
+    Array.isArray(config) ||
+    Object.keys(config).some((key) => !['mode', 'coreOrigin'].includes(key)) ||
+    (config.mode === undefined && typeof config.coreOrigin !== 'string')
+  )
+    throw new Error('Invalid runtime configuration');
+  if (
+    (config.mode !== undefined && (typeof config.mode !== 'string' || !config.mode)) ||
+    (config.coreOrigin !== undefined && typeof config.coreOrigin !== 'string')
+  )
+    throw new Error('Invalid runtime configuration');
+  const mode = runtimeMode(target, {
+    HONGGUO_RUNTIME_MODE: config.mode,
+    HONGGUO_CORE_ORIGIN: config.coreOrigin,
+  });
+  if (mode !== 'http-preview') {
+    if (config.coreOrigin !== undefined)
+      throw new Error('Native runtime cannot contain an HTTP origin');
+    return { mode };
   }
+  const origin = config.coreOrigin;
   const url = new URL(origin);
   if (!['http:', 'https:'].includes(url.protocol) || url.origin !== origin)
     throw new Error('HONGGUO_CORE_ORIGIN must be an http(s) origin without a path');
+  return { mode, coreOrigin: origin };
+}
+export async function runtimeConfig(target, origin, base = root, mode) {
+  if (!targets.includes(target)) throw new Error(`Unknown target: ${target}`);
+  const file = resolve(base, 'apps', target, 'runtime.generated.json');
+  let config;
+  if (!origin && !mode) {
+    try {
+      config = checkedRuntime(target, JSON.parse(await readFile(file, 'utf8')));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+  config ??= checkedRuntime(target, {
+    mode: mode || (origin || target === 'web' ? 'http-preview' : 'native'),
+    coreOrigin: origin || (target === 'web' ? 'http://127.0.0.1:18997' : undefined),
+  });
   await mkdir(resolve(base, 'apps', target), { recursive: true });
-  await writeFile(file, JSON.stringify({ coreOrigin: origin }, null, 2) + '\n');
+  await writeFile(file, JSON.stringify(config, null, 2) + '\n');
 }
 export async function nsh(command, target, args = []) {
   const cli = executable('nsh');

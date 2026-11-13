@@ -3,7 +3,7 @@ import type { ProductTarget } from '@hongguo/ui';
 import { createNavStack } from 'nsh/base';
 import {
   libraryDrama,
-  request,
+  captureRequest,
   search,
   type Account,
   type Drama,
@@ -25,6 +25,7 @@ export function createStore(
   target: ProductTarget,
   subscribePlayerCommands?: PlaybackCommandSource,
 ) {
+  const request = captureRequest();
   const nav = createNavStack<Route>([{ name: 'browse' }]);
   const section = signal<Section>('home');
   const activePage = (name: Section) =>
@@ -32,6 +33,7 @@ export function createStore(
   const sources = new Map<number, () => void>();
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
+  let playerCheckpoint: (() => void) | undefined;
   let playerBack: (() => void) | undefined;
   let playerCommand: ((command: PlaybackCommand) => void) | undefined;
   // Listen for the app lifetime so a command on a browse page cannot queue for a future player.
@@ -75,6 +77,16 @@ export function createStore(
       if (nav.routes().at(-1)?.name === 'player' && playerBack) playerBack();
       else if (nav.routes().length > 1) nav.pop();
       else navigate('home');
+    },
+    registerPlayerCheckpoint(handler: () => void) {
+      playerCheckpoint = handler;
+      return () => {
+        if (playerCheckpoint === handler) playerCheckpoint = undefined;
+      };
+    },
+    shutdown() {
+      playerCheckpoint?.();
+      return writes;
     },
     registerPlayerBack(handler: () => void) {
       playerBack = handler;

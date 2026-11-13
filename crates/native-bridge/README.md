@@ -1,6 +1,6 @@
 # 原生核心会话
 
-C 批基础切片。当前生产 Desktop／TV 入口尚未切换；Web 和显式外部 API 预览仍使用 HTTP。这个 crate 提供可复用原生装配，不是独立安装包验收结果。
+C 批基础切片。Desktop／TV 生产入口默认已装配原生会话；Web 和显式外部 API 预览仍使用 HTTP。这个 crate 提供可复用原生装配，不是独立安装包验收结果。
 
 各端薄 native crate 调用 `hongguo_native_bridge::register(registry)`，在自己的 NSH native specifier 下导出 `NativeCore`、`NativeSession`、`NativeCall`。声明由锁定 NSH 生成，不手写或提交 `.nsh/types`。
 
@@ -32,4 +32,11 @@ pnpm verify
 
 另有四项 `real_mixed` 测试，使用锁定 `nsh-engine` 的公开 Engine／Bundle／HostChannel，在真实 QuickJS 中调用同一注册函数导出的三个 class/module。覆盖宿主应用目录与 SQLite 重开、缺目录／损坏库明确失败且保留字节、pending result 的 cancel／call.dispose／session.dispose，以及未 accept 媒体释放／accept 后保留／close 后释放。测试专用 BridgeFixture 只在 cfg(test) 注册，用于合成 loopback 上游；生产 NativeCore.open 不接受上游或存储路径注入。
 
-Desktop mixed 与 TV 现有 native crate 只调用共享 register；各端 `pnpm check` 生成的声明验证其真实导出签名。生产页面在此切片仍经 HTTP，真实 engine 测试不等同两端安装包、官网、宿主销毁或物理设备验收。新增 engine 测试依赖的安全结果单独记录于 VALIDATION，不因功能测试通过宣称安全门禁通过。
+Desktop mixed 与 TV 现有 native crate 只调用共享 register；各端 `pnpm check` 生成的声明验证其真实导出签名。C2.1 切片时生产页面仍经 HTTP；C2.2 之后由 NativeApp 选择模式并装配。真实 engine 测试不等同两端安装包、官网、宿主销毁或物理设备验收。新增 engine 测试依赖的安全结果单独记录于 VALIDATION，不因功能测试通过宣称安全门禁通过。
+
+
+## 应用装配
+
+两端薄 App 注入 NativeCore.open；共享 NativeApp 用 resource 管打开／重试、失效后的迟到 dispose。失败保留存储并复用 Notice，无 HTTP 回退。打开成功先 configureTransport 再挂载同一 App；只有 App 登记 shutdown 后才接管关闭责任。正常卸载由 store 同步触发当前 Player checkpoint，返回完整串行写队列；队列完成（含失败处理）后关闭 adapter。队列请求捕获原 transport，不随下一次配置转移。OS 强杀、VM 直接销毁不能承诺完成 JS 队列，仅保障 Rust 已提交记录，独立安装重启验收需以实际提交为依据。
+
+模式与开发／打包命令见根 README。native 包只含 mode，不含电脑 API 地址；HTTP fixture 和 T0 必须明确选择，不作为原生业务证明。

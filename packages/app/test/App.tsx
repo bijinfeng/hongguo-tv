@@ -31,7 +31,7 @@ function fixture(request: StubRequest): StubResponse {
   return { status: 404, body: { ok: false, error: 'Unknown fixture' } };
 }
 
-export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
+export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
   test('recycled result identity and scroll position survive details and primary navigation', async () => {
     const items = Array.from({ length: 120 }, (_, i) => ({
       ...drama,
@@ -39,7 +39,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
       title: `回收列表短剧 ${i + 1}`,
       cover: 'http://127.0.0.1:1/missing',
     }));
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       clock: {},
@@ -83,7 +83,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
       position: 15,
       last_played_at: 1000 - i,
     }));
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       clock: {},
@@ -118,7 +118,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
 
   test('home and history share recent ordering; completed and locked records stay explicit', async () => {
     const older = { ...drama, series_id: '124', title: '较早的故事' };
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       network: {
@@ -166,7 +166,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
   test('refresh failure keeps usable snapshots; empty query stays local', async () => {
     let failSearch = false;
     let failLibrary = false;
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       network: {
@@ -223,7 +223,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
     }));
     const full = { ...drama, episodes, episode_count: 75 };
     let unavailable = false;
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       network: {
@@ -276,7 +276,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
   });
 
   test('navigation is isolated across mounts, targets are explicit and query survives primary navigation', async () => {
-    const first = await open('./App.tsx', {
+    const first = await open(entry, {
       platform: 'android',
       width: 1180,
       height: 780,
@@ -289,7 +289,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
     await first.waitFor('id:drama-123');
     await first.press('id:drama-123');
     await first.waitFor('开始观看');
-    const next = await open('./App.tsx', {
+    const next = await open(entry, {
       platform: 'macos',
       width: 1180,
       height: 780,
@@ -308,10 +308,13 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
   });
 }
 
-export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
+export function registerApplicationTests(
+  target: 'desktop' | 'tv' = 'desktop',
+  entry = './App.tsx',
+) {
   if (target === 'desktop')
     test('public window fullscreen preserves playback and Escape restores its source', async () => {
-      const app = await open('./App.tsx', {
+      const app = await open(entry, {
         platform: 'macos',
         width: 1180,
         height: 780,
@@ -338,7 +341,7 @@ export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
     });
   if (target === 'tv')
     test('host commands discard browse events and covered player input', async () => {
-      const app = await open('./App.tsx', {
+      const app = await open(entry, {
         host: {},
         network: { '*': fixture, 'POST *': fixture },
       });
@@ -365,7 +368,7 @@ export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
       expect(app.shows('开始观看')).toBe(true);
     });
   test('background releases playback; returning prepares one paused owner without history writes', async () => {
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       platform: 'macos',
@@ -402,7 +405,7 @@ export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
   });
 
   test('search → details → playback → next episode → original search; no empty-query request', async () => {
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       platform: 'macos',
@@ -436,7 +439,7 @@ export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
 
   test('failed search can retry and a superseded response cannot replace the newest search', async () => {
     let first = true;
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       platform: 'web',
@@ -476,7 +479,7 @@ export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
   });
 
   test('saved history resumes its episode and account restoration reads the core', async () => {
-    const app = await open('./App.tsx', {
+    const app = await open(entry, {
       width: 1180,
       height: 780,
       platform: 'macos',

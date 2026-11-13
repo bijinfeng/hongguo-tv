@@ -49,7 +49,6 @@ jobs:
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
           RELEASE_TAG: ${{ inputs.tag }}
-          HONGGUO_CORE_ORIGIN: ${{ vars.HONGGUO_CORE_ORIGIN }}
         run: |
           set -euo pipefail
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
@@ -57,10 +56,9 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           test "$RELEASE_TAG" = "v$version"
-          test -n "${HONGGUO_CORE_ORIGIN:-}"
       - name: Build desktop archive
         env:
-          HONGGUO_CORE_ORIGIN: ${{ vars.HONGGUO_CORE_ORIGIN }}
+          HONGGUO_RUNTIME_MODE: native
         run: |
           set -euo pipefail
           pnpm package:desktop
@@ -157,6 +155,7 @@ jobs:
           echo "TV_UPDATE_MANIFEST_KEY_FILE=$key" >> "$GITHUB_ENV"
       - name: Build signed TV APK
         env:
+          HONGGUO_RUNTIME_MODE: native
           HONGGUO_TV_BUILD_TYPE: release
           TV_RELEASE_STORE_PASSWORD: ${{ secrets.TV_RELEASE_STORE_PASSWORD }}
           TV_RELEASE_KEY_ALIAS: ${{ secrets.TV_RELEASE_KEY_ALIAS }}

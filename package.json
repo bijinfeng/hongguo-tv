@@ -21,6 +21,8 @@
     "test:tv-emulator": "node tooling/src/tv-emulator.mjs",
     "test:tv-browsing": "node tooling/src/tv-browsing.mjs",
     "test:tv-player": "node tooling/src/tv-browsing.mjs player",
+    "test:tv-native-startup": "node tooling/src/native-startup-host.mjs",
+    "test:tv-native-retry": "node tooling/src/native-startup-remote.mjs",
     "verify": "node tooling/src/cli.mjs verify && node tooling/src/release.mjs check",
     "security": "node tooling/src/cli.mjs security",
     "codegen": "node tooling/src/codegen.mjs",

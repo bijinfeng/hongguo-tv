@@ -1,5 +1,5 @@
-import { readFile, access, mkdir } from 'node:fs/promises';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFile, access, mkdir, rm } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import {
@@ -14,6 +14,7 @@ import {
   root,
   run,
   runtimeConfig,
+  runtimeMode,
   targets,
 } from './process.mjs';
 import { boundaries } from './boundaries.mjs';
@@ -260,7 +261,7 @@ try {
     case 'dev':
       if (!target) throw new Error('dev requires --target');
       await doctor();
-      await dev(target);
+      await dev(target, runtimeMode(target));
       break;
     case 'api':
       await cargo([
@@ -324,32 +325,24 @@ try {
       break;
     case 'package':
       if (!target) throw new Error('package requires --target');
-      if (
-        !process.env.HONGGUO_CORE_ORIGIN &&
-        !(target === 'tv' && existsSync(resolve(root, 'apps/tv/native/Cargo.toml')))
-      )
-        throw new Error(
-          'Set HONGGUO_CORE_ORIGIN to an explicit backend origin; these are preview packages, native core embedding is pending.',
-        );
-      await doctor({ requireDevice: false });
-      await runtimeConfig(target, process.env.HONGGUO_CORE_ORIGIN);
-      await nsh('check', target);
-      await nsh(
-        'build',
-        target,
-        target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN ? ['T0Probe.tsx'] : [],
-      );
-      if (target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN)
-        console.log(
-          'Packaging the Android TV T0 technical APK; content API migration is not included.',
-        );
-      else console.log('Packaging a UI preview requiring the configured external Rust API.');
-      await nsh('package', target, [
-        ...(target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN ? ['T0Probe.tsx'] : []),
-        '--target',
-        nativeTarget(target),
-        ...(target === 'tv' ? ['--abi', 'arm64-v8a'] : []),
-      ]);
+      {
+        const mode = runtimeMode(target);
+        if (mode === 'http-preview' && !process.env.HONGGUO_CORE_ORIGIN)
+          throw new Error('HTTP preview packages require explicit HONGGUO_CORE_ORIGIN');
+        await doctor({ requireDevice: false });
+        await runtimeConfig(target, process.env.HONGGUO_CORE_ORIGIN, root, mode);
+        const entry = mode === 't0' ? ['T0Probe.tsx'] : [];
+        await nsh('check', target);
+        await rm(resolve(root, 'apps', target, '.nsh/out'), { recursive: true, force: true });
+        await nsh('build', target, entry);
+        console.log(`Packaging ${target}: ${mode}`);
+        await nsh('package', target, [
+          ...entry,
+          '--target',
+          nativeTarget(target),
+          ...(target === 'tv' ? ['--abi', 'arm64-v8a'] : []),
+        ]);
+      }
       if (target === 'tv') await packageTvHost();
       break;
     default:

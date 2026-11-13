@@ -306,6 +306,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     leave();
   };
   cleanup(props.store.registerPlayerBack(back));
+  cleanup(props.store.registerPlayerCheckpoint(session.save));
   const previewSeek = (delta: number) => {
     if (!enabled()) {
       showControls();

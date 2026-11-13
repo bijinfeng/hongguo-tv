@@ -1,6 +1,6 @@
 # 多端工程架构
 
-> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 和匿名官网目录服务已落地（第一阶段基线）。当前业务仍经 HTTP 连接 Rust；TV T0 的包内 Rust／合成视频已完成模拟器验收，原生业务 bridge、完整内容协议、原生独立产品和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
+> 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 和匿名官网目录服务已落地（第一阶段基线）。Web 经 HTTP 连接 Rust，Desktop／TV 已接共享原生会话与默认入口（独立业务待宿主验收）；TV T0 的包内 Rust／合成视频已完成模拟器验收，原生 bridge 已有基础与真实 engine 测试，完整内容协议、原生独立安装业务和真机发行仍待验收。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
 
 状态：设计提案，2026-11-13。本文描述目标结构；新工作区已进入第一阶段实施，旧 `scripts/ + upstream/` 保留为行为对照，早期根级 `app/` demo 已删除，已验证边界见 [VALIDATION.md](VALIDATION.md)。工具链、Git、CI 与发布规范见 [ENGINEERING.md](ENGINEERING.md)。
 
