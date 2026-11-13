@@ -309,6 +309,61 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
 }
 
 export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
+  if (target === 'desktop')
+    test('public window fullscreen preserves playback and Escape restores its source', async () => {
+      const app = await open('./App.tsx', {
+        platform: 'macos',
+        width: 1180,
+        height: 780,
+        network: { '*': fixture, 'POST *': fixture },
+      });
+      await app.type('id:search-input', '重生');
+      await app.press('搜索');
+      await app.press('id:drama-123');
+      await app.waitUntil(() => app.enabled('开始观看'));
+      await app.press('开始观看');
+      await app.waitFor('id:player-video');
+      const window = app.window('main');
+      const before = window.state()?.placement.mode;
+      await app.press('全屏');
+      expect(window.state()?.placement.mode).toBe('fullScreen');
+      expect(app.count('id:player-video')).toBe(1);
+      expect(app.requests().filter((request) => request.url.includes('/play/info')).length).toBe(1);
+      await app.keyboard.press('escape');
+      expect(window.state()?.placement.mode).toBe(before);
+      expect(app.count('id:player-video')).toBe(1);
+      await app.keyboard.press('escape');
+      await app.waitFor('开始观看');
+      expect(app.count('id:player-video')).toBe(0);
+    });
+  if (target === 'tv')
+    test('host commands discard browse events and covered player input', async () => {
+      const app = await open('./App.tsx', {
+        host: {},
+        network: { '*': fixture, 'POST *': fixture },
+      });
+      await app.host.send('player-command', 'next');
+      await app.press('id:nav-search');
+      await app.type('id:search-input', '重生');
+      await app.press('搜索');
+      await app.press('id:drama-123');
+      await app.waitUntil(() => app.enabled('开始观看'));
+      await app.press('开始观看');
+      await app.waitFor('重生之后 · 第 1 集');
+      await app.host.send('player-command', { command: 'next' });
+      expect(app.shows('重生之后 · 第 1 集')).toBe(true);
+      await app.press('选集');
+      await app.host.send('player-command', 'next');
+      expect(app.shows('重生之后 · 第 1 集')).toBe(true);
+      await app.back();
+      await app.host.send('player-command', 'next');
+      await app.waitFor('重生之后 · 第 2 集');
+      await app.back();
+      await app.back();
+      await app.waitFor('开始观看');
+      await app.host.send('player-command', 'next');
+      expect(app.shows('开始观看')).toBe(true);
+    });
   test('background releases playback; returning prepares one paused owner without history writes', async () => {
     const app = await open('./App.tsx', {
       width: 1180,

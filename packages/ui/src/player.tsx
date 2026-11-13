@@ -258,6 +258,8 @@ export function EpisodePanel(props: {
       backdropClass="bg-cinema/60"
     >
       <View
+        role="dialog"
+        accessibilityLabel={props.cinema ? '播放设置' : '选集'}
         class="flex-1"
         style={{
           padding: Product() === 'tv' ? tvUnit(36) : 24,

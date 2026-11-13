@@ -29,6 +29,12 @@ public final class MainActivity extends Activity {
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        // Android's keyboard Escape follows the same layered return as the remote Back.
+        if (event.getKeyCode() == KeyEvent.KEYCODE_ESCAPE
+                && !(getCurrentFocus() instanceof android.widget.EditText)) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) onBackPressed();
+            return true;
+        }
         return remote != null && remote.dispatch(event) || super.dispatchKeyEvent(event);
     }
 

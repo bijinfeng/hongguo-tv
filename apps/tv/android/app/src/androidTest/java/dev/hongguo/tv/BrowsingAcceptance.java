@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.util.function.BooleanSupplier;
 
 /** Business UI acceptance on the final preview APK. Data comes only from a loopback test fixture. */
+@android.annotation.TargetApi(34) // The acceptance tool pins API 34 and uses its public cache reset.
 final class BrowsingAcceptance {
     private final Instrumentation runner;
     private final String appearance;
@@ -36,22 +37,26 @@ final class BrowsingAcceptance {
         Bundle status = new Bundle(); status.putString("stream", "PASS " + name + "\n"); runner.sendStatus(0, status);
     }
     private AccessibilityNodeInfo find(AccessibilityNodeInfo node, String label) {
-        if (node == null) return null;
+        if (node == null || !node.isVisibleToUser()) return null;
         if ((node.getText() != null && node.getText().toString().equals(label))
                 || (node.getContentDescription() != null && node.getContentDescription().toString().equals(label))) return node;
         for (int i = 0; i < node.getChildCount(); i++) { AccessibilityNodeInfo found = find(node.getChild(i), label); if (found != null) return found; }
         return null;
     }
-    private boolean has(String label) { return find(runner.getUiAutomation().getRootInActiveWindow(), label) != null; }
+    private AccessibilityNodeInfo root() {
+        runner.getUiAutomation().clearCache();
+        return runner.getUiAutomation().getRootInActiveWindow();
+    }
+    private boolean has(String label) { return find(root(), label) != null; }
     private boolean focused(String label) {
-        AccessibilityNodeInfo node = find(runner.getUiAutomation().getRootInActiveWindow(), label);
+        AccessibilityNodeInfo node = find(root(), label);
         while (node != null) { if (node.isFocused()) return true; node = node.getParent(); }
         return false;
     }
     private void key(int code) { runner.sendKeyDownUpSync(code); SystemClock.sleep(220); }
     private void confirm() { key(KeyEvent.KEYCODE_DPAD_CENTER); }
     private void click(String label) {
-        AccessibilityNodeInfo node = find(runner.getUiAutomation().getRootInActiveWindow(), label);
+        AccessibilityNodeInfo node = find(root(), label);
         while (node != null && !node.isClickable()) node = node.getParent();
         if (node == null || !node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) throw new AssertionError("click " + label);
         SystemClock.sleep(300);
@@ -115,7 +120,9 @@ final class BrowsingAcceptance {
             check("detail restores saved late segment", () -> has("继续第 59 集") && has("第 59 集") && !has("第 1 集"));
             screenshot("detail");
             click("继续第 59 集");
-            check("unimplemented playback is an honest error", () -> has("无法获取播放地址：Error: CORE_NOT_IMPLEMENTED"));
+            check("unimplemented playback is an honest error", () -> has("当前服务暂不支持播放，请稍后重试。"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("first back hides playback controls", () -> has("显示播放控制") && !has("下一集"));
             key(KeyEvent.KEYCODE_BACK);
             check("system back returns to detail", () -> has("第 59 集"));
             key(KeyEvent.KEYCODE_BACK);

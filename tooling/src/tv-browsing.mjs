@@ -2,10 +2,13 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { browsingFixture } from './browsing-fixture.mjs';
+import { playerFixture } from './player-fixture.mjs';
 import { output, root, run } from './process.mjs';
 import { tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
+const suite = process.argv[2] || 'browsing';
+if (!['browsing', 'player'].includes(suite)) throw new Error('Expected browsing|player');
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
 const devices = output(adb, ['devices'])
   .split('\n')
@@ -33,17 +36,21 @@ if (
   device(['shell', 'getprop', 'ro.build.version.sdk']) !== '34'
 )
   throw new Error('Requires the pinned TV API 34 emulator.');
-const artifacts = resolve(root, 'artifacts/browsing/tv');
+const artifacts = resolve(
+  root,
+  suite === 'player' ? 'artifacts/playback/tv-apk' : 'artifacts/browsing/tv',
+);
 await mkdir(artifacts, { recursive: true });
-const fixture = await browsingFixture();
-const port = new URL(fixture.origin).port;
-console.log(`TV browsing fixture: ${fixture.origin}`);
 const runtime = resolve(root, 'apps/tv/runtime.generated.json');
 const previous = await readFile(runtime);
 let reversed = false;
 const mode = device(['shell', 'cmd', 'uimode', 'night']).match(/Night mode: (\S+)/)?.[1];
 const scale = device(['shell', 'settings', 'get', 'system', 'font_scale']);
 if (!mode) throw new Error('Cannot read TV appearance');
+const fixture = await (suite === 'player' ? playerFixture() : browsingFixture());
+const port = new URL(fixture.origin).port;
+console.log(`TV ${suite} fixture: ${fixture.origin}`);
+const errors = [];
 try {
   // This is an external-core preview; adb reverse is deliberately not independent-install evidence.
   await run('pnpm', ['package:tv'], {
@@ -83,7 +90,7 @@ try {
       '-w',
       '-e',
       'suite',
-      'browsing',
+      suite,
       '-e',
       'appearance',
       appearance,
@@ -91,7 +98,14 @@ try {
     ]);
     await writeFile(resolve(artifacts, `${appearance}.txt`), report + '\n');
     console.log(report);
-    if (!report.includes('TV browsing acceptance: 15 checks passed') || report.includes('FAIL ')) {
+    if (
+      !report.includes(
+        suite === 'player'
+          ? 'TV player acceptance: 24 checks passed'
+          : 'TV browsing acceptance: 16 checks passed',
+      ) ||
+      report.includes('FAIL ')
+    ) {
       await run(adb, [
         '-s',
         serial,
@@ -101,7 +115,9 @@ try {
       ]);
       throw new Error(`${appearance} business acceptance failed`);
     }
-    for (const screen of ['home', 'search', 'detail', 'history'])
+    for (const screen of suite === 'player'
+      ? ['paused', 'preview', 'settings']
+      : ['home', 'search', 'detail', 'history'])
       await run(adb, [
         '-s',
         serial,
@@ -110,13 +126,45 @@ try {
         resolve(artifacts, `${screen}-${appearance}.png`),
       ]);
   }
-  if (fixture.requests.some((request) => request.method === 'POST'))
+  if (suite === 'browsing' && fixture.requests.some((request) => request.method === 'POST'))
     throw new Error('Browsing submitted progress');
+  if (
+    suite === 'player' &&
+    (!fixture.writes.some((write) => write.position > 0) ||
+      fixture.requests.filter((request) => request.url === '/api/v1/play/release').length < 2)
+  )
+    throw new Error('Player did not checkpoint actual viewing and release both episodes');
+} catch (error) {
+  errors.push(error);
 } finally {
-  if (reversed) device(['reverse', '--remove', `tcp:${port}`]);
-  device(['shell', 'cmd', 'uimode', 'night', mode]);
-  device(['shell', 'settings', 'put', 'system', 'font_scale', scale === 'null' ? '1.0' : scale]);
-  await writeFile(runtime, previous);
-  await writeFile(resolve(artifacts, 'requests.json'), JSON.stringify(fixture.requests, null, 2));
-  await fixture.close();
+  for (const restore of [
+    () => {
+      if (reversed) device(['reverse', '--remove', `tcp:${port}`]);
+    },
+    () => device(['shell', 'cmd', 'uimode', 'night', mode]),
+    () =>
+      device([
+        'shell',
+        'settings',
+        'put',
+        'system',
+        'font_scale',
+        scale === 'null' ? '1.0' : scale,
+      ]),
+    () => writeFile(runtime, previous),
+    () => writeFile(resolve(artifacts, 'requests.json'), JSON.stringify(fixture.requests, null, 2)),
+    () =>
+      suite === 'player'
+        ? writeFile(resolve(artifacts, 'writes.json'), JSON.stringify(fixture.writes, null, 2))
+        : undefined,
+    () => fixture.close(),
+  ]) {
+    try {
+      await restore();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
 }
+if (errors.length === 1) throw errors[0];
+if (errors.length) throw new AggregateError(errors, 'TV acceptance and cleanup failed');

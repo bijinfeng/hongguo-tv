@@ -10,6 +10,7 @@ import { Player } from './pages/Player';
 import { History } from './pages/History';
 import { Account } from './pages/Account';
 import { Home } from './pages/Home';
+import type { PlaybackCommandSource } from './playback';
 
 function Navigation(props: { store: Store }) {
   return (
@@ -219,8 +220,12 @@ function TvShell(props: { store: Store; logoMark: ImageAsset }) {
     </View>
   );
 }
-export function App(props: { target: ProductTarget; logoMark: ImageAsset }) {
-  const store = createStore(props.target);
+export function App(props: {
+  target: ProductTarget;
+  logoMark: ImageAsset;
+  subscribePlayerCommands?: PlaybackCommandSource;
+}) {
+  const store = createStore(props.target, props.subscribePlayerCommands);
   keymap.bind('escape', store.back, { when: 'notEditing' });
   return (
     <Product.Provider value={props.target}>

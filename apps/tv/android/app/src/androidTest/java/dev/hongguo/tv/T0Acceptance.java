@@ -73,6 +73,10 @@ public final class T0Acceptance extends Instrumentation {
     }
 
     @Override public void onStart() {
+        if ("player".equals(arguments.getString("suite"))) {
+            new PlayerAcceptance(this, arguments.getString("appearance", "light")).run();
+            return;
+        }
         if ("browsing".equals(arguments.getString("suite"))) {
             new BrowsingAcceptance(this, arguments.getString("appearance", "light")).run();
             return;

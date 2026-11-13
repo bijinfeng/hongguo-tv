@@ -1,8 +1,25 @@
 import { expect, test } from 'nsh/test';
 import { configureClient, mediaURL } from '@hongguo/core-client';
-import { playbackLease, progressSession } from '../src/playback';
+import { isPlaybackCommand, playbackLease, progressSession } from '../src/playback';
 
 export function registerPlaybackTests() {
+  test('host playback commands reject unknown and structured payloads', () => {
+    for (const command of [
+      'reveal',
+      'preview-back',
+      'preview-forward',
+      'confirm',
+      'toggle',
+      'play',
+      'pause',
+      'next',
+      'seek-back',
+      'seek-forward',
+    ])
+      expect(isPlaybackCommand(command)).toBe(true);
+    for (const command of [null, undefined, 1, {}, { command: 'play' }, 'PLAY', '', 'open-url'])
+      expect(isPlaybackCommand(command)).toBe(false);
+  });
   test('media paths retain same-origin boundaries and explicit legacy compatibility', () => {
     configureClient('http://127.0.0.1:8765');
     for (const token of ['a'.repeat(64), 'b'.repeat(24) + '.mp4']) {

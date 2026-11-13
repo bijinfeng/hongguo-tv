@@ -7,6 +7,8 @@ screens stay in `packages/app`; styled controls and tokens stay in `packages/ui`
 ```sh
 pnpm package:tv
 pnpm test:tv-emulator
+pnpm test:tv-browsing
+pnpm test:tv-player
 ```
 
 The default package is the **T0 technical probe**, containing original synthetic
@@ -39,8 +41,27 @@ stationary paused clock, seek, source switching, surface removal/rebuild,
 Home/resume, activity recreation and return to TV Home. Reports, screenshots and
 the exact APK hash go to ignored `artifacts/tv-emulator/`. It restores night mode.
 
+`test:tv-browsing` and `test:tv-player` install external-API preview APKs with explicit
+loopback fixtures and temporary adb reverse rules, then restore appearance, font
+scale, runtime configuration and their reverse rule. They are separate from the
+independent T0 gate. The player fixture serves original 12-second test patterns;
+its API/history are stubs, not Rust/official-content acceptance. Reports go to
+`artifacts/browsing/tv` and `artifacts/playback/tv-apk` respectively.
+
 `TvRemote` uses public accessibility click actions and visible view bounds; it
-leaves keys to a focused text editor. The T0 probe does not claim complete business
+leaves keys to a focused text editor. Enabled stage actions named “显示播放控制” /
+“确认播放位置” expose the player's hidden / preview states to this input adapter;
+keep these semantic names in sync with the adapter when localizing. Dialog roles
+and Select list roles provide public accessibility scopes, with portal lists taking
+precedence over their parent sheet. Directional movement prefers its row/column;
+focused sliders use public increment/decrement actions. Android versions before
+30 retain the named “播放设置” / “选集” scopes because NSH has no spoken dialog
+role there; keep those names in sync when localizing. The adapter
+sends finite `player-command` events through public `NshView.send`; the shared app
+validates payloads, drops commands outside the current player, and owns all
+playback decisions. Media play/pause are idempotent; panels retain their input.
+Keyboard Escape follows native layered Back. No NSH private handles or invented
+media key names are used. The T0 probe does not claim complete business
 navigation, all overlays/virtualized lists, TalkBack, hardware decoding, production
 signing or a migrated native business core. Extend and test those in their slices.
 Android/Gradle dependencies have checksum verification; that is not a vulnerability

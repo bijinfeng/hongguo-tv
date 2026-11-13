@@ -1,3 +1,35 @@
+export type PlaybackCommand =
+  | 'reveal'
+  | 'preview-back'
+  | 'preview-forward'
+  | 'confirm'
+  | 'toggle'
+  | 'play'
+  | 'pause'
+  | 'next'
+  | 'seek-back'
+  | 'seek-forward';
+
+export type PlaybackCommandSource = (receive: (command: unknown) => void) => () => void;
+
+export function isPlaybackCommand(value: unknown): value is PlaybackCommand {
+  return (
+    typeof value === 'string' &&
+    [
+      'reveal',
+      'preview-back',
+      'preview-forward',
+      'confirm',
+      'toggle',
+      'play',
+      'pause',
+      'next',
+      'seek-back',
+      'seek-forward',
+    ].includes(value)
+  );
+}
+
 /** One playback session. A resolved URL alone must never create a history entry. */
 export function progressSession(
   persist: (position: number, duration: number, completed: boolean) => void,

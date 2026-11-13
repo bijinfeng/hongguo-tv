@@ -11,6 +11,7 @@ import {
   type HistoryChange,
   type Library,
 } from '@hongguo/core-client';
+import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
 export type Section = 'home' | 'search' | 'history';
 export type Route =
@@ -20,7 +21,10 @@ export type Route =
   | { name: 'account' };
 
 /** One navigation stack and resource lifetime per mounted application. */
-export function createStore(target: ProductTarget) {
+export function createStore(
+  target: ProductTarget,
+  subscribePlayerCommands?: PlaybackCommandSource,
+) {
   const nav = createNavStack<Route>([{ name: 'browse' }]);
   const section = signal<Section>('home');
   const activePage = (name: Section) =>
@@ -29,6 +33,15 @@ export function createStore(target: ProductTarget) {
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
   let playerBack: (() => void) | undefined;
+  let playerCommand: ((command: PlaybackCommand) => void) | undefined;
+  // Listen for the app lifetime so a command on a browse page cannot queue for a future player.
+  if (subscribePlayerCommands)
+    cleanup(
+      subscribePlayerCommands((command) => {
+        if (nav.routes().at(-1)?.name === 'player' && isPlaybackCommand(command))
+          playerCommand?.(command);
+      }),
+    );
   cleanup(() => cancelAnimationFrame(frame));
   const searchSelection = signal('');
   const draft = signal('');
@@ -67,6 +80,12 @@ export function createStore(target: ProductTarget) {
       playerBack = handler;
       return () => {
         if (playerBack === handler) playerBack = undefined;
+      };
+    },
+    registerPlayerCommand(handler: (command: PlaybackCommand) => void) {
+      playerCommand = handler;
+      return () => {
+        if (playerCommand === handler) playerCommand = undefined;
       };
     },
     searchSelection,

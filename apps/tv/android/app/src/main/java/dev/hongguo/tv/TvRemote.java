@@ -36,6 +36,9 @@ final class TvRemote extends View {
     }
     private int previousIndex;
     private boolean selecting;
+    private long focusPlaybackUntil;
+    private View currentScope;
+    private boolean focusSelection;
 
     TvRemote(Context context, NshView root) {
         super(context);
@@ -57,7 +60,9 @@ final class TvRemote extends View {
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if (current == null || !current.isAttachedToWindow()) restore();
+            if (current == null || !current.isAttachedToWindow() || !current.isShown()
+                    || !current.createAccessibilityNodeInfo().isEnabled()
+                    || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
             if (!lastBounds.equals(next)) {
                 lastBounds.set(next);
@@ -69,8 +74,52 @@ final class TvRemote extends View {
 
     private List<View> targets() {
         List<View> targets = new ArrayList<>();
-        collect(root, targets);
+        // A Select list is a portal beside its parent sheet, so resolve it before dialogs.
+        View modal = expandedSelect(root) ? scope(root, true) : null;
+        if (modal == null) modal = scope(root, false);
+        if (currentScope != modal) {
+            currentScope = modal;
+            focusSelection = modal != null && "android.widget.ListView".equals(
+                    String.valueOf(modal.createAccessibilityNodeInfo().getClassName()));
+        }
+        collect(modal == null ? root : modal, targets);
         return targets;
+    }
+
+    private View scope(View view, boolean list) {
+        if (!view.isShown() || !view.isEnabled() || view.getAlpha() == 0
+                || view.getImportantForAccessibility() == IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) return null;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                View modal = scope(group.getChildAt(i), list);
+                if (modal != null) return modal;
+            }
+        }
+        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        if (node == null) return null;
+        String role = String.valueOf(node.getExtras().getCharSequence("AccessibilityNodeInfo.roleDescription"));
+        String name = String.valueOf(node.getContentDescription());
+        // Android <30 lacks NSH's spoken dialog role; keep the shared panel names as its fallback.
+        boolean playerPanel = !node.isClickable() && (name.equals("播放设置") || name.equals("选集"));
+        boolean matches = list ? "android.widget.ListView".equals(String.valueOf(node.getClassName()))
+                : role.equals("dialog") || role.equals("alert dialog") || playerPanel
+                    || "android.app.Dialog".equals(String.valueOf(node.getClassName()));
+        return matches ? view : null;
+    }
+
+    private boolean expandedSelect(View view) {
+        if (!view.isShown() || !view.isEnabled() || view.getAlpha() == 0
+                || view.getImportantForAccessibility() == IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) return false;
+        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        if (node != null && "android.widget.Spinner".equals(String.valueOf(node.getClassName()))
+                && node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE)) return true;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++)
+                if (expandedSelect(group.getChildAt(i))) return true;
+        }
+        return false;
     }
 
     private void collect(View view, List<View> targets) {
@@ -79,7 +128,8 @@ final class TvRemote extends View {
         Rect visible = new Rect();
         if (!view.getGlobalVisibleRect(visible)) return;
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
-        boolean actionable = node != null && node.isEnabled() && (node.isClickable() || view instanceof EditText);
+        boolean actionable = node != null && node.isEnabled()
+                && (node.isClickable() || adjustable(node) || view instanceof EditText);
         if (view instanceof EditText) {
             EditText input = (EditText) view;
             input.setImeOptions(input.getImeOptions() | EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
@@ -116,28 +166,52 @@ final class TvRemote extends View {
     private void restore() {
         if (selecting) return;
         List<View> targets = targets();
-        View focused = root.findFocus();
-        if (!targets.contains(current)) {
-            // Android press-target refs do not implement desktop focus restoration.
-            // Retain the native source only while its page is covered, including its recycled identity.
-            if (current != null) {
-                coveredFocus.removeIf(saved -> saved.view == current);
-                coveredFocus.add(new SavedFocus(current, currentIdentity));
-                if (coveredFocus.size() > 32) coveredFocus.remove(0);
+        if (current != null && !targets.contains(current)) {
+            // Android press-target refs do not restore native focus; retain the covered source identity.
+            coveredFocus.removeIf(saved -> saved.view == current);
+            coveredFocus.add(new SavedFocus(current, currentIdentity));
+            if (coveredFocus.size() > 32) coveredFocus.remove(0);
+        }
+        if (focusSelection) {
+            for (View target : targets) {
+                if (target.createAccessibilityNodeInfo().isSelected()) {
+                    focusSelection = false;
+                    coveredFocus.removeIf(saved -> targets.contains(saved.view));
+                    select(target, targets);
+                    return;
+                }
             }
         }
+        if (android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) {
+            for (View target : targets) {
+                String name = String.valueOf(target.createAccessibilityNodeInfo().getContentDescription());
+                if (name.equals("播放") || name.equals("暂停")) {
+                    focusPlaybackUntil = 0;
+                    coveredFocus.removeIf(saved -> targets.contains(saved.view));
+                    select(target, targets);
+                    return;
+                }
+            }
+        }
+        View focused = root.findFocus();
         View source = null;
         for (int i = coveredFocus.size() - 1; i >= 0; i--) {
             SavedFocus saved = coveredFocus.get(i);
             if (targets.contains(saved.view) && java.util.Objects.equals(saved.identity, identity(saved.view))) {
                 source = saved.view;
-                coveredFocus.remove(i);
                 break;
             }
         }
-        if (source != null) select(source, targets);
+        if (source != null) {
+            // One resurfaced layer restores once; older sources in that layer must not steal it later.
+            coveredFocus.removeIf(saved -> targets.contains(saved.view));
+            select(source, targets);
+        }
         else if (!targets.contains(current)) {
-            select(targets.contains(focused) ? focused
+            View selected = null;
+            for (View target : targets)
+                if (target.createAccessibilityNodeInfo().isSelected()) { selected = target; break; }
+            select(targets.contains(focused) ? focused : selected != null ? selected
                     : targets.isEmpty() ? null : targets.get(Math.min(previousIndex, targets.size() - 1)), targets);
         } else if (targets.contains(focused) && focused != current) select(focused, targets);
         else invalidate();
@@ -173,13 +247,55 @@ final class TvRemote extends View {
             current = input;
             exitingInput = true;
         }
+        String mediaCommand = switch (key) {
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> "toggle";
+            case KeyEvent.KEYCODE_MEDIA_PLAY -> "play";
+            case KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_STOP -> "pause";
+            case KeyEvent.KEYCODE_MEDIA_NEXT -> "next";
+            case KeyEvent.KEYCODE_MEDIA_REWIND -> "seek-back";
+            case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> "seek-forward";
+            default -> null;
+        };
+        if (mediaCommand != null) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                if ((mediaCommand.equals("pause") || mediaCommand.equals("toggle"))
+                        && scope(root, false) == null && !expandedSelect(root))
+                    focusPlaybackUntil = android.os.SystemClock.uptimeMillis() + 1000;
+                root.send("player-command", mediaCommand);
+            }
+            return true;
+        }
         if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_DOWN
                 && key != KeyEvent.KEYCODE_DPAD_LEFT && key != KeyEvent.KEYCODE_DPAD_RIGHT
                 && key != KeyEvent.KEYCODE_DPAD_CENTER && key != KeyEvent.KEYCODE_ENTER) return false;
         if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+        // The enabled semantic stage owns hidden controls and uncommitted seek previews.
+        // Visible controls keep the ordinary geometric navigation below.
+        String stage = playerStage(root);
+        if (stage != null && (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
+                || key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER)) {
+            String command = key == KeyEvent.KEYCODE_DPAD_LEFT ? "preview-back"
+                    : key == KeyEvent.KEYCODE_DPAD_RIGHT ? "preview-forward"
+                    : stage.equals("确认播放位置") ? "confirm" : "reveal";
+            if (event.getRepeatCount() == 0 || key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                if (command.equals("confirm") || command.equals("reveal"))
+                    focusPlaybackUntil = android.os.SystemClock.uptimeMillis() + 1000;
+                root.send("player-command", command);
+            }
+            return true;
+        }
         List<View> targets = targets();
         if (targets.isEmpty()) return false;
+        if (focusSelection) restore();
+        focusSelection = false; // A user's movement takes precedence over late-mounted selected rows.
         if (!targets.contains(current)) select(targets.get(0), targets);
+        AccessibilityNodeInfo currentNode = current.createAccessibilityNodeInfo();
+        if (currentNode != null && adjustable(currentNode)
+                && (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+            int action = key == KeyEvent.KEYCODE_DPAD_LEFT ? AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
+                    : AccessibilityNodeInfo.ACTION_SCROLL_FORWARD;
+            if (current.performAccessibilityAction(action, null)) return true;
+        }
         if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
             if (event.getRepeatCount() == 0) {
                 if (current instanceof EditText) {
@@ -198,9 +314,31 @@ final class TvRemote extends View {
         return true;
     }
 
+    private String playerStage(View view) {
+        if (!view.isShown() || !view.isEnabled() || view.getAlpha() == 0
+                || view.getImportantForAccessibility() == IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) return null;
+        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        String name = node == null || node.getContentDescription() == null ? "" : node.getContentDescription().toString();
+        if (node != null && node.isEnabled() && node.isClickable()
+                && (name.equals("显示播放控制") || name.equals("确认播放位置"))) return name;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                String stage = playerStage(group.getChildAt(i));
+                if (stage != null) return stage;
+            }
+        }
+        return null;
+    }
+
+    private boolean adjustable(AccessibilityNodeInfo node) {
+        return node.getRangeInfo() != null || "android.widget.SeekBar".equals(String.valueOf(node.getClassName()));
+    }
+
     private View nearest(List<View> targets, Rect from, int key) {
         View best = null;
         double bestScore = Double.POSITIVE_INFINITY;
+        boolean bestInRow = false;
         for (View target : targets) {
             if (target == current) continue;
             Rect to = bounds(target);
@@ -209,8 +347,14 @@ final class TvRemote extends View {
                     : key == KeyEvent.KEYCODE_DPAD_DOWN ? dy : -dy;
             int minor = key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_LEFT ? Math.abs(dy) : Math.abs(dx);
             if (major <= 0) continue;
+            boolean inRow = key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_LEFT
+                    ? to.bottom > from.top && to.top < from.bottom
+                    : to.right > from.left && to.left < from.right;
             double score = major * (double) major + 13 * minor * (double) minor;
-            if (score < bestScore) { best = target; bestScore = score; }
+            // Stay in the current row/column before crossing to a distant slider thumb.
+            if (best == null || inRow && !bestInRow || inRow == bestInRow && score < bestScore) {
+                best = target; bestScore = score; bestInRow = inRow;
+            }
         }
         return best;
     }

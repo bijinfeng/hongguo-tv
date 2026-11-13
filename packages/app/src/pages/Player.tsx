@@ -306,6 +306,37 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     leave();
   };
   cleanup(props.store.registerPlayerBack(back));
+  const previewSeek = (delta: number) => {
+    if (!enabled()) {
+      showControls();
+      return;
+    }
+    preview.set(Math.min(duration(), Math.max(0, (preview() ?? position()) + delta)));
+    layer.set('seek-preview');
+  };
+  const confirmPreview = () => {
+    if (preview() !== undefined) seek(preview()!);
+    showControls();
+  };
+  cleanup(
+    props.store.registerPlayerCommand((command) => {
+      if (!active() || lifecycle() !== 'active' || panel() || more() || menuOpen()) return;
+      if (command === 'reveal') showControls();
+      else if (command === 'preview-back') previewSeek(-10);
+      else if (command === 'preview-forward') previewSeek(10);
+      else if (command === 'confirm') confirmPreview();
+      else if (command === 'toggle') {
+        toggle();
+        if (paused()) showControls();
+      } else if (command === 'play' && (paused() || completed())) toggle();
+      else if (command === 'pause') {
+        if (!paused()) toggle();
+        showControls();
+      } else if (command === 'next') nextEpisode();
+      else if (command === 'seek-back') seek(position() - 10);
+      else if (command === 'seek-forward') seek(position() + 10);
+    }),
+  );
   const fullscreen = () => {
     if (!window) return;
     if (fullScreen()) window.setMode(previousMode);
@@ -378,26 +409,19 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     return () => removers.forEach((remove) => remove());
   });
   effect(() => {
-    if (!tv || !active() || (layer() !== 'hidden' && layer() !== 'seek-preview')) return;
-    const previewSeek = (delta: number) => {
-      if (!enabled()) {
-        showControls();
-        return;
-      }
-      preview.set(Math.min(duration(), Math.max(0, (preview() ?? position()) + delta)));
-      layer.set('seek-preview');
-    };
+    if (
+      !tv ||
+      !active() ||
+      panel() ||
+      more() ||
+      menuOpen() ||
+      (layer() !== 'hidden' && layer() !== 'seek-preview')
+    )
+      return;
     const removers = [
       keymap.bind('left', () => previewSeek(-10), { when: 'notEditing', repeat: true }),
       keymap.bind('right', () => previewSeek(10), { when: 'notEditing', repeat: true }),
-      keymap.bind(
-        'enter',
-        () => {
-          if (preview() !== undefined) seek(preview()!);
-          showControls();
-        },
-        { when: 'notEditing' },
-      ),
+      keymap.bind('enter', confirmPreview, { when: 'notEditing' }),
     ];
     return () => removers.forEach((remove) => remove());
   });
@@ -523,13 +547,23 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                   )}
                 </Each>
                 <CinemaStageAction
-                  label={tv ? '显示播放控制' : paused() ? '播放画面' : '暂停画面'}
+                  label={
+                    tv
+                      ? layer() === 'seek-preview'
+                        ? '确认播放位置'
+                        : '显示播放控制'
+                      : paused()
+                        ? '播放画面'
+                        : '暂停画面'
+                  }
                   showPlay={!tv && paused() && !buffering() && !completed() && !error()}
-                  disabled={tv ? layer() !== 'hidden' : !enabled()}
+                  disabled={tv ? layer() !== 'hidden' && layer() !== 'seek-preview' : !enabled()}
                   buttonRef={(ref) => {
                     stageRef = ref;
                   }}
-                  onPress={tv ? showControls : toggle}
+                  onPress={
+                    tv ? (layer() === 'seek-preview' ? confirmPreview : showControls) : toggle
+                  }
                 />
                 <If when={preparing() || buffering() || error() || completed()}>
                   <View class="absolute inset-0 items-center justify-center bg-cinema/80 gap-4 p-5">
