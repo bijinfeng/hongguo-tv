@@ -170,3 +170,24 @@ SDK 安装完成后，`pnpm package:tv` 已通过预检并生成技术验证 APK
 - **输入与动效**：桌面/Web 保留语义 Button/Input 和焦点样式、搜索上下键与播放器 Toolbar；已在浏览器验证方向键→确认打开→Escape 返回原卡片焦点；尚未完成所有键盘路径、屏幕阅读器和 TV 遥控的完整验收。减少动态效果有测试配置，所有动效尚未逐帧验证。
 
 结论：共享 NSH TSX UI + 保留 Go 核心的路线已在 Web/macOS 真实视频链路上得到验证。Android TV 应作为下一道决定性验收门槛；目前还不能宣称三端独立交付完成。
+
+## B 批播放迁移 · 开工基线（2026-11-14）
+
+A 提交为 `9285503`（本任务未推送）；当前并行 release 提交与品牌文档改动保留。A 的 6.2 Web／macOS 系统字号缩放仍未验收。
+
+- `pnpm doctor`：Node 26.12.1、pnpm 11.1.3、NSH 0.5.0、Rust/Cargo 1.97.0 通过。shell 不直接提供 cargo PATH，后续使用项目工具解析或 `~/.cargo/bin/cargo`，不静默跳过。
+- `pnpm test --target web`：Rust／工程／Web 既有基线通过，Web 12 项；日志 `artifacts/playback/baseline.log`。
+- `pnpm test:rust`：35 项 nextest 与 doc tests 通过；日志 `artifacts/playback/core-baseline.log`。覆盖现有 library／媒体 Range；播放／导航／历史回归由同次 Web 测试覆盖。
+- 基线未运行 Go、未读取 legacy 客户端数据、未启动原生 Chrome、未进入全屏；Web 为 NSH 测试宿主。此记录不代表真实媒体／解码／GUI 已验收。
+
+### B1 · 匿名播放模型与协议审查
+
+本批只完成 core 模型候选解析，尚未产生媒体就绪资源，HTTP `/api/v1/play/info` 仍为 501、playback capability 仍为 false。不把协议 fixture 通过写成官网播放成功。B 的任务 1.1、1.2、2.1、2.2、2.3 完成；总预算／共享准备、媒体、HTTP 和两端定稿播放器继续实施。
+
+- 功能审查：按固定 SHA 检查三类来源及独立 single 注册配置；精确 ID、有限 content family／codec／quality、显式业务拒绝、bytevc2 排除、签名 URL 脱敏及同集身份约束均有离线／loopback 测试。自动清晰度按参考选择不高于 720P 的最高项，无此区间时取最高；显式清晰度不静默降级。
+- 并发审查发现并修复：只有 HTTP 200 空 body 可刷新；初始注册成功不误用刷新冷却；刷新中的新请求等待同一结果；最后 owner 离开取消网络任务，迟到旧 revision 复用新身份。实例最多三种身份槽、30 分钟 TTL、刷新／失败冷却 10 分钟。legacy POST 身份不与 GET 或账号共享。
+- 协议审查：TTEncrypt 解密对照独立 OpenSSL 向量，签名对照固定 Argus／Ladon／Gorgon 向量，URL 解密对照合成向量；fallback 限定域名／fixture 原点、四次 codec 上限、保留原签名 query 字节及视频身份／时长。不运行 Go。受保护内容准备尚未接入，返回不兼容，不返回原始保护材料。
+- `cargo test -p hongguo-core --lib playback --locked` 新增 20 项通过；`cargo clippy -p hongguo-core --all-targets --locked -- -D warnings` 通过。最新日志为 `artifacts/playback/provider-tests.log`、`provider-clippy.log`。
+- UI 审查：本批未改页面／控件代码，`node tooling/src/browsing-host.mjs web` 图形宿主 3 项通过，检查浅深控件截图的字号、间距、圆角、对齐、颜色、focus／selected／disabled／error 和减少动态效果路径；未发现本批布局回归。截图沿用脚本输出 `artifacts/browsing/web/controls-{light,dark}.png`；图形日志 `artifacts/playback/ui-domain-web.log`。播放器的新视觉、动效、解码、macOS／TV 和真实内容继续单列待验收。
+- `pnpm security` 已运行，Cargo gate 被既有 foldhash、webpki-roots、winx、zlib-rs 许可及 NSH bincode／ttf-parser 未维护问题阻塞。新增依赖没有在此次 Cargo 输出出现新的独立问题，后续安全阶段因前置 gate 失败未完成；未增加 allow／ignore。
+- 完整 `pnpm verify`：Rust 55 项、工程 15 项、NSH 35 项及三端 check／build 通过；契约漂移与 OpenSpec strict 通过。日志 `artifacts/playback/verify-domain-final.log`、`codegen-check.log`。最后补充的畸形模型身份校验另经同组 20 项与 Clippy 通过。PlayInfo 已定义在 Rust core，但尚未注册 HTTP schema；因此本批 codegen 未产生契约差异，4.3 再随路由生成公开播放 DTO。

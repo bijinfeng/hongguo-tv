@@ -1,0 +1,60 @@
+{
+  "valid": [
+    {
+      "series_id": "90071992547409939999",
+      "vid": "90071992547409931234",
+      "content_type": "1004",
+      "quality": " 1080p ",
+      "codec_mode": "standard",
+      "expected_quality": "1080P",
+      "expected_codec": "default"
+    },
+    {
+      "series_id": "1",
+      "vid": "2",
+      "content_type": "",
+      "quality": "AUTO",
+      "codec_mode": "mpv_software",
+      "expected_quality": "",
+      "expected_codec": "software"
+    }
+  ],
+  "invalid": [
+    {
+      "field": "series_id",
+      "value": "0"
+    },
+    {
+      "field": "series_id",
+      "value": "1e20"
+    },
+    {
+      "field": "vid",
+      "value": "../1"
+    },
+    {
+      "field": "vid",
+      "value": "999999999999999999999999999999999"
+    },
+    {
+      "field": "content_type",
+      "value": "1003"
+    },
+    {
+      "field": "content_type",
+      "value": "9999"
+    },
+    {
+      "field": "quality",
+      "value": "99P"
+    },
+    {
+      "field": "quality",
+      "value": "01080P"
+    },
+    {
+      "field": "codec_mode",
+      "value": "bytevc2"
+    }
+  ]
+}

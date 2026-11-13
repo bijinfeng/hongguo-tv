@@ -1,0 +1,117 @@
+{
+  "upstream_commit": "de9712bf358dcbdf8a188e26cba711e3e5354e8a",
+  "fixture_origin": "Hand-authored synthetic vectors; no account, device, key or signed production URL. Tests never execute Go.",
+  "source_files": [
+    {
+      "path": "core/cmd/hongguotv/minireel.go",
+      "sha256": "23b8b823c4af5a06b7c04b2d9eaeb6d45b43863067bb00ad9f2aa4414f648b21"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_source_sequence.go",
+      "sha256": "124f0498eec6cba5895e4c32313ff2ed62307acadbe753776be633de6085fa63"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_model.go",
+      "sha256": "b7facb9ecf0ac8e6ae6fbc9da5f71088d67e694bc280793e588893557a7f7cb6"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_registered.go",
+      "sha256": "88fde4650d41db38ee1c3dd12535a4ce2e5daf1acdb5e69c7fa1b44ac36849a1"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_registered_sign.go",
+      "sha256": "93f30dfec7cbbaa675fe1c3cc9a924d48fab30dcc867388ef0913eed6b6b88dd"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_codec_fallback.go",
+      "sha256": "94a5fcb309cd1dde1682235a4c1a4cc3ab98fea5a4b526c760e897e32bbfc5f0"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_sign.go",
+      "sha256": "8cb20d9a63a3b74c60e3aa3d239d4dd9ee59a3894a7c23dd41245bcb355ff09a"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_sign.go",
+      "sha256": "764313a4f885caff251da996c419fe19c8a23a9fe6822c1659e9ecb52d3a733a"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_sign.go",
+      "sha256": "af999dec55d7717c19ff3d06473d3865185c7d6a5ba1c2ab7224862d417dc97e"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_range.go",
+      "sha256": "fee18c4b41eb77aafc5bb5c77d83eade1548f7d9ca8f48b6d27db85ddd025132"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_device.go",
+      "sha256": "558a2d75a9b2f8f94c2a25ba2295edc2cdba191304326d7f8cc9c2f6c6ed86ff"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_client.go",
+      "sha256": "7bcbecee27d870e28325f8be9027d9090795341f6397edff92ac2b6647aa0fe4"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_registered_fallback.go",
+      "sha256": "c13cfd1557e8b390c3d8d8995daaa4cc88e5d86518ba8dcac467d6ee8d2bcedf"
+    }
+  ],
+  "providers": [
+    {
+      "family": "video_tab",
+      "method": "GET",
+      "endpoints": [
+        "https://api5-normal-sinfonlineb.fqnovel.com/reading/bookapi/video_tab/multi_video_model/v1/"
+      ],
+      "budget_seconds": 8
+    },
+    {
+      "family": "registered_legacy",
+      "method": "POST",
+      "endpoints": [
+        "https://api5-normal-sinfonlineb.fqnovel.com/novel/player/multi_video_model/v1/",
+        "https://api5-normal-hl.fqnovel.com/novel/player/multi_video_model/v1/"
+      ],
+      "budget_seconds": 14
+    },
+    {
+      "family": "single",
+      "method": "POST",
+      "profiles": ["registered_73532", "legacy_73932"],
+      "endpoints": [
+        "https://api5-normal-sinfonlineb.fqnovel.com/novel/player/video_model/v1/",
+        "https://api5-normal-sinfonlinea.fqnovel.com/novel/player/video_model/v1/"
+      ],
+      "budget_seconds": 8
+    }
+  ],
+  "resolution_budget_seconds": 30,
+  "expected": {
+    "vid": "90071992547409931234",
+    "qualities": ["540P", "1080P"],
+    "excluded_codecs": ["bytevc2", "bvc2"],
+    "identity_mismatch": "PLAYBACK_IDENTITY_MISMATCH",
+    "business_error": "PLAYBACK_ACCESS_DENIED"
+  },
+  "vector_files": [
+    {
+      "path": "core/cmd/hongguotv/testdata/passport-device-vector.json",
+      "fixture": "device-crypto.json",
+      "sha256": "0526f94b36b4eca691ef72840c51786ea6477fef28b4bc0280f3cbee911654a9"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/playback-sign-vectors.json",
+      "fixture": "sign-legacy.json",
+      "sha256": "79cafa9fe8a95f81881d1453a9cf51d90944422999b46e152dd3515f44119c84"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/single-registered-sign-vector.json",
+      "fixture": "sign-registered.json",
+      "sha256": "a264ad83e6b639ccd0845de558b64a05cdf4ea724b20d0a1259b0fd4865f07de"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/playback-url-vector.json",
+      "fixture": "url-crypto.json",
+      "sha256": "58369aecca664f9c0ee51d66cb5e24ac7cc693eeb1c9b57d6201912bd1f3a8f9"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "code": 403,
+  "message": "synthetic sensitive body must not escape"
+}

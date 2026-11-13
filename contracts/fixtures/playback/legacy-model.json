@@ -1,0 +1,40 @@
+{
+  "code": 0,
+  "data": {
+    "90071992547409931234": {
+      "video_model": {
+        "video_id": "90071992547409931234",
+        "video_duration": 91,
+        "video_list": [
+          {
+            "codec_type": "h264",
+            "main_url": "https://media.example.invalid/540.mp4?signature=synthetic",
+            "vwidth": 304,
+            "vheight": 540,
+            "definition": "540p"
+          },
+          {
+            "video_meta": {
+              "codec_type": "bytevc1",
+              "width": 608,
+              "height": 1080
+            },
+            "backup_url_list": ["https://media.example.invalid/1080.mp4"],
+            "quality_desc": "1080p"
+          },
+          {
+            "codec_type": "bytevc2",
+            "main_url": "https://media.example.invalid/vendor.mp4",
+            "vheight": 2160
+          },
+          {
+            "codec_type": "h264",
+            "encrypt": true,
+            "main_url": "https://media.example.invalid/locked.mp4",
+            "vheight": 720
+          }
+        ]
+      }
+    }
+  }
+}

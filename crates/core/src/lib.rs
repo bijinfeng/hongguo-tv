@@ -2,6 +2,7 @@
 pub mod catalog;
 pub mod library;
 pub mod media;
+pub mod playback;
 
 use serde::Serialize;
 use utoipa::ToSchema;
