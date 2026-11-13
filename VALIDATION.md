@@ -28,9 +28,9 @@ OpenSpec：`migrate-rust-catalog`。不修改共享页面或设计稿；官网�
 
 TV 的 mixed/native T0 已在 headless runner 验证：`PATH="$HOME/.cargo/bin:$PATH" RUSTUP_TOOLCHAIN=1.97.0 pnpm check --target tv`、`pnpm build --target tv`、`pnpm test --target tv`、`pnpm fmt:check` 和 `pnpm lint` 均通过；6 项 TV 测试包含 bridge 调用、class dispose、owner 任务取消及原有搜索/播放/账号/历史行为。
 
-`pnpm doctor --target tv` 和 `pnpm package:tv` 均在打包前置检查处失败。NSH 0.5.0（`f4d68f7`）、JDK 25.0.3、adb 和 Android runtime 已就绪；缺少 `platforms;android-35`、`build-tools;35.0.1`、NDK `27.2.12479018`、`aarch64-linux-android`/`armv7-linux-androideabi`/`x86_64-linux-android` Rust targets，且没有 ready adb 设备。当前没有生成 APK。
+SDK 安装完成后，`pnpm package:tv` 已通过预检并生成技术验证 APK；`pnpm doctor --target tv` 的 SDK、NDK、Rust targets、NSH runtime 全部通过，唯一失败项是没有一台 ready adb 设备。APK 为 `/Users/admin/Desktop/hongguo-tv/apps/tv/.nsh/out/红果.apk`，大小 48,960,093 bytes，SHA256 `ad7a1dc83b10caa20bc62f1be9ec1f928c7bfdac21d1a80dc6ce774f21166786`，Git SHA `6ae6649a52fd374144ed7538821e6b25e002c365`，包名 `dev.hongguo.tv`，版本 `0.1.0 (1)`，ABI `arm64-v8a`，compile/target SDK 35，min SDK 26。
 
-准备工具链时，Homebrew 的 `android-commandlinetools` 下载在 Google 源无进展后中止（缓存留下约 96 MiB 的 `.incomplete` 文件，未安装 SDK）；`rustup target add` 又因已有不完整 target 文件报告 `detected conflict` 并回滚。没有把这些环境残留纳入仓库，也没有伪造 Android、遥控、解码或正式安装包通过结论。
+`apksigner verify --verbose` 和 `zipalign -c -v 4` 均通过；签名为 NSH debug key，使用 v2/v3 APK Signature Scheme。`aapt2 dump badging` 显示默认 `android.hardware.faketouch` implied feature；未连接真机，因此没有宣称 TV launcher、遥控、解码、独立冷启动或正式签名通过。Homebrew command-line tools、SDK/NDK 和 Rust targets 均为本机工具链准备，不纳入仓库。
 
 ## pnpm / Rust 工程基线
 

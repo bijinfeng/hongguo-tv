@@ -3,6 +3,7 @@
   "id": "dev.hongguo.tv",
   "version": "0.1.0",
   "build": 1,
+  "rust": "native",
   "theme": "../../packages/ui/theme.json",
   "appearance": "system"
 }

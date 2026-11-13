@@ -1,4 +1,5 @@
 import { readFile, access, mkdir } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import {
@@ -19,35 +20,120 @@ import { boundaries } from './boundaries.mjs';
 import { codegen } from './codegen.mjs';
 import { dev } from './dev.mjs';
 
+const tvToolchain = JSON.parse(readFileSync(resolve(root, 'tooling/tv-toolchain.json'), 'utf8'));
+
+function androidSdk() {
+  return (
+    process.env.ANDROID_HOME ||
+    process.env.ANDROID_SDK_ROOT ||
+    resolve(homedir(), process.platform === 'darwin' ? 'Library/Android/sdk' : 'Android/Sdk')
+  );
+}
+
+function readRevision(file) {
+  const text = readFileSync(file, 'utf8');
+  return text.match(/^Pkg\.Revision\s*=\s*(.+)$/m)?.[1]?.trim() || 'unknown';
+}
+
+async function requireFile(file) {
+  await access(file);
+  return file;
+}
+
 const { command, target } = parseArgs(process.argv.slice(2));
 const selected = target ? [target] : targets;
-async function doctor() {
+async function doctor({ requireDevice = true } = {}) {
   const results = baseDoctor();
   if (target === 'tv') {
-    for (const [name, check] of [
-      ['java', () => output('java', ['-version'])],
+    const sdk = androidSdk();
+    const buildTools = resolve(sdk, 'build-tools', tvToolchain.android.buildTools);
+    const ndk = resolve(sdk, 'ndk', tvToolchain.android.ndk);
+    const runtime = resolve(homedir(), '.nsh', 'runtime', tvToolchain.nsh.runtime);
+    const checks = [
+      [
+        'jdk',
+        () => {
+          const version = output('java', ['-version']);
+          const javac = output('javac', ['-version']);
+          if (!version.includes(`"${tvToolchain.jdk.version}"`))
+            throw new Error(`Expected JDK ${tvToolchain.jdk.version}`);
+          return `${version}; ${javac}`;
+        },
+      ],
       ['adb', () => output('adb', ['version'])],
+      [
+        'android-platform',
+        async () => {
+          const platform = resolve(sdk, 'platforms', tvToolchain.android.platform);
+          await requireFile(resolve(platform, 'android.jar'));
+          return `${platform} (${readRevision(resolve(platform, 'source.properties'))})`;
+        },
+      ],
       [
         'android-build-tools',
         async () => {
-          const sdk =
-            process.env.ANDROID_HOME ||
-            process.env.ANDROID_SDK_ROOT ||
-            resolve(
-              homedir(),
-              process.platform === 'darwin' ? 'Library/Android/sdk' : 'Android/Sdk',
+          for (const file of ['aapt2', 'zipalign', 'apksigner'])
+            await requireFile(
+              resolve(buildTools, process.platform === 'win32' ? `${file}.exe` : file),
             );
-          await access(
-            resolve(
-              sdk,
-              'build-tools/35.0.1',
-              process.platform === 'win32' ? 'aapt2.exe' : 'aapt2',
-            ),
-          );
-          return sdk;
+          return `${buildTools} (${readRevision(resolve(buildTools, 'source.properties'))})`;
         },
       ],
-    ]) {
+      [
+        'android-ndk',
+        async () => {
+          await requireFile(resolve(ndk, 'source.properties'));
+          return `${ndk} (${readRevision(resolve(ndk, 'source.properties'))})`;
+        },
+      ],
+      [
+        'rust-android-targets',
+        () => {
+          const installed = output(executable('rustup'), ['target', 'list', '--installed']).split(
+            /\s+/,
+          );
+          const missing = tvToolchain.rustTargets.filter((name) => !installed.includes(name));
+          if (missing.length) throw new Error(`Missing Rust targets: ${missing.join(', ')}`);
+          return tvToolchain.rustTargets.join(', ');
+        },
+      ],
+      [
+        'nsh-android-runtime',
+        async () => {
+          const metadata = JSON.parse(
+            await readFile(resolve(homedir(), '.nsh', 'components', 'android.json'), 'utf8'),
+          );
+          if (
+            `${metadata.version}` !== tvToolchain.nsh.version ||
+            metadata.commit !== tvToolchain.nsh.commit
+          )
+            throw new Error(
+              `Expected NSH Android runtime ${tvToolchain.nsh.version} (${tvToolchain.nsh.commit})`,
+            );
+          for (const file of [
+            'classes.dex',
+            'lib/arm64-v8a/libnsh.so',
+            'lib/armeabi-v7a/libnsh.so',
+            'lib/x86_64/libnsh.so',
+          ])
+            await requireFile(resolve(runtime, file));
+          return `${runtime} (${metadata.version}, ${metadata.commit})`;
+        },
+      ],
+    ];
+    if (requireDevice)
+      checks.push([
+        'android-device',
+        () => {
+          const devices = output('adb', ['devices', '-l'])
+            .split('\n')
+            .filter((line) => /^\S+\s+device\b/.test(line));
+          if (devices.length !== 1)
+            throw new Error(`Expected exactly one ready device, found ${devices.length}`);
+          return devices[0];
+        },
+      ]);
+    for (const [name, check] of checks) {
       try {
         results.push({ name, ok: true, version: await check() });
       } catch (error) {
@@ -214,16 +300,27 @@ try {
       break;
     case 'package':
       if (!target) throw new Error('package requires --target');
-      if (!process.env.HONGGUO_CORE_ORIGIN)
+      if (
+        !process.env.HONGGUO_CORE_ORIGIN &&
+        !(target === 'tv' && existsSync(resolve(root, 'apps/tv/native/Cargo.toml')))
+      )
         throw new Error(
           'Set HONGGUO_CORE_ORIGIN to an explicit backend origin; these are preview packages, native core embedding is pending.',
         );
-      await doctor();
+      await doctor({ requireDevice: false });
       await runtimeConfig(target, process.env.HONGGUO_CORE_ORIGIN);
       await nsh('check', target);
       await nsh('build', target);
-      console.log('Packaging a UI preview requiring the configured external Rust API.');
-      await nsh('package', target, ['--target', nativeTarget(target)]);
+      if (target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN)
+        console.log(
+          'Packaging the Android TV T0 technical APK; content API migration is not included.',
+        );
+      else console.log('Packaging a UI preview requiring the configured external Rust API.');
+      await nsh('package', target, [
+        '--target',
+        nativeTarget(target),
+        ...(target === 'tv' ? ['--abi', 'arm64-v8a'] : []),
+      ]);
       break;
     default:
       throw new Error(`Unknown command: ${command || '(missing)'}`);
