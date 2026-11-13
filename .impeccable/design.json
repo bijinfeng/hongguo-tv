@@ -1,0 +1,542 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T06:02:58.670640Z",
+  "title": "Design System: 红果 NSH",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "暖白底色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00050 106.42)",
+          "oklch(26.43% 0.00087 106.42)",
+          "oklch(37.86% 0.00125 106.42)",
+          "oklch(49.29% 0.00132 106.42)",
+          "oklch(60.71% 0.00132 106.42)",
+          "oklch(72.14% 0.00123 106.42)",
+          "oklch(83.57% 0.00072 106.42)",
+          "oklch(95.00% 0.00022 106.42)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "正文墨色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00150 128.64)",
+          "oklch(26.43% 0.00264 128.64)",
+          "oklch(37.86% 0.00379 128.64)",
+          "oklch(49.29% 0.00400 128.64)",
+          "oklch(60.71% 0.00400 128.64)",
+          "oklch(72.14% 0.00372 128.64)",
+          "oklch(83.57% 0.00219 128.64)",
+          "oklch(95.00% 0.00067 128.64)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "内容面",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "浅色深红",
+        "tonalRamp": [
+          "oklch(15.00% 0.06997 22.54)",
+          "oklch(26.43% 0.12329 22.54)",
+          "oklch(37.86% 0.17661 22.54)",
+          "oklch(49.29% 0.18660 22.54)",
+          "oklch(60.71% 0.18660 22.54)",
+          "oklch(72.14% 0.17329 22.54)",
+          "oklch(83.57% 0.10219 22.54)",
+          "oklch(95.00% 0.03110 22.54)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "primary",
+        "displayName": "主操作前景",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "弱化底色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00100 106.45)",
+          "oklch(26.43% 0.00176 106.45)",
+          "oklch(37.86% 0.00252 106.45)",
+          "oklch(49.29% 0.00266 106.45)",
+          "oklch(60.71% 0.00266 106.45)",
+          "oklch(72.14% 0.00247 106.45)",
+          "oklch(83.57% 0.00146 106.45)",
+          "oklch(95.00% 0.00044 106.45)"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "次级灰",
+        "tonalRamp": [
+          "oklch(15.00% 0.00358 121.79)",
+          "oklch(26.43% 0.00631 121.79)",
+          "oklch(37.86% 0.00905 121.79)",
+          "oklch(49.29% 0.00956 121.79)",
+          "oklch(60.71% 0.00956 121.79)",
+          "oklch(72.14% 0.00887 121.79)",
+          "oklch(83.57% 0.00523 121.79)",
+          "oklch(95.00% 0.00159 121.79)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "区域边界",
+        "tonalRamp": [
+          "oklch(15.00% 0.00305 114.23)",
+          "oklch(26.43% 0.00538 114.23)",
+          "oklch(37.86% 0.00770 114.23)",
+          "oklch(49.29% 0.00814 114.23)",
+          "oklch(60.71% 0.00814 114.23)",
+          "oklch(72.14% 0.00756 114.23)",
+          "oklch(83.57% 0.00446 114.23)",
+          "oklch(95.00% 0.00136 114.23)"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "输入边界",
+        "tonalRamp": [
+          "oklch(15.00% 0.00366 119.60)",
+          "oklch(26.43% 0.00645 119.60)",
+          "oklch(37.86% 0.00924 119.60)",
+          "oklch(49.29% 0.00976 119.60)",
+          "oklch(60.71% 0.00976 119.60)",
+          "oklch(72.14% 0.00906 119.60)",
+          "oklch(83.57% 0.00534 119.60)",
+          "oklch(95.00% 0.00163 119.60)"
+        ]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "焦点红",
+        "tonalRamp": [
+          "oklch(15.00% 0.06784 22.18)",
+          "oklch(26.43% 0.11953 22.18)",
+          "oklch(37.86% 0.17123 22.18)",
+          "oklch(49.29% 0.18091 22.18)",
+          "oklch(60.71% 0.18091 22.18)",
+          "oklch(72.14% 0.16800 22.18)",
+          "oklch(83.57% 0.09908 22.18)",
+          "oklch(95.00% 0.03015 22.18)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "轻红提示底",
+        "tonalRamp": [
+          "oklch(15.00% 0.00779 13.86)",
+          "oklch(26.43% 0.01372 13.86)",
+          "oklch(37.86% 0.01966 13.86)",
+          "oklch(49.29% 0.02077 13.86)",
+          "oklch(60.71% 0.02077 13.86)",
+          "oklch(72.14% 0.01929 13.86)",
+          "oklch(83.57% 0.01138 13.86)",
+          "oklch(95.00% 0.00346 13.86)"
+        ]
+      },
+      "cinema": {
+        "role": "neutral",
+        "displayName": "影院暗底",
+        "tonalRamp": [
+          "oklch(15.00% 0.00139 164.63)",
+          "oklch(26.43% 0.00245 164.63)",
+          "oklch(37.86% 0.00352 164.63)",
+          "oklch(49.29% 0.00371 164.63)",
+          "oklch(60.71% 0.00371 164.63)",
+          "oklch(72.14% 0.00345 164.63)",
+          "oklch(83.57% 0.00203 164.63)",
+          "oklch(95.00% 0.00062 164.63)"
+        ]
+      },
+      "cinema-foreground": {
+        "role": "neutral",
+        "displayName": "影院前景",
+        "tonalRamp": [
+          "oklch(15.00% 0.00153 121.56)",
+          "oklch(26.43% 0.00270 121.56)",
+          "oklch(37.86% 0.00387 121.56)",
+          "oklch(49.29% 0.00409 121.56)",
+          "oklch(60.71% 0.00409 121.56)",
+          "oklch(72.14% 0.00380 121.56)",
+          "oklch(83.57% 0.00224 121.56)",
+          "oklch(95.00% 0.00068 121.56)"
+        ]
+      },
+      "dark-background": {
+        "role": "neutral",
+        "displayName": "墨绿灰底色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00186 145.39)",
+          "oklch(26.43% 0.00328 145.39)",
+          "oklch(37.86% 0.00470 145.39)",
+          "oklch(49.29% 0.00497 145.39)",
+          "oklch(60.71% 0.00497 145.39)",
+          "oklch(72.14% 0.00462 145.39)",
+          "oklch(83.57% 0.00272 145.39)",
+          "oklch(95.00% 0.00083 145.39)"
+        ]
+      },
+      "dark-foreground": {
+        "role": "neutral",
+        "displayName": "浅色前景",
+        "tonalRamp": [
+          "oklch(15.00% 0.00251 115.71)",
+          "oklch(26.43% 0.00442 115.71)",
+          "oklch(37.86% 0.00634 115.71)",
+          "oklch(49.29% 0.00669 115.71)",
+          "oklch(60.71% 0.00669 115.71)",
+          "oklch(72.14% 0.00622 115.71)",
+          "oklch(83.57% 0.00367 115.71)",
+          "oklch(95.00% 0.00112 115.71)"
+        ]
+      },
+      "dark-card": {
+        "role": "neutral",
+        "displayName": "深色内容面",
+        "tonalRamp": [
+          "oklch(15.00% 0.00323 137.82)",
+          "oklch(26.43% 0.00569 137.82)",
+          "oklch(37.86% 0.00815 137.82)",
+          "oklch(49.29% 0.00861 137.82)",
+          "oklch(60.71% 0.00861 137.82)",
+          "oklch(72.14% 0.00799 137.82)",
+          "oklch(83.57% 0.00471 137.82)",
+          "oklch(95.00% 0.00143 137.82)"
+        ]
+      },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "深色珊瑚红",
+        "tonalRamp": [
+          "oklch(15.00% 0.05674 18.66)",
+          "oklch(26.43% 0.09998 18.66)",
+          "oklch(37.86% 0.14322 18.66)",
+          "oklch(49.29% 0.15131 18.66)",
+          "oklch(60.71% 0.15131 18.66)",
+          "oklch(72.14% 0.14052 18.66)",
+          "oklch(83.57% 0.08287 18.66)",
+          "oklch(95.00% 0.02522 18.66)"
+        ]
+      },
+      "dark-primary-foreground": {
+        "role": "primary",
+        "displayName": "深色主操作前景",
+        "tonalRamp": [
+          "oklch(15.00% 0.01895 13.85)",
+          "oklch(26.43% 0.03339 13.85)",
+          "oklch(37.86% 0.04782 13.85)",
+          "oklch(49.29% 0.05053 13.85)",
+          "oklch(60.71% 0.05053 13.85)",
+          "oklch(72.14% 0.04692 13.85)",
+          "oklch(83.57% 0.02767 13.85)",
+          "oklch(95.00% 0.00842 13.85)"
+        ]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "深色弱化底色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00453 135.04)",
+          "oklch(26.43% 0.00799 135.04)",
+          "oklch(37.86% 0.01144 135.04)",
+          "oklch(49.29% 0.01209 135.04)",
+          "oklch(60.71% 0.01209 135.04)",
+          "oklch(72.14% 0.01122 135.04)",
+          "oklch(83.57% 0.00662 135.04)",
+          "oklch(95.00% 0.00201 135.04)"
+        ]
+      },
+      "dark-muted-foreground": {
+        "role": "neutral",
+        "displayName": "灰绿前景",
+        "tonalRamp": [
+          "oklch(15.00% 0.00748 130.25)",
+          "oklch(26.43% 0.01319 130.25)",
+          "oklch(37.86% 0.01889 130.25)",
+          "oklch(49.29% 0.01995 130.25)",
+          "oklch(60.71% 0.01995 130.25)",
+          "oklch(72.14% 0.01853 130.25)",
+          "oklch(83.57% 0.01093 130.25)",
+          "oklch(95.00% 0.00333 130.25)"
+        ]
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "深色区域边界",
+        "tonalRamp": [
+          "oklch(15.00% 0.00646 135.07)",
+          "oklch(26.43% 0.01139 135.07)",
+          "oklch(37.86% 0.01631 135.07)",
+          "oklch(49.29% 0.01723 135.07)",
+          "oklch(60.71% 0.01723 135.07)",
+          "oklch(72.14% 0.01600 135.07)",
+          "oklch(83.57% 0.00944 135.07)",
+          "oklch(95.00% 0.00287 135.07)"
+        ]
+      },
+      "dark-input": {
+        "role": "neutral",
+        "displayName": "深色输入边界",
+        "tonalRamp": [
+          "oklch(15.00% 0.00918 131.75)",
+          "oklch(26.43% 0.01618 131.75)",
+          "oklch(37.86% 0.02317 131.75)",
+          "oklch(49.29% 0.02448 131.75)",
+          "oklch(60.71% 0.02448 131.75)",
+          "oklch(72.14% 0.02274 131.75)",
+          "oklch(83.57% 0.01341 131.75)",
+          "oklch(95.00% 0.00408 131.75)"
+        ]
+      },
+      "dark-ring": {
+        "role": "primary",
+        "displayName": "深色焦点红",
+        "tonalRamp": [
+          "oklch(15.00% 0.03959 15.99)",
+          "oklch(26.43% 0.06976 15.99)",
+          "oklch(37.86% 0.09992 15.99)",
+          "oklch(49.29% 0.10557 15.99)",
+          "oklch(60.71% 0.10557 15.99)",
+          "oklch(72.14% 0.09804 15.99)",
+          "oklch(83.57% 0.05782 15.99)",
+          "oklch(95.00% 0.01760 15.99)"
+        ]
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "深色轻红提示底",
+        "tonalRamp": [
+          "oklch(15.00% 0.01472 14.57)",
+          "oklch(26.43% 0.02594 14.57)",
+          "oklch(37.86% 0.03716 14.57)",
+          "oklch(49.29% 0.03926 14.57)",
+          "oklch(60.71% 0.03926 14.57)",
+          "oklch(72.14% 0.03646 14.57)",
+          "oklch(83.57% 0.02150 14.57)",
+          "oklch(95.00% 0.00654 14.57)"
+        ]
+      },
+      "dark-cinema": {
+        "role": "neutral",
+        "displayName": "深色影院暗底",
+        "tonalRamp": [
+          "oklch(15.00% 0.00198 145.32)",
+          "oklch(26.43% 0.00349 145.32)",
+          "oklch(37.86% 0.00500 145.32)",
+          "oklch(49.29% 0.00529 145.32)",
+          "oklch(60.71% 0.00529 145.32)",
+          "oklch(72.14% 0.00491 145.32)",
+          "oklch(83.57% 0.00289 145.32)",
+          "oklch(95.00% 0.00088 145.32)"
+        ]
+      },
+      "dark-cinema-foreground": {
+        "role": "neutral",
+        "displayName": "深色影院前景",
+        "tonalRamp": [
+          "oklch(15.00% 0.00153 121.56)",
+          "oklch(26.43% 0.00270 121.56)",
+          "oklch(37.86% 0.00387 121.56)",
+          "oklch(49.29% 0.00409 121.56)",
+          "oklch(60.71% 0.00409 121.56)",
+          "oklch(72.14% 0.00380 121.56)",
+          "oklch(83.57% 0.00224 121.56)",
+          "oklch(95.00% 0.00068 121.56)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "headline",
+        "purpose": "搜索页标题"
+      },
+      "title": {
+        "displayName": "title",
+        "purpose": "页面和详情标题"
+      },
+      "item-title": {
+        "displayName": "item-title",
+        "purpose": "结果和应用标题"
+      },
+      "section-title": {
+        "displayName": "section-title",
+        "purpose": "分组标题"
+      },
+      "body": {
+        "displayName": "body",
+        "purpose": "正文和普通控件"
+      },
+      "label-primary": {
+        "displayName": "label-primary",
+        "purpose": "主按钮"
+      },
+      "label-android": {
+        "displayName": "label-android",
+        "purpose": "Android 普通按钮"
+      },
+      "label-primary-android": {
+        "displayName": "label-primary-android",
+        "purpose": "Android 主按钮"
+      },
+      "caption": {
+        "displayName": "caption",
+        "purpose": "辅助信息"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "entrance-duration",
+        "value": "180ms",
+        "purpose": "Surface 入场；源 motionTokens.base。"
+      },
+      {
+        "name": "entrance-distance",
+        "value": "8px",
+        "purpose": "Surface 纵向入场位移；源 motionTokens.distance，逻辑尺寸。"
+      },
+      {
+        "name": "entrance-easing",
+        "value": "easeOut",
+        "purpose": "NSH createMotion 的实际缓动名；不猜测 CSS 曲线。"
+      },
+      {
+        "name": "fast-reserved",
+        "value": "100ms",
+        "purpose": "已定义但尚未消费，不能作为按钮现有 transition 时长。"
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "普通按钮",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "当前 NSH 控件的 HTML/CSS 外观映射；普通尺寸，非原生交互实现。",
+      "html": "<button type=\"button\" class=\"ds-button\">继续观看</button>",
+      "css": ".ds-button{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-button{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-button{min-height:48px;padding:12px 16px;border:2px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;display:inline-flex;justify-content:center;align-items:center;cursor:pointer;}.ds-button:hover:not(:disabled){background:var(--ds-accent);}.ds-button:focus-visible{outline:none;border-color:var(--ds-ring);}.ds-button:active:not(:disabled){opacity:.7;}.ds-button:disabled{opacity:.4;cursor:default;}"
+    },
+    {
+      "name": "主要按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "当前 NSH 控件的 HTML/CSS 外观映射；普通尺寸，非原生交互实现。",
+      "html": "<button type=\"button\" class=\"ds-button-primary\">搜索</button>",
+      "css": ".ds-button-primary{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-button-primary{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-button-primary{min-height:48px;padding:12px 16px;border:2px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;display:inline-flex;justify-content:center;align-items:center;cursor:pointer;background:var(--ds-primary);border-color:var(--ds-primary);color:var(--ds-primary-foreground);font-weight:600;}.ds-button-primary:hover:not(:disabled){background:color-mix(in srgb,var(--ds-primary) 90%,transparent);}.ds-button-primary:focus-visible{outline:none;border-color:var(--ds-ring);}.ds-button-primary:active:not(:disabled){opacity:.7;}.ds-button-primary:disabled{opacity:.4;cursor:default;}"
+    },
+    {
+      "name": "选中按钮",
+      "kind": "button",
+      "refersTo": "button-selected",
+      "description": "当前 NSH 控件的 HTML/CSS 外观映射；普通尺寸，非原生交互实现。",
+      "html": "<button type=\"button\" class=\"ds-button-selected\" aria-pressed=\"true\">第 2 集</button>",
+      "css": ".ds-button-selected{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-button-selected{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-button-selected{min-height:48px;padding:12px 16px;border:2px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;display:inline-flex;justify-content:center;align-items:center;cursor:pointer;background:var(--ds-accent);border-color:var(--ds-primary);}.ds-button-selected:hover:not(:disabled){background:var(--ds-accent);}.ds-button-selected:focus-visible{outline:none;border-color:var(--ds-ring);}.ds-button-selected:active:not(:disabled){opacity:.7;}.ds-button-selected:disabled{opacity:.4;cursor:default;}"
+    },
+    {
+      "name": "搜索输入",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "受控输入的外观预览；当前最小高度仍为普通尺寸。",
+      "html": "<input class=\"ds-search\" type=\"search\" aria-label=\"搜索短剧\" placeholder=\"搜索短剧\" value=\"重生\">",
+      "css": ".ds-search{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-search{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-search{box-sizing:border-box;min-height:48px;max-width:100%;width:320px;padding:12px 16px;border:1px solid var(--ds-input);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;}.ds-search:focus{outline:none;border-color:var(--ds-ring);}"
+    },
+    {
+      "name": "信息容器",
+      "kind": "card",
+      "refersTo": "surface",
+      "description": "Surface 的边界与间距；该示例无交互，不虚构 hover/focus 状态。",
+      "html": "<section class=\"ds-surface\"><strong>短剧详情</strong><span>查看简介与选集</span></section>",
+      "css": ".ds-surface{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-surface{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-surface{display:flex;flex-direction:column;gap:16px;padding:20px;border:1px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;}.ds-surface strong{font-weight:600;}"
+    },
+    {
+      "name": "邻近提示",
+      "kind": "card",
+      "refersTo": "notice",
+      "description": "普通说明状态。错误角色依赖 NSH 默认主题，未猜测其颜色。",
+      "html": "<section class=\"ds-notice\" role=\"status\">输入剧名，找到下一部想追的短剧。</section>",
+      "css": ".ds-notice{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-notice{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-notice{padding:20px;border:1px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-muted-foreground);font:400 16px system-ui,sans-serif;}"
+    },
+    {
+      "name": "结果卡片",
+      "kind": "card",
+      "refersTo": "result-card",
+      "description": "示意内容与加载占位，不使用真实作品作固定承诺；实际 NSH 通过语义 Button 管理交互。",
+      "html": "<button class=\"ds-result\" type=\"button\"><span class=\"ds-result-poster\" aria-hidden=\"true\"></span><span class=\"ds-result-copy\"><strong>短剧名称</strong><small>剧集信息</small><span>查看详情与选集</span></span></button>",
+      "css": ".ds-result{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-result{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-result{display:flex;gap:20px;width:100%;padding:16px;text-align:start;border:2px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;cursor:pointer;}.ds-result:hover{background:var(--ds-muted);}.ds-result:focus-visible{outline:none;border-color:var(--ds-ring);}.ds-result:active{opacity:.7;}.ds-result-poster{flex-shrink:0;width:80px;height:112px;border-radius:12px;background:var(--ds-muted);}.ds-result-copy{display:flex;flex-direction:column;justify-content:center;gap:8px;}.ds-result-copy strong{font-size:20px;font-weight:600;}.ds-result-copy small{font-size:14px;color:var(--ds-muted-foreground);}.ds-result-copy>span{color:var(--ds-muted-foreground);}"
+    },
+    {
+      "name": "顶部导航",
+      "kind": "nav",
+      "refersTo": "header-navigation",
+      "description": "当前验证界面的共享顶栏；不代表上游侧栏已迁移。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"主导航\"><strong class=\"ds-nav-title\">红果</strong><button class=\"ds-nav-action\" type=\"button\">继续观看</button><button class=\"ds-nav-action\" type=\"button\">账号</button></nav>",
+      "css": ".ds-nav{--ds-card:#ffffff;--ds-foreground:#20211f;--ds-primary:#c52e39;--ds-primary-foreground:#ffffff;--ds-accent:#fbe8e9;--ds-border:#dedfd9;--ds-input:#d0d2cb;--ds-ring:#b42130;--ds-muted:#efefed;--ds-muted-foreground:#686a64;--ds-background:#f8f8f7;}@media(prefers-color-scheme:dark){.ds-nav{--ds-card:#20231f;--ds-foreground:#f3f4ef;--ds-primary:#f2777d;--ds-primary-foreground:#311216;--ds-accent:#42282a;--ds-border:#383e35;--ds-input:#50584a;--ds-ring:#ffa6ab;--ds-muted:#292d27;--ds-muted-foreground:#a6ada0;--ds-background:#161816;}}.ds-nav{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 20px;border-bottom:1px solid var(--ds-border);background:var(--ds-background);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;}.ds-nav-title{flex:1;font-size:20px;font-weight:600;}.ds-nav-action{min-height:48px;padding:12px 16px;border:2px solid var(--ds-border);border-radius:12px;background:var(--ds-card);color:var(--ds-foreground);font:400 16px system-ui,sans-serif;display:inline-flex;justify-content:center;align-items:center;cursor:pointer;}.ds-nav-action:hover{background:var(--ds-accent);}.ds-nav-action:focus-visible{outline:none;border-color:var(--ds-ring);}.ds-nav-action:active{opacity:.7;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "日常片库",
+    "overview": "内容优先、清晰克制。用户容易找到想看的短剧，也容易接着上次的进度观看。封面、剧名与明确的操作建立层级，界面减少装饰，不让工程细节和重复说明占据注意力。\n\n清楚、克制、可操作；圆角柔和，状态明确。浅色采用暖白背景与深红主操作，深色采用墨绿灰背景与珊瑚红主操作。通过底色、留白和边界区分内容，不以投影制造层次。",
+    "keyCharacteristics": [
+      "同一套语义主题覆盖浅色和深色，主要操作使用单一红色强调。",
+      "顶部导航、纵向内容流和横向结果卡片组成当前验证界面。",
+      "统一圆角、稳定边界和语义控件，让键鼠与遥控输入具有可识别的状态。",
+      "内容到达时使用轻量入场，播放读数和操作标签即时更新。"
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Color Rule",
+        "body": "页面只消费语义 token；原始色值只在主题定义，文档和预览数据是提取结果。选中、键盘焦点、错误和主要操作各自保留含义。",
+        "section": "colors"
+      },
+      {
+        "name": "The Stable Geometry Rule",
+        "body": "悬停、按下、选中与焦点变化不改变控件占位；滚动和返回保留卡片身份、列表位置和来源焦点。",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "不为当前基础组件额外增加浮起效果；确需新增弹层的后续功能，应先定义其共享表面与焦点行为，而不是为单个页面临时加阴影。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 从共享主题、语义控件和现有间距档位组合界面，先扩展共享组件再添加新的外观变体。",
+      "**Do** 保留输入、列表位置、卡片身份和实际观看进度；错误紧邻相关操作，并提供可恢复路径。",
+      "**Do** 将焦点、选中、禁用和错误分别表达，让键盘与遥控器用户都能辨认当前操作位置。",
+      "**Do** 在浅色、深色、窄窗口、更大系统字体和减少动态效果下检查真实宿主，分别记录未验证项。",
+      "**Do** 让文案直接描述动作与结果，中文短标签不加重复说明，输入和长标题有明确换行或截断规则。"
+    ],
+    "donts": [
+      "**Don't** 在页面里散落原始色值、增加单页圆角或用阴影和装饰性标签堆叠层级。",
+      "**Don't** 在 hover、按下或焦点时改变边界宽度、字号或布局尺寸，让邻近内容跳动。",
+      "**Don't** 把 Android 放大样式、历史截图或 headless 测试当成 TV 遥控、解码、独立包或完整无障碍验收。",
+      "**Don't** 为记录现状而虚构未实现的侧栏、推荐流、抽屉、评论、尺寸变体或完整主题状态。",
+      "**Don't** 让焦点落在隐藏控件上、用方向键全局截获文本编辑，或只靠颜色、声音和动画表达状态。"
+    ]
+  }
+}
