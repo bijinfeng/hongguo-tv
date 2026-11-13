@@ -50,9 +50,10 @@ pnpm release:check
 pnpm release:sync
 pnpm release:metadata --artifact <产物路径> --target <平台标识>
 pnpm release:record --input <候选描述 JSON> --out release.json --checksums SHA256SUMS
+pnpm release:verify-record --record release.json --artifact-dir <下载目录>
 ```
 
-先编辑 `product-version.json`，再显式运行 `release:sync` 同步根 `package.json`、三个 NSH manifest；`release:check` 用于门禁。`release:metadata` 只生成带 SHA256、大小、版本、build 和源码 SHA 的摘要，不执行签名或发布。`release:record` 读取候选描述中的本地产物，生成不包含本地路径的确定性 `release.json` 和校验和文件；它会拒绝非 HTTPS URL、重复 target、非法 Git SHA 和缺失产物，不执行签名、上传或发布。正式桌面/TV 产物、平台签名、GitHub Release 和更新清单仍需通过发行门禁后接入。
+先编辑 `product-version.json`，再显式运行 `release:sync` 同步根 `package.json`、三个 NSH manifest；`release:check` 用于门禁。`release:metadata` 只生成带 SHA256、大小、版本、build 和源码 SHA 的摘要，不执行签名或发布。`release:record` 读取候选描述中的本地产物，生成不包含本地路径的确定性 `release.json` 和校验和文件；`release:verify-record` 在发布前绑定源码身份、版本、build 和下载文件字节，拒绝哈希、大小或路径漂移。两者都会拒绝非 HTTPS URL、重复 target、非法 Git SHA 和缺失产物，不执行签名、上传或发布。正式桌面/TV 产物、平台签名、GitHub Release 和更新清单仍需通过发行门禁后接入。
 
 公开仓库的手动 `Release preview` workflow 会从指定源码 SHA 构建 macOS arm64 桌面预览包和 Android TV arm64 T0 技术包，上传短期 Actions artifact，并附带 `release.json`/`SHA256SUMS`。这些包需要外部 Rust API 或仍属于 T0 技术验证，不是正式 Release，也不会进入稳定更新渠道。
 

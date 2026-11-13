@@ -30,6 +30,7 @@
     "release:sync": "node tooling/src/release.mjs sync",
     "release:metadata": "node tooling/src/release.mjs metadata",
     "release:record": "node tooling/src/release.mjs record",
+    "release:verify-record": "node tooling/src/release.mjs verify-record",
     "hooks:install": "lefthook install",
     "hooks:check": "node tooling/src/hooks.mjs",
     "commitlint": "commitlint",

@@ -11,6 +11,7 @@ import {
   sha256File,
   sha256Sums,
   syncReleaseVersion,
+  verifyReleaseRecord,
 } from '../src/release.mjs';
 
 async function fixture() {
@@ -189,5 +190,88 @@ test('release record rejects unsafe or ambiguous artifact descriptors', async ()
   await assert.rejects(
     createReleaseRecord({ ...base, input: { artifacts: [descriptor()] }, sourceSha: 'abc' }),
     /40-character Git SHA/,
+  );
+});
+
+test('release record verification binds metadata to the downloaded bytes', async () => {
+  const files = await fixture();
+  const artifact = join(files.dir, 'candidate.apk');
+  await writeFile(artifact, 'candidate');
+  const record = await createReleaseRecord({
+    input: {
+      channel: 'stable',
+      artifacts: [
+        {
+          target: 'tv-android-arm64',
+          path: artifact,
+          url: 'https://github.com/bijinfeng/hongguo-tv/releases/download/v1.2.3/candidate.apk',
+        },
+      ],
+    },
+    sourceRepository: 'bijinfeng/hongguo-tv',
+    sourceSha: '0123456789abcdef0123456789abcdef01234567',
+    versionPath: files.version,
+  });
+  assert.deepEqual(
+    await verifyReleaseRecord({
+      record,
+      artifactDir: files.dir,
+      sourceRepository: 'bijinfeng/hongguo-tv',
+      sourceSha: '0123456789abcdef0123456789abcdef01234567',
+      versionPath: files.version,
+    }),
+    record,
+  );
+  await writeFile(artifact, 'tampered!');
+  await assert.rejects(
+    verifyReleaseRecord({
+      record,
+      artifactDir: files.dir,
+      sourceRepository: 'bijinfeng/hongguo-tv',
+      sourceSha: '0123456789abcdef0123456789abcdef01234567',
+      versionPath: files.version,
+    }),
+    /sha256 mismatch/,
+  );
+});
+
+test('release record verification rejects identity and path drift', async () => {
+  const files = await fixture();
+  const artifact = join(files.dir, 'candidate.zip');
+  await writeFile(artifact, 'candidate');
+  const base = await createReleaseRecord({
+    input: {
+      artifacts: [
+        {
+          target: 'desktop-macos-aarch64',
+          path: artifact,
+          url: 'https://github.com/bijinfeng/hongguo-tv/releases/download/v1.2.3/candidate.zip',
+        },
+      ],
+    },
+    sourceRepository: 'bijinfeng/hongguo-tv',
+    sourceSha: '0123456789abcdef0123456789abcdef01234567',
+    versionPath: files.version,
+  });
+  await assert.rejects(
+    verifyReleaseRecord({
+      record: { ...base, sourceSha: 'fedcba9876543210fedcba9876543210fedcba98' },
+      sourceRepository: 'bijinfeng/hongguo-tv',
+      sourceSha: '0123456789abcdef0123456789abcdef01234567',
+      versionPath: files.version,
+    }),
+    /sourceSha does not match/,
+  );
+  await assert.rejects(
+    verifyReleaseRecord({
+      record: {
+        ...base,
+        artifacts: [{ ...base.artifacts[0], artifact: '../candidate.zip' }],
+      },
+      sourceRepository: 'bijinfeng/hongguo-tv',
+      sourceSha: '0123456789abcdef0123456789abcdef01234567',
+      versionPath: files.version,
+    }),
+    /artifact name is invalid/,
   );
 });

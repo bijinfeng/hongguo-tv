@@ -200,6 +200,62 @@ export function sha256Sums(record) {
   return `${record.artifacts.map((artifact) => `${artifact.sha256}  ${artifact.artifact}`).join('\n')}\n`;
 }
 
+export async function verifyReleaseRecord({
+  record,
+  artifactDir,
+  sourceRepository = process.env.GITHUB_REPOSITORY,
+  sourceSha,
+  versionPath = versionFile,
+}) {
+  const product = await readProductVersion(versionPath);
+  if (!record || typeof record !== 'object' || Array.isArray(record))
+    throw new Error('release record must contain an object');
+  if (record.schemaVersion !== 1) throw new Error('unsupported release record schema');
+  if (!sourceRepository || record.sourceRepository !== sourceRepository)
+    throw new Error('release record sourceRepository does not match the expected repository');
+  const expectedSha = sourceShaValue(sourceSha);
+  if (!expectedSha || record.sourceSha !== expectedSha)
+    throw new Error('release record sourceSha does not match the expected commit');
+  if (record.version !== product.version || record.build !== product.build)
+    throw new Error(`release record version must be ${product.version} (${product.build})`);
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(record.channel || ''))
+    throw new Error('release record channel is invalid');
+  if (!Array.isArray(record.artifacts) || record.artifacts.length === 0)
+    throw new Error('release record requires at least one artifact');
+
+  const seenTargets = new Set();
+  const seenNames = new Set();
+  for (const artifact of record.artifacts) {
+    if (!artifact || typeof artifact !== 'object')
+      throw new Error('release artifact records must be objects');
+    if (!artifact.target || !/^[a-z0-9][a-z0-9-]*$/.test(artifact.target))
+      throw new Error('release artifact target is invalid');
+    if (seenTargets.has(artifact.target))
+      throw new Error(`duplicate release artifact target: ${artifact.target}`);
+    seenTargets.add(artifact.target);
+    if (!artifact.artifact || basename(artifact.artifact) !== artifact.artifact)
+      throw new Error(`release artifact name is invalid: ${artifact.target}`);
+    if (seenNames.has(artifact.artifact))
+      throw new Error(`duplicate release artifact name: ${artifact.artifact}`);
+    seenNames.add(artifact.artifact);
+    validateHttpsUrl(artifact.url);
+    if (!Number.isSafeInteger(artifact.size) || artifact.size < 1)
+      throw new Error(`release artifact size is invalid: ${artifact.target}`);
+    if (!/^[0-9a-f]{64}$/i.test(artifact.sha256))
+      throw new Error(`release artifact sha256 is invalid: ${artifact.target}`);
+    if (artifactDir !== undefined) {
+      const file = resolve(artifactDir, artifact.artifact);
+      const fileStat = await stat(file);
+      if (!fileStat.isFile()) throw new Error(`release artifact is not a file: ${file}`);
+      if (fileStat.size !== artifact.size)
+        throw new Error(`release artifact size mismatch: ${artifact.target}`);
+      if ((await sha256File(file)) !== artifact.sha256)
+        throw new Error(`release artifact sha256 mismatch: ${artifact.target}`);
+    }
+  }
+  return record;
+}
+
 async function gitSha() {
   try {
     return output('git', ['rev-parse', 'HEAD']);
@@ -263,8 +319,21 @@ async function main(args) {
     if (options.checksums) await writeFile(resolve(root, options.checksums), sha256Sums(record));
     return;
   }
+  if (command === 'verify-record') {
+    const options = parseArgs(rest);
+    if (!options.record) throw new Error('verify-record requires --record FILE');
+    const record = await verifyReleaseRecord({
+      record: await readJson(resolve(root, options.record)),
+      artifactDir: options['artifact-dir'] ? resolve(root, options['artifact-dir']) : undefined,
+      sourceRepository: options.repository,
+      sourceSha: options['source-sha'],
+      versionPath: options['version-file'] || versionFile,
+    });
+    console.log(JSON.stringify({ ok: true, ...record }));
+    return;
+  }
   throw new Error(
-    'Usage: release.mjs check | sync | metadata --artifact FILE --target TARGET [--out FILE] | record --input FILE [--out FILE] [--checksums FILE]',
+    'Usage: release.mjs check | sync | metadata --artifact FILE --target TARGET [--out FILE] | record --input FILE [--out FILE] [--checksums FILE] | verify-record --record FILE [--artifact-dir DIR]',
   );
 }
 

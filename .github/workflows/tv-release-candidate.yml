@@ -98,6 +98,11 @@ jobs:
             --source-sha "$sha" \
             --out "$RUNNER_TEMP/tv-release-candidate/release.json" \
             --checksums "$RUNNER_TEMP/tv-release-candidate/SHA256SUMS"
+          pnpm release:verify-record \
+            --record "$RUNNER_TEMP/tv-release-candidate/release.json" \
+            --artifact-dir "$RUNNER_TEMP/tv-release-candidate" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$sha"
       - name: Upload signed candidate evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
