@@ -1,5 +1,6 @@
 import { View, keymap, reduceMotion, type ImageAsset } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
+import { currentWindow, isAvailable } from 'nsh/desktop';
 import { Button, Controls, Logo, Product, tvUnit, type ProductTarget } from '@hongguo/ui';
 import { createStore, type Store } from './store';
 import { SearchForm } from './SearchForm';
@@ -70,6 +71,10 @@ function Pages(props: { store: Store }) {
         <NavPage
           class="flex-1 bg-background"
           headerVisible={false}
+          popOnBack={route.name !== 'player'}
+          onBackPress={() => {
+            if (route.name === 'player') props.store.back();
+          }}
           animation={props.store.target === 'tv' || reduceMotion() ? 'none' : 'default'}
         >
           <View
@@ -78,7 +83,7 @@ function Pages(props: { store: Store }) {
             accessibilityElementsHidden={props.store.nav.routes().at(-1) !== route}
             disabled={props.store.nav.routes().at(-1) !== route}
           >
-            <If when={route.name !== 'browse'}>
+            <If when={route.name !== 'browse' && route.name !== 'player'}>
               <View
                 class={
                   props.store.target === 'desktop' ? 'px-10 pt-6 pb-3 items-start' : 'items-start'
@@ -115,6 +120,7 @@ function Pages(props: { store: Store }) {
                   drama={(route as Extract<typeof route, { name: 'player' }>).drama}
                   episode={(route as Extract<typeof route, { name: 'player' }>).episode}
                   store={props.store}
+                  active={props.store.nav.routes().at(-1) === route}
                 />
               )}
             </If>
@@ -128,9 +134,19 @@ function Pages(props: { store: Store }) {
   );
 }
 function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
+  const window = isAvailable ? currentWindow() : undefined;
+  const cinema = () =>
+    props.store.nav.routes().at(-1)?.name === 'player' &&
+    window?.state()?.placement.mode === 'fullScreen';
   return (
     <View class="flex-1 flex-row">
-      <View class="w-[204px] border-r border-border bg-background px-4 pt-6 pb-4 gap-8">
+      <View
+        class={
+          cinema()
+            ? 'hidden'
+            : 'w-[204px] border-r border-border bg-background px-4 pt-6 pb-4 gap-8'
+        }
+      >
         <Logo mark={props.logoMark} class="px-3" />
         <View class="flex-1">
           <Navigation store={props.store} />
@@ -143,7 +159,13 @@ function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
         />
       </View>
       <View class="flex-1">
-        <View class="h-[88px] flex-row items-center justify-between gap-4 border-b border-border px-10">
+        <View
+          class={
+            cinema()
+              ? 'hidden'
+              : 'h-[88px] flex-row items-center justify-between gap-4 border-b border-border px-10'
+          }
+        >
           <View class="w-[520px]">
             <SearchForm store={props.store} />
           </View>
@@ -170,10 +192,17 @@ function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
   );
 }
 function TvShell(props: { store: Store; logoMark: ImageAsset }) {
+  const playing = () => props.store.nav.routes().at(-1)?.name === 'player';
   return (
-    <View class="flex-1" style={{ paddingHorizontal: tvUnit(96), paddingBottom: tvUnit(32) }}>
+    <View
+      class="flex-1"
+      style={{
+        paddingHorizontal: playing() ? 0 : tvUnit(96),
+        paddingBottom: playing() ? 0 : tvUnit(32),
+      }}
+    >
       <View
-        class="flex-row items-center border-b border-border"
+        class={playing() ? 'hidden' : 'flex-row items-center border-b border-border'}
         style={{ height: tvUnit(120), gap: tvUnit(56) }}
       >
         <Logo mark={props.logoMark} />
@@ -192,14 +221,7 @@ function TvShell(props: { store: Store; logoMark: ImageAsset }) {
 }
 export function App(props: { target: ProductTarget; logoMark: ImageAsset }) {
   const store = createStore(props.target);
-  keymap.bind(
-    'escape',
-    () => {
-      if (store.nav.routes().length > 1) store.nav.pop();
-      else store.navigate('home');
-    },
-    { when: 'notEditing' },
-  );
+  keymap.bind('escape', store.back, { when: 'notEditing' });
   return (
     <Product.Provider value={props.target}>
       <View

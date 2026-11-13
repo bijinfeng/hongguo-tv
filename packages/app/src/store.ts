@@ -28,6 +28,7 @@ export function createStore(target: ProductTarget) {
   const sources = new Map<number, () => void>();
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
+  let playerBack: (() => void) | undefined;
   cleanup(() => cancelAnimationFrame(frame));
   const searchSelection = signal('');
   const draft = signal('');
@@ -57,6 +58,17 @@ export function createStore(target: ProductTarget) {
     section,
     activePage,
     navigate,
+    back() {
+      if (nav.routes().at(-1)?.name === 'player' && playerBack) playerBack();
+      else if (nav.routes().length > 1) nav.pop();
+      else navigate('home');
+    },
+    registerPlayerBack(handler: () => void) {
+      playerBack = handler;
+      return () => {
+        if (playerBack === handler) playerBack = undefined;
+      };
+    },
     searchSelection,
     catalog: results,
     entries,

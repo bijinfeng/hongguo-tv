@@ -8,7 +8,9 @@
     "./testing": "./test/index.tsx",
     "./preview": "./test/Preview.tsx",
     "./testing/host": "./test/Host.tsx",
-    "./testing/player-controls-host": "./test/PlayerControlsHost.tsx"
+    "./testing/player-controls-host": "./test/PlayerControlsHost.tsx",
+    "./testing/player-host": "./test/PlayerHost.tsx",
+    "./testing/player-media-host": "./test/PlayerMediaHost.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

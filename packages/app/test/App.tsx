@@ -27,6 +27,7 @@ function fixture(request: StubRequest): StubResponse {
       quality: '720P',
       qualities: ['720P'],
     });
+  if (url.pathname === '/api/v1/play/release') return ok({ released: true });
   return { status: 404, body: { ok: false, error: 'Unknown fixture' } };
 }
 
@@ -257,11 +258,12 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
     expect(app.shows('id:episode-1000')).toBe(true);
     expect(app.shows('id:episode-1024')).toBe(false);
     await app.press('继续第 59 集');
-    await app.waitFor('无法获取播放地址：Error: CORE_NOT_IMPLEMENTED');
+    await app.waitFor('当前服务暂不支持播放，请稍后重试。');
     await app.press('重试');
-    await app.waitFor('无法获取播放地址：Error: CORE_NOT_IMPLEMENTED');
+    await app.waitFor('当前服务暂不支持播放，请稍后重试。');
     expect(app.requests().filter((r) => r.url.includes('/play/info')).length).toBe(2);
     await app.back();
+    if (target === 'tv') await app.back();
     expect(app.shows('id:episode-1000')).toBe(true);
     await app.back();
     unavailable = true;
@@ -307,6 +309,43 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop') {
 }
 
 export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
+  test('background releases playback; returning prepares one paused owner without history writes', async () => {
+    const app = await open('./App.tsx', {
+      width: 1180,
+      height: 780,
+      platform: 'macos',
+      network: { '*': fixture, 'POST *': fixture },
+    });
+    if (target === 'tv') await app.press('id:nav-search');
+    await app.type('id:search-input', '重生');
+    await app.press('搜索');
+    await app.press('id:drama-123');
+    await app.waitFor('开始观看');
+    await app.waitUntil(() => app.enabled('开始观看'));
+    await app.press('开始观看');
+    await app.waitFor('id:player-video');
+    await app.setLifecycle('background');
+    expect(app.count('id:player-video')).toBe(0);
+    await app.waitUntil(
+      () => app.requests().filter((request) => request.url.endsWith('/play/release')).length === 1,
+    );
+    await app.setLifecycle('active');
+    await app.waitFor('id:player-video');
+    expect(app.requests().filter((request) => request.url.includes('/play/info')).length).toBe(2);
+    // Neither a resolved representation nor lifecycle recovery counts as watching.
+    expect(
+      app
+        .requests()
+        .some((request) => request.method === 'POST' && request.url.endsWith('/library')),
+    ).toBe(false);
+    await app.back();
+    if (target === 'tv') await app.back();
+    await app.waitFor('开始观看');
+    await app.waitUntil(
+      () => app.requests().filter((request) => request.url.endsWith('/play/release')).length === 2,
+    );
+  });
+
   test('search → details → playback → next episode → original search; no empty-query request', async () => {
     const app = await open('./App.tsx', {
       width: 1180,
@@ -330,6 +369,7 @@ export function registerApplicationTests(target: 'desktop' | 'tv' = 'desktop') {
     await app.waitFor('重生之后 · 第 2 集');
     expect(app.enabled('下一集')).toBe(false);
     await app.back();
+    if (target === 'tv') await app.back();
     await app.back();
     await app.waitFor('重生之后');
     expect(app.value('id:search-input')).toBe('重生');

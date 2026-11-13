@@ -1,6 +1,6 @@
 # 设计定稿后的实施路线
 
-日期：2026-11-14。状态：A 批已实施并完成定稿视觉复审；验收 6.2 的桌面真实系统字体缩放仍未完成，证据与范围见 VALIDATION；用户已授权本批提交；不推送或归档。
+日期：2026-11-14。状态：A 已实施，桌面系统字体缩放仍待验；B4b 已接通定稿播放器与 Web 官网观看／重启续播，macOS 输入、全屏及完整 TV 遥控尚未验收。用户已授权分批本地提交；不推送或归档。
 
 ## 目标与起点
 
@@ -10,11 +10,11 @@
 
 | 已有基础                                         | 当前边界                                                            |
 | ------------------------------------------------ | ------------------------------------------------------------------- |
-| pnpm／Cargo、契约生成、三端 check/build/headless | A 批已重跑 verify；最新结果见 `VALIDATION.md`                       |
-| Rust 匿名官网搜索／详情、SQLite 游客历史         | 业务仍经 HTTP，账号／播放协议未迁移；搜索 UI 只展示首批             |
+| pnpm／Cargo、契约生成、三端 check/build/headless | A/B 已运行 verify；最新源码与结果见 `VALIDATION.md`                 |
+| Rust 匿名官网搜索／详情、SQLite 游客历史         | 业务仍经 HTTP，Rust 播放／媒体已接；账号未迁移，搜索只展示首批      |
 | TV T0 包内 Rust、合成视频、遥控与生命周期        | 最终 APK 已在 TV 模拟器深浅各 13 项通过；不是完整业务或物理电视验收 |
 | 浏览器桌面／TV 原型及行为修复                    | 原型全屏、TV 新筛选布局／IME 等仍有未完成的宿主观察                 |
-| 旧 Web／macOS 真实播放对照                       | 来自 legacy Go 链路，不是 Rust 播放完成证据                         |
+| 旧 Web／macOS 真实播放对照                       | legacy 仅供对照；新增 Rust + Web 官网闭环见 B4b，macOS 仍待验       |
 
 `TV_DEVELOPMENT.md` 的部分“当前状态／下一步 T0”和 README 的无设备描述早于最新验收。实施以最新 `VALIDATION.md` 和实际源码为起点；第一批修正文档中的这些过时状态，不重复建立已经通过的 T0。
 
@@ -57,4 +57,4 @@
 
 ## 当前可执行起点
 
-审阅首批 [proposal](../openspec/changes/implement-approved-browsing-ui/proposal.md)、[design](../openspec/changes/implement-approved-browsing-ui/design.md)、[specs](../openspec/changes/implement-approved-browsing-ui/specs/adaptive-navigation/spec.md) 和 [tasks](../openspec/changes/implement-approved-browsing-ui/tasks.md)。继续 apply 从第一项未完成任务开始；字体缩放等未完成宿主验收保持未勾选。A 收尾后下一批为 B（Rust 真实播放）；B 开始前另建行为方案，本次不自动扩展、归档或发行。
+继续 [B tasks](../openspec/changes/migrate-rust-playback/tasks.md)：定稿 Player 已进入共享生产路由，Web 官网及合成解码证据见 VALIDATION B4b；先补 TV 业务 DPAD／定位确认取消／媒体键及 macOS Select／焦点／全屏／官网验收。A 字体缩放与跨端辅助技术仍保持未完成。C 复用现有 T0 接原生业务，开始前创建独立 OpenSpec；不得将 HTTP 开发宿主或合成视频验收视为原生独立运行。

@@ -1,6 +1,6 @@
 import { expect, test } from 'nsh/test';
 import { configureClient, mediaURL } from '@hongguo/core-client';
-import { progressSession } from '../src/playback';
+import { playbackLease, progressSession } from '../src/playback';
 
 export function registerPlaybackTests() {
   test('media paths retain same-origin boundaries and explicit legacy compatibility', () => {
@@ -39,8 +39,85 @@ export function registerPlaybackTests() {
     session.save();
     expect(writes.length).toBe(2);
     session.end();
+    session.update(3, 60, true);
+    session.seed(4, 60);
     session.save();
     expect(writes.length).toBe(3);
     expect(writes[2].completed).toBe(true);
+    expect(writes[2].position).toBe(20);
+    session.restart();
+    session.update(1, 60, true);
+    session.save();
+    expect(writes.at(-1)).toEqual({ position: 1, completed: false });
+  });
+  test('resume and paused seek alone never count as viewing', () => {
+    const writes: number[] = [];
+    const session = progressSession((position) => writes.push(position));
+    session.seed(30, 60);
+    session.update(30, 60, true);
+    session.seed(45, 60);
+    session.update(45, 60, false);
+    session.save();
+    expect(writes).toEqual([]);
+    session.update(46, 60, true);
+    session.save();
+    expect(writes).toEqual([46]);
+  });
+  test('only the latest representation owns callbacks; late results and disposed resources release once', async () => {
+    const releases: string[] = [];
+    const accepted: { value: string; revision: number }[] = [];
+    const errors: unknown[] = [];
+    const lease = playbackLease<string>({
+      pending() {},
+      ready: (value, revision) => accepted.push({ value, revision }),
+      failed: (error) => errors.push(error),
+      release: (value) => releases.push(value),
+    });
+    let resolveOld!: (value: string) => void;
+    let oldSignal!: AbortSignal;
+    const old = lease.prepare((signal) => {
+      oldSignal = signal;
+      return new Promise((resolve) => {
+        resolveOld = resolve;
+      });
+    });
+    await lease.prepare(async () => 'new');
+    expect(oldSignal.aborted).toBe(true);
+    resolveOld('old');
+    await old;
+    expect(accepted.map((item) => item.value)).toEqual(['new']);
+    expect(releases).toEqual(['old']);
+    const revision = accepted[0].revision;
+    expect(lease.current(revision)).toBe(true);
+    lease.dispose();
+    lease.dispose();
+    expect(lease.current(revision)).toBe(false);
+    expect(releases).toEqual(['old', 'new']);
+    expect(errors).toEqual([]);
+  });
+  test('disposing preparation releases its late result and ignores its failure', async () => {
+    const ready: string[] = [];
+    const released: string[] = [];
+    const errors: unknown[] = [];
+    const lease = playbackLease<string>({
+      pending() {},
+      ready: (value) => ready.push(value),
+      release: (value) => released.push(value),
+      failed: (error) => errors.push(error),
+    });
+    let finish!: (value: string) => void;
+    const pending = lease.prepare(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    lease.dispose();
+    finish('late');
+    await pending;
+    await lease.prepare(async () => 'must not start');
+    expect(ready).toEqual([]);
+    expect(released).toEqual(['late']);
+    expect(errors).toEqual([]);
   });
 }

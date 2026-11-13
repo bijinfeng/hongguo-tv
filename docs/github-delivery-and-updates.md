@@ -35,7 +35,7 @@ flowchart TD
 | 桌面     | `apps/desktop/nsh.json` 已配置 Pages 更新 URL 与独立公钥；当前 package 命令仍要求外部 API                                                                                                         | 可生成签名清单，但独立产品仍需完成 Rust 业务内嵌                                |
 | TV       | 自有 `NshView` embedding 宿主；`packageTvHost()` 默认执行 debug，可由 `HONGGUO_TV_BUILD_TYPE=release` 切换正式签名构建                                                                            | `release-signing` secrets 已配置；同签名 N-1 包和设备升级仍需验收               |
 | TV APK   | arm64-v8a、min 26 / target 35；当前 T0 使用 debug 签名                                                                                                                                            | 正式包需固定身份、正式 keystore；不能把 T0/debug 包当作正式升级起点             |
-| 业务     | 匿名目录与游客历史在 Rust；账号、真实播放与原生业务桥接未完成                                                                                                                                     | 构建通道可先建立；正式产品发行不得绕过业务与独立运行验收                        |
+| 业务     | 匿名目录、播放／媒体与游客历史在 Rust；Web 官网观看已验，账号、跨宿主验收与原生业务桥接未完成                                                                                                     | 构建通道可先建立；正式产品发行不得绕过业务与独立运行验收                        |
 | 版本     | 根 package.json 和三端 nsh.json 分别声明 0.1.0，各端 build 为 1                                                                                                                                   | 建立唯一产品版本源，避免包版本、APK versionCode 和清单漂移                      |
 | 安全门禁 | VALIDATION 记录 NSH 间接依赖许可证及停止维护 advisory 导致 security 失败                                                                                                                          | 是已记录的发行阻塞，本次未重跑；不能在发行工作流中忽略或删除该检查              |
 

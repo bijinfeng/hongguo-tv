@@ -53,6 +53,9 @@ export {
   CinemaControls,
   CinemaText,
   EpisodePanel,
+  EpisodeRail,
+  CinemaStageAction,
+  CinemaSettingRow,
 } from './player';
 /** The approved prototype's line icons, drawn through the native canvas. */
 export function Icon(props: { name: IconName; color?: string }) {
@@ -105,7 +108,7 @@ export function Button(props: {
   iconOnly?: boolean;
   displayLabel?: string;
   compact?: boolean;
-  episode?: boolean;
+  episode?: boolean | 'player';
   testID?: string;
   buttonRef?: (ref: ViewRef) => void;
 }) {
@@ -119,7 +122,9 @@ export function Button(props: {
             : props.compact
               ? 36
               : props.episode
-                ? 48
+                ? props.episode === 'player'
+                  ? 42
+                  : 48
                 : props.variant === 'navigation'
                   ? 46
                   : uiScale.desktop.control,

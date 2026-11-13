@@ -16,11 +16,18 @@ export function progressSession(
     persist(position, duration, completed);
   };
   return {
-    update(time: number, total: number, playing: boolean) {
-      if (!Number.isFinite(time) || !Number.isFinite(total) || time < 0 || total < 0) return;
+    seed(time: number, total: number) {
+      if (completed || !Number.isFinite(time) || !Number.isFinite(total) || time < 0 || total < 0)
+        return;
       position = time;
       duration = total;
-      if (playing && time > 0) played = true;
+    },
+    update(time: number, total: number, playing: boolean) {
+      if (completed || !Number.isFinite(time) || !Number.isFinite(total) || time < 0 || total < 0)
+        return;
+      if (playing && time > position) played = true;
+      position = time;
+      duration = total;
       if (played && Math.abs(time - lastCheckpoint) >= 10) {
         lastCheckpoint = time;
         save();
@@ -31,9 +38,69 @@ export function progressSession(
       lastSaved = '';
       save();
     },
+    restart() {
+      played = false;
+      position = 0;
+      completed = false;
+      lastSaved = '';
+      lastCheckpoint = 0;
+    },
     end() {
       completed = true;
       save();
+    },
+  };
+}
+
+/** A single representation owner: canceled and late resources must still be released. */
+export function playbackLease<T>(events: {
+  pending: () => void;
+  ready: (value: T, revision: number) => void;
+  failed: (error: unknown) => void;
+  release: (value: T) => void;
+}) {
+  let revision = 0;
+  let disposed = false;
+  let request: AbortController | undefined;
+  let active: T | undefined;
+  const stop = () => {
+    revision++;
+    request?.abort();
+    request = undefined;
+    if (active !== undefined) events.release(active);
+    active = undefined;
+  };
+  return {
+    async prepare(load: (signal: AbortSignal) => Promise<T>) {
+      if (disposed) return;
+      stop();
+      const current = revision;
+      const controller = new AbortController();
+      request = controller;
+      events.pending();
+      try {
+        const value = await load(controller.signal);
+        if (disposed || current !== revision) {
+          events.release(value);
+          return;
+        }
+        request = undefined;
+        active = value;
+        events.ready(value, current);
+      } catch (error) {
+        if (!disposed && current === revision) {
+          request = undefined;
+          events.failed(error);
+        }
+      }
+    },
+    current(value: number) {
+      return !disposed && revision === value && active !== undefined;
+    },
+    stop,
+    dispose() {
+      disposed = true;
+      stop();
     },
   };
 }

@@ -243,6 +243,7 @@ export function CinemaText(props: {
 export function EpisodePanel(props: {
   open: boolean;
   onClose: () => void;
+  cinema?: boolean;
   children?: JSX.Element;
 }) {
   return (
@@ -252,7 +253,7 @@ export function EpisodePanel(props: {
       onOpenChange={({ open }) => {
         if (!open) props.onClose();
       }}
-      popupClass="bg-card"
+      popupClass={props.cinema ? 'bg-cinema' : 'bg-card'}
       popupStyle={{ width: Product() === 'tv' ? tvUnit(820) : 400 }}
       backdropClass="bg-cinema/60"
     >
@@ -266,5 +267,51 @@ export function EpisodePanel(props: {
         {props.children}
       </View>
     </Sheet>
+  );
+}
+
+export function CinemaStageAction(props: {
+  label: string;
+  showPlay?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+  buttonRef?: (ref: ViewRef) => void;
+}) {
+  return (
+    <Button
+      ref={props.buttonRef}
+      accessibilityLabel={props.label}
+      disabled={props.disabled}
+      onPress={props.onPress}
+      class="absolute inset-0 items-center justify-center bg-transparent border-2 border-transparent focus-visible:border-cinema-focus"
+    >
+      <If when={props.showPlay && !props.disabled}>
+        <View class="w-16 h-16 rounded-full bg-cinema/60 items-center justify-center">
+          <Icon name="play" color={token('cinema-foreground')} />
+        </View>
+      </If>
+    </Button>
+  );
+}
+
+export function CinemaSettingRow(props: { label: string; children?: JSX.Element }) {
+  return (
+    <View class="flex-row items-center" style={{ gap: Product() === 'tv' ? tvUnit(24) : 16 }}>
+      <View style={{ minWidth: Product() === 'tv' ? tvUnit(120) : 80 }}>
+        <CinemaText variant="preview">{props.label}</CinemaText>
+      </View>
+      <View class="flex-1">{props.children}</View>
+    </View>
+  );
+}
+
+export function EpisodeRail(props: { children?: JSX.Element }) {
+  return (
+    <View
+      class="bg-card border border-border rounded-(--radius) overflow-hidden"
+      style={{ width: 316, height: 552 }}
+    >
+      {props.children}
+    </View>
   );
 }
