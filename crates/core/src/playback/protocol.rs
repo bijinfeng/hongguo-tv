@@ -130,6 +130,57 @@ pub(super) fn decode_url(encoded: &str, seed: &str) -> Result<String, PlaybackEr
     String::from_utf8(plain).map_err(|_| PlaybackError::InvalidModel)
 }
 
+pub(super) fn content_key(value: &str) -> Result<[u8; 16], PlaybackError> {
+    use base64::{Engine, engine::general_purpose};
+    let invalid = PlaybackError::UnsupportedMedia;
+    if value.len() > 1024 {
+        return Err(invalid);
+    }
+    let raw = general_purpose::STANDARD
+        .decode(value)
+        .or_else(|_| general_purpose::STANDARD_NO_PAD.decode(value))
+        .map_err(|_| invalid)?;
+    if raw.len() < 3 {
+        return Err(invalid);
+    }
+    let tag_len = usize::from(raw[0] ^ raw[1] ^ raw[2])
+        .checked_sub(48)
+        .filter(|n| *n > 0)
+        .ok_or(invalid)?;
+    let len = raw
+        .len()
+        .checked_sub(tag_len + 1)
+        .filter(|n| *n >= 33 && *n < raw.len())
+        .ok_or(invalid)?;
+    let seed = raw[len - 1] ^ raw[len];
+    let tag = raw[len + 1..].iter().map(|b| b ^ seed).collect::<Vec<_>>();
+    if tag == b"app_v2" || tag == b"web_v2" {
+        return Err(invalid);
+    }
+    let mut decoded = Vec::with_capacity(len);
+    let mut previous = [250u8, 85];
+    for i in 0..len {
+        let current = raw[i + 1];
+        decoded.push(
+            (previous[i % 2] ^ current)
+                .wrapping_sub(21)
+                .wrapping_sub(i.count_ones() as u8),
+        );
+        previous[i % 2] = current;
+    }
+    let marker = char::from(decoded[0]).to_digit(36).ok_or(invalid)? as usize;
+    if len.checked_sub(marker + 1) != Some(32) {
+        return Err(invalid);
+    }
+    let mut key = [0; 16];
+    for (i, hex) in decoded[1..33].chunks_exact(2).enumerate() {
+        let high = char::from(hex[0]).to_digit(16).ok_or(invalid)?;
+        let low = char::from(hex[1]).to_digit(16).ok_or(invalid)?;
+        key[i] = ((high << 4) | low) as u8;
+    }
+    Ok(key)
+}
+
 pub(super) fn registration_gorgon(query: &str, body: &[u8], ts: u32, nonce: u16) -> String {
     let q = md5(query.as_bytes());
     let m = if body.is_empty() { [0; 16] } else { md5(body) };
@@ -176,6 +227,33 @@ mod tests {
     use super::*;
     use base64::{Engine, engine::general_purpose};
     use serde_json::Value;
+
+    #[test]
+    fn synthetic_content_key_vector_rejects_malformed_and_unknown_payloads() {
+        let vector = "lL8dx1O8G/BSvBvzYo8exWSJHPBivivzerwy7U6TA+xOlbi+tbiErQ==";
+        let expected = [
+            0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf,
+            0x4f, 0x3c,
+        ];
+        assert_eq!(content_key(vector), Ok(expected));
+        assert_eq!(content_key(vector.trim_end_matches('=')), Ok(expected));
+        for value in ["", "!!!", "AA==", "AAAA", &"a".repeat(1025)] {
+            assert!(content_key(value).is_err());
+        }
+        let raw = general_purpose::STANDARD.decode(vector).unwrap();
+        for n in 0..raw.len() - 6 {
+            assert!(content_key(&general_purpose::STANDARD.encode(&raw[..n])).is_err());
+        }
+        for tag in [b"app_v2", b"web_v2"] {
+            let mut bytes = raw.clone();
+            let len = bytes.len();
+            let seed = bytes[len - 8] ^ bytes[len - 7];
+            for (i, b) in tag.iter().enumerate() {
+                bytes[len - 6 + i] = b ^ seed;
+            }
+            assert!(content_key(&general_purpose::STANDARD.encode(bytes)).is_err());
+        }
+    }
 
     #[test]
     fn independently_generated_device_vector_and_corruption() {

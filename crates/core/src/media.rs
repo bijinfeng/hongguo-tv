@@ -1,5 +1,8 @@
 //! Media rules shared by future native and HTTP adapters.
+mod mp4;
+mod store;
 use std::{error::Error, fmt};
+pub use store::{MediaLease, MediaStore, PreparedMedia};
 
 /// One satisfiable inclusive byte range. Multipart ranges are deliberately unsupported.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

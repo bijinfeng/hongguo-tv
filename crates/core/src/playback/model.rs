@@ -45,8 +45,10 @@ pub struct PlaybackModel {
 }
 
 /// A supported representation. Debug deliberately omits its signed address.
+#[derive(Clone)]
 pub struct Representation {
-    pub(super) url: Url,
+    pub(crate) url: Url,
+    pub(crate) key: Option<[u8; 16]>,
     codec: String,
     height: u32,
 }
@@ -117,7 +119,7 @@ fn scalar(value: &Value) -> Option<String> {
 }
 
 /// Parse video_tab, legacy or single envelopes without network or identity substitution.
-/// Protected URLs/content are rejected here until the preparation layer supports them.
+/// Protected candidates require a valid content key and supported media preparation.
 pub fn parse_model(body: &[u8], request: &PlaybackRequest) -> Result<PlaybackModel, PlaybackError> {
     if body.len() > MODEL_LIMIT {
         return Err(PlaybackError::InvalidModel);
@@ -215,11 +217,19 @@ pub fn parse_model(body: &[u8], request: &PlaybackRequest) -> Result<PlaybackMod
             "h265" | "hevc" | "hvc1" | "hev1" | "bytevc1" => "hevc",
             _ => continue,
         };
-        if row["encrypt"] == true
-            || meta["encrypt"] == true
-            || !row["spade_a"].is_null()
-            || !row["encrypt_info"]["spade_a"].is_null()
-        {
+        let spade = row["encrypt_info"]["spade_a"]
+            .as_str()
+            .or_else(|| row["spade_a"].as_str())
+            .filter(|s| !s.is_empty());
+        let key = if let Some(spade) = spade {
+            let Ok(key) = super::protocol::content_key(spade) else {
+                continue;
+            };
+            Some(key)
+        } else {
+            None
+        };
+        if key.is_none() && (row["encrypt"] == true || meta["encrypt"] == true) {
             continue;
         }
         let raw = row["main_url"]
@@ -289,6 +299,7 @@ pub fn parse_model(body: &[u8], request: &PlaybackRequest) -> Result<PlaybackMod
         }
         representations.push(Representation {
             url,
+            key,
             codec: codec.into(),
             height,
         });

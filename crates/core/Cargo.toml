@@ -18,7 +18,7 @@ utoipa.workspace = true
 reqwest.workspace = true
 rustls.workspace = true
 rusqlite.workspace = true
-tokio = { workspace = true, features = ["time", "sync"] }
+tokio = { workspace = true, features = ["time", "sync", "fs", "io-util"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["io-util", "sync"] }

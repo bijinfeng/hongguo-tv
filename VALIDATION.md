@@ -191,3 +191,14 @@ A 提交为 `9285503`（本任务未推送）；当前并行 release 提交与�
 - UI 审查：本批未改页面／控件代码，`node tooling/src/browsing-host.mjs web` 图形宿主 3 项通过，检查浅深控件截图的字号、间距、圆角、对齐、颜色、focus／selected／disabled／error 和减少动态效果路径；未发现本批布局回归。截图沿用脚本输出 `artifacts/browsing/web/controls-{light,dark}.png`；图形日志 `artifacts/playback/ui-domain-web.log`。播放器的新视觉、动效、解码、macOS／TV 和真实内容继续单列待验收。
 - `pnpm security` 已运行，Cargo gate 被既有 foldhash、webpki-roots、winx、zlib-rs 许可及 NSH bincode／ttf-parser 未维护问题阻塞。新增依赖没有在此次 Cargo 输出出现新的独立问题，后续安全阶段因前置 gate 失败未完成；未增加 allow／ignore。
 - 完整 `pnpm verify`：Rust 55 项、工程 15 项、NSH 35 项及三端 check／build 通过；契约漂移与 OpenSpec strict 通过。日志 `artifacts/playback/verify-domain-final.log`、`codegen-check.log`。最后补充的畸形模型身份校验另经同组 20 项与 Clippy 通过。PlayInfo 已定义在 Rust core，但尚未注册 HTTP schema；因此本批 codegen 未产生契约差异，4.3 再随路由生成公开播放 DTO。
+
+### B2 · 有界媒体准备与生命周期
+
+core 新增 MP4 初始化、普通 AVC／HEVC 检查、合法模型携带密钥的 whole-sample CENC CTR、稳定 Range 和完整文件回退。HTTP 仍未装配此服务，播放器和 capability 尚未改变。本段更新 B1 的“保护内容尚未接入”阶段状态，不代表官网内容或真实解码通过。
+
+- 功能审查修复：自动闲置回收、跨实例发布拒绝、关闭后准备结果丢弃、活跃租约计数、初始化／清理锁竞态、目录及文件私有权限；fixture 使用 set_path，防止双斜线媒体路径替换 loopback authority。临时文件、预算和准备许可通过 RAII 在失败／取消后释放；清理只处理本应用匹配且未锁定的目录。规则见 `crates/core/src/media/README.md`。
+- 媒体定向 18 项通过：真实 loopback 的精确字节、任意分片、强／弱 ETag、版本变化、错误 Content-Range、重定向、截断、忽略 Range、跨块初始化与后置 moov、超限声明、并发／取消／文件清理、容量／TTL／活跃读和失效 token；CENC 使用自制 MP4 与 NIST AES 明文／密文，未捕获版权媒体或使用账号凭据。另新增合成 spade 向量与畸形／不支持 tag 测试。
+- 完整 `pnpm verify` 通过：Rust 71 项、工程 15 项、NSH 35 项，三端 check／build 与契约漂移检查通过。最后的 fixture 双斜线路径修复另经媒体 18 项及 Clippy 通过。日志 `artifacts/playback/verify-media-final.log`、`media-tests.log`、`media-clippy.log`。首次完整验证遇测试服务状态／断言未同步，修正后重跑通过，未删除测试。
+- UI 审查：无页面／控件改动，真实 Web 图形宿主 3 项通过；查看浅深控件截图，圆角、字号、间距、对齐、颜色、focus／selected／disabled／error 和减少动态效果路径无本批回归。日志 `artifacts/playback/ui-media-web.log`；截图 `artifacts/browsing/web/controls-{light,dark}.png`。新播放器视觉／动效、系统字号、屏幕阅读器、macOS／TV 与真实解码保持各自待验收。
+- `pnpm security` 再次运行，仍被既有 foldhash／webpki-roots／winx／zlib-rs 许可和 NSH bincode／ttf-parser 未维护项阻塞；未放宽 gate。只扩展现有 Tokio 文件／IO features，无新增包，后续安全阶段因前置 gate 失败未完成。日志 `artifacts/playback/security-media.log`。
+- 尚未验证：真实官网媒体、真实宿主播放、Windows 文件清理、物理电视与独立原生业务；本批不声称首个 MVP 完成。未推送／发布。

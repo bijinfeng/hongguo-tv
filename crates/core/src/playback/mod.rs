@@ -137,6 +137,14 @@ pub enum PlaybackError {
     IdentityMismatch,
     /// Missing, malformed or oversized model.
     InvalidModel,
+    /// Media metadata, sample layout or bytes are malformed.
+    InvalidMedia,
+    /// The media exceeds the fixed per-file limit.
+    MediaTooLarge,
+    /// The upstream media representation changed during incremental reading.
+    MediaChanged,
+    /// Local media storage failed; never expose filesystem paths.
+    Storage,
     /// Valid response without a model or video list.
     EmptySource,
     /// Confirmed HTTP 200 with an empty body; eligible for one bounded refresh.
@@ -166,6 +174,10 @@ impl PlaybackError {
             Self::AccessDenied => "PLAYBACK_ACCESS_DENIED",
             Self::IdentityMismatch => "PLAYBACK_IDENTITY_MISMATCH",
             Self::InvalidModel => "PLAYBACK_INVALID_MODEL",
+            Self::InvalidMedia => "PLAYBACK_INVALID_MEDIA",
+            Self::MediaTooLarge => "PLAYBACK_MEDIA_TOO_LARGE",
+            Self::MediaChanged => "PLAYBACK_MEDIA_CHANGED",
+            Self::Storage => "PLAYBACK_STORAGE_FAILED",
             Self::EmptySource | Self::EmptyResponse => "PLAYBACK_SOURCE_EMPTY",
             Self::UnsupportedMedia => "PLAYBACK_UNSUPPORTED_MEDIA",
             Self::QualityUnavailable => "PLAYBACK_QUALITY_UNAVAILABLE",
@@ -184,7 +196,12 @@ impl fmt::Display for PlaybackError {
             Self::InvalidInput => "播放参数无效",
             Self::UnsupportedContent => "暂不支持此内容类型",
             Self::AccessDenied => "本集暂不可观看",
-            Self::IdentityMismatch | Self::InvalidModel => "视频来源数据无效，请重试",
+            Self::IdentityMismatch | Self::InvalidModel | Self::InvalidMedia => {
+                "视频来源数据无效，请重试"
+            }
+            Self::MediaChanged => "视频来源已更新，请重新加载",
+            Self::Storage => "视频缓存不可用，请重试",
+            Self::MediaTooLarge => "本集视频超过播放大小限制",
             Self::EmptySource | Self::EmptyResponse => "本集暂无可用视频源，请重试",
             Self::UnsupportedMedia => "本集暂无兼容的视频格式",
             Self::QualityUnavailable => "本集不提供此清晰度，请重新选择",
