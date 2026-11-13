@@ -9,6 +9,171 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/library": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "description": "Absent or empty for guests",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "operationId": "change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/search": {
       "get": {
         "tags": [
@@ -239,12 +404,17 @@
         "required": [
           "search",
           "playback",
-          "account"
+          "account",
+          "history"
         ],
         "properties": {
           "account": {
             "type": "boolean",
             "description": "Persistent account and history are available."
+          },
+          "history": {
+            "type": "boolean",
+            "description": "Persistent guest history is attached by the host."
           },
           "playback": {
             "type": "boolean",
@@ -353,6 +523,48 @@
           }
         }
       },
+      "Entry": {
+        "type": "object",
+        "description": "Compact saved progress, compatible with shared history clients.",
+        "required": [
+          "drama"
+        ],
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "description": "Whether this episode finished."
+          },
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Summary without episode arrays."
+          },
+          "duration": {
+            "type": "number",
+            "format": "double",
+            "description": "Duration in seconds."
+          },
+          "episode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "One-based episode number.",
+            "minimum": 0
+          },
+          "last_played_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Server-assigned committed viewing time in milliseconds."
+          },
+          "position": {
+            "type": "number",
+            "format": "double",
+            "description": "Playback position in seconds."
+          },
+          "video_id": {
+            "type": "string",
+            "description": "Exact current video ID."
+          }
+        }
+      },
       "Episode": {
         "type": "object",
         "description": "Episode identity and access state; indexes are one-based.",
@@ -381,6 +593,220 @@
             "description": "Exact upstream video identifier, never a floating-point number."
           }
         }
+      },
+      "HistoryChange": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "An explicit playback checkpoint. Media resolution alone never writes it.",
+            "required": [
+              "drama",
+              "episode",
+              "video_id",
+              "position",
+              "duration",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "progress"
+                ]
+              },
+              "completed": {
+                "type": "boolean",
+                "description": "Defaults to unfinished."
+              },
+              "drama": {
+                "$ref": "#/components/schemas/Drama",
+                "description": "Drama identity and display summary."
+              },
+              "duration": {
+                "type": "number",
+                "format": "double",
+                "description": "Finite seconds, 0–86400."
+              },
+              "episode": {
+                "type": "integer",
+                "format": "int32",
+                "description": "One-based episode, 1–10000.",
+                "minimum": 0
+              },
+              "owner_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Expected library owner; absent or empty for guests."
+              },
+              "position": {
+                "type": "number",
+                "format": "double",
+                "description": "Finite seconds, 0–86400."
+              },
+              "video_id": {
+                "type": "string",
+                "description": "Nonzero decimal video ID, up to 32 digits."
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Remove one history item; repeating it is harmless.",
+            "required": [
+              "kind",
+              "series_id",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "remove"
+                ]
+              },
+              "kind": {
+                "$ref": "#/components/schemas/HistoryKind",
+                "description": "Only history is migrated."
+              },
+              "owner_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Expected owner, empty for guests."
+              },
+              "series_id": {
+                "type": "string",
+                "description": "Exact series ID."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Clear guest watch history.",
+            "required": [
+              "kind",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "clear"
+                ]
+              },
+              "kind": {
+                "$ref": "#/components/schemas/HistoryKind",
+                "description": "Only history is migrated."
+              },
+              "owner_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Expected owner, empty for guests."
+              }
+            }
+          }
+        ],
+        "description": "Strict, explicit history mutations; favorites and likes remain unavailable."
+      },
+      "HistoryKind": {
+        "type": "string",
+        "description": "The only migrated record category.",
+        "enum": [
+          "history"
+        ]
+      },
+      "Library": {
+        "type": "object",
+        "description": "Guest history snapshot; account-backed libraries are not yet implemented.",
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "description": "Most recently viewed first."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Empty for guests; optional for compatibility with existing clients."
+          }
+        }
+      },
+      "LibraryResponse": {
+        "type": "object",
+        "description": "Committed guest history using the shared envelope.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Library",
+            "description": "Persisted snapshot."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "Progress": {
+        "type": "object",
+        "description": "An explicit playback checkpoint. Media resolution alone never writes it.",
+        "required": [
+          "drama",
+          "episode",
+          "video_id",
+          "position",
+          "duration"
+        ],
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "description": "Defaults to unfinished."
+          },
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Drama identity and display summary."
+          },
+          "duration": {
+            "type": "number",
+            "format": "double",
+            "description": "Finite seconds, 0–86400."
+          },
+          "episode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "One-based episode, 1–10000.",
+            "minimum": 0
+          },
+          "owner_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Expected library owner; absent or empty for guests."
+          },
+          "position": {
+            "type": "number",
+            "format": "double",
+            "description": "Finite seconds, 0–86400."
+          },
+          "video_id": {
+            "type": "string",
+            "description": "Nonzero decimal video ID, up to 32 digits."
+          }
+        },
+        "additionalProperties": false
       },
       "SearchResponse": {
         "type": "object",

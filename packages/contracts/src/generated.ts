@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/v1/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put?: never;
+        post: operations["change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -85,6 +101,8 @@ export interface components {
         Capabilities: {
             /** @description Persistent account and history are available. */
             account: boolean;
+            /** @description Persistent guest history is attached by the host. */
+            history: boolean;
             /** @description Real media resolution and streaming are available. */
             playback: boolean;
             /** @description Real content search is available. */
@@ -130,6 +148,35 @@ export interface components {
             /** @description Display title. */
             title: string;
         };
+        /** @description Compact saved progress, compatible with shared history clients. */
+        Entry: {
+            /** @description Whether this episode finished. */
+            completed?: boolean;
+            /** @description Summary without episode arrays. */
+            drama: components["schemas"]["Drama"];
+            /**
+             * Format: double
+             * @description Duration in seconds.
+             */
+            duration?: number;
+            /**
+             * Format: int32
+             * @description One-based episode number.
+             */
+            episode?: number;
+            /**
+             * Format: int64
+             * @description Server-assigned committed viewing time in milliseconds.
+             */
+            last_played_at?: number;
+            /**
+             * Format: double
+             * @description Playback position in seconds.
+             */
+            position?: number;
+            /** @description Exact current video ID. */
+            video_id?: string;
+        };
         /** @description Episode identity and access state; indexes are one-based. */
         Episode: {
             /**
@@ -142,6 +189,95 @@ export interface components {
             /** @description Optional display title. */
             title?: string;
             /** @description Exact upstream video identifier, never a floating-point number. */
+            video_id: string;
+        };
+        /** @description Strict, explicit history mutations; favorites and likes remain unavailable. */
+        HistoryChange: {
+            /** @enum {string} */
+            action: "progress";
+            /** @description Defaults to unfinished. */
+            completed?: boolean;
+            /** @description Drama identity and display summary. */
+            drama: components["schemas"]["Drama"];
+            /**
+             * Format: double
+             * @description Finite seconds, 0–86400.
+             */
+            duration: number;
+            /**
+             * Format: int32
+             * @description One-based episode, 1–10000.
+             */
+            episode: number;
+            /** @description Expected library owner; absent or empty for guests. */
+            owner_id?: string | null;
+            /**
+             * Format: double
+             * @description Finite seconds, 0–86400.
+             */
+            position: number;
+            /** @description Nonzero decimal video ID, up to 32 digits. */
+            video_id: string;
+        } | {
+            /** @enum {string} */
+            action: "remove";
+            /** @description Only history is migrated. */
+            kind: components["schemas"]["HistoryKind"];
+            /** @description Expected owner, empty for guests. */
+            owner_id?: string | null;
+            /** @description Exact series ID. */
+            series_id: string;
+        } | {
+            /** @enum {string} */
+            action: "clear";
+            /** @description Only history is migrated. */
+            kind: components["schemas"]["HistoryKind"];
+            /** @description Expected owner, empty for guests. */
+            owner_id?: string | null;
+        };
+        /**
+         * @description The only migrated record category.
+         * @enum {string}
+         */
+        HistoryKind: "history";
+        /** @description Guest history snapshot; account-backed libraries are not yet implemented. */
+        Library: {
+            /** @description Most recently viewed first. */
+            entries: components["schemas"]["Entry"][];
+            /** @description Empty for guests; optional for compatibility with existing clients. */
+            owner_id?: string;
+        };
+        /** @description Committed guest history using the shared envelope. */
+        LibraryResponse: {
+            /** @description Persisted snapshot. */
+            data: components["schemas"]["Library"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description An explicit playback checkpoint. Media resolution alone never writes it. */
+        Progress: {
+            /** @description Defaults to unfinished. */
+            completed?: boolean;
+            /** @description Drama identity and display summary. */
+            drama: components["schemas"]["Drama"];
+            /**
+             * Format: double
+             * @description Finite seconds, 0–86400.
+             */
+            duration: number;
+            /**
+             * Format: int32
+             * @description One-based episode, 1–10000.
+             */
+            episode: number;
+            /** @description Expected library owner; absent or empty for guests. */
+            owner_id?: string | null;
+            /**
+             * Format: double
+             * @description Finite seconds, 0–86400.
+             */
+            position: number;
+            /** @description Nonzero decimal video ID, up to 32 digits. */
             video_id: string;
         };
         /** @description Successful website search page. */
@@ -181,6 +317,147 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get: {
+        parameters: {
+            query?: {
+                /** @description Absent or empty for guests */
+                owner_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoryChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {

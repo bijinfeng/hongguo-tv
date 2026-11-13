@@ -7,6 +7,7 @@ import {
   type Account,
   type Drama,
   type Episode,
+  type HistoryChange,
   type Library,
 } from '@hongguo/core-client';
 
@@ -49,7 +50,7 @@ export function createStore() {
     },
     save(drama: Drama, episode: Episode, position: number, duration: number, completed = false) {
       const owner = library()?.owner_id ?? '';
-      const change = {
+      const change: HistoryChange = {
         action: 'progress',
         owner_id: owner,
         drama: libraryDrama(drama),

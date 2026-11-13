@@ -2,7 +2,7 @@
 
 NSH TSX + Rust 多端工程，采用 pnpm monorepo 和 Cargo workspace。Web、桌面和 Android TV 复用同一套界面与状态逻辑；目标原生客户端直接链接 Rust 核心。
 
-**当前是工程迁移第一阶段。** Rust API 已提供匿名官网搜索与详情、生成契约和边界检查；账号、播放协议与持久化尚未迁移。三端业务通过 HTTP 连接 Rust 服务，尚未接入原生业务 bridge。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
+**当前是工程迁移第一阶段。** Rust API 已提供匿名官网搜索与详情、游客 SQLite 历史、生成契约和边界检查；账号与播放协议尚未迁移。三端业务通过 HTTP 连接 Rust 服务，尚未接入原生业务 bridge。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
 
 ## 准备
 
@@ -45,11 +45,13 @@ pnpm codegen:check   # 只比较，不修改文件
 
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 
+游客历史说明见 [crates/core/src/library/README.md](crates/core/src/library/README.md)。`pnpm dev:*` 自动传入独立数据目录 `.local/data/rust`，不读取旧客户端文件；直接启动 Rust binary 必须提供 `--data-dir <目录>`。数据库不兼容或损坏时启动失败并保留原文件，请先检查版本与备份，不要删除数据绕过错误。
+
 fuzz 使用独立固定 nightly：先 `rustup toolchain install nightly-2026-11-01 --profile minimal`，再 `pnpm fuzz`。coverage/fuzz 的实际运行状态见 VALIDATION。
 
 也可分别运行 `pnpm fmt`、`fmt:check`、`lint`、`check`、`build`、`test`、`test:tooling`。check/build/test 可添加 `--target web|desktop|tv` 缩小范围；默认检查三端入口。NSH headless 测试使用真实引擎和网络 stub，不能证明 TV 遥控或硬件解码。
 
-`pnpm dev:*` 使用共享界面和 Rust 匿名官网搜索/详情。搜索只支持 `source=web`，与 App 搜索游标不同；账号、播放和历史接口仍返回 `CORE_NOT_IMPLEMENTED`。官网验证挑战、超时和协议错误会明确失败。开发 API 只监听 `127.0.0.1`、校验精确 Host/Origin、限制请求体；不能直接公开到公网。Ctrl-C 关闭本次 API 和宿主。每个目标同时只运行一个会话。
+`pnpm dev:*` 使用共享界面和 Rust 匿名官网搜索/详情。搜索只支持 `source=web`，与 App 搜索游标不同；游客历史支持读取、保存、删除/清空；账号与播放接口仍返回 `CORE_NOT_IMPLEMENTED`。官网验证挑战、超时和协议错误会明确失败。开发 API 只监听 `127.0.0.1`、校验精确 Host/Origin、限制请求体；不能直接公开到公网。Ctrl-C 关闭本次 API 和宿主。每个目标同时只运行一个会话。
 
 Web/Desktop 预览打包需要显式提供 `HONGGUO_CORE_ORIGIN`，再运行 `pnpm package:web|desktop`；TV 在存在 `apps/tv/native` 时可运行 `pnpm package:tv` 生成 arm64 T0 技术验证 APK，否则同样需要外部 API。技术验证包仍不等于独立产品；桌面/TV 业务原生链接、公开 Web 身份隔离、签名与更新均是后续阶段。
 
@@ -60,8 +62,8 @@ apps/web|desktop|tv/       三端薄入口、NSH 清单、测试入口
 packages/app/             共享页面、导航、状态、播放会话、行为测试
 packages/ui/              共享控件、主题与动效
 packages/core-client/     HTTP 适配和媒体/历史请求边界
-packages/contracts/       Rust 目录契约 + 未迁移兼容 DTO
-crates/core/              Rust 目录查询/解析、有界 HTTP/TLS、媒体 Range 规则
+packages/contracts/       Rust 目录/历史契约 + 未迁移兼容 DTO
+crates/core/              目录查询/解析、有界 HTTP/TLS、SQLite 历史、媒体 Range
 crates/http-api/          Axum 路由、开发来源策略、OpenAPI 导出
 services/web-api/         Tokio 进程、loopback 监听和优雅退出
 tooling/                  工程命令、生命周期、依赖边界测试

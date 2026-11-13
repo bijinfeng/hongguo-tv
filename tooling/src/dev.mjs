@@ -83,9 +83,13 @@ export async function dev(target) {
     'target/debug',
     process.platform === 'win32' ? 'hongguo-web-api.exe' : 'hongguo-web-api',
   );
-  const api = child(binary, ['--allow-origin', `http://127.0.0.1:${port}`], {
-    stdio: ['ignore', 'pipe', 'inherit'],
-  });
+  const api = child(
+    binary,
+    ['--allow-origin', `http://127.0.0.1:${port}`, '--data-dir', resolve(root, '.local/data/rust')],
+    {
+      stdio: ['ignore', 'pipe', 'inherit'],
+    },
+  );
   let host, reversePort;
   let closing = false;
   const close = async () => {
@@ -112,7 +116,7 @@ export async function dev(target) {
     }
     if (closing) return;
     console.log(
-      `Rust API ${origin}; UI http://127.0.0.1:${port}. Content migration pending; legacy:dev preserves playback.`,
+      `Rust API ${origin}; UI http://127.0.0.1:${port}. Anonymous catalog and guest history ready; account/playback migration pending.`,
     );
     host = child(
       executable('nsh'),

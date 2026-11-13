@@ -1,5 +1,6 @@
 //! Platform-independent domain rules and anonymous catalog queries. No NSH or account state.
 pub mod catalog;
+pub mod library;
 pub mod media;
 
 use serde::Serialize;
@@ -15,6 +16,8 @@ pub struct Capabilities {
     pub playback: bool,
     /// Persistent account and history are available.
     pub account: bool,
+    /// Persistent guest history is attached by the host.
+    pub history: bool,
 }
 
 impl Default for Capabilities {
@@ -23,6 +26,7 @@ impl Default for Capabilities {
             search: true,
             playback: false,
             account: false,
+            history: false,
         }
     }
 }

@@ -1,8 +1,28 @@
 # 验证记录 · 2026-11-13
 
-## Rust 匿名目录迁移 · 当前结果
+## Rust 游客历史 · 当前结果
 
-OpenSpec：`migrate-rust-catalog`。不修改共享页面或设计稿；官网搜索/详情已接入同一 Rust 服务，账号、播放、历史仍为 501，业务原生 bridge 尚未接入。
+OpenSpec：`migrate-guest-history`。游客历史已接入现有 Rust API 与共享客户端，页面布局不变；账号、云同步、收藏/点赞与真实播放解析尚未迁移，原生业务 bridge 未接入。
+
+| 范围      | 结果                                                                                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 持久化    | 7 项核心测试通过：精确 ID、重启恢复、最近观看排序、摘要裁剪、独立连接并发、事务失败回滚、删除/清空、owner/输入边界及坏库/未来版本保护                                           |
+| HTTP      | 4 项 library 集成测试通过：GET/POST、no-store、capability、生成 schema、错误脱敏、错误来源、32 KiB 与 JSON 边界；未装配存储的 router 保留 library 不可用                        |
+| 真实进程  | 4 项进程测试通过（新增 2 项）：实际 binary 写入并重启恢复，坏库启动不输出 ready 且保留文件，原有启动/退出和配置错误保护通过                                                     |
+| 完整回归  | `pnpm verify` 退出 0：格式、Oxlint/包边界、Rust locked check/build、Clippy `-D warnings`、35 项 nextest、doctest、7 项工程测试、三端 NSH check/build 与 16 项 headless 测试通过 |
+| 契约      | Entry/Library/HistoryChange/envelope 已从 Rust 生成；共享 store 使用生成的请求类型，codegen:check 无漂移；账号与播放仍为兼容手写类型                                            |
+| fuzz 兼容 | 更新独立 fuzz/Cargo.lock，稳定版 `cargo check --locked --manifest-path fuzz/Cargo.toml` 通过；未运行实际 fuzz 或覆盖率                                                          |
+| 安全      | `pnpm security` 仍因 NSH 间接依赖的 6 项许可证拒绝与 bincode/ttf-parser 停止维护告警失败，bans/sources 通过。单独 npm audit 未发现已知漏洞；本次 SQLite 依赖不新增例外          |
+
+工程脚本明确传入 `.local/data/rust`，binary 直接启动需 `--data-dir`；游客数据不读取或覆盖旧客户端文件。数据库标识/版本不匹配或坏库会失败，不自动重建。写操作在 blocking worker 上执行，只有事务提交成功才返回快照；调用方取消不能撤销已经开始的阻塞事务，重新 GET 确认结果。新建 Unix 目录/数据库使用 0700/0600，已有目录权限不变。
+
+上一切片已提交 `6ae6649`，未推送。提交时隔离 TV 并行改动，其目录迁移快照的 22 项 Rust 测试及离线 cargo-deny 四类检查通过；本节记录游客历史切片的提交前验收。完整工作区仍包含并行 TV T0，保留其 NSH 安全告警与 macOS headless runner 的 unwind 链接警告。未修改设计或自动归档 OpenSpec。
+
+本轮未重新访问真实官网或真实账号，也未验证真实媒体、Android SQLite/JNI/ABI、遥控/解码、独立安装包、Windows/Linux 或远端 CI。历史数据仅用临时数据库与合成播放进度验证，不代表新 Rust 播放链路已完成。
+
+## Rust 匿名目录迁移 · 阶段结果
+
+OpenSpec：`migrate-rust-catalog`。该阶段不修改共享页面或设计稿；官网搜索/详情接入同一 Rust 服务，账号、播放、历史当时仍为 501，业务原生 bridge 尚未接入。
 
 | 范围           | 结果                                                                                                                                                                                |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

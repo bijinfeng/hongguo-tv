@@ -1,9 +1,10 @@
 //! Loopback development transport. Public deployment requires session isolation first.
 mod catalog;
+mod library;
 
 use axum::{
     Json, Router,
-    extract::{Request, State},
+    extract::{FromRef, Request, State},
     http::{HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -12,6 +13,7 @@ use axum::{
 use hongguo_core::{
     CoreStatus,
     catalog::{CatalogClient, CatalogError},
+    library::LibraryStore,
 };
 use serde::Serialize;
 use utoipa::{OpenApi, ToSchema};
@@ -74,8 +76,10 @@ fn failure(status: StatusCode, code: &str, message: &str) -> Response {
 }
 
 #[utoipa::path(get, path = "/api/v1/status", responses((status = 200, body = StatusResponse), (status = 403, body = ApiError)))]
-async fn status() -> Json<StatusResponse> {
-    Json(StatusResponse::default())
+async fn status(State(state): State<ApiState>) -> Json<StatusResponse> {
+    let mut result = StatusResponse::default();
+    result.data.capabilities.history = state.library.is_some();
+    Json(result)
 }
 #[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Process is ready")))]
 async fn health() -> StatusCode {
@@ -166,13 +170,33 @@ pub fn router(policy: DevPolicy) -> Result<Router, CatalogError> {
 
 /// Build with an explicitly initialized catalog; fixture tests can inject a loopback client.
 pub fn router_with_catalog(policy: DevPolicy, catalog: CatalogClient) -> Router {
+    router_with_services(policy, catalog, None)
+}
+
+#[derive(Clone)]
+pub(crate) struct ApiState {
+    catalog: CatalogClient,
+    library: Option<LibraryStore>,
+}
+impl FromRef<ApiState> for CatalogClient {
+    fn from_ref(state: &ApiState) -> Self {
+        state.catalog.clone()
+    }
+}
+
+/// Attach explicitly initialized services; absence of storage keeps library unavailable.
+pub fn router_with_services(
+    policy: DevPolicy,
+    catalog: CatalogClient,
+    library: Option<LibraryStore>,
+) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/api/v1/status", get(status))
         .route("/api/v1/search", get(catalog::search))
         .route("/api/v1/series/detail", get(catalog::detail))
         .route("/api/v1/play/info", get(unavailable))
-        .route("/api/v1/library", get(unavailable).post(unavailable))
+        .route("/api/v1/library", get(library::get).post(library::change))
         .route("/api/v1/account", get(unavailable))
         .route(
             "/api/v1/account/qr/{action}",
@@ -186,13 +210,20 @@ pub fn router_with_catalog(policy: DevPolicy, catalog: CatalogClient) -> Router 
                 "Method not allowed",
             )
         })
-        .with_state(catalog)
+        .with_state(ApiState { catalog, library })
         .layer(middleware::from_fn_with_state(policy, boundary))
 }
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(status, health, catalog::search, catalog::detail),
+    paths(
+        status,
+        health,
+        catalog::search,
+        catalog::detail,
+        library::get,
+        library::change
+    ),
     components(schemas(
         StatusResponse,
         CoreStatus,
@@ -202,12 +233,37 @@ pub fn router_with_catalog(policy: DevPolicy, catalog: CatalogClient) -> Router 
         catalog::DetailResponse,
         hongguo_core::catalog::Drama,
         hongguo_core::catalog::Episode,
-        hongguo_core::catalog::SearchResult
+        hongguo_core::catalog::SearchResult,
+        library::LibraryResponse,
+        hongguo_core::library::Entry,
+        hongguo_core::library::Library,
+        hongguo_core::library::HistoryChange,
+        hongguo_core::library::HistoryKind,
+        hongguo_core::library::Progress
     ))
 )]
 struct ApiDoc;
 
 /// Export implemented endpoints only. Unmigrated account/playback DTOs remain separate.
 pub fn openapi() -> utoipa::openapi::OpenApi {
-    ApiDoc::openapi()
+    use utoipa::openapi::{RefOr, schema::Schema};
+    let mut doc = ApiDoc::openapi();
+    if let Some(components) = &mut doc.components {
+        let progress = components.schemas.get("Progress").cloned();
+        if let (
+            Some(RefOr::T(Schema::Object(mut progress))),
+            Some(RefOr::T(Schema::OneOf(change))),
+        ) = (progress, components.schemas.get_mut("HistoryChange"))
+        {
+            // Utoipa 6 adds the tag via allOf, conflicting with the closed Progress object.
+            if let Some(RefOr::T(Schema::AllOf(variant))) = change.items.first()
+                && let Some(RefOr::T(Schema::Object(tag))) = variant.items.last()
+            {
+                progress.properties.extend(tag.properties.clone());
+                progress.required.extend(tag.required.clone());
+                change.items[0] = Schema::Object(progress).into();
+            }
+        }
+    }
+    doc
 }

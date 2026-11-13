@@ -247,7 +247,15 @@ try {
       await dev(target);
       break;
     case 'api':
-      await cargo(['run', '--locked', '-p', 'hongguo-web-api']);
+      await cargo([
+        'run',
+        '--locked',
+        '-p',
+        'hongguo-web-api',
+        '--',
+        '--data-dir',
+        resolve(root, '.local/data/rust'),
+      ]);
       break;
     case 'fmt':
       await fmt(false);

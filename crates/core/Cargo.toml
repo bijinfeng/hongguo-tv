@@ -11,6 +11,7 @@ serde_json = { workspace = true, features = ["arbitrary_precision"] }
 utoipa.workspace = true
 reqwest.workspace = true
 rustls.workspace = true
+rusqlite.workspace = true
 tokio = { workspace = true, features = ["time"] }
 
 [dev-dependencies]

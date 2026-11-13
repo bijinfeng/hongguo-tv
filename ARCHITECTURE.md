@@ -179,7 +179,9 @@ core 必须支持实例化的账号上下文与独立存储，禁止全局可变
 
 已实现的目录切片位于 `crates/core/src/catalog/`：Rust DTO、纯解析和可克隆 `CatalogClient`。生产固定官网 origin，HTTP/1.1、无 Cookie/代理/重定向；搜索 4 MiB、详情 12 MiB，每次 5 秒、整体 12 秒，最多两次尝试。drop 取消 pending future，核心不 spawn 脱离调用者的查询任务。loopback origin 仅由测试显式注入，API 请求不能指定上游地址。
 
-`http-api` 将搜索/详情接入相同服务，输入错误 400、上游失败 502、超时 504；TLS/client 初始化成功后，binary 才发布 ready。状态声明 search=true、playback/account=false。目录 DTO 已由 Rust → `contracts/openapi.json` → TypeScript 生成；其他兼容 DTO、账号、播放和持久化继续按后续阶段迁移。官网/App 的分页不同，本切片明确使用 source=web，不支持创作者合集。离线 fixtures 和 opt-in probe 说明见 `contracts/fixtures/catalog/README.md`。
+`http-api` 将搜索/详情接入相同服务，输入错误 400、上游失败 502、超时 504；TLS/client 初始化成功后，binary 才发布 ready。状态声明 search=true、playback/account=false。目录 DTO 已由 Rust → `contracts/openapi.json` → TypeScript 生成；账号/播放兼容 DTO 与其余持久状态继续按后续阶段迁移。官网/App 的分页不同，本切片明确使用 source=web，不支持创作者合集。离线 fixtures 和 opt-in probe 说明见 `contracts/fixtures/catalog/README.md`。
+
+游客历史切片位于 `crates/core/src/library/`：独立 SQLite application_id/user_version，bundled SQLite、WAL/FULL 与 Immediate 事务；阻塞工作在 spawn_blocking 执行，commit 后才返回快照。版本不兼容/坏库拒绝初始化，不读取旧 JSON。HTTP binary 明确接受 --data-dir，工程脚本传 .local/data/rust；存储先于 ready 初始化，history capability 由装配状态决定。账号、云同步、收藏/点赞和原生业务 bridge 仍未迁移，详见核心存储 README。
 
 HTTP 契约由 Rust HTTP DTO 与路由导出到 `contracts/openapi.json`，建议使用 utoipa；再用固定版本的 `openapi-typescript` 生成 TS wire types。Rust DTO 是该契约的唯一编辑源，生成结果提交并在 CI 检查漂移。
 
