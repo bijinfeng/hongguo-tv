@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@hongguo/app": "workspace:*",
-    "@hongguo/core-client": "workspace:*"
+    "@hongguo/core-client": "workspace:*",
+    "@hongguo/ui": "workspace:*"
   }
 }

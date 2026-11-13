@@ -10,3 +10,7 @@ dist/
 coverage/
 **/fuzz/artifacts/
 **/fuzz/corpus/
+**/.gradle/
+apps/tv/android/app/build/
+apps/tv/android/build/
+apps/tv/android/local.properties

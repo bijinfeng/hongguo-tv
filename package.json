@@ -18,6 +18,7 @@
     "build": "node tooling/src/cli.mjs build",
     "test": "node tooling/src/cli.mjs test",
     "test:tooling": "node --test tooling/test/*.test.mjs",
+    "test:tv-emulator": "node tooling/src/tv-emulator.mjs",
     "verify": "node tooling/src/cli.mjs verify",
     "security": "node tooling/src/cli.mjs security",
     "codegen": "node tooling/src/codegen.mjs",

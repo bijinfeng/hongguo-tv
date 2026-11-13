@@ -32,7 +32,7 @@ pub fn T0Task(cx: Scope<T0TaskEvent>) -> impl IntoElement {
         cx.emit(T0TaskEvent::Complete);
     });
     cleanup(move || drop(task));
-    view().child(text("t0-running"))
+    view().child(text("t0-running").text_color(move || nsh_base::theme().foreground))
 }
 
 /// Small, deterministic calls used to verify the TSX → Rust → TSX boundary.

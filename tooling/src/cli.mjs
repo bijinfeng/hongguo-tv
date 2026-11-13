@@ -19,6 +19,7 @@ import {
 import { boundaries } from './boundaries.mjs';
 import { codegen } from './codegen.mjs';
 import { dev } from './dev.mjs';
+import { packageTvHost, tvHostEnvironment } from './tv-host.mjs';
 
 const tvToolchain = JSON.parse(readFileSync(resolve(root, 'tooling/tv-toolchain.json'), 'utf8'));
 
@@ -61,6 +62,21 @@ async function doctor({ requireDevice = true } = {}) {
         },
       ],
       ['adb', () => output('adb', ['version'])],
+      [
+        'tv-host',
+        async () => {
+          tvHostEnvironment();
+          const wrapper = await readFile(
+            resolve(root, 'apps/tv/android/gradle/wrapper/gradle-wrapper.properties'),
+            'utf8',
+          );
+          if (!/^distributionSha256Sum=[a-f0-9]{64}$/m.test(wrapper))
+            throw new Error('TV Gradle distribution checksum is missing');
+          output('curl', ['--version']);
+          output('unzip', ['-v']);
+          return 'JDK 17, curl, unzip, pinned Gradle wrapper';
+        },
+      ],
       [
         'android-platform',
         async () => {
@@ -325,10 +341,12 @@ try {
         );
       else console.log('Packaging a UI preview requiring the configured external Rust API.');
       await nsh('package', target, [
+        ...(target === 'tv' && !process.env.HONGGUO_CORE_ORIGIN ? ['T0Probe.tsx'] : []),
         '--target',
         nativeTarget(target),
         ...(target === 'tv' ? ['--abi', 'arm64-v8a'] : []),
       ]);
+      if (target === 'tv') await packageTvHost();
       break;
     default:
       throw new Error(`Unknown command: ${command || '(missing)'}`);

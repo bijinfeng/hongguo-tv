@@ -53,6 +53,9 @@ importers:
       '@hongguo/core-client':
         specifier: workspace:*
         version: link:../../packages/core-client
+      '@hongguo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
 
   apps/web:
     dependencies:

@@ -1,5 +1,31 @@
 # 验证记录 · 2026-11-13
 
+## TV T0 · Android TV 模拟器验收
+
+本任务按用户确认的边界验收：**Android TV 模拟器通过；连接真实电视、硬件解码与厂商兼容属于另一条验收线，不阻塞本任务。** 这是 T0 技术验证包，不代表 Rust 业务迁移或正式客户端完成。
+
+新增薄 Android embedding 宿主，使用官方固定 NSH 的 Java classes 与本项目 mixed `libnsh.so`，未修改框架或参考项目。补齐 Leanback launcher、banner/icon、非必需触屏、遥控焦点和确认；主题颜色/圆角从共享主题生成，关闭系统 Force Dark 的自动反色。默认 `package:tv` 打包内置 Rust 探针和自制视频；显式配置外部 API 时仍是业务 UI 预览。
+
+| 范围              | 实际结果                                                                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模拟器            | Android TV API 34 r3，arm64-v8a，tv_1080p，1920×1080 / density 320，D-pad enabled；Emulator 37.2.13，Hypervisor.Framework / SwiftShader，2 cores / 2048 MB                                              |
+| 工具链            | SDK 35、build-tools 35.0.1、NDK 27.2.12479018、NSH 0.5.0 / f4d68f7；NSH 使用 JDK 25.0.3，Gradle 宿主使用 JDK 17.0.20.1、Gradle 8.14.4 / AGP 8.13.2                                                      |
+| 包构建            | `pnpm package:tv` 通过；Gradle Wrapper/distribution、官方 embedding archive 和 Gradle 依赖均固定并校验 SHA256；Android Lint 无问题，保留只读诊断，不自动放宽门禁                                        |
+| Bridge / 生命周期 | 受控时钟用例 1/1 headless 通过；TSX → Rust → TSX、class dispose、owner task 取消后超过 500ms 期限无回调，以及未取消对照正常完成。最终 APK 中的 Rust 调用/释放由下列 instrumentation 再验                |
+| 最终 APK 验收     | `pnpm test:tv-emulator`：浅色 13/13、深色 13/13；实际安装最终 APK，确认 Rust 调用、内置视频准备、遥控播放/暂停、暂停进度不动、seek、换源、移除/重建 surface、Home 恢复、Activity 重建及系统返回电视桌面 |
+| 脱离开发服务      | 验收时 adb reverse 规则为空；技术页仅调用包内 Rust 和包内媒体，不访问电脑 API，不需要电脑开发服务或网络                                                                                                 |
+| 界面观察          | 已观察模拟器深浅截图：语义颜色、文字对比度、圆角、字号、间距、对齐、视频比例和焦点边界正常；修复 native 探针深色文字不可读及布局变化后焦点框位置滞后。按钮反馈/播放状态即时更新，无新增动画             |
+| 公共回归          | `pnpm verify` 通过：格式、lint/边界、契约、Rust check/build、Clippy、35 项 nextest、7 项工程测试、三端 NSH check/build 与 16 项 headless 测试；`pnpm doctor --target tv` 全部通过                       |
+| 现有安全门禁      | `pnpm security` 仍失败：6 项 NSH 间接依赖许可证拒绝，bincode 与 ttf-parser 的停止维护错误；bans/sources 通过。本轮未新增许可例外或降低检查，Gradle checksum 不能代替漏洞/许可证审计                     |
+
+最终技术 APK：`apps/tv/.nsh/out/红果.apk`，98,303,408 bytes，SHA256 `4ad244fd4ba702ccf3bac51cef926ee4cea80369f08b2e25625048b555d54491`；包名 `dev.hongguo.tv`，版本 `0.1.0 (1)`，arm64-v8a，min 26 / target 35，debug 签名，APK v2 签名和 16 KiB zip alignment 校验通过。基于 `34c63b7` 加本次 TV 修改构建，验证时工作区仍包含其他文档修改，不宣称全新 checkout 构建。
+
+可复跑命令与宿主职责见 `apps/tv/android/README.md`。本机忽略的证据位于 `artifacts/tv-emulator/`：`apk.json`、`bridge-headless.xml`、`light-acceptance.txt`、`dark-acceptance.txt`、`t0-light.png`、`t0-dark.png`。自动门禁拒绝手机镜像、非固定 API/ABI、多 adb 目标、开发 reverse 规则和不一致 APK；用例失败会返回失败，不依赖 `am instrument` 的进程退出码判断通过。
+
+此前直接运行 Android development host 的 T0 用例也曾 1/1 通过，记录为 `tv34-t0.xml`。最后的主题文字修正后重装开发宿主失败：固定 CLI 生成包含三个 ABI、约 2.7 GB 的 debug APK，先报存储不足，移除本任务旧开发宿主后传输又挂起，已中止并放弃对应安装 session。最终验收改为直接驱动最终 APK，未把此次开发宿主重装计为通过；取消逻辑未因主题修正改变，受控时钟回归仍在最终门禁执行。
+
+原默认 NSH APK 的手机模拟器启动仅为早期 smoke，不能算 TV 验收；缺少 Leanback 入口及遥控焦点的问题已由应用宿主解决。当前未验证 TalkBack、完整业务页面/弹层/回收列表的遥控流、真实媒体编码矩阵、长播、升级、正式签名与远端 CI；本节结果不扩展为这些能力已完成。
+
 ## Rust 游客历史 · 当前结果
 
 OpenSpec：`migrate-guest-history`。游客历史已接入现有 Rust API 与共享客户端，页面布局不变；账号、云同步、收藏/点赞与真实播放解析尚未迁移，原生业务 bridge 未接入。
