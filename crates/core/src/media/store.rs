@@ -27,6 +27,17 @@ const PROBE: u64 = 64 * 1024;
 const MAX_HANDLES: usize = 24;
 const IDLE: Duration = Duration::from_secs(15 * 60);
 
+// std::fs::File::try_lock is unsupported on Android; keep descriptor-owned locks on Unix.
+#[cfg(unix)]
+fn try_lock(file: &fs::File) -> std::io::Result<()> {
+    rustix::fs::flock(file, rustix::fs::FlockOperation::NonBlockingLockExclusive)
+        .map_err(Into::into)
+}
+#[cfg(not(unix))]
+fn try_lock(file: &fs::File) -> std::io::Result<()> {
+    file.try_lock().map_err(Into::into)
+}
+
 /// Validated media cache. Signed URLs, content keys and physical paths never leave core.
 #[derive(Clone)]
 pub struct MediaStore {
@@ -252,7 +263,13 @@ impl MediaStore {
             .write(true)
             .open(registry_path)
             .map_err(|_| PlaybackError::Storage)?;
-        registry.try_lock().map_err(|_| PlaybackError::Capacity)?;
+        try_lock(&registry).map_err(|error| {
+            if error.kind() == std::io::ErrorKind::WouldBlock {
+                PlaybackError::Capacity
+            } else {
+                PlaybackError::Storage
+            }
+        })?;
         // Stale cleanup requires the per-instance lock; live service directories are never removed.
         for entry in fs::read_dir(&base).map_err(|_| PlaybackError::Storage)? {
             let entry = entry.map_err(|_| PlaybackError::Storage)?;
@@ -264,7 +281,7 @@ impl MediaStore {
                 let lease = entry.path().join("lease");
                 if fs::symlink_metadata(&lease).is_ok_and(|m| m.file_type().is_file())
                     && let Ok(lock) = fs::OpenOptions::new().read(true).write(true).open(lease)
-                    && lock.try_lock().is_ok()
+                    && try_lock(&lock).is_ok()
                 {
                     drop(lock);
                     if let Err(error) = fs::remove_dir_all(entry.path())
@@ -290,7 +307,7 @@ impl MediaStore {
             .write(true)
             .open(directory.path.join("lease"))
             .map_err(|_| PlaybackError::Storage)?;
-        lock.try_lock().map_err(|_| PlaybackError::Storage)?;
+        try_lock(&lock).map_err(|_| PlaybackError::Storage)?;
         directory.lock = Some(lock);
         Ok(Self {
             inner: Arc::new(Store {

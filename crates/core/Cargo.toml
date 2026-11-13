@@ -20,6 +20,9 @@ rustls.workspace = true
 rusqlite.workspace = true
 tokio = { workspace = true, features = ["time", "sync", "fs", "io-util"] }
 
+[target.'cfg(unix)'.dependencies]
+rustix.workspace = true
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["io-util", "sync"] }
 

@@ -336,6 +336,27 @@ async fn opaque_handles_expiration_eviction_and_active_leases() {
 }
 
 #[test]
+fn registry_contention_fails_without_reclaiming_live_media_and_retries_after_release() {
+    let temp = Temp::new();
+    let live = MediaStore::new(&temp.0).unwrap();
+    let registry = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(temp.0.join("media/.instances.lock"))
+        .unwrap();
+    try_lock(&registry).unwrap();
+    assert!(matches!(
+        MediaStore::new(&temp.0),
+        Err(PlaybackError::Capacity)
+    ));
+    assert!(live.inner.directory.path.exists());
+    drop(registry);
+    let next = MediaStore::new(&temp.0).unwrap();
+    assert!(live.inner.directory.path.exists());
+    assert!(next.inner.directory.path.exists());
+}
+
+#[test]
 fn stale_cleanup_never_deletes_live_or_unrelated_directories_and_budget_is_atomic() {
     let temp = Temp::new();
     let base = temp.0.join("media");
