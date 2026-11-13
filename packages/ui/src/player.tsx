@@ -15,6 +15,7 @@ import {
 import { Button, Select, Sheet, Slider } from 'nsh/base';
 import { Icon, Product, tvUnit, type IconName } from './index';
 import { motionTokens } from './motion';
+import { SelectFocus } from './select-focus';
 
 const CinemaEnabled = context<() => boolean>(() => true);
 
@@ -131,7 +132,7 @@ export function CinemaSelect(props: {
       onChange={({ value }) => {
         if (value !== null) props.onChange(value);
       }}
-      class={`rounded-lg border border-transparent hover:bg-cinema-hover active:bg-cinema-active focus-visible:border-cinema-focus disabled:opacity-40 ${open() ? 'bg-cinema-active' : 'bg-cinema-control'}`}
+      class={`rounded-lg border border-transparent hover:bg-cinema-hover active:bg-cinema-active focus-visible:border-cinema-focus focus-within:border-cinema-focus disabled:opacity-40 ${open() ? 'bg-cinema-active' : 'bg-cinema-control'}`}
       trigger={
         <View
           class="flex-row items-center justify-center"
@@ -141,13 +142,15 @@ export function CinemaSelect(props: {
             paddingHorizontal: Product() === 'tv' ? tvUnit(24) : 8,
           }}
         >
-          <Icon name="down" color={token('cinema-foreground')} />
-          <Text
-            class="text-cinema-foreground"
-            style={{ fontSize: Product() === 'tv' ? tvUnit(22) : 14 }}
-          >
-            {props.items.find((item) => item.value === props.value)?.title ?? props.label}
-          </Text>
+          <SelectFocus open={open()} gap={Product() === 'tv' ? tvUnit(12) : 6}>
+            <Icon name="down" color={token('cinema-foreground')} />
+            <Text
+              class="text-cinema-foreground"
+              style={{ fontSize: Product() === 'tv' ? tvUnit(22) : 14 }}
+            >
+              {props.items.find((item) => item.value === props.value)?.title ?? props.label}
+            </Text>
+          </SelectFocus>
         </View>
       }
       placement="top"

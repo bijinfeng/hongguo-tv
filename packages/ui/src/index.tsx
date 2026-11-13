@@ -18,6 +18,7 @@ import {
 } from 'nsh';
 import { Button as BaseButton, Input as BaseInput, Toolbar, Select } from 'nsh/base';
 import { entrance } from './motion';
+import { SelectFocus } from './select-focus';
 
 /** Product target, deliberately independent of the host operating system. */
 export type ProductTarget = 'desktop' | 'tv';
@@ -111,6 +112,8 @@ export function Button(props: {
   episode?: boolean | 'player';
   testID?: string;
   buttonRef?: (ref: ViewRef) => void;
+  /** Internal Select trigger: its open list owns Enter on macOS. */
+  selectOpen?: boolean;
 }) {
   return (
     <BaseButton
@@ -143,32 +146,34 @@ export function Button(props: {
       disabled={props.disabled}
       selected={props.selected}
       accessibilityLabel={props.label}
-      class={`flex-row items-center gap-3 ${props.variant === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} rounded-(--radius) border px-3 py-2 active:opacity-70 focus-visible:border-ring disabled:opacity-40 ${reduceMotion() ? '' : 'transition-colors duration-100'} ${props.primary ? 'bg-primary border-primary hover:bg-primary/90' : props.episode ? 'bg-muted border-transparent hover:bg-accent' : props.variant ? 'bg-transparent border-transparent hover:bg-muted' : 'bg-card border-border hover:bg-accent'} selected:bg-accent`}
+      class={`flex-row items-center gap-3 ${props.variant === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} rounded-(--radius) border px-3 py-2 active:opacity-70 focus-visible:border-ring ${props.selectOpen ? 'focus-within:border-ring' : ''} disabled:opacity-40 ${reduceMotion() ? '' : 'transition-colors duration-100'} ${props.primary ? 'bg-primary border-primary hover:bg-primary/90' : props.episode ? 'bg-muted border-transparent hover:bg-accent' : props.variant ? 'bg-transparent border-transparent hover:bg-muted' : 'bg-card border-border hover:bg-accent'} selected:bg-accent`}
     >
-      <If when={props.icon}>
-        <Icon
-          name={props.icon!}
-          color={token(
-            props.primary
-              ? 'primary-foreground'
-              : props.selected
-                ? 'accent-foreground'
-                : 'foreground',
-          )}
-        />
-      </If>
-      <If when={!props.iconOnly}>
-        <Text
-          style={
-            Product() === 'tv'
-              ? { fontSize: tvUnit(props.variant === 'navigation' ? 24 : 22) }
-              : undefined
-          }
-          class={`${Product() === 'tv' ? 'text-xl' : props.compact ? 'text-sm' : props.variant === 'navigation' ? 'text-[15px]' : 'text-base'} ${props.primary ? 'font-semibold text-primary-foreground' : props.selected ? 'font-semibold text-accent-foreground' : 'text-foreground'}`}
-        >
-          {props.displayLabel ?? props.label}
-        </Text>
-      </If>
+      <SelectFocus open={props.selectOpen} gap={Product() === 'tv' ? tvUnit(12) : 12}>
+        <If when={props.icon}>
+          <Icon
+            name={props.icon!}
+            color={token(
+              props.primary
+                ? 'primary-foreground'
+                : props.selected
+                  ? 'accent-foreground'
+                  : 'foreground',
+            )}
+          />
+        </If>
+        <If when={!props.iconOnly}>
+          <Text
+            style={
+              Product() === 'tv'
+                ? { fontSize: tvUnit(props.variant === 'navigation' ? 24 : 22) }
+                : undefined
+            }
+            class={`${Product() === 'tv' ? 'text-xl' : props.compact ? 'text-sm' : props.variant === 'navigation' ? 'text-[15px]' : 'text-base'} ${props.primary ? 'font-semibold text-primary-foreground' : props.selected ? 'font-semibold text-accent-foreground' : 'text-foreground'}`}
+          >
+            {props.displayLabel ?? props.label}
+          </Text>
+        </If>
+      </SelectFocus>
     </BaseButton>
   );
 }
@@ -371,6 +376,7 @@ export function EpisodeRange(props: {
         <Button
           testID="episode-range-trigger"
           label={title()}
+          selectOpen={open()}
           icon="down"
           onPress={() => open.set(true)}
         />

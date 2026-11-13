@@ -366,3 +366,8 @@ TV T0 技术验证页使用共享 Button / Controls 与主题；测试读数只�
 | 正常卸载                   | 同步收集 Player 最终 checkpoint，等待所属写队列，再关闭 core | 不增加退出确认；系统强杀仅保障已提交记录  |
 
 实际截图与宿主通过范围记入 VALIDATION；本表不推定 macOS 锁屏期间的实际输入或屏幕阅读器通过。
+
+### macOS Select 键盘确认修复
+
+- 复用现有 Select 的高亮、确认、取消、弹层和恢复，不增加动效或可见内容。macOS 菜单打开后，下一帧把键盘交给触发器内部的非按压内容；关闭后只保留原触发器一个 Tab 停靠点。
+- 触发器的 focus-within 边框沿用 ring／cinema-focus，浅深主题与减少动态效果都要可见；其他宿主不改变焦点策略。确认后 Enter 可再次打开，Tab／Shift+Tab 可离开，Escape 与点击外部保留原有行为。

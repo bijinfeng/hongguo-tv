@@ -92,6 +92,28 @@ export function registerPlayerControlsHost(
       await key('end');
       await key('enter');
       await app.waitFor('提交 26 · 音量 5 · 速度 1.5');
+      await key('enter');
+      await key('home');
+      await key('enter');
+      await app.waitFor('提交 26 · 音量 5 · 速度 1');
+      await key('enter');
+      await key('end');
+      await key('space');
+      await app.waitFor('提交 26 · 音量 5 · 速度 1.5');
+      // Leaving an open Select moves past the trigger, in either direction.
+      await key('enter');
+      await key('tab');
+      await key('enter');
+      await app.waitFor('第 1 集');
+      await key('escape');
+      await app.wait(300);
+      await key('shift+tab');
+      await key('enter');
+      await key('shift+tab');
+      await key('right');
+      await app.waitFor('提交 26 · 音量 10 · 速度 1.5');
+      await key('left');
+      await key('tab');
       // The Select must restore its trigger, so Enter reopens it.
       await key('enter');
       await app.waitFor('1×');
@@ -104,6 +126,16 @@ export function registerPlayerControlsHost(
       await key('enter');
       await app.waitFor('第 1 集');
       expect(app.enabled('第 2 集 · 未开放')).toBe(false);
+      await app.press('id:episode-range-trigger');
+      await key('end');
+      await key('enter');
+      await app.waitFor('49–60 集');
+      expect(app.shows('1–24 集')).toBe(false);
+      await key('enter');
+      await key('home');
+      await key('space');
+      await app.waitFor('1–24 集');
+      expect(app.shows('49–60 集')).toBe(false);
       await app.screenshot(`${artifacts}/panel-dark${suffix}.png`);
       await key('escape');
       await app.wait(300);

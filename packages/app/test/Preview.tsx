@@ -81,6 +81,7 @@ export function PlayerControlPreview(props: { target: ProductTarget }) {
   const volume = signal(0.8);
   const committed = signal(24);
   const exits = signal(0);
+  const range = signal(0);
   let panelTrigger: ViewRef | undefined;
   const closePanel = () => {
     panel.set(false);
@@ -151,10 +152,10 @@ export function PlayerControlPreview(props: { target: ProductTarget }) {
         <EpisodePanel open={panel()} onClose={closePanel}>
           <Text class="text-xl font-semibold text-foreground">选集</Text>
           <EpisodeRange
-            value={0}
+            value={range()}
             count={60}
             pageSize={props.target === 'tv' ? 12 : 24}
-            onChange={() => {}}
+            onChange={range.set}
           />
           <View class="flex-row gap-3">
             <Button label="第 1 集" selected episode onPress={closePanel} />

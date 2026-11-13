@@ -314,3 +314,12 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - C3.1只覆盖该模拟器的上述独立业务；真实macOS输入／Select／全屏／观看、A/B其余系统字号／辅助技术、物理电视／遥控／硬解／长播、安全与正式签名发行仍开放，首期MVP尚未完成。不推送、归档或发布；并行品牌文档改动继续保留。
 
 - 独立复评：`native-business-tv/native-business-harness-review.md` 最终通过，六份新鲜SQLite副本均另经只读核验；`native-business-tv/native-business-ui-review.md` disposition为ship，仅C3.1模拟器已观察范围，亲看27张截图并核对树、日志与checkpoint。来源焦点由运行断言和其他focused截图支撑，return截图本身仍是详情，不单独当作来源搜索焦点证明。任务3.1据此完成，3.2／3.3仍开放；完整C3与MVP未关闭。
+
+### macOS · Select 原生键盘确认修复（2026-11-14）
+
+- 用户解锁后，真实 macOS 控件宿主首轮两组都暴露 End→Enter 只关闭菜单、未确认高亮项的问题，见 `artifacts/playback/mac-unlocked/controls-first.log`。NSH 0.5 macOS 默认 Press 激活先于开放 Select 的 Listbox Enter，不能用 headless 通过覆盖该失败。
+- `packages/ui` 的内部 SelectFocus 只在 macOS 菜单开放期间让非按压内容持有键盘；继续复用 base Select 的导航／确认／取消／恢复。普通 Button 不增加节点或停靠，其他宿主不改变焦点策略；focus-within 使用既有 ring／cinema-focus。播放速度和集数区间共用此适配。
+- 原生回归 `controls-focus-fix-third.log`、`controls-focus-fix-final.log` 各两组通过，覆盖减少动态效果开／关、Home／End、Enter／Space、双向 Tab、Escape／恢复及真实受控集数区间值。第二轮在运行中修正了预览夹具 value=0／空 onChange，导致两组使用不同夹具；第三轮及最终轮均为统一版本，不把第二轮计为通过。
+- 实际 CUA 在 1180×780 合成控件包完成 End→Enter 切换至 1.5×，AX 仍为有名称的单 combo 并恢复焦点，边框可见，见 `fixed-end-enter.png/txt`。接续手动 Home 检查时工具报告 Mac 再次锁屏；未进入真实全屏、未打开原生 Chrome，未宣称后续手动操作通过。
+- `artifacts/search-pagination/verify-second.log` 完整 verify 通过：101 Rust、21 工程，Web29／Desktop27／TV28，含三端 check／build、格式、lint、生成契约与发行基础检查。独立源码复评 `select-fix-review.md` 与 18 张原生图的 UI 审查 `select-ui-review.md` 仅针对本修复；证据根目录为 `artifacts/playback/mac-unlocked/`，控件宿主图在 `artifacts/playback/controls-macos/`。
+- 圆角、字号、间距、对齐、颜色与状态沿用设计，浅深与减少动态效果未见本次布局回归。辅助技术、系统大字号、逐帧动效、真实 Desktop mixed 官网观看／重启续播、物理电视与安全发行仍未验证／未解除；A/B/C3.2 不因此整体关闭。此前安全阻塞保留；未推送、归档或发布。
