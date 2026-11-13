@@ -1,0 +1,10 @@
+{
+  "editor.formatOnSave": true,
+  "files.exclude": { "**/.nsh": true, "**/target": true },
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.cargo.allTargets": true,
+  "[rust]": { "editor.defaultFormatter": "rust-lang.rust-analyzer" },
+  "[typescript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "[javascript]": { "editor.defaultFormatter": "oxc.oxc-vscode" }
+}

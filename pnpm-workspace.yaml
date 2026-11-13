@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+  - tooling
+  - app
+
+strictDepBuilds: true
+onlyBuiltDependencies: []

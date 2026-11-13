@@ -1,0 +1,15 @@
+# --no-stage-fixed in the wrapper also disables implicit stashing.
+lefthook: node tooling/src/lefthook.mjs
+assert_lefthook_installed: true
+pre-commit:
+  commands:
+    quality:
+      run: pnpm hooks:check
+commit-msg:
+  commands:
+    convention:
+      run: pnpm exec commitlint --edit {1}
+pre-push:
+  commands:
+    verify:
+      run: pnpm verify

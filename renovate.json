@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "automerge": false,
+  "packageRules": [
+    { "matchManagers": ["cargo"], "groupName": "Rust dependencies" },
+    { "matchPackageNames": ["oxlint", "oxfmt"], "groupName": "Oxc toolchain" },
+    {
+      "matchPackageNames": ["@commitlint/cli", "@commitlint/config-conventional"],
+      "groupName": "Git commit tooling"
+    }
+  ]
+}

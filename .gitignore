@@ -1,0 +1,12 @@
+.DS_Store
+**/.nsh/
+**/node_modules/
+**/target/
+.local/
+artifacts/
+dist/
+**/runtime.generated.json
+*.log
+coverage/
+**/fuzz/artifacts/
+**/fuzz/corpus/

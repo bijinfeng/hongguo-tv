@@ -1,0 +1,141 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "hongguo-http-api",
+    "description": "",
+    "license": {
+      "name": ""
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/status": {
+      "get": {
+        "tags": [],
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [],
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Process is ready"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "description": "Machine-readable errors keep human copy independent of client branching.",
+        "required": [
+          "ok",
+          "code",
+          "error"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable error code."
+          },
+          "error": {
+            "type": "string",
+            "description": "Human-readable description."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always false."
+          }
+        }
+      },
+      "Capabilities": {
+        "type": "object",
+        "description": "Implemented capabilities, shared by every transport.",
+        "required": [
+          "search",
+          "playback",
+          "account"
+        ],
+        "properties": {
+          "account": {
+            "type": "boolean",
+            "description": "Persistent account and history are available."
+          },
+          "playback": {
+            "type": "boolean",
+            "description": "Real media resolution and streaming are available."
+          },
+          "search": {
+            "type": "boolean",
+            "description": "Real content search is available."
+          }
+        }
+      },
+      "CoreStatus": {
+        "type": "object",
+        "description": "Runtime readiness is separate from content migration progress.",
+        "required": [
+          "api_version",
+          "version",
+          "capabilities"
+        ],
+        "properties": {
+          "api_version": {
+            "type": "string",
+            "description": "Version of the wire contract."
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities",
+            "description": "Available product functions."
+          },
+          "version": {
+            "type": "string",
+            "description": "Build version."
+          }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "description": "Successful status result using the shared response envelope.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CoreStatus",
+            "description": "Core state."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Successful request."
+          }
+        }
+      }
+    }
+  }
+}

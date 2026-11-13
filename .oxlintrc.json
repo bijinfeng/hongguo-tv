@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc", "import"],
+  "categories": { "correctness": "error" },
+  "env": { "builtin": true },
+  "globals": { "If": "readonly", "Each": "readonly" },
+  "ignorePatterns": [
+    "upstream/**",
+    ".agents/**",
+    ".claude/**",
+    "**/.nsh/**",
+    "**/runtime.generated.json",
+    "packages/contracts/src/generated.ts"
+  ],
+  "rules": {
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]
+  },
+  "overrides": [
+    {
+      "files": ["apps/**", "packages/**", "app/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["node:*", "react", "react/*", "react-dom", "react-dom/*"],
+                "message": "NSH application code cannot import Node or React."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    { "files": ["**/*.mjs"], "env": { "node": true } }
+  ]
+}

@@ -1,0 +1,20 @@
+name: Rust extended checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  coverage-fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - run: rustup component add llvm-tools-preview
+      - run: cargo install --locked cargo-llvm-cov --version 0.9.1
+      - run: mkdir -p coverage
+      - run: cargo llvm-cov --locked --workspace --all-targets --fail-under-lines 75 --lcov --output-path coverage/lcov.info
+      - run: rustup toolchain install nightly-2026-11-01 --profile minimal
+      - run: cargo install --locked cargo-fuzz --version 0.13.2
+      - run: cargo +nightly-2026-11-01 fuzz run byte_range -- -max_total_time=30

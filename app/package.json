@@ -1,0 +1,9 @@
+{
+  "name": "@hongguo/legacy",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@hongguo/app": "workspace:*",
+    "@hongguo/core-client": "workspace:*"
+  }
+}

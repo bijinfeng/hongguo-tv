@@ -1,0 +1,291 @@
+---
+name: 红果 NSH
+description: 日常片库；内容优先、清晰克制的多端观看界面
+colors:
+  background: '#f8f8f7'
+  foreground: '#20211f'
+  card: '#ffffff'
+  primary: '#c52e39'
+  primary-foreground: '#ffffff'
+  muted: '#efefed'
+  muted-foreground: '#686a64'
+  border: '#dedfd9'
+  input: '#d0d2cb'
+  ring: '#b42130'
+  accent: '#fbe8e9'
+  cinema: '#131514'
+  cinema-foreground: '#f7f8f5'
+  dark-background: '#161816'
+  dark-foreground: '#f3f4ef'
+  dark-card: '#20231f'
+  dark-primary: '#f2777d'
+  dark-primary-foreground: '#311216'
+  dark-muted: '#292d27'
+  dark-muted-foreground: '#a6ada0'
+  dark-border: '#383e35'
+  dark-input: '#50584a'
+  dark-ring: '#ffa6ab'
+  dark-accent: '#42282a'
+  dark-cinema: '#0c0e0c'
+  dark-cinema-foreground: '#f7f8f5'
+typography:
+  headline:
+    fontSize: '30px'
+    fontWeight: 600
+  title:
+    fontSize: '24px'
+    fontWeight: 600
+  item-title:
+    fontSize: '20px'
+    fontWeight: 600
+  section-title:
+    fontSize: '18px'
+    fontWeight: 600
+  body:
+    fontSize: '16px'
+    fontWeight: 400
+  label-primary:
+    fontSize: '16px'
+    fontWeight: 600
+  label-android:
+    fontSize: '20px'
+    fontWeight: 400
+  label-primary-android:
+    fontSize: '20px'
+    fontWeight: 600
+  caption:
+    fontSize: '14px'
+    fontWeight: 400
+rounded:
+  radius: '12px'
+spacing:
+  '2': '8px'
+  '3': '12px'
+  '4': '16px'
+  '5': '20px'
+  '8': '32px'
+components:
+  button-default:
+    backgroundColor: '{colors.card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body}'
+    rounded: '{rounded.radius}'
+    padding: '12px 16px'
+  button-primary:
+    backgroundColor: '{colors.primary}'
+    textColor: '{colors.primary-foreground}'
+    typography: '{typography.label-primary}'
+    rounded: '{rounded.radius}'
+    padding: '12px 16px'
+  button-default-hover:
+    backgroundColor: '{colors.accent}'
+  button-selected:
+    backgroundColor: '{colors.accent}'
+    textColor: '{colors.foreground}'
+    rounded: '{rounded.radius}'
+    padding: '12px 16px'
+  input-search:
+    backgroundColor: '{colors.card}'
+    textColor: '{colors.foreground}'
+    typography: '{typography.body}'
+    rounded: '{rounded.radius}'
+    padding: '12px 16px'
+  surface:
+    backgroundColor: '{colors.card}'
+    rounded: '{rounded.radius}'
+    padding: '20px'
+  notice:
+    backgroundColor: '{colors.card}'
+    textColor: '{colors.muted-foreground}'
+    typography: '{typography.body}'
+    rounded: '{rounded.radius}'
+    padding: '20px'
+  result-card:
+    backgroundColor: '{colors.card}'
+    textColor: '{colors.foreground}'
+    rounded: '{rounded.radius}'
+    padding: '16px'
+  header-navigation:
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.foreground}'
+    padding: '12px 20px'
+---
+
+# Design System: 红果 NSH
+
+## Overview
+
+**Creative North Star: "日常片库"**
+
+内容优先、清晰克制。用户容易找到想看的短剧，也容易接着上次的进度观看。封面、剧名与明确的操作建立层级，界面减少装饰，不让工程细节和重复说明占据注意力。
+
+清楚、克制、可操作；圆角柔和，状态明确。浅色采用暖白背景与深红主操作，深色采用墨绿灰背景与珊瑚红主操作。通过底色、留白和边界区分内容，不以投影制造层次。
+
+**Key Characteristics:**
+
+- 同一套语义主题覆盖浅色和深色，主要操作使用单一红色强调。
+- 顶部导航、纵向内容流和横向结果卡片组成当前验证界面。
+- 统一圆角、稳定边界和语义控件，让键鼠与遥控输入具有可识别的状态。
+- 内容到达时使用轻量入场，播放读数和操作标签即时更新。
+
+### 范围、来源与优先级
+
+本文件记录当前 NSH 实现，不是上游旧客户端的视觉复刻，也不新增页面布局。首期完整功能范围由 [PRODUCT.md](PRODUCT.md) 决定；当前只有搜索、详情、播放、历史和账号等验证页面，不能将这里提取出的组件数量视为产品功能已经齐全。
+
+运行时色值与圆角的唯一编辑源是 `packages/ui/theme.json`；组件状态来自 `packages/ui/src/index.tsx`，自定义动效来自 `packages/ui/src/motion.ts`，页面组合来自 `packages/app/src/`。前言 token 是本次扫描的可移植快照，供设计工具和 Agent 读取；源代码变化后重新生成，不以手改单个文档值改变运行时主题。
+
+前言未加前缀的颜色表示浅色，`dark-` 前缀表示对应深色值。实现中仍使用不带外观前缀的语义 token，由 NSH 解析当前外观。尺寸在前言使用格式规范要求的 `px` 表达逻辑尺寸，原生端按 NSH 的逻辑点/dp 解析，不表示物理屏幕像素。
+
+### 视觉证据与验证边界
+
+本次阅读了现有 `artifacts/macos-search-light.png`、`macos-search-dark.png` 和 `macos-search-narrow.png`，尺寸为 1180×780 与 460×780。截图形成于当前共享包文件之前，主要拓扑与状态相符，但不得据此断言最新代码逐像素一致。截图中的封面灰块可能是异步加载占位；不能将占位图固化为正式内容。
+
+本次仅合并设计文档及预览数据，没有重新运行客户端或进行新一轮设备验收。历史上的 Web/macOS 运行观察、浅深色检查，以及尚未完成的 TV、屏幕阅读器、系统字体缩放和减少动态效果验证，均以 [VALIDATION.md](VALIDATION.md) 为准。headless TV 入口通过不代表真机遥控、解码或安装包通过。
+
+## Colors
+
+配色以红色主操作配合低彩度中性色，深浅外观分别建立可读的前景与背景关系，不对浅色方案直接反色。
+
+### Primary
+
+- **浅色深红 / 深色珊瑚红**（`primary`）：用于搜索、开始观看、播放/暂停和登录等当前明确的主操作；按钮文字使用配套的 `primary-foreground`。
+- **轻红提示底**（`accent`）：用于普通按钮的悬停与选中填充，强调程度低于实色主操作。
+- **键盘焦点红**（`ring`）：用于焦点边界，与 `primary` 的当前选中含义分开。
+
+### Neutral
+
+- **暖白 / 墨绿灰底色**（`background`）：应用外壳和顶部导航的基础背景；页面宿主实际背景还受 `NavPage` 默认外观影响。
+- **内容面**（`card`）：按钮、输入框、结果卡片和信息容器的背景。
+- **正文墨色 / 浅色前景**（`foreground`）：剧名、标题与常规操作文字。
+- **次级灰 / 灰绿前景**（`muted-foreground`）：集数、简介、读数与辅助状态，不承担主要动作。
+- **弱化底色**（`muted`）：海报加载占位及结果卡片悬停。
+- **区域边界 / 输入边界**（`border`、`input`）：划分内容和输入区域，不作为装饰性分割线。
+- **影院暗底与前景**（`cinema`、`cinema-foreground`）：视频区域及其准备播放文字，保持与普通页面内容区分。
+
+错误文字当前使用 `destructive`，该角色在项目主题中没有显式值，由 NSH 默认主题提供。本次不猜测其色值，不增加一个不存在的自定义错误 token；后续补全主题时应与错误状态及两种外观一并验证。主题还声明了未在共享组件中直接消费的角色，本次前言不将其扩展成新的视觉规则。
+
+`.impeccable/design.json` 中的色阶由源色按 OKLCH 派生，仅用于设计面板展示，不是新增运行时 token。组件 HTML/CSS 是当前 NSH 外观的独立预览映射，不替代原生控件、动效或遥控交互的验证。
+
+**The Semantic Color Rule.** 页面只消费语义 token；原始色值只在主题定义，文档和预览数据是提取结果。选中、键盘焦点、错误和主要操作各自保留含义。
+
+## Typography
+
+使用宿主系统字体，没有项目自带字体或专用展示字体。前言不虚构固定字体栈、行高或字距；字体家族及未显式设置的排版属性由 NSH 和平台处理。
+
+### Hierarchy
+
+- **页面提问标题**（`headline`）：搜索页的主要标题。
+- **页面标题**（`title`）：详情剧名、历史和账号页标题。
+- **条目及应用标题**（`item-title`）：搜索结果剧名、播放器标题及顶栏品牌。
+- **分组标题**（`section-title`）：选集等小节；账号状态使用同字号常规字重。
+- **正文与标签**（`body`、`label-primary`）：简介、输入和常规按钮；主按钮使用半粗字重。
+- **Android 按钮标签**（`label-android`、`label-primary-android`）：当前按钮的 Android 变体；这不表示全页正文都已完成 TV 字号适配。
+- **辅助文字**（`caption`）：集数、播放秒数和列表说明。
+
+正文与普通按钮采用常规字重，标题和主按钮采用半粗字重。搜索简介最多两行，详情简介最多四行；窄窗口允许标题自然换行。当前 `History` 的长按钮标签、TV 远距离可读性及更大系统字体还需验证，不能只凭默认字号声明通过。
+
+## Layout
+
+当前布局是全宽顶部导航加纵向主内容，没有固定左侧栏、推荐视频流、抽屉或评论面板。旧客户端存在这些结构，但共享 NSH 验证界面尚未实现，不在本次扫描中虚构其组件规范。
+
+- **顶部导航**：左右内边距使用间距第 5 档，上下第 3 档；内容横排、可换行。搜索页显示品牌、继续观看与账号入口，子页面增加返回。
+- **页面内边距**：基础第 5 档，`md` 及以上第 8 档。`md` 沿用固定 NSH runtime 的默认断点，项目没有自定义断点值。
+- **相关控件**：搜索输入与按钮横排，间距第 3 档；搜索区域和详情区域以第 5 档分组；列表行距第 3 档。
+- **结果卡片**：单列纵向回收列表。卡片内海报与文本横排、间距第 5 档；海报为逻辑尺寸 80×112，文字区域占剩余宽度。
+- **详情**：容器内为 96×144 海报与内容横排，选集列表当前固定四列。窄屏四列是否适合长标签仍需实测，不把它推广为所有设备的网格规范。
+- **播放器**：视频区域占剩余高度，最小逻辑高度 192；标题、视频、读数和工具栏纵向排列。播放工具栏可换行。
+- **安全区**：根视图保留顶部与底部系统安全区；输入法、长文本和窗口尺寸变化需要在对应宿主验证。
+
+前言间距只提取共享实现实际使用的档位。既有规范允许 4/8/12/16/24/32 的节奏，而当前代码还复用 20；这里记录实际的 20，不悄悄改成 24。新增尺寸应先在共享设计基础中定义，避免页面逐处补偿。
+
+桌面/Web 共享布局。窄窗口缩小左右内边距，文本与允许换行的工具栏响应宽度；不能将“窄窗口上下排列”理解为所有内部横排已自动变成纵排。当前 Android 按钮最小高度为 64，普通按钮为 48；搜索输入仍是 48，尚未建立成套的 TV 尺寸变体。Android 样式目前按 OS 应用，不等于独立的 TV 输入能力判断。
+
+**The Stable Geometry Rule.** 悬停、按下、选中与焦点变化不改变控件占位；滚动和返回保留卡片身份、列表位置和来源焦点。
+
+## Elevation & Depth
+
+平面优先。基础页面、按钮、结果卡片和信息容器不使用投影，以背景差异、留白和细边框表达层级。播放器采用专门的暗色区域，其层次来自内容与底色，不附加发光或玻璃效果。
+
+**The Flat Surface Rule.** 不为当前基础组件额外增加浮起效果；确需新增弹层的后续功能，应先定义其共享表面与焦点行为，而不是为单个页面临时加阴影。
+
+## Shapes
+
+按钮、输入框、海报、结果卡片、信息容器和视频区域共享主题中的单一圆角。当前没有额外的大小圆角阶梯、胶囊控件或形状变体，不为文档完整性补造它们。
+
+普通按钮和结果卡片使用 2 个逻辑单位的稳定边界；输入框、信息容器和顶栏分隔使用 1 个逻辑单位。选中或焦点只改变边界颜色，不增加边界宽度。视频容器设置了圆角，但其裁切和视频叠层仍需按宿主验证，不能仅由类名推断所有平台表现一致。
+
+## Components
+
+所有共享控件来自 `packages/ui`。交互基础使用 `nsh/base` 的语义控件，业务页面组合控件与布局；现有页面仍直接包含部分字号、尺寸和布局，不能宣称所有视觉值已彻底收拢到 UI 层。
+
+### Buttons
+
+清楚、克制、可操作。当前 API 提供 `label`、`onPress`、`disabled`、`selected`、`primary` 和测试标识，没有通用 `size` 或完整 `variant` API。
+
+- **普通**：内容面背景、正文前景、稳定边界；悬停使用轻红提示底。
+- **主要**：主色背景和配套前景，半粗标签；悬停将主色透明度降至 90%，保留配套前景，不改用普通正文色。
+- **选中**：轻红提示底与主色边界；主要/选中组合没有独立文字样式，叠加态需验证，不将它当成新增标准变体。
+- **焦点**：键盘焦点使用 `ring` 边界；与选中同时出现时的优先级仍需在真实宿主观察。
+- **按下 / 禁用**：当前分别使用 70% / 40% 透明度，不加入位移或缩放。禁用时的输入行为由语义基础控件管理。
+- **尺寸**：左右内边距第 4 档，上下第 3 档；最小高度普通 48、Android 64，Android 标签放大。保持同类控件几何一致，后续成套尺寸变体需先落在共享层。
+
+### Inputs / Fields
+
+`SearchInput` 是受控语义输入，带“搜索短剧”的可访问名称和占位，支持提交、外部 ref 与文本修改回调。使用内容面、输入边界和统一圆角，聚焦后切换焦点边界；无单独的输入错误或禁用视觉变体。
+
+它在当前横排搜索区占剩余宽度，字号与最小高度仍为普通尺寸，不把 Android 按钮的放大规则误记为搜索输入已实现的行为。
+
+### Cards / Containers
+
+- **Surface**：卡片背景、单线边界、统一圆角，内边距第 5 档，子项间距第 4 档；创建时附带轻量入场。
+- **ResultCard**：语义按钮形态的横向结果卡片，内边距第 4 档；悬停弱化底色、选中主色边界、键盘焦点边界、按下透明度反馈。列表单元不播放重复的内容入场动画。
+- **Notice**：在 Surface 中显示邻近操作的说明或错误，可选“重试”；错误文字使用框架默认错误 token。失败保留已有输入和结果，不能把错误表现成无限加载。
+
+### Navigation
+
+当前为 `NavStack` / `NavPage` 加共享顶部导航。桌面/Web 使用 header 插槽；Android 隐藏宿主 header 并在内容中绘制同一顶栏。Escape 在非文本编辑状态返回上一层，搜索列表维护上下键与返回焦点恢复。完整 TV 方向键寻路与系统返回链仍需真机验证。
+
+页面状态、详情与返回位置归导航栈和 TSX 页面；搜索与共享记录当前归 `packages/app/src/store.ts`，播放会话归 `packages/app/src/playback.ts`。持久状态迁入 Rust 是目标，阶段状态由 `ARCHITECTURE.md` 管理；页面不自行实现媒体处理或重复协议层。
+
+### Player / Controls
+
+视频关闭系统自带操作栏，使用页面中的共享按钮和语义 Toolbar 提供播放/暂停、后退十秒、前进十秒、下一集。读数和按钮标签在原节点即时更新，不以动画延迟播放反馈；控制栏当前位于视频下方，不虚构已存在的悬浮控制层。
+
+播放成功后保存实际进度，暂停、退出、切集或后台时按播放会话取消旧解析并保存；返回按播放 → 详情 → 原结果恢复。历史不写入评论和完整选集详情。后台返回不自动继续播放，这些行为与视觉状态协同验收。
+
+### Motion and feedback
+
+当前自定义动效只有内容 Surface 的入场：透明度从 0 到 1、纵向位移从 8 到 0，180ms，`easeOut`。`motionTokens.fast` 定义了 100ms，但尚未被组件引用，不能将其写成现有 hover 动画时长。按钮只声明颜色 transition，没有显式时长；实际默认值由固定 NSH runtime 决定。
+
+| 状态变化             | 现有工具与约束                                  | 减少动态效果与验证状态                                                                |
+| -------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 按钮 hover / pressed | 颜色 transition 与按下透明度；几何稳定          | 需要保留即时颜色反馈；未新增显式 motion-reduce 类                                     |
+| 当前页面、选集与焦点 | 主色选中边界、独立焦点角色；无几何变化          | 规范要求即时切换；选中和焦点叠加仍需宿主观察                                          |
+| 详情、提示和错误出现 | Surface 创建一次入场 motion，读取共享时长和距离 | 要求减少动态效果时无位移；当前自定义函数没有显式读取 reduceMotion，宿主行为未完整验证 |
+| 搜索回收单元         | 不播放内容入场                                  | 保持滚动位置与身份，不追加逐行动画                                                    |
+| 播放 / 暂停标签      | 原标签即时替换                                  | 不增加反馈延迟                                                                        |
+| 页面前进 / 返回      | NavStack 宿主默认转场，搜索保持挂载             | 减少动态效果的具体表现由宿主验收，不能由静态截图证明                                  |
+| 加载与缓冲           | 有限区域内使用文字状态                          | 保留静态可读反馈，不把播放错误显示为缓冲                                              |
+| 播放读数与进度       | 原节点即时更新，无自定义动效                    | 同样即时                                                                              |
+| 用户拖动             | 当前无自定义拖动；使用 seek 命令和标准滚动      | 不新增自定义拖动假设                                                                  |
+| 弹出层与分栏调整     | 当前验证界面无额外弹层或可拖动分栏              | 未实现，不记为通过                                                                    |
+
+不增加界面音效，视频声音由播放器负责。新页面仍须在编码前记录动效清单；每项是否观察通过记录在验证文档，不在设计规范中推定。
+
+## Do's and Don'ts
+
+### Do:
+
+- **Do** 从共享主题、语义控件和现有间距档位组合界面，先扩展共享组件再添加新的外观变体。
+- **Do** 保留输入、列表位置、卡片身份和实际观看进度；错误紧邻相关操作，并提供可恢复路径。
+- **Do** 将焦点、选中、禁用和错误分别表达，让键盘与遥控器用户都能辨认当前操作位置。
+- **Do** 在浅色、深色、窄窗口、更大系统字体和减少动态效果下检查真实宿主，分别记录未验证项。
+- **Do** 让文案直接描述动作与结果，中文短标签不加重复说明，输入和长标题有明确换行或截断规则。
+
+### Don't:
+
+- **Don't** 在页面里散落原始色值、增加单页圆角或用阴影和装饰性标签堆叠层级。
+- **Don't** 在 hover、按下或焦点时改变边界宽度、字号或布局尺寸，让邻近内容跳动。
+- **Don't** 把 Android 放大样式、历史截图或 headless 测试当成 TV 遥控、解码、独立包或完整无障碍验收。
+- **Don't** 为记录现状而虚构未实现的侧栏、推荐流、抽屉、评论、尺寸变体或完整主题状态。
+- **Don't** 让焦点落在隐藏控件上、用方向键全局截获文本编辑，或只靠颜色、声音和动画表达状态。

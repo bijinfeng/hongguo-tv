@@ -1,0 +1,86 @@
+# 红果 · NSH
+
+NSH TSX + Rust 多端工程，采用 pnpm monorepo 和 Cargo workspace。Web、桌面和 Android TV 复用同一套界面与状态逻辑；目标原生客户端直接链接 Rust 核心。
+
+**当前是工程迁移第一阶段。** Rust API 可启动，包含状态契约和边界检查；内容搜索、账号、播放协议尚未迁移。三端暂为 TSX 入口，通过 HTTP 连接 Rust 服务，尚未接入原生 Rust bridge。已有真实播放验证保留在 `legacy:*`，其 Go 核心只作为迁移对照，不属于新工作区的构建与发行依赖。
+
+## 准备
+
+固定版本：Node 26.12.1、pnpm 11.1.3、NSH 0.5.0、Rust 1.97.0。分别由 `.node-version`、`package.json`、`.nsh-version`、`rust-toolchain.toml` 管理。NSH TSX 不需要 React、DOM、Vite 或 npm UI 依赖。
+
+安装 [Rust/rustup](https://rust-lang.github.io/rustup/installation/) 和[官方 NSH CLI](https://nsh.dev/zh-CN/docs/getting-started/)。macOS/Linux 安装固定 NSH：
+
+```sh
+curl -fsSL https://nsh.dev/install.sh -o /tmp/nsh-install.sh
+NSH_VERSION="v$(cat .nsh-version)" sh /tmp/nsh-install.sh
+npm install --global pnpm@11.1.3
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm setup
+pnpm setup:tools
+pnpm hooks:install
+```
+
+Windows 按 NSH 官方 PowerShell 安装说明设置 `NSH_VERSION`，其余 pnpm 命令相同。`NSH_BIN` 可指定 CLI；`setup` 会校验版本、生成每端连接配置和 NSH 类型，保留已有配置与 `.local/data/`。Rust 工具自动使用 `~/.cargo/bin`；`setup:tools` 安装 `tooling/tools.json` 固定的 nextest、deny、llvm-cov、fuzz，以及 LLVM 工具组件。
+
+```sh
+pnpm doctor                 # 通用工具检查，不等于真机通过
+pnpm doctor --target tv     # 另检查 JDK、adb、Android build-tools 35.0.1
+```
+
+原生桌面需要目标系统开发依赖（macOS 为 Xcode Command Line Tools）。TV 还需要完整 Android SDK、NSH Android runtime 和设备；当前环境缺失 build-tools 和设备。NSH runtime 可以用 `nsh component add web android` 按需安装。
+
+## 开发与验证
+
+```sh
+pnpm dev:web         # 自动构建 Rust API、分配端口、启动 NSH
+pnpm dev:desktop
+pnpm dev:tv          # 开发设备通过 adb reverse 访问本机 API
+pnpm dev:api         # 只启动 loopback Rust API，stdout 输出 ready JSON
+pnpm verify          # 格式、lint、契约、Rust/NSH check + build + tests
+pnpm security        # Cargo 漏洞/许可证/来源 + pnpm audit
+pnpm coverage        # Rust LLVM 行覆盖率门槛 75%
+pnpm codegen         # Rust → OpenAPI → TypeScript；无需运行服务器
+pnpm codegen:check   # 只比较，不修改文件
+```
+
+fuzz 使用独立固定 nightly：先 `rustup toolchain install nightly-2026-11-01 --profile minimal`，再 `pnpm fuzz`。coverage/fuzz 的实际运行状态见 VALIDATION。
+
+也可分别运行 `pnpm fmt`、`fmt:check`、`lint`、`check`、`build`、`test`、`test:tooling`。check/build/test 可添加 `--target web|desktop|tv` 缩小范围；默认检查三端入口。NSH headless 测试使用真实引擎和网络 stub，不能证明 TV 遥控或硬件解码。
+
+`pnpm dev:*` 当前展示共享界面，但 Rust 内容接口明确返回 `CORE_NOT_IMPLEMENTED`，不会返回伪造内容。开发 API 只监听 `127.0.0.1`、校验精确 Host/Origin、限制请求体；不能直接公开到公网。Ctrl-C 关闭本次 API 和宿主。每个目标同时只运行一个会话。
+
+预览打包需要显式提供 `HONGGUO_CORE_ORIGIN`，再运行 `pnpm package:web|desktop|tv`；产物仍依赖指定外部服务，不是独立客户端。桌面/TV 原生链接、公开 Web 身份隔离、签名与更新均是后续阶段。
+
+## 目录与依赖
+
+```text
+apps/web|desktop|tv/       三端薄入口、NSH 清单、测试入口
+packages/app/             共享页面、导航、状态、播放会话、行为测试
+packages/ui/              共享控件、主题与动效
+packages/core-client/     HTTP 适配和媒体/历史请求边界
+packages/contracts/       兼容 DTO + Rust 生成契约
+crates/core/              纯 Rust 领域规则，目前含媒体 Range 解析
+crates/http-api/          Axum 路由、开发来源策略、OpenAPI 导出
+services/web-api/         Tokio 进程、loopback 监听和优雅退出
+tooling/                  工程命令、生命周期、依赖边界测试
+contracts/                生成 OpenAPI
+app/ + scripts/           旧验证入口及 Go 启动链（迁移对照）
+upstream/hongguo/         固定上游源码，不直接修改
+```
+
+依赖方向：`app → ui/core-client → contracts`，`http-api → core`。工程规则由 Oxlint 和 `tooling/src/boundaries.mjs` 检查。业务页面不能导入 Node/React、其他应用入口或直接访问上游核心。NSH `.nsh/types` 是 API 真值；生成目录、连接配置、数据、产物和私有凭据均忽略进 Git。
+
+Git hooks 需主动安装：pre-commit 只读检查格式、lint、契约；commit-msg 校验 Conventional Commits；pre-push 运行完整 verify。安装的 hooks 通过 Node wrapper 强制 `--no-stage-fixed`，关闭 Lefthook 默认的隐式 stash；没有自动格式化或 git add/reset。CI 包含三系统 Rust 检查、macOS 三入口 NSH headless 和依赖安全检查，`required` 汇总所有门禁；真实三端安装与发布验收尚未接入。远端分支保护需要仓库管理员将该检查设为必需。
+
+## 旧行为对照
+
+```sh
+pnpm legacy:setup     # 仅此链路需要 Go；不读取旧客户端数据
+pnpm legacy:dev:web
+pnpm legacy:dev
+pnpm legacy:verify
+```
+
+旧入口也使用 `packages/app`，避免复制两套业务 UI。搜索结果、播放前不写历史、完成状态、历史裁剪及串行持久写入的回归测试随共享包保留。Go 核心固定为 `de9712bf358d`；`pnpm upstream:sync` 校验上游，不覆盖修改。
+
+设计与阶段边界见 [ARCHITECTURE.md](ARCHITECTURE.md)、[ENGINEERING.md](ENGINEERING.md)、[DESIGN.md](DESIGN.md)；真实检查结果、尚未验证的设备与功能见 [VALIDATION.md](VALIDATION.md)。

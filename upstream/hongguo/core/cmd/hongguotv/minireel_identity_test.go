@@ -1,0 +1,453 @@
+package main
+
+import (
+	"bytes"
+	"compress/gzip"
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+func decodeMiniReelRequestBody(t *testing.T, r *http.Request) []byte {
+	t.Helper()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Header.Get("Content-Encoding") != "gzip" {
+		return body
+	}
+	reader, err := gzip.NewReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	decoded, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return decoded
+}
+
+type miniReelTestRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f miniReelTestRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
+}
+
+func TestMiniReelPlaybackDeviceCacheRegistersOnce(t *testing.T) {
+	var registrations atomic.Int32
+	cache := newMiniReelPlaybackDeviceCache(func() (miniReelDevice, error) {
+		registrations.Add(1)
+		return miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789", cdid: "test-cdid"}, nil
+	})
+	const workers = 12
+	var wg sync.WaitGroup
+	errs := make(chan error, workers)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			device, err := cache.get(context.Background())
+			if err == nil && (device.deviceID != "1234567890123456789" || device.installID != "2234567890123456789" || device.cdid != "test-cdid") {
+				t.Errorf("device = %#v", device)
+			}
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := registrations.Load(); got != 1 {
+		t.Fatalf("registrations = %d, want 1", got)
+	}
+}
+
+func TestMiniReelPlaybackDeviceCacheRetriesRegistrationFailure(t *testing.T) {
+	var registrations atomic.Int32
+	cache := newMiniReelPlaybackDeviceCache(func() (miniReelDevice, error) {
+		if registrations.Add(1) == 1 {
+			return miniReelDevice{}, errors.New("temporary registration failure")
+		}
+		return miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789"}, nil
+	})
+	if _, err := cache.get(context.Background()); err == nil {
+		t.Fatal("first registration unexpectedly succeeded")
+	}
+	device, err := cache.get(context.Background())
+	if err != nil || device.deviceID == "" {
+		t.Fatalf("registration retry = %#v, %v", device, err)
+	}
+	if _, err := cache.get(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := registrations.Load(); got != 2 {
+		t.Fatalf("registration attempts = %d, want failed attempt plus one successful registration", got)
+	}
+}
+
+func TestMiniReelPlaybackDeviceRegistrationIsAnonymousAndInMemory(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/service/2/device_register/" {
+			t.Fatalf("path = %q", r.URL.Path)
+		}
+		if r.Header.Get("Cookie") != "" || r.Header.Get("X-Tt-Token") != "" {
+			t.Fatal("anonymous registration sent account credentials")
+		}
+		if r.URL.Query().Get("device_id") != "" || r.URL.Query().Get("iid") != "" {
+			t.Fatal("registration query included unregistered identity")
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		plain, err := passportTTDecrypt(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(plain, &payload); err != nil {
+			t.Fatal(err)
+		}
+		header, ok := payload["header"].(map[string]any)
+		if !ok {
+			t.Fatal("registration payload header is missing")
+		}
+		for _, field := range []string{"phone", "mobile", "phone_number", "mobile_number", "token", "sessionid"} {
+			if _, exists := payload[field]; exists {
+				t.Errorf("anonymous registration payload contains account field %q", field)
+			}
+			if _, exists := header[field]; exists {
+				t.Errorf("anonymous registration header contains account field %q", field)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"device_id_str":"1234567890123456789","install_id_str":"2234567890123456789"}`)
+	}))
+	defer server.Close()
+
+	device, err := registerMiniReelPlaybackDeviceAt(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if device.deviceID != "1234567890123456789" || device.installID != "2234567890123456789" || len(device.cdid) != 36 {
+		t.Fatalf("registered device = %#v", device)
+	}
+}
+
+func TestMiniReelMultiVideoModelUsesRegisteredIdentityAndDirectModel(t *testing.T) {
+	device := miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789", cdid: "00000000-0000-4000-8000-000000000001"}
+	var mu sync.Mutex
+	requests := 0
+	identities := make([]string, 0, miniReelVideoModelAttempts)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/novel/player/multi_video_model/v1/" {
+			t.Errorf("path = %q", r.URL.Path)
+		}
+		if r.Method != http.MethodPost || r.Header.Get("User-Agent") != miniReelPlaybackUA {
+			t.Errorf("unexpected playback request method/UA: %s %q", r.Method, r.Header.Get("User-Agent"))
+		}
+		if r.Header.Get("Content-Encoding") != "gzip" || r.Header.Get("Content-Type") != "application/json; charset=utf-8" {
+			t.Errorf("playback body encoding = %q/%q", r.Header.Get("Content-Encoding"), r.Header.Get("Content-Type"))
+		}
+		if got := r.URL.Query().Get("device_id"); got != device.deviceID {
+			t.Errorf("device_id = %q", got)
+		}
+		if got := r.URL.Query().Get("iid"); got != device.installID {
+			t.Errorf("iid = %q", got)
+		}
+		if got := r.URL.Query().Get("cdid"); got != device.cdid {
+			t.Errorf("cdid = %q", got)
+		}
+		if r.Header.Get("X-Argus") != "" {
+			assertMiniReelPlaybackSignature(t, r)
+		}
+		var body map[string]any
+		if err := json.Unmarshal(decodeMiniReelRequestBody(t, r), &body); err != nil {
+			t.Fatal(err)
+		}
+		bizParam, ok := body["biz_param"].(map[string]any)
+		if !ok || miniReelIntFromAny(bizParam["device_level"]) != 1 {
+			t.Fatalf("legacy fallback device_level = %#v, want 1", body["biz_param"])
+		}
+		videoIDs := nestedMiniReelValue(body, "mixed_video_id_map", "1004").([]any)
+		if len(videoIDs) != 1 || videoIDs[0] != "123" {
+			t.Errorf("mixed_video_id_map = %#v", videoIDs)
+		}
+		mu.Lock()
+		requests++
+		requestNumber := requests
+		identities = append(identities, r.URL.Query().Get("device_id"), r.URL.Query().Get("iid"))
+		mu.Unlock()
+		if requestNumber < 3 {
+			if r.Header.Get("X-Argus") == "" {
+				t.Error("first two requests must be signed")
+			}
+		} else if r.Header.Get("X-Argus") != "" || r.Header.Get("X-Gorgon") != "" {
+			t.Error("last empty-response retry must preserve the unsigned compatibility path")
+		}
+		if requestNumber < 3 {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"code":0,"data":{"123":{"video_model":{"video_list":{"720":{"main_url":"https://media.example/video.mp4","video_meta":{"codec_type":"h264","vwidth":1280,"vheight":720,"definition":"720p"},"encrypt_info":{}}},"video_duration":61}}}}`)
+	}))
+	defer server.Close()
+
+	options, err := miniReelNativeOptionsEndpointWithDevice(context.Background(), "123", server.URL+miniReelAPIPath, device)
+	if err != nil {
+		t.Fatalf("miniReelNativeOptionsEndpointWithDevice() error = %v", err)
+	}
+	if len(options) != 1 || options[0].Quality != "720P" || options[0].Duration != 61 || options[0].URL != "https://media.example/video.mp4" || options[0].Width != 1280 || options[0].Height != 720 {
+		t.Fatalf("options = %#v", options)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if requests != 3 {
+		t.Fatalf("requests = %d, want 3 empty-response retries with the same registered identity", requests)
+	}
+	for _, id := range identities {
+		if id != device.deviceID && id != device.installID {
+			t.Fatalf("retry used unexpected identity %q", id)
+		}
+	}
+}
+
+func TestMiniReelMultiVideoModelUsesContentTypeBucket(t *testing.T) {
+	device := miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789", cdid: "00000000-0000-4000-8000-000000000001"}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := map[string]any{}
+		if err := json.Unmarshal(decodeMiniReelRequestBody(t, r), &body); err != nil {
+			t.Fatal(err)
+		}
+		buckets, ok := body["mixed_video_id_map"].(map[string]any)
+		if !ok || len(buckets) != 1 {
+			t.Fatalf("mixed_video_id_map = %#v", body["mixed_video_id_map"])
+		}
+		ids, ok := buckets["2001"].([]any)
+		if !ok || len(ids) != 1 || ids[0] != "123" {
+			t.Fatalf("content type bucket = %#v", buckets)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"code":0,"data":{"123":{"video_model":{"video_list":[{"main_url":"https://media.example/video.mp4","video_meta":{"codec_type":"h264","vheight":720,"definition":"720p"}}]}}}}`)
+	}))
+	defer server.Close()
+
+	options, err := miniReelNativeOptionsEndpointWithDeviceModeForContentType(context.Background(), "123", server.URL, device, "default", "2001")
+	if err != nil || len(options) != 1 || options[0].Quality != "720P" {
+		t.Fatalf("content type resolve = %#v, %v", options, err)
+	}
+}
+
+func TestMiniReelContentTypeNormalizesAndSeparatesCache(t *testing.T) {
+	if got, err := normalizeMiniReelContentType(""); err != nil || got != miniReelDefaultContentType {
+		t.Fatalf("empty content type = %q, %v", got, err)
+	}
+	if _, err := normalizeMiniReelContentType("video"); err == nil {
+		t.Fatal("non-numeric content type accepted")
+	}
+	if legacy := miniReelCacheTokenWithCodec("123", "456", "720P", true, "full", "default"); legacy != miniReelCacheTokenWithCodecAndContentType("123", "456", "720P", true, "full", "default", "1004") {
+		t.Fatal("legacy cache token changed")
+	}
+	if a := miniReelCacheTokenWithCodecAndContentType("123", "456", "720P", true, "full", "default", "1004"); a == miniReelCacheTokenWithCodecAndContentType("123", "456", "720P", true, "full", "default", "2001") {
+		t.Fatal("content type did not isolate cache token")
+	}
+}
+
+func TestMiniReelMultiVideoModelSupportsLegacyEnvelopeAndRejectsInvalidResponse(t *testing.T) {
+	device := miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789"}
+	for _, fixture := range []string{
+		`{"code":0,"data":{"video_model":{"video_list":[{"main_url":"https://media.example/video.mp4","video_meta":{"vheight":720,"definition":"720p"}}]}}}`,
+		`{}`,
+	} {
+		requests := 0
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, fixture)
+		}))
+		_, err := miniReelNativeOptionsEndpointWithDevice(context.Background(), "123", server.URL+miniReelAPIPath, device)
+		server.Close()
+		if fixture == `{}` {
+			if err == nil || requests != miniReelVideoModelAttempts {
+				t.Fatalf("invalid response error = %v, requests = %d", err, requests)
+			}
+		} else if err != nil || requests != 1 {
+			t.Fatalf("legacy envelope error = %v, requests = %d", err, requests)
+		}
+	}
+}
+
+func TestMiniReelCodecModeFiltersOnlyIncompatibleSources(t *testing.T) {
+	device := miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789", cdid: "00000000-0000-4000-8000-000000000001"}
+	playbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"code":0,"data":{"123":{"video_model":{"video_list":{"h264":{"main_url":"https://media.example/h264.mp4","video_meta":{"codec_type":"h264","vwidth":1280,"vheight":720}},"bytevc1":{"main_url":"https://media.example/bytevc1.mp4","video_meta":{"codec_type":"bytevc1","vwidth":1280,"vheight":720}},"bytevc2":{"main_url":"https://media.example/bytevc2.mp4","video_meta":{"codec_type":"bytevc2","vwidth":1280,"vheight":720}}}}}}}`)
+	}))
+	defer playbackServer.Close()
+	client := &http.Client{Transport: miniReelTestRoundTripper(func(request *http.Request) (*http.Response, error) {
+		return http.DefaultTransport.RoundTrip(request)
+	})}
+	parse := func(mode string) ([]miniReelOption, error) {
+		return miniReelNativeOptionsAttemptWithClientMode(context.Background(), "123", playbackServer.URL+miniReelAPIPath, device, client, mode)
+	}
+
+	legacy, err := parse("default")
+	if err != nil || len(legacy) != 2 {
+		t.Fatalf("default candidates = %#v, %v; want h264 and bytevc1, with legacy bytevc2 filtering", legacy, err)
+	}
+	software, err := parse("software")
+	if err != nil || len(software) != 2 {
+		t.Fatalf("software candidates = %#v, %v; want h264 and bytevc1", software, err)
+	}
+	for _, option := range software {
+		if option.Codec != "h264" && option.Codec != "bytevc1" {
+			t.Fatalf("software decoding admitted an unsupported codec: %#v", option)
+		}
+	}
+	auto, err := parse("auto")
+	if err != nil || len(auto) != 2 {
+		t.Fatalf("auto candidates = %#v, %v; want h264 and bytevc1, with legacy bytevc2 filtering", auto, err)
+	}
+	for _, option := range auto {
+		if option.Codec != "h264" && option.Codec != "bytevc1" {
+			t.Fatalf("automatic decoder selection must not admit an unverified codec: %#v", option)
+		}
+	}
+	if err := miniReelNoCompatibleOptionsError("software"); err == nil || !strings.Contains(err.Error(), "没有适合软件解码") {
+		t.Fatalf("software no-source error = %v", err)
+	}
+}
+
+func TestMiniReelMultiVideoModelLoadsSafeFallbackAPI(t *testing.T) {
+	device := miniReelDevice{deviceID: "1234567890123456789", installID: "2234567890123456789", cdid: "00000000-0000-4000-8000-000000000001"}
+	fallbackURL := "https://api5-normal-sinfonlineb.fqnovel.com/playback/fallback"
+	playbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != miniReelAPIPath {
+			t.Errorf("unexpected playback request: %s %s", r.Method, r.URL.Path)
+		}
+		_, _ = io.WriteString(w, `{"code":0,"data":{"123":{"video_model":{"fallback_api":"`+fallbackURL+`"}}}}`)
+	}))
+	defer playbackServer.Close()
+	var fallbackCalls atomic.Int32
+	client := &http.Client{Transport: miniReelTestRoundTripper(func(request *http.Request) (*http.Response, error) {
+		if request.URL.Host == strings.TrimPrefix(strings.TrimPrefix(playbackServer.URL, "http://"), "https://") {
+			return http.DefaultTransport.RoundTrip(request)
+		}
+		fallbackCalls.Add(1)
+		if request.Method != http.MethodGet || request.URL.Host != "api5-normal-sinfonlineb.fqnovel.com" || request.URL.Path != "/playback/fallback" {
+			t.Errorf("unexpected fallback request: %s %s", request.Method, request.URL)
+		}
+		if request.Header.Get("User-Agent") != miniReelFallbackUA || request.Header.Get("Cookie") != "" {
+			t.Errorf("fallback request headers leaked or mismatched: %#v", request.Header)
+		}
+		body := `{"code":0,"video_info":{"code":0,"data":{"video_list":{"720":{"backup_url_list":["https://media.example/video.mp4"],"codec_type":"h264","vheight":720,"quality_desc":"720p"}},"video_duration":61}}}`
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body)), Request: request}, nil
+	})}
+	options, err := miniReelNativeOptionsAttemptWithClient(context.Background(), "123", playbackServer.URL+miniReelAPIPath, device, client)
+	if err != nil {
+		t.Fatalf("fallback playback resolution failed: %v", err)
+	}
+	if fallbackCalls.Load() != 1 {
+		t.Fatalf("fallback calls = %d, want 1", fallbackCalls.Load())
+	}
+	if len(options) != 1 || options[0].URL != "https://media.example/video.mp4" || options[0].Duration != 61 {
+		t.Fatalf("fallback options = %#v", options)
+	}
+	if got := miniReelFallbackAPI(`{"fallback_api":"https://api.fqnovel.com/fallback"}`); got != "https://api.fqnovel.com/fallback" {
+		t.Fatalf("fallback_api JSON wrapper = %q", got)
+	}
+}
+
+func TestMiniReelFallbackAPIRejectsUntrustedURLAndRedirect(t *testing.T) {
+	for _, raw := range []string{
+		"http://api.fqnovel.com/fallback",
+		"https://fqnovel.com.attacker.test/fallback",
+		"https://user@fqnovel.com/fallback",
+		"https://api.fqnovel.com:444/fallback",
+	} {
+		if _, err := miniReelValidateFallbackURL(raw); err == nil {
+			t.Errorf("accepted unsafe fallback URL %q", raw)
+		}
+	}
+	var calls atomic.Int32
+	client := &http.Client{Transport: miniReelTestRoundTripper(func(request *http.Request) (*http.Response, error) {
+		calls.Add(1)
+		response := &http.Response{StatusCode: http.StatusFound, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("")), Request: request}
+		response.Header.Set("Location", "https://attacker.test/collect")
+		return response, nil
+	})}
+	_, err := miniReelFetchFallbackModelWithClient(context.Background(), "https://api.fqnovel.com/fallback", client)
+	if err == nil {
+		t.Fatal("untrusted redirect unexpectedly succeeded")
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("redirect transport calls = %d, want only the trusted first request", calls.Load())
+	}
+}
+
+func TestMiniReelLiveRegisteredPlaybackSource(t *testing.T) {
+	if os.Getenv("HONGGUO_LIVE_MINIREEL") != "1" {
+		t.Skip("set HONGGUO_LIVE_MINIREEL=1 to verify the public upstream playback endpoint")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+	vid := firstNonEmpty(os.Getenv("HONGGUO_LIVE_MINIREEL_VIDEO_ID"), "7690963562042248217")
+	var options []miniReelOption
+	var err error
+	signedOnly := os.Getenv("HONGGUO_LIVE_MINIREEL_SIGNED_ONLY") == "1"
+	if signedOnly {
+		var device miniReelDevice
+		device, err = miniReelPlaybackIdentity.get(ctx)
+		if err == nil {
+			// One signed request only: this evidence cannot accidentally be
+			// satisfied by the unsigned compatibility fallback.
+			options, err = miniReelNativeOptionsAttemptMode(ctx, vid, miniReelAPIBase+miniReelAPIPath, device, "default")
+		}
+	} else {
+		options, err = miniReelNativeOptions(ctx, vid)
+	}
+	if err != nil {
+		t.Fatalf("live registered-device playback source request failed: %v", err)
+	}
+	if len(options) == 0 {
+		t.Fatal("live playback response contained no playable quality")
+	}
+	for _, option := range options {
+		if !strings.HasPrefix(option.URL, "https://") {
+			t.Fatalf("live playback returned a non-HTTPS source")
+		}
+	}
+	if len(options[0].Key) != 16 {
+		t.Fatal("live playback source did not contain a valid CENC key")
+	}
+	source, err := openMiniReelRangeSource(ctx, options[0], vid)
+	if err != nil {
+		t.Fatalf("live playback Range initialization failed: %v", err)
+	}
+	if source.Length <= 0 || len(source.Prefix) == 0 || len(source.Samples) == 0 {
+		t.Fatalf("live playback Range index was incomplete: length=%d prefix=%d samples=%d", source.Length, len(source.Prefix), len(source.Samples))
+	}
+	first := source.Samples[0]
+	frame, err := source.readAndTransform(ctx, int64(first.Offset), int64(first.Offset+first.Size-1))
+	if err != nil {
+		t.Fatalf("live first CENC sample could not be fetched and decrypted: %v", err)
+	}
+	if len(frame) != first.Size {
+		t.Fatalf("live first sample bytes = %d, want %d", len(frame), first.Size)
+	}
+	t.Logf("live playback verified: signed_only=%t quality=%q range_bytes=%d init_bytes=%d indexed_samples=%d first_sample_bytes=%d", signedOnly, options[0].Quality, source.Length, len(source.Prefix), len(source.Samples), len(frame))
+}

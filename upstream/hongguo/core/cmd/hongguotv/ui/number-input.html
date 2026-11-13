@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Text.DocumentTitle}}</title>
+<style>
+body{margin:0;background:#15151e;color:#fff;font:17px/1.6 sans-serif;padding:24px;box-sizing:border-box}main{max-width:420px;margin:40px auto}h1{font-size:26px}p{color:#c2c3ce}input,button{display:block;width:100%;box-sizing:border-box;padding:14px;margin:18px 0;font:inherit;border-radius:10px}input{background:#252631;color:#fff;border:2px solid #737586;font-size:24px}input[type=hidden]{display:none}button{background:#c73555;color:#fff;border:0}.error{color:#ffadb8}.hint{font-size:14px}
+</style></head><body><main>
+{{if .Expired}}<h1>{{.Text.ExpiredTitle}}</h1><p>{{.Text.ExpiredCopy}}</p>
+{{else if .Complete}}<h1>{{.Text.CompleteTitle}}</h1><p>{{.Text.CompleteCopy .Kind}}</p>
+{{else}}<h1>{{.Text.Title .Kind}}</h1><p>{{.Text.Description .Kind}}</p>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<form method="post" action="{{.Action}}" autocomplete="off"><input type="hidden" name="form_key" value="{{.FormKey}}"><label for="value">{{.Text.Label .Kind}}</label>{{if .Search}}<input id="value" name="value" type="text" autocomplete="off" required maxlength="100" placeholder="{{.Text.Placeholder .Kind}}">{{else if .Danmaku}}<input id="value" name="value" type="text" autocomplete="off" required maxlength="100" placeholder="{{.Text.Placeholder .Kind}}">{{else}}<input id="value" name="value" type="tel" inputmode="numeric" autocomplete="{{if .Phone}}off{{else}}one-time-code{{end}}" required minlength="{{if .Phone}}{{.PhoneMinLength}}{{else}}4{{end}}" maxlength="{{if .Phone}}{{.PhoneMaxLength}}{{else}}8{{end}}" pattern="{{if .Phone}}{{.PhonePattern}}{{else}}[0-9]{4,8}{{end}}">{{end}}<button type="submit">{{.Text.Submit .Kind}}</button></form>
+<p class="hint">{{.Text.Hint .Kind}}</p>{{end}}
+</main></body></html>

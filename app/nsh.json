@@ -1,0 +1,8 @@
+{
+  "name": "红果",
+  "id": "dev.hongguo.nsh",
+  "version": "0.1.0",
+  "build": 1,
+  "theme": "../packages/ui/theme.json",
+  "appearance": "system"
+}

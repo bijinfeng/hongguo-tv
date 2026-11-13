@@ -1,0 +1,10 @@
+{
+  "name": "@hongguo/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@hongguo/app": "workspace:*",
+    "@hongguo/core-client": "workspace:*"
+  }
+}

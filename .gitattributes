@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.mp4 binary
+pnpm-lock.yaml linguist-generated=true
+contracts/openapi.json linguist-generated=true
+packages/contracts/src/generated.ts linguist-generated=true
+upstream/** linguist-vendored=true
+Cargo.lock linguist-generated=true

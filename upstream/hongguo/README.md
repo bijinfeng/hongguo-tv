@@ -1,0 +1,79 @@
+<p align="center">
+  <img src="assets/branding/hongguo-icon-circle.svg" width="88" height="88" alt="红果短剧 TV">
+</p>
+
+<h1 align="center">红果短剧 TV</h1>
+
+<p align="center">Android TV · webOS · macOS · Windows · Linux</p>
+
+<p align="center">
+  <a href="https://github.com/aston314/hongguo-tv-releases/releases/latest"><img src="https://img.shields.io/github/v/release/aston314/hongguo-tv-releases?filter=v*&amp;sort=semver&amp;display_name=tag&amp;label=%E6%9C%80%E6%96%B0%E6%AD%A3%E5%BC%8F%E7%89%88&amp;style=flat&amp;color=DB411E" alt="最新正式版"></a>
+  <a href="https://github.com/aston314/hongguo-tv-releases/releases"><img src="https://img.shields.io/github/downloads/aston314/hongguo-tv-releases/total?label=%E5%8E%86%E5%8F%B2%E7%B4%AF%E8%AE%A1%E4%B8%8B%E8%BD%BD&amp;style=flat&amp;color=2E7D32" alt="所有历史 Release 发布附件累计下载次数"></a>
+  <a href="https://github.com/aston314/hongguo-tv-releases/issues/new/choose"><img src="https://img.shields.io/badge/%E9%97%AE%E9%A2%98%E5%8F%8D%E9%A6%88-%E6%8F%90%E4%BA%A4%E5%BB%BA%E8%AE%AE-555?style=flat&amp;logo=github&amp;logoColor=white" alt="问题反馈 / 功能建议"></a>
+</p>
+
+独立 Android TV 客户端项目，采用 Android 壳与 Go 核心的实现方式。
+
+当前版本包含可启动的 Go 本地服务、Android TV 壳、Mac 风格推荐页、红果分类/详情接口和 APK 内置播放链路，并由 GitHub Actions 构建。
+
+## 项目方向
+
+- 保留 Mac 版的左侧栏和右侧内容区；推荐页以视频流为主体。
+- 为 TV 重新设计遥控器焦点、面板回退和播放状态恢复。
+- Android 壳、Go 编译和打包流程参考 `aston314/vidsrc-local-proxy`；播放协议则复用了已验证的签名与 CENC 解密实现。
+- APK 在 GitHub Actions 上编译，覆盖 `arm64-v8a`、`armeabi-v7a` 和 `x86_64`。
+
+## 功能范围
+
+推荐、找剧、分类、排行榜、新剧、详情、选集、连续播放、同系列、下一季、历史、收藏、点赞、预约、账号登录、评论、弹幕，以及播放控制与下载能力。
+
+范围表示目标，不代表上述功能已经实现。没有源码的接口与内部算法必须逐项验证，尤其是账号、分季、弹幕和下载。
+
+## 参考文档
+
+- [TV 布局与遥控器交互](docs/tv-design.md)
+- [协议证据与待验证接口](docs/protocol-evidence.md)
+- [账号登录与云同步](docs/account-sync.md)
+- [账号数字键盘](docs/numeric-keypad.md)
+- [播放操作与评论面板](docs/player-actions.md)
+- [系列剧选集、切季与预约](docs/series-seasons.md)
+- [GitHub Actions 构建方案](docs/build-plan.md)
+- [双版本播放与更新](docs/player-editions.md)
+- [MPV 库源码、构建和替换](docs/mpv-library-source.md)
+- [Android 5 兼容包与独立在线更新](docs/android5-compat.md)
+
+## 当前实现
+
+- 桌面 Go 预览默认监听 `127.0.0.1:8797`；Android 由系统分配本机空闲端口，避免连接另一份应用或旧进程。
+- Android 壳通过前台服务启动 Go 进程，取得子进程输出的地址并校验实例/构建版本后，WebView 才打开该进程提供的 TV 页面。
+- TV 页面包含 Mac 风格左侧栏、竖屏推荐视频流、找剧海报页、排行榜长卡列表、新剧海报页、详情选集和播放控制；方向键支持网格按行切换、榜单侧栏与操作按钮切换，播放返回原卡片并保留滚动位置。
+- Go 核心提供分类、搜索、热播榜、详情、播放信息 API，并在同一进程中提供播放解析、`spade_a` 密钥解码、CENC AES-CTR 清晰化、临时 MP4 缓存和 Range 媒体路由。
+- LG webOS 使用共享 UI 与本机 JavaScript Service，已有 LG OLED65C5PTA（台湾版）运行 0.2.117 的真机回报：1080P 画面、声音、登录及原生遥控器滚轮正常。见 [真机报告 #57](https://github.com/aston314/hongguo-tv-releases/issues/57) 与 [webOS 说明](webos/README.md)。
+- 排行榜、新剧、上新日历、推荐四频道和预约使用已核对的红果 JSON API。榜单选项、日历日期由接口提供。HEIC 保留签名原地址，同时提供经过实测的官网 JPEG CDN 地址供 WebView 显示。
+- 找剧、榜单、新剧、日历、预约、评论和历史/收藏/点赞统一滚动追加，没有加载更多按钮。推荐剩余 3 项时只加载内容数据，不提前解析媒体；追加保留 DOM、焦点和滚动位置，失败可重试原页。
+- 共享 Go 核心的关键词搜索优先使用 App 分页接口；首屏设备注册或 App 搜索失败时，改用官网免登录 JSON 搜索并支持远程分页。一个结果集的续页固定使用同一来源，失败保留已加载结果并重试原页；联想建议接口不变。webOS 的独立 JavaScript 服务尚未包含这项备用机制。长度筛选尚未确认参数。
+- 日历可以预约和取消预约，我的预约区分已上线/待上线；关注和预约要求登录。预约写入仅 fixture 验证，真实账号仍待 APK 验收。
+- APK 内置播放服务是唯一播放链路；不会在运行时调用 8787 或 57828，也不要求用户另行部署服务。标准版恢复 0.2.136 的播放逻辑：默认先用 WebView HTML5，遇到明确不支持的编码、媒体解码错误、播放失败或无进展/首帧超时，才切到 Media3 1.8.0；Media3 使用设备提供的解码器，不再内置 NextLib/FFmpeg，失败后回到 HTML5，并保留已知播放位置。曾通过真实首帧验证 Media3 的设备仍可沿用有效的本地偏好。独立 MPV 版默认自动解码，可在设置中选择软件解码；音频优先使用 AudioTrack，以 48 kHz 输出，不额外施加固定音画补偿。两版均由 WebView 承载页面、焦点、弹幕和控制。缓存目录由 Android 壳传入应用私有 cache 目录，默认按 TTL 和总大小清理。
+- 播放异常时，建议先在设备的应用商店或系统应用管理中更新 **Android System WebView**，Android 7 及以上设备还要同时检查 Chrome 是否为当前 WebView 提供程序；更新后完全退出并重新打开本应用，必要时重启设备。WebView 更新可以修复旧 Chromium 的网页媒体兼容问题，但不会给设备增加 HEVC 解码能力；如果播放诊断仍显示 `video/hevc`、没有首帧或报告解码器错误，需要进一步核对设备硬件解码能力，不能只靠更新 WebView 解决。
+- 历史、收藏和点赞保存在设备上的 Go 记录文件，服务重启后可恢复；历史、收藏和点赞不设总量截断，每次滚动显示 20 部。真正开始播放才写历史，每 10 秒及暂停/退出时保存进度；重新打开可恢复集数和时间位置，支持自动下一集。清空单个记录列表不会清空其它列表，清空全部前有确认弹窗。
+- 本季最后一集结束后，通过官方季关系接口确认当前季并选择最近的可播放下一季，从第一集开始。排除禁播、零集和缺少首集的条目，不猜标题、不提前解析媒体。暂无下一季时推荐页转下一部，独立播放页停止；关系请求失败则暂停连续播放。跨季后选集、继续播放和历史更新到新剧，返回仍保留原卡片；退出页面或退后台会取消尚未完成的自动切换。
+- 选集面板新增“系列剧”：使用官方完整系列列表，显示季标签、播放中/继续播放及待上线预约状态。遥控器逐行滚动，一键切季保留面板、进度和原页面返回位置；登录后可以预约或取消待上线季，游客只提示登录。浏览列表不解析媒体。详见 [系列剧说明](docs/series-seasons.md)。
+- Android 8.0/API 26 及以上会向系统电视桌面同步一个「红果精选」频道，最多 20 条当前推荐；点击卡片直接进入对应剧集，并由应用内现有播放链路解析地址。Android 6–7.1 继续支持应用本身，不创建旧式推荐行。系统桌面和设备是否显示频道取决于 TV Provider 与厂商桌面；标准版和 MPV 版同时安装时会各自创建一条频道。详见 [Android TV 首页频道](docs/tv-home-channel.md)。
+- Android 标准版定位为轻量播放包，使用 HTML5 + Media3 1.8.0 和系统解码器；需要额外软件解码能力时可选择 MPV 版。仅当选中的 HEVC 轨道超出设备能力、尚未输出首帧且设备确实提供系统 HEVC 软件解码器时，Media3 才允许一次系统软解重试。MPV 版的依赖和播放策略保持不变。详见 [标准版播放策略](docs/standard-media3.md)。
+- 已接入手机红果 App 扫码登录，账号页默认显示二维码，Android、桌面及 webOS 均保留手机号验证码登录、上行短信验证分支、会话恢复及账号退出；首次登录先匿名注册设备，保存有效设备身份后再发码，修复随机设备 ID 导致的 HTTP 403。完整签名和设备加密由 Go 独立实现；真实匿名注册及无短信目的号码的登录接口请求已验证，实际手机号登录仍待 APK 验收。账号 Cookie/Token 只存于应用私有目录，不传给页面或外部签名服务。
+- 登录后使用独立的账号记录，同步云端收藏、点赞、历史和观看进度；取消收藏会提交云端。先拉取并比较进度时间，再上传本机待同步操作；失败保留队列，重启可恢复。登录前记录保留在本机，退出后恢复；本机清空不批量删除云端。当前集点赞/取消使用真实接口，按 VID 保存状态；账号点赞列表也完整同步，旧的本机点赞不会自动上传。已完成真实账号同步及可逆点赞/取消回归，协议见 [短剧点赞](docs/video-likes.md)；实体 TV 验收仍待进行。
+- 播放控制支持暂停、按 10 秒快进/快退、进度定位、倍速、音量与全屏布局；倍速/音量/清晰度偏好保存在本机。清晰度按当前集实际档位切换，保留时间和暂停状态，失败保留原视频；关闭面板、离开页面或后台取消等待。控制区分为进度行和按钮行，面板限定焦点；开始播放后空闲 4 秒隐藏控件，确认键显示控件。后台暂停并保存进度，返回前台不会自行继续播放。
+- Android 返回键先交由页面按面板、控件、全屏和上一页处理，根侧栏再显示退出确认；播放/暂停、快进/快退媒体键已接入页面桥接。实际遥控器行为仍待设备验收。
+- 当前集评论使用 Mac 风格右侧栏，支持评论/回复滚动分页、登录后发表、回复、点赞及确认删除本人评论。底部输入区固定，失败保留草稿；发送成功提示等待审核，不自动重试写入。弹幕按当前时间的 30 秒窗口读取，可独立开关并发送，暂停/seek/换集时暂停或清理旧弹幕。真实账号写操作仍待验收。详见 [播放操作](docs/player-actions.md) 和 [接口与分页盘点](docs/lists-pagination.md)。
+
+## 后续工作
+
+1. 建立原版页面与方法清单，记录可观察的输入、输出和行为。
+2. 运行原版采集未知接口的请求，保存经过脱敏的响应样本。
+3. 确认 Android 壳、Go 进程通信和播放实现。
+4. 开发 TV 页面与 Go 核心，接入 GitHub Actions 构建。
+5. 逐项验收原版功能和遥控器操作。
+
+原仓库发布的是编译产物；本项目重新实现客户端，不具备从原仓库源码直接交叉编译的条件。
+
+正式版签名、版本及旧调试包安装说明见 [release-runtime.md](docs/release-runtime.md)。

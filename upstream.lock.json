@@ -1,0 +1,946 @@
+{
+  "repository": "aston314/hongguo-tv",
+  "commit": "de9712bf358dcbdf8a188e26cba711e3e5354e8a",
+  "files": [
+    {
+      "path": "README.md",
+      "sha": "07259ad73f7623d2d14e02bdb56b0ddb72456bd5"
+    },
+    {
+      "path": "core/cmd/hongguotv/account.go",
+      "sha": "1a3d0f1b802e0cf3d01b514a8b30c1f963623b90"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_feedback_test.go",
+      "sha": "7ccbe91e0d2d6d102bd852a3c09ed60b01bda488"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_live_probe_test.go",
+      "sha": "68e85440e3fc7c82bdfb9931de8a66f8441f1e98"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_mfa_regression_test.go",
+      "sha": "27934b09341f19d03e06cf2d3e5c8f66711b0cb5"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_phone.go",
+      "sha": "12d48d8ab49df9e2648c24d4651d3eb12470ac23"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_phone_test.go",
+      "sha": "e74df82753452ad94754363973cc3d9efabe9d5f"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_qr.go",
+      "sha": "1888f7b8c24bfa64dae6101b3a0b833e5a781a22"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_qr_test.go",
+      "sha": "cdab6d74a41cc66831dcfa27d13afc7f5bb62811"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_scan.go",
+      "sha": "ed37911d89681541c43a20ea7bf2ba08f4c27c93"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_scan_test.go",
+      "sha": "d2d0393577b54cd0ab17002b776d215ecd5745a8"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_test.go",
+      "sha": "ce1f202640ad442cfc1729b146eaa9f6bd3fcc61"
+    },
+    {
+      "path": "core/cmd/hongguotv/account_ui_fixture_test.go",
+      "sha": "9efeae41b4dbd7d37a3f47c6f308632012fe4929"
+    },
+    {
+      "path": "core/cmd/hongguotv/calendar_live_probe_test.go",
+      "sha": "73c148fbcf4281fee80bb7d618929a9dd69057a3"
+    },
+    {
+      "path": "core/cmd/hongguotv/cloud.go",
+      "sha": "cf66a0ffa9d20750458ec3ea84c4dc2a2c265c17"
+    },
+    {
+      "path": "core/cmd/hongguotv/cloud_test.go",
+      "sha": "483ce09ea916a0e7ab56bb6b1190f369a663fd84"
+    },
+    {
+      "path": "core/cmd/hongguotv/creator_album.go",
+      "sha": "07af4e1cf5198165c6b76baab0eef530f0ca0799"
+    },
+    {
+      "path": "core/cmd/hongguotv/creator_album_test.go",
+      "sha": "46e90ffff5dd97fefed256764fb75fa867dde3c4"
+    },
+    {
+      "path": "core/cmd/hongguotv/discussion.go",
+      "sha": "0e7e3731069a500a4ca739f00da68c13025f93ea"
+    },
+    {
+      "path": "core/cmd/hongguotv/discussion_test.go",
+      "sha": "6b631c1978aab9216386eb726f5193a9b7d11d33"
+    },
+    {
+      "path": "core/cmd/hongguotv/engagement.go",
+      "sha": "0510488377018e447c991af5b455a15e9d39ea84"
+    },
+    {
+      "path": "core/cmd/hongguotv/engagement_live_probe_test.go",
+      "sha": "04738669f3bebca2e327cb8df5173248f89f3304"
+    },
+    {
+      "path": "core/cmd/hongguotv/engagement_test.go",
+      "sha": "87a41b7305849e74e4a0b10a9ee0df6c1b5cd071"
+    },
+    {
+      "path": "core/cmd/hongguotv/episode_prefetch_test.go",
+      "sha": "f271e3374fde5d7190e5379e9a5f7efd71eaa9cd"
+    },
+    {
+      "path": "core/cmd/hongguotv/follow.go",
+      "sha": "65b43f5d60ea38761f29993298a7555052b253d1"
+    },
+    {
+      "path": "core/cmd/hongguotv/follow_test.go",
+      "sha": "7f23b62e074ea4f3a382ef8ca9d987fbf55ae324"
+    },
+    {
+      "path": "core/cmd/hongguotv/guest_history.go",
+      "sha": "4c2caddcc59af7fb300f8a2573782712b466b0ae"
+    },
+    {
+      "path": "core/cmd/hongguotv/guest_history_test.go",
+      "sha": "9d0e2ee253900204a7db302d1d01d534d8f80750"
+    },
+    {
+      "path": "core/cmd/hongguotv/hongguo_client.go",
+      "sha": "d7170b90a5232faa5b294ecce394faf967d4bdef"
+    },
+    {
+      "path": "core/cmd/hongguotv/hongguo_client_test.go",
+      "sha": "b39f46f15571d8211077ecee76210cfc74f0e6b6"
+    },
+    {
+      "path": "core/cmd/hongguotv/library.go",
+      "sha": "5678b6820c25e8f056cea84272b5674165cc16d1"
+    },
+    {
+      "path": "core/cmd/hongguotv/library_test.go",
+      "sha": "cc3dd1bd0762b9944d2f64ea4fd6da0f139fb431"
+    },
+    {
+      "path": "core/cmd/hongguotv/likes_live_probe_test.go",
+      "sha": "a9e74d181f7567406cb37492f56c10c659fefd61"
+    },
+    {
+      "path": "core/cmd/hongguotv/lists.go",
+      "sha": "932fddbe17c12b26cae920146f93974443bd6443"
+    },
+    {
+      "path": "core/cmd/hongguotv/lists_probe_test.go",
+      "sha": "74ba00cfc0d71cc666da7ae81b3e1e934eff62a1"
+    },
+    {
+      "path": "core/cmd/hongguotv/lists_test.go",
+      "sha": "6e7f891ae55f1efab74006d491d4af10f46d9e6d"
+    },
+    {
+      "path": "core/cmd/hongguotv/lists_ui_fixture_test.go",
+      "sha": "d60c47a817bfe8ac5f2a7b8cfb4484b004986038"
+    },
+    {
+      "path": "core/cmd/hongguotv/main.go",
+      "sha": "8d02d4c42d265707a3092906ecf8fb58b3c1856e"
+    },
+    {
+      "path": "core/cmd/hongguotv/main_test.go",
+      "sha": "61d28a584aa963a36ec43895ac858a57da369e4c"
+    },
+    {
+      "path": "core/cmd/hongguotv/media_cache_lease_other.go",
+      "sha": "37275ffcbd8a43b52d10d2759a98dadf49485b1f"
+    },
+    {
+      "path": "core/cmd/hongguotv/media_cache_lease_unix.go",
+      "sha": "fbf7be20a3c23f48f665d1b79110e1e30d6b60b1"
+    },
+    {
+      "path": "core/cmd/hongguotv/media_cache_test.go",
+      "sha": "bc8e009f8f8dc7ff41f53c7c9f9e7b8acdebce2d"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel.go",
+      "sha": "a79f900418f84359261f7afd83691cf25e625e49"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_codec_fallback.go",
+      "sha": "21f302a5a5b66655299d6a721cc15937115a27f2"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_codec_fallback_test.go",
+      "sha": "e8cb913659e2a01069a89aec6a39d15209a81e21"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_identity_recovery_test.go",
+      "sha": "92b9d5d92b018f9eaa50c43d7b58e8974cd8a089"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_identity_test.go",
+      "sha": "33c4bcce9286b2fe5c9eca9f5789651d7144bd99"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_playback_race_test.go",
+      "sha": "e3e770a904e0c4bc3d0236d74181f084dd50b030"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_range.go",
+      "sha": "0144dd7da2d1424891096cf34b7bb5340855f756"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_range_test.go",
+      "sha": "688941c2a8c51be5493dc8fa16034b7853aa659f"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_registered_fallback.go",
+      "sha": "0e56c676df90e1b1a4eb44eb6fcbc2829d1d9ee6"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_registered_fallback_test.go",
+      "sha": "f868581a8296a7a60d939241c1b2ea853f9a2971"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_sign.go",
+      "sha": "aa68114ec8b0e8d051241178abee5ce2da9b6aee"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_sign_test.go",
+      "sha": "81bcb5c34678f0ff519551829c4a35fc9adb5a5b"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_model.go",
+      "sha": "f87ea159e5b59f67aa12994886373d7e3ef0c664"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_model_test.go",
+      "sha": "0d70f61ad4c0d27ee882062575c5be77894e08ce"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_registered.go",
+      "sha": "fef36bdc79a0455cf2163f262ea3dfdfa37c640a"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_registered_sign.go",
+      "sha": "4e5b0b488719befc2140ec4557c1b4df6b771d01"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_single_registered_test.go",
+      "sha": "77ba61572f81232895cf8f5e9f7cbc964b65b99b"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_source_memory.go",
+      "sha": "22123d128c81faef8d8cfedc31597282f2367c19"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_source_memory_test.go",
+      "sha": "5aa0673da9430e61503313423c6c155681b29f02"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_source_sequence.go",
+      "sha": "de10759b24c44ef717736b3de4f2aa4380ba7f2c"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_stream_recovery.go",
+      "sha": "d34baabc586c6dfa7fd325f441f897b54a645b9a"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_test.go",
+      "sha": "8580ec2e7f693a40f2b8f96f0b7d0bc05c31a1aa"
+    },
+    {
+      "path": "core/cmd/hongguotv/minireel_video_tab_test.go",
+      "sha": "e5caa3a8912a675e27f5830ec08dc181b4dbe637"
+    },
+    {
+      "path": "core/cmd/hongguotv/notifications.go",
+      "sha": "7974239c2fb52dc3955ff4d5ad24f74aa019f918"
+    },
+    {
+      "path": "core/cmd/hongguotv/notifications_test.go",
+      "sha": "12ba9cd9e9b89735f33525c96f1c17c0970fab38"
+    },
+    {
+      "path": "core/cmd/hongguotv/number_input.go",
+      "sha": "b4d3909200f0055ed54f4b6c768a36f12a39a744"
+    },
+    {
+      "path": "core/cmd/hongguotv/number_input_locale.go",
+      "sha": "ec81f58cd20f305b2dac62d7a4784bec5a7f4e5c"
+    },
+    {
+      "path": "core/cmd/hongguotv/number_input_test.go",
+      "sha": "5311445e7ecc17723a2fe2dcad2c4dc4ad46ae29"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_client.go",
+      "sha": "0888886b471be2216d3baa6505ad977db25c8bcd"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_constants.go",
+      "sha": "2fde0ab4e7ba6a076bb3b684bcffb8b9c9650411"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_device.go",
+      "sha": "84f1345ebe7e80e08bc69a7c37a6feceea2494a5"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_device_test.go",
+      "sha": "18fcc0efd42a6122c59f07ff7b374f2c745ba517"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_international.go",
+      "sha": "ae2e77c61fe87fab02b38cc0511409d17c2c500e"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_international_test.go",
+      "sha": "309f681a3b6ade6d1a3bfbbe76397591e78b8011"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_probe_test.go",
+      "sha": "0a9aa16a0a1fc310a81011828bb87d17b6c75f0f"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_sign.go",
+      "sha": "62a19eff10499440845cdedfb9b6ba510c82d893"
+    },
+    {
+      "path": "core/cmd/hongguotv/passport_sign_test.go",
+      "sha": "acea05671445e95809689d3ee02a453d17b3e570"
+    },
+    {
+      "path": "core/cmd/hongguotv/play_info_codec_test.go",
+      "sha": "03a87f5595d88afe75e02bb9c8eae2c30a5c6585"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_custom_device.go",
+      "sha": "339997a2372b4b78e508a15516e546c45530d9ba"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_diagnostics.go",
+      "sha": "e9b188ea2bca786eaada8b61eafa9503f7c6967f"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_diagnostics_test.go",
+      "sha": "542b3c6fd8ff176e8f9e3b525271e687660d82bf"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_network_diagnostic_test.go",
+      "sha": "1ab1c4eb299ba4da61c55573436143f2206c0abc"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_preparation.go",
+      "sha": "d45bbce69c55df62765e756647cd668c193f86a1"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_preparation_test.go",
+      "sha": "0707173bc69dc06c0e3d6c8b61c2c29393fb476c"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_sign.go",
+      "sha": "22e5b2b9f6cd980211c7ee654154b348c035c31b"
+    },
+    {
+      "path": "core/cmd/hongguotv/playback_sign_test.go",
+      "sha": "9e0ccf44f3dceef84cca3f845df1e33c41772038"
+    },
+    {
+      "path": "core/cmd/hongguotv/player_actions.go",
+      "sha": "9658c0cba6aebe61ff7f8125b6f1a94648901fd5"
+    },
+    {
+      "path": "core/cmd/hongguotv/player_actions_test.go",
+      "sha": "30ad57294ebc5dbeb485015a57a588ae0d35f5ad"
+    },
+    {
+      "path": "core/cmd/hongguotv/radar.go",
+      "sha": "dec0663cb154d5ac68359d4e272486f503a25cc2"
+    },
+    {
+      "path": "core/cmd/hongguotv/radar_test.go",
+      "sha": "65d06c08fa8381f3b34d538fac852bb3a560e03b"
+    },
+    {
+      "path": "core/cmd/hongguotv/rank_badge.go",
+      "sha": "ada2736ee893a0f12fb4ffaf72a49b35c11a37fa"
+    },
+    {
+      "path": "core/cmd/hongguotv/rank_badge_test.go",
+      "sha": "77d86ec018e15ba2d4f84a2fe39f7256ff84407f"
+    },
+    {
+      "path": "core/cmd/hongguotv/runtime.go",
+      "sha": "b26aeded5a0e33cd876c41f2dc5cc3fb2e70bbb5"
+    },
+    {
+      "path": "core/cmd/hongguotv/runtime_test.go",
+      "sha": "b37c456aacecd6141563b00cf4e01d48442f2887"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_discovery.go",
+      "sha": "d4d9130645312ffcad7029c57deae38f33284bd5"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_discovery_test.go",
+      "sha": "0761f675355e2265e343243ba0a5eaf607e1edf1"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_history.go",
+      "sha": "d2b4aad9951401a8806048db55c734a22c872c8e"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_history_test.go",
+      "sha": "39d04145e65e9ad9ce9b6a75dbff87ef5ce94fd7"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_ui_fixture_test.go",
+      "sha": "6e328641fb39cc88f6b68e8e38767de9c1aebc02"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_web.go",
+      "sha": "2565ac30537265f83f11bf19266d4be4c8877327"
+    },
+    {
+      "path": "core/cmd/hongguotv/search_web_test.go",
+      "sha": "b660e94816270c869bd34b077c7a8c4b65e9d8a5"
+    },
+    {
+      "path": "core/cmd/hongguotv/seasons.go",
+      "sha": "86105962b917d5b81f64d8c4c626559441cf496f"
+    },
+    {
+      "path": "core/cmd/hongguotv/seasons_test.go",
+      "sha": "536471419d8518283322fe01080d6cd64fcc6c14"
+    },
+    {
+      "path": "core/cmd/hongguotv/series_seasons.go",
+      "sha": "5b2709fed8832dc077570e45b3ad414b248e4f6b"
+    },
+    {
+      "path": "core/cmd/hongguotv/series_seasons_test.go",
+      "sha": "f82c6c6c1b43507a3b55c2ce743710bc55ade4f4"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/creator-album.json",
+      "sha": "4ca841948ed079fed6d7013153ea105d11cb5e6d"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/passport-device-vector.json",
+      "sha": "d7372d338a1b37eacf131911b2dd4a5a94e598ad"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/passport-international-v124.json",
+      "sha": "20c60fbaae451d60f7ce62378853c59135914cee"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/passport-vectors.json",
+      "sha": "e07ce02829d5b64b7c507beeafe7b8cfba505e8f"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/playback-sign-vectors.json",
+      "sha": "5cd8cbb5a947d8795aaf1d802cc1024afa00b71e"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/playback-url-vector.json",
+      "sha": "e2f7c8bd1727f8239e626d488bbab4d8e958c146"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/seasons-1.json",
+      "sha": "5f8c7fa59d0ef87d4deb91bfdcdc46e2ba3f8c31"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/seasons-13.json",
+      "sha": "f21c5a9d78df685827847ae5890476ecb99916e7"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/seasons-2.json",
+      "sha": "c7995d19c5bf1b380eda9cbbbedec92bc06b1e03"
+    },
+    {
+      "path": "core/cmd/hongguotv/testdata/single-registered-sign-vector.json",
+      "sha": "45a96aa4c5553b235fbfead54fce48c867a1a697"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/account-scan.js",
+      "sha": "4590bf3508a28a7342f687fca1d05417e6c426bc"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/app.css",
+      "sha": "f9ef88ed5054c74e13e76591de0c2fd07be396c9"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/app.js",
+      "sha": "ef35b1ed69d83fa8010966a7fcd41e2e3ea29bef"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/auto-cinema.js",
+      "sha": "db5537cba74c79803c8c33f10e11502f73ea0213"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/compat.css",
+      "sha": "ab6e68659f4abd9e5047da316a4fb625a3509a99"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/compat.js",
+      "sha": "130234dedd2a846af560e459cb62f48d5da83abb"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/danmaku-content.js",
+      "sha": "935b3ffd8c44b7488bdb50f42c15dd7fbe0ab2cd"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/desktop-mini-player.css",
+      "sha": "f62df61424835b67dc21c224145c60d366900b7c"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/desktop-mini-player.js",
+      "sha": "29e8046e1fce3d3bd43435403da0fb4a66caa60a"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/desktop.js",
+      "sha": "15a9c90969d3caf5a1dee18b42ef201cf28b73b7"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/1.webp",
+      "sha": "50570368e63b8e9eff26bdeb965f43d4938828cb"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/10.webp",
+      "sha": "340ccace47f5e75359fff903d91fe1b6d4e348a4"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/11.webp",
+      "sha": "5aaf218ebe7406c480415229f84c58235712930e"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/12.webp",
+      "sha": "1383ba465e3f63bd3940aaea0428b3e0f277233c"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/13.webp",
+      "sha": "7879c58b44c9d8c9d8d7ac10a26be907824cc06f"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/14.webp",
+      "sha": "8b01d62438c44a6a3885fdda6ca051b10f5a0d2c"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/15.webp",
+      "sha": "a620afc87391d6a586261857fd4f7c2bcc891c27"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/16.webp",
+      "sha": "1a4f0be2a9031fb171094f41b1cd0aa06bfcf630"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/17.webp",
+      "sha": "b8226aae46e2b8d51a15436612b3b724a612ff61"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/18.webp",
+      "sha": "252e3fda750e60168e7732da57eb1c1d5a4956ea"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/19.webp",
+      "sha": "007d545fb7fd64c4f75717024736699ab5af71f0"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/2.webp",
+      "sha": "351f1f37f5ea36048bf2af086771cb395d8bc9ce"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/20.webp",
+      "sha": "bd913d05dbc30b946158633752087d07c0300c2f"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/21.webp",
+      "sha": "b20ccc4ca8b8871e38dcba2174ef3e431b4416f3"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/22.webp",
+      "sha": "bf4b96b174651ca25ca8add8757a52933fae2606"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/23.webp",
+      "sha": "b89ec83ed23c31cbc9d9e38ae98aff65ad07aee5"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/24.webp",
+      "sha": "fa00742081ab85d13ecfe823d72e00d684169f19"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/25.webp",
+      "sha": "d8756ae468a53dec94cac1a480e783ec70748fa8"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/26.webp",
+      "sha": "7df48c8f2c72ccab609fb1a5acacb83724d14176"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/27.webp",
+      "sha": "15edabee4a3cb409404204b88f304905e69ada8d"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/28.webp",
+      "sha": "a6963ff904901e2186f88995f79099cb218566e1"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/29.webp",
+      "sha": "ae489dde2a2197033d31c5432a695654dbae97bb"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/3.webp",
+      "sha": "d181a34b40a7dbd60ce38e8b5323fc846c72242e"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/30.webp",
+      "sha": "3fa40fb1cab696dc6748d4dd0352791eda98cf2a"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/31.webp",
+      "sha": "987507ef0025e11a8ba38e4e176b889480a32cb1"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/32.webp",
+      "sha": "7acea880705352dccd77aa7fc28cc9dd396b4412"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/33.webp",
+      "sha": "cc97ba199a3181664a20df334fbe247afbe0d1d0"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/34.webp",
+      "sha": "0cc2776621cb15fcf35daf43d77d11b5f23acddb"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/35.webp",
+      "sha": "2754f4d7fb72d17255035a9d31cc9664c66f25fd"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/36.webp",
+      "sha": "6ed0357f9ad22b6e6e50f689ccfe5c8cd72247b8"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/37.webp",
+      "sha": "373cb2162311eff852090fe517491a5905d5225e"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/38.webp",
+      "sha": "299253e8fd1cc90ee053232ed15ebc686208bc27"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/39.webp",
+      "sha": "60cd16925da2374c978478b204bdff963639e278"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/4.webp",
+      "sha": "d0e013ddac35eed31fa5b5699dd7bfc483b8921e"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/40.webp",
+      "sha": "b29d77bacdaab8ebe7e7fec652641a95e4005df8"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/41.webp",
+      "sha": "4c49a1b2510ace7bf2aaa99a03eb80c04c7af142"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/42.webp",
+      "sha": "7515a37f8da43ad8f9f7008767e6e97c22529d4b"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/43.webp",
+      "sha": "6bb7da9015fd63a17f0ab68a1cfd11f2db9bd965"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/44.webp",
+      "sha": "e882d03258ffd5a6567cee113a8d607133db54bc"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/45.webp",
+      "sha": "6c2d5d2cf06c09bbfb5ec359c2c52d5d60bfde4a"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/46.webp",
+      "sha": "0f910dc8b497d6ed414d422c93687a035d181605"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/47.webp",
+      "sha": "2b781b35d4fa5d548794c1116dd2503743e32a04"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/48.webp",
+      "sha": "c229266be1b6559bdd184622dc80e26a3089b1ca"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/49.webp",
+      "sha": "f6cb0c78cd11bab99b6097f5ca976d86b24dd69d"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/5.webp",
+      "sha": "1e62ffb3740024530dc29bac82fc054b5daf11c6"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/50.webp",
+      "sha": "990b3e12f91a722c3267110c13fed3a2a7af698a"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/51.webp",
+      "sha": "bf823533bcee8d140395cd9936da2c08666ba7ed"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/52.webp",
+      "sha": "edef13e5f1603158d90679d611cc66529f6cefcc"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/53.webp",
+      "sha": "bea9fc5386d3925e774a27e7b0f4600c268d1217"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/6.webp",
+      "sha": "fe029e0d998ee6246584f374de826f6fafa1e2ea"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/7.webp",
+      "sha": "0bdfd914547b1d89e8a5e55e3cdeb9f5bbe4ea2e"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/8.webp",
+      "sha": "b1189410ca10ebacb7527162c5c30573b7aa49b2"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/9.webp",
+      "sha": "09ae3923aa67567abc2e431faeb363b680652dae"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/README.txt",
+      "sha": "5c4137c6f12dc17e0a26e2d1fe3ac29fa99bda4c"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/emoji/hongguo/manifest.json",
+      "sha": "3dcc5eec632baa0c4915d95ac4e8e54eef92c0e5"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/end-recommendations.js",
+      "sha": "3bb5478562fe067f83b4509b420dd76e1927703d"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/engagement.js",
+      "sha": "36bd4331e7ead5b805c34f195c27d3c0013572bd"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/episode-prefetch-settings.js",
+      "sha": "4a55a5bd3789fbef44b33e1fcfdb01d1debe39b0"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/episode-prefetch.js",
+      "sha": "c6fdb98b7488596c07802361b77262e9ed984f5e"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/episode-wheel.js",
+      "sha": "27a4b10417a91bc9f2ad51c4bda7762295469bda"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/i18n.js",
+      "sha": "47a17451aeb5f5d34101534c30b331b3f0d041ee"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/apps/doudou-screen.jpg",
+      "sha": "9ef0b3da742232e9f60481b2b8718f364cb76381"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/apps/doudou.svg",
+      "sha": "864bec48d28713835a53031c5da7a62b7ab56bb4"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/apps/sports-screen.jpg",
+      "sha": "6903a60c0bdf6e4789b7e26fd4facbc772973fea"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/apps/sports.svg",
+      "sha": "d420ec19878cc2d760d165175473e85eb128f413"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/apps/yunying-screen.jpg",
+      "sha": "891feed456bb062946e3ec7d4a9ab9af707d2b3b"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/apps/yunying.svg",
+      "sha": "ee011a77b4828631d03cc3ba53a860a43e251ffb"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/support-alipay.png",
+      "sha": "8e908eaa4a7c9f8e4b8278f7886d8a2bbcae43ed"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/support-wechat.png",
+      "sha": "5d62bfb976ab27da469ce074265fe9dd2619dc60"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/images/tv-remote-play-menu.svg",
+      "sha": "2c4177e81388d69aef780da18050fb6ed5a405e0"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/index.html",
+      "sha": "8854cf1964614f0eda02665388195d35ac2564e4"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/locales/ja-JP.js",
+      "sha": "45cf569bd0081e078ee5031c6e1cfb6c1ef523e8"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/locales/zh-CN.js",
+      "sha": "60cd4aa5eee4df3669ed54e5e127be01788df367"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/locales/zh-TW.js",
+      "sha": "b37715d84e725f97dc7008ff5a8a7da3af6bb6ca"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/native-player.js",
+      "sha": "37fd4ca5bc80d71222689a65830443b7a622fc9a"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/next-season-hint.js",
+      "sha": "ed537d481510f64a508da540d43b0e398a62be1a"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/number-input.html",
+      "sha": "14166f9df86fa0bbd002fc4e8067c970168fab7b"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/number-input.js",
+      "sha": "49aff26f7aa8efa6f86763635a39717e7adc86be"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/numeric-keypad.js",
+      "sha": "786c228c835e808c7b7d8315ceca35a203723874"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/pagination.js",
+      "sha": "a2a8eda4f514025d4c0bbb2514b8fbd1d1b12812"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/phone-countries.js",
+      "sha": "49744f3fcf7a3bb81169e45fdb05b4dbf0a610fc"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/playback-diagnostics.js",
+      "sha": "344e29a269691c45bdee8b91cd104381b6f4a851"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/playback-pointer.js",
+      "sha": "0b6f960c251556ff0c9c4e12ed89db034e26e41d"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/playback-recovery.js",
+      "sha": "39bd1073238fba7c90b170c8ca131269afa492e3"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/playback-settings.js",
+      "sha": "33364e72769c660d172f3c92b4d4184c7e0f7946"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/portrait-backdrop.js",
+      "sha": "724a39faee1c7729e242bcb69204caa7a97597cb"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/recommendation-auto-cinema.js",
+      "sha": "d77b36865311ccad46434c3165909b4b1e927f0b"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/recommendation-direction.js",
+      "sha": "07915e338c47080aee4eb1986f95c5126fda1876"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/recommended-apps.css",
+      "sha": "d215c06e6d258a6763a9bd4f84aa7c3d2cf8d813"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/recommended-apps.js",
+      "sha": "954138c7e374160379161d0bec7a66eeff3144d7"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/search-discovery.js",
+      "sha": "25999043fe7606211a2cdfdea219f709d46089c0"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/search-history.js",
+      "sha": "37443c2c18487df225b2c49c6e3e495d3705130f"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/sidebar-settings.js",
+      "sha": "00ffa677973b50d092f8d728cb9cccea24ff4bd1"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/sms-verification.js",
+      "sha": "b42fb2e36ed909b71d7dbf62df77d907cbbbcca3"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/startup-page.js",
+      "sha": "673d831e2b7e37289d5cbacecb8c9a4767fa7359"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/third-party-licenses.txt",
+      "sha": "342c5e5ab6bb2c780c7fa96a0d0f092b92374252"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/updates.js",
+      "sha": "6b4e1fc4ebe7bc91595a66dbbfd40aeeebc660b2"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/watch-statistics.css",
+      "sha": "c3de47babb4e397f16ded0565d4235a26f44adb4"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/watch-statistics.js",
+      "sha": "b75beaa809ccac6cfb426f1b14a4500a6e5b98fe"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/watching-return.js",
+      "sha": "f4b92379649656f7103daa1d50b471d899c45631"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/windows-wasm-player.js",
+      "sha": "aa2554ef15485c4242914b8a15a8d674a6ae35b2"
+    },
+    {
+      "path": "core/cmd/hongguotv/ui/windows-wasm-worker.js",
+      "sha": "edb4f5d1fc2b955e7cee4c6c5c41085b58aa89dc"
+    },
+    {
+      "path": "core/cmd/hongguotv/video_likes.go",
+      "sha": "231457e913f3babd20278bbaef733f6a768217e3"
+    },
+    {
+      "path": "core/cmd/hongguotv/video_likes_test.go",
+      "sha": "1b45472463363ef13f81d67420321eea84a23cba"
+    },
+    {
+      "path": "core/cmd/hongguotv/watch_statistics.go",
+      "sha": "ec87e378f8cd5e6447a201fef83f1072f530e6bd"
+    },
+    {
+      "path": "core/cmd/hongguotv/watch_statistics_test.go",
+      "sha": "1a847bf6ef5aa59f14215ea882709b756f9e173b"
+    },
+    {
+      "path": "go.mod",
+      "sha": "74714817fd1f58ef1061f45390ddafde40fc2e39"
+    },
+    {
+      "path": "go.sum",
+      "sha": "e99b5b91eaa4d3787d980f618e59663a42cc0301"
+    }
+  ]
+}
