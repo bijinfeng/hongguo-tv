@@ -5,6 +5,12 @@ plugins { id 'com.android.application' }
 def appMetadata = new JsonSlurper().parse(file('../../nsh.json'))
 def toolchain = new JsonSlurper().parse(file('../../../../tooling/tv-toolchain.json'))
 def generated = file('../../.nsh/android-host')
+def releaseStoreFile = System.getenv('TV_RELEASE_STORE_FILE')
+def releaseStorePassword = System.getenv('TV_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('TV_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('TV_RELEASE_KEY_PASSWORD')
+def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword]
+        .every { it != null && !it.isBlank() }
 
 android {
     namespace 'dev.hongguo.tv'
@@ -30,11 +36,40 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     packaging { jniLibs { useLegacyPackaging = false } }
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (releaseSigningReady) signingConfig signingConfigs.release
+        }
+    }
     lint {
         warningsAsErrors = true
         // Tool versions are pinned for reproducibility; upgrades are a separate change.
         disable 'AndroidGradlePluginVersion'
     }
+}
+
+tasks.register('verifyReleaseSigning') {
+    doLast {
+        if (!releaseSigningReady || !file(releaseStoreFile).isFile()) {
+            throw new GradleException(
+                    'TV release requires TV_RELEASE_STORE_FILE, TV_RELEASE_STORE_PASSWORD, '
+                            + 'TV_RELEASE_KEY_ALIAS and TV_RELEASE_KEY_PASSWORD')
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'assembleRelease') dependsOn 'verifyReleaseSigning'
 }
 
 // Official embedding classes; the matching mixed libnsh.so comes from NSH package.

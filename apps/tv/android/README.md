@@ -14,6 +14,12 @@ H.264/AAC media and the Rust bridge probe. It requires no API server, network,
 Node process or adb reverse rule at runtime. `HONGGUO_CORE_ORIGIN=… pnpm package:tv`
 still builds the explicit external-API UI preview; it does not pass this T0 gate.
 
+The host defaults to a debug-signed APK. A release build is selected with
+`HONGGUO_TV_BUILD_TYPE=release` and fails closed unless the Gradle process receives
+`TV_RELEASE_STORE_FILE`, `TV_RELEASE_STORE_PASSWORD`, `TV_RELEASE_KEY_ALIAS` and
+`TV_RELEASE_KEY_PASSWORD`. Keep the keystore and values in a protected Actions
+environment; never commit them or place them in an artifact.
+
 Use JDK 25.0.3 for the fixed NSH toolchain and JDK 17 for this Gradle host
 (verified locally with 17.0.20.1). Set `TV_JAVA_HOME` to the latter; Apple Silicon
 Homebrew's `openjdk@17` is detected automatically. Gradle 8.14.4 and AGP 8.13.2 are

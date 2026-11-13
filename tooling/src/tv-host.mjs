@@ -28,9 +28,17 @@ export function tvHostEnvironment() {
   };
 }
 
+export function tvBuildType(env = process.env) {
+  const buildType = env.HONGGUO_TV_BUILD_TYPE || 'debug';
+  if (buildType !== 'debug' && buildType !== 'release')
+    throw new Error('HONGGUO_TV_BUILD_TYPE must be debug or release');
+  return buildType;
+}
+
 // The upstream AAR is immutable and checked before extracting its embedding classes.
 const archiveHash = '4e0c943c75c4618e84a0139394719068de341f5c4386714502a2fb1cba802d7f';
 export async function packageTvHost() {
+  const buildType = tvBuildType();
   const toolchain = JSON.parse(await readFile(resolve(root, 'tooling/tv-toolchain.json'), 'utf8'));
   const metadata = JSON.parse(await readFile(resolve(root, 'apps/tv/nsh.json'), 'utf8'));
   const generated = resolve(root, 'apps/tv/.nsh/android-host');
@@ -96,10 +104,14 @@ export async function packageTvHost() {
   const host = resolve(root, 'apps/tv/android');
   await run(
     process.platform === 'win32' ? 'gradlew.bat' : './gradlew',
-    ['--no-daemon', 'assembleDebug', 'lintDebug'],
+    [
+      '--no-daemon',
+      `assemble${buildType[0].toUpperCase()}${buildType.slice(1)}`,
+      `lint${buildType[0].toUpperCase()}${buildType.slice(1)}`,
+    ],
     { cwd: host, env },
   );
-  await cp(resolve(host, 'app/build/outputs/apk/debug/app-debug.apk'), apk);
+  await cp(resolve(host, `app/build/outputs/apk/${buildType}/app-${buildType}.apk`), apk);
   const packedBundle = resolve(generated, 'packed-bundle');
   await run('unzip', ['-oq', apk, 'assets/nsh/bundle.nshc', '-d', packedBundle]);
   const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -112,7 +124,7 @@ export async function packageTvHost() {
   output(resolve(buildTools, 'apksigner'), ['verify', '--verbose', apk]);
   output(resolve(buildTools, 'zipalign'), ['-c', '-P', '16', '4', apk]);
   console.log(
-    `TV host APK: ${apk}\nSHA256 ${createHash('sha256')
+    `TV ${buildType} host APK: ${apk}\nSHA256 ${createHash('sha256')
       .update(await readFile(apk))
       .digest('hex')}`,
   );

@@ -33,7 +33,7 @@ flowchart TD
 | 现有 CI  | `.github/workflows/ci.yml`：三系统 Rust、macOS 三端 NSH check/build/headless、security、required；`release-validation.yml`：确定 SHA 的源码验证；`release-preview.yml`：macOS arm64 与 TV T0 预览 | 尚无正式发行、桌面安装/升级或 TV Android 构建发布 job；配置存在不等于远端已通过 |
 | NSH      | `.nsh-version` 为 0.5.0；本机 CLI 为 f4d68f7；生成类型包含 `nsh/updater`                         | 可复用原生整包更新 API，无须引入 Electron/Tauri 更新框架                                      |
 | 桌面     | `apps/desktop/nsh.json` 无 native crate、无 updater；当前 package 命令要求外部 API               | 目前只能分发显式标记的预览包，独立产品需完成 Rust 业务内嵌                                    |
-| TV       | 自有 `NshView` embedding 宿主；`packageTvHost()` 执行 `assembleDebug` / `lintDebug`              | 给 NSH 命令加 keystore 参数不足以完成生产签名，最终 Gradle 宿主也必须有 release signingConfig |
+| TV       | 自有 `NshView` embedding 宿主；`packageTvHost()` 默认执行 debug，可由 `HONGGUO_TV_BUILD_TYPE=release` 切换正式签名构建 | 生产签名仍依赖 `release-signing` secrets、同签名 N-1 包和设备升级验收 |
 | TV APK   | arm64-v8a、min 26 / target 35；当前 T0 使用 debug 签名                                           | 正式包需固定身份、正式 keystore；不能把 T0/debug 包当作正式升级起点                           |
 | 业务     | 匿名目录与游客历史在 Rust；账号、真实播放与原生业务桥接未完成                                    | 构建通道可先建立；正式产品发行不得绕过业务与独立运行验收                                      |
 | 版本     | 根 package.json 和三端 nsh.json 分别声明 0.1.0，各端 build 为 1                                  | 建立唯一产品版本源，避免包版本、APK versionCode 和清单漂移                                    |
@@ -157,6 +157,7 @@ https://bijinfeng.github.io/hongguo-tv/
 | --------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥       | 可追溯的源码验证记录；不产生可安装候选，不投放 stable |
 | `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 预览包和 TV T0 APK，不拿生产密钥          | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable |
+| `tv-release-candidate.yml`（同仓库）    | `release-signing` protected environment；读取 TV keystore secrets，构建并验签 arm64 APK | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable |
 | `release-candidate.yml`（后续，同仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；平台产物构建后才进入受控签名阶段 | 最终签名候选、SBOM、完整验收记录；不自动投放 stable   |
 | `publish.yml`（后续，同仓库）           | 指定候选 run ID、源码 SHA、version/build、资产摘要；受保护环境审批晋级        | 上传并验证草稿 → 发布不可变 Release → Pages 指针晋级  |
 
@@ -261,7 +262,7 @@ Android 的无人值守更新有安装者身份、权限和目标版本等条件
 | 阶段               | 交付                                                                                                  | 退出条件                                                                                     |
 | ------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | R0：发行基础       | 公开现有源码仓库、明确 LICENSE/NOTICE、启用同仓库 Pages、应用身份、唯一版本源与受控签名路径           | 干净 checkout 版本检查可复现；源码/历史可公开，客户端无 token                                |
-| R1：构建和预览     | 源码验证 workflow、macOS arm64 桌面预览与 TV arm64 T0 预览 workflow、版本/摘要/校验和工具；正式签名仍待接入 | 当前只产生短期 Actions artifact；正式候选仍需从 GitHub 下载原文件可安装，不能因业务未完成误发正式版 |
+| R1：构建和预览     | 源码验证、macOS arm64 桌面预览、TV arm64 T0 预览和受保护 TV release candidate workflow；版本/摘要/校验和工具 | 当前只上传候选 artifact；正式候选仍需从 GitHub 下载原文件可安装，不能因业务未完成误发正式版 |
 | R2：桌面更新闭环   | shared UpdateClient、桌面 NSH adapter、签名 Pages 清单                                                | 真实安装包 N-1 → N、重启保存、错误签名/断网/权限路径通过；macOS 优先，其他系统独立验收       |
 | R3：TV 更新闭环    | Rust 清单校验/下载、Android 权限/session adapter、共享 UI                                             | 同签名 N-1 → N 保留数据，拒绝错包/错证书/降级；模拟器与目标真机安装器分别通过                |
 | R4：正式晋级与恢复 | 不可变 Release、渠道串行晋级、停止投放/修复包演练、设备证据                                           | 最终签名资产满足业务、security、独立运行和真机门禁；公开匿名下载与升级复验通过               |
@@ -289,4 +290,4 @@ R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本�
 
 合成文件不是可安装归档；临时测试密钥和文件均已删除。以上实验只证明清单工具和签名格式，不证明下载、安装或升级行为。
 
-本轮已确认远端为 PUBLIC，加入 `release-validation.yml`、`release-preview.yml`、唯一版本源检查、候选产物记录工具和对应测试；未修改 GitHub 设置、上传资产、部署 Pages、接入正式签名或修改应用更新宿主。`pnpm verify` 已通过；`pnpm security` 仍需单独处理已有依赖策略阻塞。正式签名、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。
+本轮已确认远端为 PUBLIC，加入 `release-validation.yml`、`release-preview.yml`、`tv-release-candidate.yml`、唯一版本源检查、候选产物记录工具和对应测试；未修改 GitHub 设置、上传资产、部署 Pages 或修改应用更新宿主。TV release signing 已用临时测试 keystore 在本机验证，生产密钥和受保护环境尚未配置。`pnpm verify` 已通过；`pnpm security` 仍需单独处理已有依赖策略阻塞。正式签名候选的远端运行、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。

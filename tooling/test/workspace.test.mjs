@@ -16,6 +16,7 @@ import {
 } from '../src/process.mjs';
 import { ready, stop } from '../src/dev.mjs';
 import { hookArgs } from '../src/lefthook.mjs';
+import { tvBuildType } from '../src/tv-host.mjs';
 
 async function temp(fn) {
   const dir = await mkdtemp(resolve(tmpdir(), 'hongguo-test-'));
@@ -38,6 +39,15 @@ test('target selection rejects unsupported targets and malformed options', () =>
   assert.equal(nativeTarget('desktop', 'win32'), 'windows');
   assert.equal(nativeTarget('tv'), 'android');
   assert.throws(() => nativeTarget('desktop', 'freebsd'));
+});
+
+test('TV host build type is explicit and fail-closed', () => {
+  assert.equal(tvBuildType({}), 'debug');
+  assert.equal(tvBuildType({ HONGGUO_TV_BUILD_TYPE: 'release' }), 'release');
+  assert.throws(
+    () => tvBuildType({ HONGGUO_TV_BUILD_TYPE: 'profile' }),
+    /must be debug or release/,
+  );
 });
 
 test('NSH child environment finds Cargo without changing the caller PATH', () =>

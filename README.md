@@ -56,6 +56,8 @@ pnpm release:record --input <候选描述 JSON> --out release.json --checksums S
 
 公开仓库的手动 `Release preview` workflow 会从指定源码 SHA 构建 macOS arm64 桌面预览包和 Android TV arm64 T0 技术包，上传短期 Actions artifact，并附带 `release.json`/`SHA256SUMS`。这些包需要外部 Rust API 或仍属于 T0 技术验证，不是正式 Release，也不会进入稳定更新渠道。
 
+`TV release candidate` workflow 只允许在 `release-signing` protected environment 中运行，读取 `TV_RELEASE_KEYSTORE_BASE64`、`TV_RELEASE_STORE_PASSWORD`、`TV_RELEASE_KEY_ALIAS` 和 `TV_RELEASE_KEY_PASSWORD`，生成正式签名候选并验证 applicationId、versionCode、证书摘要和 APK 完整性；它只上传候选 artifact，不创建 GitHub Release。
+
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 
 游客历史说明见 [crates/core/src/library/README.md](crates/core/src/library/README.md)。`pnpm dev:*` 自动传入独立数据目录 `.local/data/rust`，不读取旧客户端文件；直接启动 Rust binary 必须提供 `--data-dir <目录>`。数据库不兼容或损坏时启动失败并保留原文件，请先检查版本与备份，不要删除数据绕过错误。
