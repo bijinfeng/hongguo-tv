@@ -31,6 +31,14 @@ const iconPaths = {
   search: 'M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M16 16l5 5',
   history: 'M3 11a9 9 0 1 1 2.4 7M3 4v7h7m2-5v6l4 2',
   play: 'm9 5 11 7-11 7Z',
+  pause: 'M8 5v14M16 5v14',
+  next: 'm5 5 11 7-11 7ZM19 5v14',
+  volume: 'M4 9h4l5-4v14l-5-4H4Zm12-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
+  mute: 'M4 9h4l5-4v14l-5-4H4Zm13 0 5 6m0-6-5 6',
+  fullscreen: 'M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6',
+  list: 'M8 6h13M8 12h13M8 18h13M3 6h1m-1 6h1m-1 6h1',
+  settings: 'M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6',
+  close: 'm6 6 12 12M6 18 18 6',
   user: 'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21a8 8 0 0 1 16 0',
   back: 'm14 5-7 7 7 7',
   forward: 'm9 5 7 7-7 7',
@@ -38,6 +46,14 @@ const iconPaths = {
   lock: 'M4 10h16v11H4ZM8 10V6a4 4 0 0 1 8 0v4m-4 5v2',
 };
 export type IconName = keyof typeof iconPaths;
+export {
+  CinemaButton,
+  CinemaSlider,
+  CinemaSelect,
+  CinemaControls,
+  CinemaText,
+  EpisodePanel,
+} from './player';
 /** The approved prototype's line icons, drawn through the native canvas. */
 export function Icon(props: { name: IconName; color?: string }) {
   return (

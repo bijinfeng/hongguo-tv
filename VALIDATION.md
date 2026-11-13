@@ -214,3 +214,12 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - UI 审查：真实 Web 图形宿主 3 项通过，查看浅深 controls 截图未发现本批回归；日志 `artifacts/playback/ui-service-web.log`，截图 `artifacts/browsing/web/controls-{light,dark}.png`。本批未改 Player 页面，新播放器布局、解码、系统字体、macOS 与 TV 业务仍各自待验收。
 - `pnpm security` 仍被既有 foldhash／webpki-roots／winx／zlib-rs 许可与 NSH bincode／ttf-parser 未维护项阻塞，未放宽门禁；日志 `artifacts/playback/security-service.log`。futures-util 已在锁文件中，本批仅加入直接依赖，没有新增包；后续安全阶段未完成。
 - 本批不等于 B 或首个 MVP 完成；A 6.2 字体缩放、真实宿主观看／seek／切集／重启续播、物理电视／长播及独立原生业务未验收。未推送／发布。
+
+### B4a · 播放器共享控件（5.1 仍待 macOS 完整输入验收）
+
+- `packages/ui/src/player.tsx` 提供影院按钮、Slider、Select、控制层和 Sheet，沿用现有浅深主题，按桌面／TV 定稿尺度呈现；内部预览明确是合成控件，不是媒体播放。隐藏状态直接禁用所有子控件，避免只隐藏父层仍留下 Tab 目标。
+- `pnpm check`、`pnpm build` 三端通过，日志 `artifacts/playback/{check,build}-controls-reviewed.log`；`pnpm test --target web` 通过 88 个 Rust 和 16 个 NSH 测试，日志 `test-controls-reviewed.log`。本批没有依赖变化。
+- `node tooling/src/player-controls-host.mjs web` 的浅深／减少动态效果两组通过：实际操作进度与提交值、音量、速度，Enter 重开 Select／Sheet，隐藏后 Tab 跳到预览末尾按钮；`ui-controls-web-interactions.log` 与 `controls-web/` 截图。
+- Android TV 模拟器 NSH 开发宿主的同一预览两组触控路径通过（进度拖动／提交、音量、速度、面板与隐藏）；`ui-controls-android-interactions.log` 与 `controls-android/`。Android 原生选择行在 touch-down 后消失可能使测试 touch-up 报 `has no native view`，只在最终速度读数已为 1.5 时接受该测试驱动错误；未忽略选择失败。此结果不代表 DPAD、实体遥控、解码或最终业务 APK 通过。
+- macOS 控件尺度、按钮与 Sheet 的早期键盘路径两组通过；最新完整键盘补测已验证进度／commit 和音量，但在 Select 改值处失败，保留 `ui-controls-macos-interactions.log`。原生 CUA 复核报告 Mac 锁屏，无法继续实际输入；此前既有浏览页 pointer／文本自动化也失败，保留 `browsing-macos-controls-diagnostic.log`，不归为播放器单一根因。
+- 独立视觉复审要求补全控件输入与焦点证据；Web 已补齐且暴露并修复隐藏子控件问题。macOS Select 与完整隐藏焦点证据、屏幕阅读器／系统字体缩放仍未完成；5.1 和 6.3 保持未勾选。截图目录 `artifacts/playback/controls-{web,macos,android}/`。未修改设计原型／品牌并行工作，未推送、发布或归档。

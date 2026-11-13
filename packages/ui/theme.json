@@ -20,6 +20,11 @@
       "cinema": "#131514",
       "cinema-foreground": "#f7f8f5",
       "cinema-muted": "#b8bdb6",
+      "cinema-control": "#242823",
+      "cinema-hover": "#353b33",
+      "cinema-active": "#434b40",
+      "cinema-track": "#737b6d",
+      "cinema-focus": "#ffa6ab",
       "cinema-transparent": "#13151400",
       "destructive": "#a92330"
     },
@@ -40,6 +45,11 @@
       "cinema": "#0c0e0c",
       "cinema-foreground": "#f7f8f5",
       "cinema-muted": "#b8bdb6",
+      "cinema-control": "#242823",
+      "cinema-hover": "#353b33",
+      "cinema-active": "#434b40",
+      "cinema-track": "#737b6d",
+      "cinema-focus": "#ffa6ab",
       "cinema-transparent": "#0c0e0c00",
       "destructive": "#ff9ca2"
     }
