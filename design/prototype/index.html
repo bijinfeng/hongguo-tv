@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-mode="desktop">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>红果 · 可点击设计原型</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="desktop.css" />
+    <link rel="stylesheet" href="tv.css" />
+    <script src="desktop.js" defer></script>
+    <script src="tv.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">跳到内容</a>
+    <div class="review-bar" aria-label="设计评审工具">
+      <span>设计原型 <span class="review-note">· 虚构剧目与封面 · 仅演示交互</span></span>
+      <div class="review-tools">
+        <button data-action="map">页面地图</button>
+        <label
+          ><span class="sr-only">预览平台</span
+          ><select id="mode">
+            <option value="desktop">Web／桌面</option>
+            <option value="tv">TV 遥控</option>
+          </select></label
+        >
+        <button data-action="theme" id="theme-button">深色</button>
+        <label
+          ><span class="sr-only">演示状态</span
+          ><select id="scenario">
+            <option value="normal">正常状态</option>
+            <option value="loading">加载中</option>
+            <option value="empty">空内容</option>
+            <option value="error">网络失败</option>
+          </select></label
+        >
+      </div>
+    </div>
+    <div id="desktop-shell">
+      <aside class="sidebar" id="navigation" aria-label="主导航"></aside>
+      <div class="workspace">
+        <header class="app-header">
+          <button
+            class="icon-button mobile-menu"
+            data-action="menu"
+            aria-label="打开导航"
+            aria-expanded="false"
+          ></button>
+          <form class="search-form" id="search-form" role="search">
+            <span id="search-icon" aria-hidden="true"></span>
+            <input
+              id="search"
+              name="q"
+              type="search"
+              placeholder="搜索短剧、演员"
+              aria-label="搜索短剧、演员"
+              autocomplete="off"
+              list="search-suggestions"
+            />
+            <datalist id="search-suggestions">
+              <option value="重返1998"></option>
+              <option value="春山不负"></option>
+              <option value="长夜有声"></option>
+              <option value="晚风知我意"></option>
+            </datalist>
+            <button type="submit">搜索</button>
+          </form>
+          <div class="header-actions">
+            <button
+              class="icon-button"
+              data-route="history"
+              aria-label="观看记录"
+              title="观看记录"
+              id="history-icon"
+            ></button
+            ><button class="account-button" data-action="account" id="account-button"></button>
+          </div>
+        </header>
+        <main id="content" tabindex="-1"></main>
+      </div>
+    </div>
+    <div id="tv-shell" hidden>
+      <header id="tv-header" aria-label="TV 导航"></header>
+      <main id="tv-content" tabindex="-1"></main>
+      <footer id="tv-hint">
+        <span>方向键 移动</span><span>确认键 选择</span><span>返回键／Esc 返回</span
+        ><span>浏览器遥控模拟</span>
+      </footer>
+    </div>
+    <dialog id="overlay" aria-labelledby="dialog-title"></dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

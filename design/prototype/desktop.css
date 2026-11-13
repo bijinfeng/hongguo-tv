@@ -1,0 +1,636 @@
+/* Desktop layout extends the established token and control system. */
+[hidden] {
+  display: none !important;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+:root {
+  --sidebar: 204px;
+}
+#desktop-shell .sidebar {
+  background: var(--background);
+  padding-top: 24px;
+}
+#desktop-shell .brand {
+  font-size: 26px;
+  margin-bottom: 32px;
+}
+#desktop-shell .brand .icon {
+  color: var(--primary);
+}
+#desktop-shell .nav-button {
+  min-height: 46px;
+  font-size: 15px;
+}
+#desktop-shell .app-header {
+  height: 88px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+#desktop-shell .search-form {
+  width: min(520px, 100%);
+  background: var(--muted);
+  border-color: transparent;
+}
+#desktop-shell main {
+  max-width: 1440px;
+  padding: 0 40px 64px;
+}
+#desktop-shell main:focus-visible {
+  outline: none;
+}
+#desktop-shell main > h1 {
+  margin-bottom: 28px;
+}
+#desktop-shell .poster-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px;
+  max-width: 1100px;
+}
+#desktop-shell .poster-art {
+  aspect-ratio: 2 / 2.7;
+}
+#desktop-shell .poster-art img {
+  object-position: center 30%;
+}
+#desktop-shell .poster-title {
+  font-size: 18px;
+  margin-top: 12px;
+}
+#desktop-shell .poster-meta {
+  font-size: 14px;
+}
+#desktop-shell .tag {
+  font-size: 12px;
+}
+#desktop-shell .first-section {
+  margin-top: 0;
+}
+#desktop-shell .section-head {
+  margin-top: 32px;
+}
+#desktop-shell .section-head h2 {
+  font-size: 20px;
+}
+#desktop-shell .section-head > button[data-route],
+.release-preview button[data-route] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#desktop-shell .first-section.section-head {
+  margin-top: 0;
+}
+.continue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.continue-card {
+  display: flex;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: clip;
+}
+.continue-cover {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  flex: none;
+  width: 108px;
+}
+.continue-cover img {
+  display: block;
+  width: 108px;
+  height: 160px;
+  object-fit: cover;
+  object-position: top;
+}
+.continue-copy {
+  padding: 18px 24px;
+  min-width: 0;
+  flex: 1;
+}
+.continue-copy h3 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+.continue-copy p {
+  margin-bottom: 10px;
+}
+.continue-copy .btn {
+  margin-top: 14px;
+  min-height: 36px;
+  font-size: 14px;
+  padding: 6px 12px;
+}
+.continue-copy .progress {
+  max-width: 210px;
+}
+.release-preview {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.release-preview h2 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+.release-preview p {
+  margin: 0;
+}
+.desktop-detail {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 40px;
+  max-width: 1000px;
+  align-items: center;
+}
+.detail-poster img {
+  width: 200px;
+  height: 280px;
+  display: block;
+  object-fit: cover;
+  object-position: top;
+  border-radius: var(--radius);
+}
+.detail-information h1 {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+.detail-information .synopsis {
+  max-width: 65ch;
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+.detail-information .actions {
+  margin-top: 24px;
+}
+.detail-information .btn {
+  font-size: 14px;
+}
+.detail-episodes {
+  max-width: 1000px;
+}
+.episode-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.episode-tools select {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+}
+#desktop-shell .episodes {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 12px;
+}
+#desktop-shell .episodes button {
+  min-height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.episode-unreleased {
+  padding: 24px 0;
+}
+#desktop-shell .player-title {
+  margin-bottom: 20px;
+}
+#desktop-shell .player-title h1 {
+  font-size: 24px;
+}
+.watch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 316px;
+  gap: 24px;
+  align-items: start;
+}
+.watch-main {
+  min-width: 0;
+}
+#desktop-shell .picture {
+  height: 456px;
+  background: var(--cinema);
+}
+#desktop-shell .picture > img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  opacity: 1;
+}
+#desktop-shell .cinema {
+  border-radius: var(--radius);
+  overflow: clip;
+}
+.fullscreen-panels {
+  display: none;
+}
+#desktop-shell .cinema:fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+#desktop-shell .cinema:fullscreen .picture {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+#desktop-shell .cinema:fullscreen .player-controls {
+  flex: none;
+}
+#desktop-shell .cinema:fullscreen .fullscreen-panels {
+  display: inline-flex;
+  gap: 8px;
+}
+#desktop-shell .fullscreen-panels .btn {
+  background: var(--cinema-control);
+  color: var(--on-cinema);
+  border-color: var(--cinema-control);
+  min-height: 40px;
+  padding: 8px 12px;
+}
+#desktop-shell .player-controls {
+  padding: 12px 16px;
+}
+#desktop-shell .control-row {
+  gap: 6px;
+}
+#desktop-shell .control-row .volume {
+  width: 54px;
+}
+#desktop-shell .control-row select {
+  max-width: 85px;
+  min-height: 40px;
+  padding-inline: 6px;
+}
+#desktop-shell .control-row .icon-button {
+  min-width: 36px;
+  width: 36px;
+  min-height: 40px;
+}
+.player-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 552px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: clip;
+}
+.player-rail > .tabs {
+  flex: none;
+  padding: 0 20px;
+  margin: 0;
+  gap: 28px;
+}
+.rail-scroll {
+  overflow: auto;
+  padding: 24px 20px;
+  flex: 1;
+  min-height: 0;
+}
+.rail-scroll h2 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.rail-scroll .season-row {
+  gap: 8px;
+  margin: 20px 0;
+}
+.rail-scroll .season-row button {
+  font-size: 14px;
+  padding: 8px;
+}
+.rail-scroll .episode-tools {
+  gap: 4px;
+}
+.rail-scroll .episode-tools button {
+  font-size: 12px;
+  padding-inline: 6px;
+}
+.rail-scroll .episode-tools select {
+  font-size: 14px;
+}
+#desktop-shell .rail-scroll .episodes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+#desktop-shell .rail-scroll .episodes button {
+  min-height: 42px;
+  padding: 8px;
+}
+.player-rail .comment {
+  padding-block: 16px;
+}
+.player-rail .comment p {
+  font-size: 14px;
+}
+.player-rail .comment-head {
+  flex-wrap: wrap;
+}
+.player-rail .comment-head time {
+  font-size: 12px;
+}
+.player-rail .comment-actions {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.player-rail .comment-actions button {
+  font-size: 14px;
+  min-height: 36px;
+  padding: 4px 6px;
+}
+.player-rail .comment-form {
+  position: static;
+  flex: none;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+.player-rail .comment-form textarea {
+  min-height: 64px;
+  max-height: 120px;
+}
+.player-rail .comment-form .actions {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.player-rail .comment-form .btn {
+  min-height: 36px;
+  font-size: 14px;
+  padding: 6px 12px;
+}
+.watch-under {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-block: 16px;
+}
+.watch-under .btn {
+  background: none;
+  border: 0;
+  padding-inline: 10px;
+  font-size: 14px;
+}
+.watch-under .btn.selected {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+#desktop-shell .comment-actions button[aria-pressed='true'] {
+  color: var(--primary);
+  background: var(--accent);
+}
+#desktop-shell .back-row > .btn {
+  min-height: 36px;
+  padding: 4px 8px;
+  margin-left: -8px;
+  background: transparent;
+  border-color: transparent;
+  font-size: 14px;
+  font-weight: 400;
+}
+#desktop-shell .back-row > .btn:hover {
+  background: var(--muted);
+}
+.watch-under h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.watch-under h2 small {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--secondary);
+}
+.compact-panels {
+  display: none;
+}
+#desktop-shell .danmaku-form {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  margin-top: 4px;
+}
+#desktop-shell .danmaku-form > input {
+  flex: 1;
+  max-width: none;
+  min-width: 0;
+}
+.feed-layout .picture {
+  height: 520px !important;
+}
+.buffering {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px;
+  background: var(--cinema);
+  color: var(--on-cinema);
+}
+@media (min-width: 1700px) {
+  #desktop-shell .poster-art {
+    aspect-ratio: 2/2.7;
+  }
+}
+@media (max-width: 1250px) {
+  #desktop-shell main {
+    padding-inline: 28px;
+  }
+  .watch-layout {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 16px;
+  }
+  #desktop-shell .control-row .volume-label {
+    display: none;
+  }
+  .continue-copy {
+    padding-inline: 16px;
+  }
+  .continue-cover,
+  .continue-cover img {
+    width: 88px;
+  }
+}
+@media (max-width: 1050px) {
+  .watch-layout {
+    display: block;
+  }
+  .player-rail {
+    display: none;
+  }
+  .compact-panels {
+    display: flex;
+    gap: 8px;
+  }
+  .continue-grid {
+    gap: 16px;
+  }
+  #desktop-shell .poster-grid {
+    gap: 20px;
+  }
+  .continue-copy .btn {
+    font-size: 12px;
+  }
+  .continue-copy p {
+    font-size: 12px;
+  }
+}
+@media (max-width: 800px) {
+  :root {
+    --sidebar: 0px;
+  }
+  #desktop-shell .workspace {
+    margin-left: 0;
+  }
+  #desktop-shell .search-form {
+    width: auto;
+    min-width: 0;
+  }
+  #desktop-shell main {
+    padding-inline: 24px;
+  }
+  #desktop-shell .app-header {
+    height: 76px;
+    padding-inline: 20px;
+    margin-bottom: 24px;
+  }
+  #desktop-shell .poster-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 16px;
+  }
+  .continue-grid {
+    grid-template-columns: 1fr;
+  }
+  .continue-card:nth-child(2) {
+    display: none;
+  }
+  .continue-copy {
+    padding: 16px 20px;
+  }
+  .continue-copy .btn,
+  .continue-copy p {
+    font-size: 14px;
+  }
+  .continue-cover,
+  .continue-cover img {
+    width: 104px;
+  }
+  .release-preview {
+    flex-wrap: wrap;
+  }
+  .desktop-detail {
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 24px;
+  }
+  .detail-poster img {
+    width: 120px;
+    height: 180px;
+  }
+  .detail-information {
+    display: contents;
+  }
+  .detail-information h1 {
+    font-size: 26px;
+    margin: 0;
+    align-self: center;
+  }
+  .detail-information > :not(h1) {
+    grid-column: 1 / -1;
+    margin-block: 0;
+  }
+  .detail-information .actions {
+    gap: 8px;
+  }
+  #desktop-shell .episodes {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  #desktop-shell main {
+    padding-inline: 20px;
+  }
+  #desktop-shell .app-header {
+    padding-inline: 12px;
+  }
+  #desktop-shell .page-head > .btn {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  #desktop-shell .picture,
+  .feed-layout .picture {
+    height: 420px !important;
+  }
+  #desktop-shell .player-title h1 {
+    font-size: 22px;
+  }
+  #desktop-shell .control-row select {
+    max-width: 72px;
+    font-size: 12px;
+  }
+  #desktop-shell .control-row .numeral {
+    font-size: 12px;
+  }
+  #desktop-shell .control-row {
+    gap: 8px;
+  }
+  #desktop-shell .control-row .spacer {
+    display: block;
+    flex-basis: 100%;
+    height: 0;
+  }
+  #desktop-shell .control-row .icon-button {
+    min-width: 44px;
+    width: 44px;
+    min-height: 44px;
+  }
+  #desktop-shell .episodes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #desktop-shell .danmaku-form {
+    gap: 8px;
+  }
+  #desktop-shell .danmaku-form .checkbox-label {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .watch-under {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .continue-copy h3 {
+    font-size: 20px;
+  }
+}
+
+.tab-panel {
+  min-width: 0;
+}
+.player-rail > .tab-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
