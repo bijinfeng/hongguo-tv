@@ -93,7 +93,7 @@ Android 的 `canInstall` 为 false，内置 updater 不负责下载/安装 APK�
 
 公开前核对现有 Git 历史、日志和 artifact 的凭据/私人数据，并明确项目 LICENSE 与第三方 NOTICE；不将“源码可见”当成已经具备明确开源许可。公开后的日志、artifact、符号和 source map 以可被外部读取为前提，只上传已去敏内容；生产密钥始终留在受保护的 environment secrets。
 
-建议静态站点路径如下；Pages 尚未启用：
+建议静态站点路径如下；仓库 Pages 已初始化为 `workflow` source，首次部署仍需发布 workflow 成功：
 
 ```text
 https://bijinfeng.github.io/hongguo-tv/
@@ -153,13 +153,13 @@ https://bijinfeng.github.io/hongguo-tv/
 
 现有 CI 保留，新增真实 Android 构建/模拟器以及各桌面宿主 job；接通的产品目标纳入 required。工程入口沿用 pnpm/Cargo，不新增 Go 发行依赖。干净 runner 执行 frozen install、setup、setup:tools、doctor、verify；发行另外执行 security、包检查和安装/升级验收。缺工具、缺报告、缺平台或安全失败都应阻止正式晋级。
 
-| 工作流（拟新增）                        | 触发与权限                                                                      | 交付                                                                                       |
-| --------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥          | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                                      |
-| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 预览包和 TV T0 APK，不拿生产密钥             | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable                       |
-| `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK   | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                                  |
-| `release-candidate.yml`（后续，同仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；平台产物构建后才进入受控签名阶段   | 最终签名候选、SBOM、完整验收记录；不自动投放 stable                                        |
-| `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；使用 `release-signing` environment 构建两端并校验资产 | 上传并验证草稿 → 发布 Release → 部署 Pages；需先配置 `HONGGUO_CORE_ORIGIN` 与 Pages source |
+| 工作流（拟新增）                        | 触发与权限                                                                      | 交付                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥          | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                      |
+| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 预览包和 TV T0 APK，不拿生产密钥             | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable       |
+| `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK   | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                  |
+| `release-candidate.yml`（后续，同仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；平台产物构建后才进入受控签名阶段   | 最终签名候选、SBOM、完整验收记录；不自动投放 stable                        |
+| `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；使用 `release-signing` environment 构建两端并校验资产 | 上传并验证草稿 → 发布 Release → 部署 Pages；需先配置 `HONGGUO_CORE_ORIGIN` |
 
 版本必须先写入源码再形成候选。tag 先建或后补均需校验指向同一 SHA，禁止发布时自动重构建。候选过期、文件缺失、重签名或字节变化必须重新验收。正式标记前最终文件需完成平台验签及安装冒烟。
 
@@ -290,4 +290,4 @@ R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本�
 
 合成文件不是可安装归档；临时测试密钥和文件均已删除。以上实验只证明清单工具和签名格式，不证明下载、安装或升级行为。
 
-本轮已确认远端为 PUBLIC，加入 `release-validation.yml`、`release-preview.yml`、`tv-release-candidate.yml`、`release-publish.yml`、唯一版本源检查、候选产物记录工具和对应测试；桌面/TV 更新公钥已写入 manifest，四项 TV APK 签名 secrets、桌面更新签名 key、TV 更新签名 key 已写入 `release-signing` environment，本机 TV release APK 已验签。该 environment 当前没有 required reviewers 或分支/tag protection；Pages source 尚未启用，`HONGGUO_CORE_ORIGIN` 尚未在 environment variable 中配置，远端发布工作流尚未运行；桌面独立业务、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。`pnpm verify` 仍受并行未提交改动的格式问题影响，定向发行测试已通过；`pnpm security` 仍需单独处理已有依赖策略阻塞。
+本轮已确认远端为 PUBLIC，加入 `release-validation.yml`、`release-preview.yml`、`tv-release-candidate.yml`、`release-publish.yml`、唯一版本源检查、候选产物记录工具和对应测试；桌面/TV 更新公钥已写入 manifest，四项 TV APK 签名 secrets、桌面更新签名 key、TV 更新签名 key 已写入 `release-signing` environment，本机 TV release APK 已验签。该 environment 当前没有 required reviewers 或分支/tag protection；Pages source 已初始化但尚未有正式部署，`HONGGUO_CORE_ORIGIN` 尚未在 environment variable 中配置，远端发布工作流尚未运行；桌面独立业务、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。`pnpm verify` 仍受并行未提交改动的格式问题影响，定向发行测试已通过；`pnpm security` 仍需单独处理已有依赖策略阻塞。
