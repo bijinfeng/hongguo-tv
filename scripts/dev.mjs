@@ -2,7 +2,15 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
-import { buildCore, coreVersion, nshPath, root, appDir, run, runtimeConfig } from './toolchain.mjs';
+import {
+  buildCore,
+  coreVersion,
+  nshPath,
+  root,
+  legacyUiDir,
+  run,
+  runtimeConfig,
+} from './toolchain.mjs';
 import { startGateway } from './gateway.mjs';
 
 const targetIndex = process.argv.indexOf('--target');
@@ -108,7 +116,7 @@ try {
       String(devPort),
       ...(target === 'macos' ? ['--window-size', '1180x780'] : []),
     ],
-    { cwd: appDir, stdio: 'inherit' },
+    { cwd: legacyUiDir, stdio: 'inherit' },
   );
   await new Promise((resolve, reject) => {
     host.once('error', reject);

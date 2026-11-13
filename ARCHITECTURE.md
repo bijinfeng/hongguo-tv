@@ -2,7 +2,7 @@
 
 > 2026-11-13 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 和匿名官网目录服务已落地（第一阶段基线）。当前业务仍经 HTTP 连接 Rust；原生业务 bridge、完整内容协议、原生独立包和真机发行仍为目标。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
 
-状态：设计提案，2026-11-13。本文描述目标结构；新工作区已进入第一阶段实施，旧 `app/ + scripts/ + upstream/` 保留为行为对照，已验证边界见 [VALIDATION.md](VALIDATION.md)。工具链、Git、CI 与发布规范见 [ENGINEERING.md](ENGINEERING.md)。
+状态：设计提案，2026-11-13。本文描述目标结构；新工作区已进入第一阶段实施，旧 `scripts/ + upstream/` 保留为行为对照，早期根级 `app/` demo 已删除，已验证边界见 [VALIDATION.md](VALIDATION.md)。工具链、Git、CI 与发布规范见 [ENGINEERING.md](ENGINEERING.md)。
 
 ## 1. 核心决策
 
@@ -204,16 +204,12 @@ FFI/JNI 边界明确内存分配与释放方、线程、回调注销、异步取
 
 ## 7. 现有代码迁移映射
 
-| 当前                                   | 目标                                          | 迁移约束                                                  |
-| -------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| `app/App.tsx`                          | `packages/app` 的应用根 + `apps/*/App.tsx`    | 移除共享包中的 `mount` 副作用，保留导航行为               |
-| `app/pages`、`store.ts`、`playback.ts` | `packages/app/src`                            | 先保持状态与进度写入语义，再注入依赖                      |
-| `app/src/ui`、`theme.json`             | `packages/ui`                                 | 主题、焦点和动效不发生顺带重设计                          |
-| `app/api.ts`                           | `packages/core-client` + `packages/contracts` | 配置由入口注入，历史裁剪与媒体检查保留                    |
-| `app/*.test.tsx`                       | 共享用例与各入口测试 harness                  | 共享用例验证真实入口装配，不只测空壳                      |
-| `scripts/*`                            | `tooling/src` 与 `tooling/test`               | 所有路径从明确仓库/目标根解析，不依赖调用 cwd             |
-| Node 网关                              | `crates/http-api`                             | 来源、路由、请求体、Range/206、断开取消转为 Rust 行为测试 |
-| `upstream/hongguo`                     | 去敏 fixtures、测试向量与来源记录             | 作为重写参考；新工程不链接、启动或编译它                  |
+| 当前                      | 目标                                                              | 迁移约束                                                  |
+| ------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
+| 已删除的根级 `app/*` demo | `packages/app`、`packages/ui`、`packages/core-client` 与 `apps/*` | 迁移已完成；legacy 脚本暂复用 `apps/web`，不复制业务 UI   |
+| `scripts/*`               | `tooling/src` 与 `tooling/test`                                   | 所有路径从明确仓库/目标根解析，不依赖调用 cwd             |
+| Node 网关                 | `crates/http-api`                                                 | 来源、路由、请求体、Range/206、断开取消转为 Rust 行为测试 |
+| `upstream/hongguo`        | 去敏 fixtures、测试向量与来源记录                                 | 作为重写参考；新工程不链接、启动或编译它                  |
 
 ### Rust 核心的行为迁移
 

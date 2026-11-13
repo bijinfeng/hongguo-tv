@@ -1,7 +1,15 @@
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { appDir, buildCore, nshPath, nshVersion, root, run, runtimeConfig } from './toolchain.mjs';
+import {
+  legacyUiDir,
+  buildCore,
+  nshPath,
+  nshVersion,
+  root,
+  run,
+  runtimeConfig,
+} from './toolchain.mjs';
 
 try {
   if (process.argv.slice(2).some((arg) => arg !== '--check'))
@@ -29,7 +37,7 @@ try {
   if (!process.argv.includes('--check')) {
     await run(process.execPath, [resolve(root, 'scripts/sync-upstream.mjs')]);
     await runtimeConfig();
-    await run(nsh, ['check'], { cwd: appDir });
+    await run(nsh, ['check'], { cwd: legacyUiDir });
     await buildCore();
     console.log('Setup complete. Run npm run dev:web or npm run dev.');
   }

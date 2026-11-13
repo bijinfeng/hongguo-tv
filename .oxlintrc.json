@@ -17,7 +17,7 @@
   },
   "overrides": [
     {
-      "files": ["apps/**", "packages/**", "app/**"],
+      "files": ["apps/**", "packages/**"],
       "rules": {
         "no-restricted-imports": [
           "error",

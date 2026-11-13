@@ -6,7 +6,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
-export const appDir = resolve(root, 'app');
+// Keep the legacy Go-backed commands runnable without retaining the old root demo.
+export const legacyUiDir = resolve(root, 'apps/web');
 export const coreVersion = 'nsh-poc-de9712bf358d';
 export const nshVersion = readFileSync(resolve(root, '.nsh-version'), 'utf8').trim();
 export function nshPath() {
@@ -36,8 +37,8 @@ export async function run(command, args, options = {}) {
   });
 }
 export async function runtimeConfig(coreOrigin) {
-  await mkdir(appDir, { recursive: true });
-  const target = resolve(appDir, 'runtime.generated.json');
+  await mkdir(legacyUiDir, { recursive: true });
+  const target = resolve(legacyUiDir, 'runtime.generated.json');
   if (!coreOrigin && existsSync(target)) return;
   await writeFile(
     target,

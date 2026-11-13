@@ -68,11 +68,11 @@ crates/http-api/          Axum 路由、开发来源策略、OpenAPI 导出
 services/web-api/         Tokio 进程、loopback 监听和优雅退出
 tooling/                  工程命令、生命周期、依赖边界测试
 contracts/                生成 OpenAPI、合成目录行为样本
-app/ + scripts/           旧验证入口及 Go 启动链（迁移对照）
+scripts/ + upstream/      旧验证脚本及 Go 行为参考（迁移对照）
 upstream/hongguo/         固定上游源码，不直接修改
 ```
 
-依赖方向：`app → ui/core-client → contracts`，`http-api → core`。工程规则由 Oxlint 和 `tooling/src/boundaries.mjs` 检查。业务页面不能导入 Node/React、其他应用入口或直接访问上游核心。NSH `.nsh/types` 是 API 真值；生成目录、连接配置、数据、产物和私有凭据均忽略进 Git。
+依赖方向：`packages/app → ui/core-client → contracts`，`http-api → core`。工程规则由 Oxlint 和 `tooling/src/boundaries.mjs` 检查。业务页面不能导入 Node/React、其他应用入口或直接访问上游核心。NSH `.nsh/types` 是 API 真值；生成目录、连接配置、数据、产物和私有凭据均忽略进 Git。
 
 Git hooks 需主动安装：pre-commit 只读检查格式、lint、契约；commit-msg 校验 Conventional Commits；pre-push 运行完整 verify。安装的 hooks 通过 Node wrapper 强制 `--no-stage-fixed`，关闭 Lefthook 默认的隐式 stash；没有自动格式化或 git add/reset。CI 包含三系统 Rust 检查、macOS 三入口 NSH headless 和依赖安全检查，`required` 汇总所有门禁；真实三端安装与发布验收尚未接入。远端分支保护需要仓库管理员将该检查设为必需。
 
@@ -85,7 +85,7 @@ pnpm legacy:dev
 pnpm legacy:verify
 ```
 
-旧入口也使用 `packages/app`，避免复制两套业务 UI。搜索结果、播放前不写历史、完成状态、历史裁剪及串行持久写入的回归测试随共享包保留。Go 核心固定为 `de9712bf358d`；`pnpm upstream:sync` 校验上游，不覆盖修改。
+legacy 脚本复用 `apps/web` 薄入口和 `packages/app`，不再保留根级 demo。搜索结果、播放前不写历史、完成状态、历史裁剪及串行持久写入的回归测试随共享包保留。Go 核心固定为 `de9712bf358d`；`pnpm upstream:sync` 校验上游，不覆盖修改。
 
 设计与阶段边界见 [ARCHITECTURE.md](ARCHITECTURE.md)、[ENGINEERING.md](ENGINEERING.md)、[DESIGN.md](DESIGN.md)；真实检查结果、尚未验证的设备与功能见 [VALIDATION.md](VALIDATION.md)。
 
