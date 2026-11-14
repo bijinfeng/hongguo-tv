@@ -8,7 +8,9 @@
     "./preview": "./dev/Gallery.tsx",
     "./preview/date-choice": "./dev/CalendarChoices.tsx",
     "./preview/ranking-card": "./dev/RankingRows.tsx",
+    "./preview/season-choice": "./dev/SeasonChoices.tsx",
     "./testing/ranking-card": "./test/ranking-card.tsx",
+    "./testing/season-choice": "./test/season-choice.tsx",
     "./testing": "./test/index.tsx"
   }
 }

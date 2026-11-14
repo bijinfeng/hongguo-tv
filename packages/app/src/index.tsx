@@ -224,6 +224,7 @@ function Pages(props: { store: Store; updates?: Updates }) {
                 <Detail
                   drama={(route as Extract<typeof route, { name: 'detail' }>).drama}
                   store={props.store}
+                  active={props.store.nav.routes().at(-1) === route}
                 />
               )}
             </If>

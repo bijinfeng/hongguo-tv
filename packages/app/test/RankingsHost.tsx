@@ -16,11 +16,9 @@ const reads = (app: App, endpoint = '/api/v1/lists/rank') =>
 const params = (app: App) => new URL(reads(app).at(-1)!.url).searchParams;
 const readonly = (app: App) => {
   expect(app.requests().every((request) => request.method === 'GET')).toBe(true);
-  expect(
-    app
-      .requests()
-      .some((request) => /\/play\/|\/series\/seasons|series_id=202(?:&|$)/.test(request.url)),
-  ).toBe(false);
+  expect(app.requests().some((request) => /\/play\/|series_id=202(?:&|$)/.test(request.url))).toBe(
+    false,
+  );
 };
 
 /** Explicit graphical acceptance: every business response comes from the local HTTP fixture. */

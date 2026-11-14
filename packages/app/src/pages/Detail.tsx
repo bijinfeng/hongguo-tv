@@ -1,39 +1,79 @@
-import { Scroll, Text, View, effect, resource, signal, type ViewRef } from 'nsh';
-import { detail, type Drama, type Episode } from '@hongguo/core-client';
+import { Scroll, Text, View, effect, lifecycle, signal, type ViewRef } from 'nsh';
+import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { errorMessage } from '../error-messages';
 import { Button, Cover, EpisodeRange, Notice, StoryFeature, tvUnit } from '@hongguo/ui';
+import { createSeasons } from '../seasons';
+import { createSeasonDetail, seasonEpisode } from '../season-detail';
+import { SeasonPicker } from '../SeasonPicker';
 
-export function Detail(props: { drama: Drama; store: Store }) {
-  const result = resource(
-    () => props.drama,
-    (drama, { signal }) => detail(drama, signal),
-  );
+export function Detail(props: { drama: Drama; store: Store; active?: boolean }) {
+  const active = () => props.active !== false;
+  const seasons = createSeasons(props.store.request, () => props.drama, active);
+  const browse = createSeasonDetail(props.store.request, seasons, active);
+  const current = () => browse.summary() ?? props.drama;
   const segment = signal(0);
   const pageSize = props.store.target === 'tv' ? 12 : 24;
   const columns = () => (props.store.target === 'tv' ? 6 : 8);
-  const resume = () => props.store.resume(props.drama);
-  const episodes = () => result()?.episodes ?? [];
+  const resume = () => props.store.resume(current());
+  const episodes = () => browse.drama()?.episodes ?? [];
   const saved = () =>
     episodes().find((episode) => episode.video_id === resume()?.video_id && !episode.locked);
   const startEpisode = () => saved() ?? episodes().find((episode) => !episode.locked);
-  let initialized = false;
+  let initialized = '';
+  let selected = '';
   let startRef: ViewRef | undefined;
   effect(() => {
-    if (!episodes().length || initialized) return;
-    initialized = true;
+    const key = JSON.stringify([seasons.selectedId(), current().content_type ?? '']);
+    if (selected !== key) {
+      selected = key;
+      initialized = '';
+      segment.set(0);
+    }
+    if (!browse.drama() || initialized === key) return;
+    initialized = key;
     const index = episodes().findIndex((episode) => episode.video_id === resume()?.video_id);
     segment.set(Math.max(0, Math.floor(index / pageSize)));
   });
   const play = (episode: Episode, source?: ViewRef) => {
-    if (result() && !episode.locked) props.store.play(result()!, episode, source);
+    const drama = browse.drama();
+    const member = seasonEpisode(drama, episode);
+    if (
+      !active() ||
+      lifecycle() !== 'active' ||
+      !drama ||
+      drama.series_id !== seasons.selectedId() ||
+      !member
+    )
+      return;
+    props.store.noteFocusIntent();
+    props.store.play(drama, member, source);
   };
   const startLabel = () =>
-    !resume()?.video_id
-      ? '开始观看'
-      : saved()
-        ? `${resume()?.completed ? '重新观看' : '继续'}第 ${saved()!.index} 集`
-        : `从第 ${startEpisode()?.index ?? 1} 集开始`;
+    seasons.availability() === 'upcoming'
+      ? '尚未上线'
+      : seasons.availability() === 'unavailable'
+        ? '暂不可观看'
+        : !resume()?.video_id
+          ? '开始观看'
+          : saved()
+            ? `${resume()?.completed ? '重新观看' : '继续'}第 ${saved()!.index} 集`
+            : `从第 ${startEpisode()?.index ?? 1} 集开始`;
+  const meta = () => {
+    const count = episodes().length || current().episode_count;
+    const availability = seasons.availability();
+    return [
+      availability === 'upcoming'
+        ? '待上线'
+        : availability === 'unavailable'
+          ? '暂不可观看'
+          : count
+            ? `${count} 集`
+            : '',
+      ...(current().tags ?? []),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
   return (
     <Scroll
       testID="detail-scroll"
@@ -53,21 +93,17 @@ export function Detail(props: { drama: Drama; store: Store }) {
           else={
             <View class="flex-row gap-10 max-w-[1000px] items-center">
               <Cover
-                src={props.drama.cover_fallback || props.drama.cover}
-                title={props.drama.title}
+                src={current().cover_fallback || current().cover}
+                title={current().title}
                 class="w-[200px] h-[280px]"
               />
               <View class="flex-1 gap-3">
-                <Text class="text-[32px] font-semibold text-foreground">{props.drama.title}</Text>
-                <Text class="text-base text-muted-foreground">
-                  {episodes().length || props.drama.episode_count || 0} 集　
-                  {(result()?.tags ?? props.drama.tags ?? []).join(' · ')}
-                </Text>
-                <Text class="text-base text-foreground">
-                  {result()?.intro || props.drama.intro || '暂无简介'}
-                </Text>
+                <Text class="text-[32px] font-semibold text-foreground">{current().title}</Text>
+                <Text class="text-base text-muted-foreground">{meta()}</Text>
+                <Text class="text-base text-foreground">{current().intro || '暂无简介'}</Text>
                 <View class="items-start pt-3">
                   <Button
+                    testID="detail-start"
                     buttonRef={(ref) => {
                       startRef = ref;
                     }}
@@ -87,12 +123,13 @@ export function Detail(props: { drama: Drama; store: Store }) {
         >
           <StoryFeature
             detail
-            title={props.drama.title}
-            image={props.drama.cover_fallback || props.drama.cover}
-            meta={`${episodes().length || props.drama.episode_count || 0} 集　${(result()?.tags ?? props.drama.tags ?? []).join(' · ')}`}
-            description={result()?.intro || props.drama.intro}
+            title={current().title}
+            image={current().cover_fallback || current().cover}
+            meta={meta()}
+            description={current().intro}
           >
             <Button
+              testID="detail-start"
               primary
               icon="play"
               label={startLabel()}
@@ -107,17 +144,20 @@ export function Detail(props: { drama: Drama; store: Store }) {
             />
           </StoryFeature>
         </If>
-        <If when={result.loading()}>
-          <Text class="text-base text-muted-foreground">正在加载选集…</Text>
+        <If when={browse.loading()}>
+          <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
+            正在加载选集…
+          </Text>
         </If>
-        <If when={errorMessage(result.error(), '详情加载失败')}>
+        <If when={browse.error()}>
           <Notice
+            testID="detail-episodes-error"
             error
-            message={errorMessage(result.error(), '详情加载失败')}
-            retry={result.refetch}
+            message={browse.error()}
+            retry={browse.retry}
           />
         </If>
-        <If when={result.state() === 'ready' && resume()?.video_id && !saved()}>
+        <If when={browse.drama() && resume()?.video_id && !saved()}>
           <Notice message="原观看集已不可用，可选择其他已开放集数从头观看。" />
         </If>
         <View
@@ -134,6 +174,17 @@ export function Detail(props: { drama: Drama; store: Store }) {
           >
             选集
           </Text>
+          <SeasonPicker
+            seasons={seasons}
+            resume={props.store.resume}
+            onChange={props.store.noteFocusIntent}
+          />
+          <If when={seasons.availability() === 'upcoming'}>
+            <Notice message="该季尚未上线，没有可播放的选集。" />
+          </If>
+          <If when={seasons.availability() === 'unavailable'}>
+            <Notice message="这一季暂时无法观看。" />
+          </If>
           <If when={episodes().length}>
             <View class="flex-row items-center justify-between">
               <EpisodeRange
@@ -195,7 +246,7 @@ export function Detail(props: { drama: Drama; store: Store }) {
             </Each>
           </View>
         </View>
-        <If when={result.state() === 'ready' && !episodes().length}>
+        <If when={browse.drama() && !episodes().length}>
           <Notice message="暂时没有可观看的选集。" />
         </If>
       </View>

@@ -24,6 +24,9 @@ export function calendarFixture(
   const unknown: string[] = [];
   let terminalReads = 0;
   let failedMore = false;
+  const knownDrama = (id: string) =>
+    ['101', '102', '111', '201', '202', '211'].includes(id) ||
+    (options.longLists === true && /^[567](?:[0-4]\d|5[01])$/.test(id));
   const summary = (id: string): Drama => ({
     series_id: id,
     title:
@@ -95,13 +98,19 @@ export function calendarFixture(
         feed_plan: '456',
         session_id: 'home-fixture',
       });
+    if (url.pathname === '/api/v1/series/seasons') {
+      if (
+        [...url.searchParams.keys()].length !== 1 ||
+        !knownDrama(url.searchParams.get('series_id') ?? '')
+      ) {
+        unknown.push(path);
+        return bad('Unexpected seasonless calendar drama identity or parameters');
+      }
+      return ok({ items: [] });
+    }
     if (url.pathname === '/api/v1/series/detail') {
       const id = url.searchParams.get('series_id')!;
-      if (
-        !['101', '102', '111', '201', '202', '211'].includes(id) &&
-        !(options.longLists && /^[567]\d\d$/.test(id))
-      )
-        return bad('An announcement is not a playable drama', 404);
+      if (!knownDrama(id)) return bad('An announcement is not a playable drama', 404);
       return ok({
         ...summary(id),
         episodes: [1, 2].map((index) => ({ index, video_id: `${id}${index}`, locked: false })),

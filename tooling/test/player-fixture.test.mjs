@@ -7,6 +7,12 @@ test('player acceptance fixture serves original byte ranges and records only exp
   try {
     const json = (path, options) =>
       fetch(fixture.origin + path, options).then((response) => response.json());
+    assert.equal((await json('/api/v1/series/detail?series_id=123')).data.intro, '');
+    assert.deepEqual(await json('/api/v1/series/seasons?series_id=123'), {
+      ok: true,
+      data: { items: [] },
+    });
+    assert.equal((await fetch(fixture.origin + '/api/v1/series/not-a-route')).status, 404);
     const info = await json('/api/v1/play/info?vid=456');
     assert.match(info.data.path, /^\/minireel-proxy\/media\/a{64}$/);
     const full = await fetch(fixture.origin + info.data.path);

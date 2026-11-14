@@ -33,9 +33,7 @@ export function registerCalendarHostTests(
   const readonly = (source: ReturnType<typeof calendarFixture>) => {
     expect(source.writes.length).toBe(0);
     expect(source.unknown).toEqual([]);
-    expect(source.reads.some((path) => /\/play\/|\/series\/seasons|\/lists\/rank/.test(path))).toBe(
-      false,
-    );
+    expect(source.reads.some((path) => /\/play\/|\/lists\/rank/.test(path))).toBe(false);
     expect(source.reads.some((path) => /series_id=30[12]|series_id=311/.test(path))).toBe(false);
   };
   for (const size of sizes)

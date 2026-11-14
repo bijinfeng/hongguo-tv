@@ -6,6 +6,8 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
     const summary = (id: string) => ({
       series_id: id,
       title: `推荐作品${id}`,
+      cover: '',
+      intro: '推荐作品简介',
       episode_count: 3,
       content_type: '1',
     });
@@ -42,6 +44,13 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
             { index: 3, video_id: `${url.searchParams.get('series_id')}3`, locked: true },
           ],
         });
+      if (
+        url.pathname === '/api/v1/series/seasons' &&
+        request.method === 'GET' &&
+        [...url.searchParams.keys()].length === 1 &&
+        ['101', '102', '103', '201', '202'].includes(url.searchParams.get('series_id') ?? '')
+      )
+        return ok({ items: [] });
       if (url.pathname.endsWith('/play/info'))
         return ok({
           path: '/minireel-proxy/media/' + 'a'.repeat(64),
@@ -120,4 +129,118 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
     await app.back();
     expect(app.shows('id:feed-page')).toBe(false);
   });
+
+  if (target === 'desktop')
+    test('feed season browsing never plays; confirmed seasons retain their identity across detail returns and recommendation changes', async () => {
+      const summary = (id: string) => ({
+        series_id: id,
+        title: `系列作品${id}`,
+        cover: '',
+        intro: '系列作品简介',
+        episode_count: 2,
+        content_type: '1',
+      });
+      const detail = (id: string) => ({
+        ...summary(id),
+        episodes: [1, 2].map((index) => ({
+          index,
+          video_id: `${id}${index}`,
+          locked: false,
+        })),
+      });
+      const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
+      const fixture = (request: StubRequest): StubResponse => {
+        const url = new URL(request.url);
+        if (url.pathname.endsWith('/library')) return ok({ owner_id: '', entries: [] });
+        if (url.pathname.endsWith('/account')) return ok({ logged_in: false });
+        if (url.pathname.endsWith('/lists/recommend'))
+          return ok({
+            channel: url.searchParams.get('channel'),
+            items: ['101', '102'].map(summary),
+            has_more: false,
+            next_offset: 0,
+            feed_cell: '123',
+            feed_plan: '456',
+            session_id: 'seasons-feed',
+          });
+        if (url.pathname.endsWith('/series/seasons'))
+          return ok({
+            items: ['101', '202', '203', '204'].map((id, index) => ({
+              drama: summary(id),
+              season_index: index + 1,
+              playable: id !== '203',
+              upcoming: id === '203',
+              ...(id === '203' ? {} : { first_video_id: `${id}1` }),
+            })),
+          });
+        if (url.pathname.endsWith('/series/detail')) {
+          const id = url.searchParams.get('series_id')!;
+          return { ...ok(detail(id)), delay: id === '204' ? 600 : 0 };
+        }
+        if (url.pathname.endsWith('/play/info'))
+          return ok({
+            path: '/minireel-proxy/media/' + 'a'.repeat(64),
+            vid: url.searchParams.get('vid'),
+            qualities: ['720P'],
+          });
+        if (url.pathname.endsWith('/play/release')) return ok({ released: true });
+        if (
+          url.pathname.endsWith('/search/history') ||
+          url.pathname.endsWith('/search/suggestions')
+        )
+          return ok({ items: [] });
+        return { status: 404, body: { ok: false, error: 'Unknown series fixture route' } };
+      };
+      const app = await open(entry, {
+        platform: 'macos',
+        width: 1180,
+        height: 780,
+        network: { '*': fixture, 'POST *': fixture },
+      });
+      const media = () => app.requests().filter((request) => request.url.includes('/play/info'));
+      try {
+        await app.press('id:nav-feed');
+        await app.waitFor('id:player-video');
+        await app.waitFor('id:season-203');
+        await app.scroll('id:player-media-scroll', 10000);
+        expect(app.shows('id:player-episodes-title')).toBe(true);
+        expect(app.shows('label:系列作品101，播放中')).toBe(true);
+        expect(media().length).toBe(1);
+        await app.press('id:season-203');
+        await app.waitFor('本季待上线');
+        expect(media().length).toBe(1);
+        expect(app.requests().some((request) => request.url.includes('series_id=203'))).toBe(false);
+        await app.press('id:season-202');
+        await app.waitFor('id:player-episode-2022');
+        expect(media().length).toBe(1);
+        await app.press('id:player-episode-2022');
+        await app.waitUntil(() =>
+          media().some((request) => new URL(request.url).searchParams.get('vid') === '2022'),
+        );
+        await app.waitFor('第 2 集');
+        await app.press('id:feed-detail');
+        await app.waitFor('开始观看');
+        await app.back();
+        await app.waitFor('第 2 集');
+        await app.waitFor('id:player-episode-2022');
+        await app.press('id:season-204');
+        await app.waitFor('正在加载选集…');
+        await app.press('id:feed-next');
+        await app.waitFor('系列作品102');
+        await app.wait(750);
+        expect(
+          media().some((request) =>
+            new URL(request.url).searchParams.get('vid')?.startsWith('204'),
+          ),
+        ).toBe(false);
+        expect(app.requests().some((request) => request.url.includes('/next-season'))).toBe(false);
+        expect(
+          app
+            .requests()
+            .some((request) => request.method === 'POST' && request.url.endsWith('/library')),
+        ).toBe(false);
+      } finally {
+        app.dispose();
+      }
+    });
 }

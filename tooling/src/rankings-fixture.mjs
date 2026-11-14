@@ -102,6 +102,8 @@ export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {})
     unknown.push({ path, reason });
     return { status: 400, body: { ok: false, code: 'FIXTURE_UNEXPECTED', error: reason } };
   };
+  const knownDrama = (id) =>
+    ['101', '102', '201', '501', '901', '902'].includes(id) || /^5[0-4]\d$|^55[01]$/.test(id ?? '');
   const handle = (url) => {
     const path = url.pathname + url.search;
     const params = url.searchParams;
@@ -122,13 +124,14 @@ export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {})
         feed_plan: '456',
         session_id: 'rankings-home',
       });
+    if (url.pathname === '/api/v1/series/seasons') {
+      if ([...params.keys()].length !== 1 || !knownDrama(params.get('series_id')))
+        return invalid(path, 'Unexpected seasonless drama identity or parameters');
+      return ok({ items: [] });
+    }
     if (url.pathname === '/api/v1/series/detail') {
       const id = params.get('series_id');
-      if (
-        !['101', '102', '201', '501', '901', '902'].includes(id) &&
-        !/^5[0-4]\d$|^55[01]$/.test(id ?? '')
-      )
-        return invalid(path, 'Actor identity or unknown ID was used as a drama');
+      if (!knownDrama(id)) return invalid(path, 'Actor identity or unknown ID was used as a drama');
       if (
         [...params.keys()].some((key) => !['series_id', 'content_type'].includes(key)) ||
         params.getAll('series_id').length !== 1 ||
@@ -287,10 +290,22 @@ export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {})
       assert.deepEqual(writes, [], 'Rankings acceptance must not write business data');
       assert.deepEqual(unknown, [], 'Rankings acceptance made an unexpected request');
       assert.equal(
-        requests.some(({ url }) => /\/play\/|\/series\/seasons|series_id=202(?:&|$)/.test(url)),
+        requests.some(({ url }) => /\/play\/|series_id=202(?:&|$)/.test(url)),
         false,
         'Actor-only identities must never enter drama or playback requests',
       );
+      for (const request of requests.filter(({ url }) =>
+        url.startsWith('/api/v1/series/seasons'),
+      )) {
+        const url = new URL(request.url, origin);
+        assert(
+          request.method === 'GET' &&
+            url.pathname === '/api/v1/series/seasons' &&
+            [...url.searchParams.keys()].length === 1 &&
+            knownDrama(url.searchParams.get('series_id')),
+          'Only exact known seasonless drama reads are allowed',
+        );
+      }
     },
     async close() {
       server.closeAllConnections();

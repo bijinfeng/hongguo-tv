@@ -12,6 +12,7 @@ export function registerPlayerMediaHost(
       title: '自制媒体验收',
       episode_count: 3,
       cover: '',
+      intro: '',
       episodes: [
         { index: 1, video_id: '456', locked: false },
         { index: 2, video_id: '457', locked: false },
@@ -30,6 +31,12 @@ export function registerPlayerMediaHost(
         return ok({ logged_in: false, qr_login_available: false });
       if (url.pathname.endsWith('/search')) return ok({ items: [drama], has_more: false });
       if (url.pathname.endsWith('/series/detail')) return ok(drama);
+      if (
+        url.pathname === '/api/v1/series/seasons' &&
+        request.method === 'GET' &&
+        url.search === '?series_id=123'
+      )
+        return ok({ items: [] });
       if (url.pathname.endsWith('/play/info'))
         return ok({
           path: '/minireel-proxy/media/' + (url.searchParams.get('quality') ? 'b' : 'a').repeat(64),

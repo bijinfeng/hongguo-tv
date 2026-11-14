@@ -18,6 +18,10 @@ import { CoreError, play, type Drama, type Episode } from '@hongguo/core-client'
 import { type Store } from '../store';
 import { playbackLease, progressSession } from '../playback';
 import { playbackTime as timeLabel } from '../format';
+import { errorMessage } from '../error-messages';
+import { createSeasons, isFinalEpisode, type SeasonsController } from '../seasons';
+import { createSeasonDetail, seasonEpisode } from '../season-detail';
+import { SeasonPicker } from '../SeasonPicker';
 import {
   Button,
   Notice,
@@ -41,13 +45,13 @@ type TvLayer = 'hidden' | 'controls' | 'seek-preview' | 'episode-panel';
 
 function Episodes(props: {
   drama: Drama;
-  current: Episode;
+  current?: Episode;
   target: 'desktop' | 'tv';
   onSelect: (episode: Episode) => void;
 }) {
   const size = props.target === 'tv' ? 12 : 24;
   const episodes = () => props.drama.episodes ?? [];
-  const initial = episodes().findIndex((episode) => episode.video_id === props.current.video_id);
+  const initial = episodes().findIndex((episode) => episode.video_id === props.current?.video_id);
   const segment = signal(Math.max(0, Math.floor(initial / size)));
   return (
     <View class="flex-1 gap-5">
@@ -76,7 +80,7 @@ function Episodes(props: {
                   }
                   icon={episode().locked ? 'lock' : undefined}
                   disabled={episode().locked}
-                  selected={episode().video_id === props.current.video_id}
+                  selected={episode().video_id === props.current?.video_id}
                   onPress={() => props.onSelect(episode())}
                 />
               </View>
@@ -84,6 +88,56 @@ function Episodes(props: {
           </Each>
         </View>
       </Scroll>
+    </View>
+  );
+}
+
+function SeasonEpisodes(props: {
+  seasons: SeasonsController;
+  detail: ReturnType<typeof createSeasonDetail>;
+  drama: Drama;
+  episode: Episode;
+  target: 'desktop' | 'tv';
+  resume: Store['resume'];
+  onBrowse: () => void;
+  onSelect: (drama: Drama, episode: Episode) => void;
+}) {
+  return (
+    <View class="flex-1 gap-4">
+      <SeasonPicker
+        seasons={props.seasons}
+        compact
+        playingId={props.drama.series_id}
+        resume={props.resume}
+        onChange={props.onBrowse}
+      />
+      <Text role="header" accessibilityLevel={2} class="text-lg font-semibold text-foreground">
+        {props.detail.summary()?.title ?? props.drama.title}
+      </Text>
+      <If when={props.detail.loading()}>
+        <Notice message="正在加载选集…" />
+      </If>
+      <If when={props.detail.error()}>
+        <Notice error message={props.detail.error()} retry={props.detail.retry} />
+      </If>
+      <If when={!props.detail.loading() && !props.detail.error() && !props.detail.drama()}>
+        <Notice
+          message={props.seasons.availability() === 'upcoming' ? '本季待上线' : '本季暂不可观看'}
+        />
+      </If>
+      <Each
+        of={props.detail.drama() ? [props.detail.drama()!] : []}
+        key={(drama) => drama.series_id}
+      >
+        {(drama) => (
+          <Episodes
+            drama={drama()}
+            current={drama().series_id === props.drama.series_id ? props.episode : undefined}
+            target={props.target}
+            onSelect={(episode) => props.onSelect(drama(), episode)}
+          />
+        )}
+      </Each>
     </View>
   );
 }
@@ -145,6 +199,7 @@ export function Player(props: {
     checkpoint?: PlayerCheckpoint;
     onCheckpoint: (checkpoint: PlayerCheckpoint) => void;
     onEpisode: (episode: Episode) => void;
+    onSeason: (drama: Drama, episode: Episode) => void;
     onLeave: () => void;
     onNext: () => void;
     nextLabel: string;
@@ -153,6 +208,15 @@ export function Player(props: {
   };
 }) {
   const tv = props.store.target === 'tv';
+  const active = () => props.active !== false;
+  const seasons = createSeasons(props.store.request, () => props.drama, active);
+  const seasonDetail = createSeasonDetail(props.store.request, seasons, active);
+  let disposed = false;
+  let successorRevision = 0;
+  const cancelSuccessor = () => {
+    successorRevision++;
+    seasons.cancelNext();
+  };
   const media = signal<Representation | undefined>(undefined);
   const preparing = signal(true);
   const loaded = signal(false);
@@ -186,8 +250,10 @@ export function Player(props: {
   let hadBackground = false;
   let firstLoad = true;
   let savedVolume = 0.8;
+  const playingDrama = props.drama;
+  const playingEpisode = props.episode;
   const session = progressSession((time, total, finished) => {
-    void props.store.save(props.drama, props.episode, time, total, finished);
+    void props.store.save(playingDrama, playingEpisode, time, total, finished);
   });
   const checkpoint = () => {
     session.save();
@@ -212,13 +278,12 @@ export function Player(props: {
       buffering.set(true);
     },
     failed(reason) {
+      console.warn('播放准备失败', reason);
       preparing.set(false);
       error.set(
         reason instanceof CoreError && reason.status === 501
           ? '当前服务暂不支持播放，请稍后重试。'
-          : reason instanceof Error
-            ? reason.message
-            : '暂时无法播放，请重试。',
+          : errorMessage(reason, '播放失败'),
       );
       layer.set('controls');
     },
@@ -231,14 +296,15 @@ export function Player(props: {
     },
   });
   const enabled = () => loaded() && !error() && !preparing();
-  const active = () => props.active !== false;
   const refresh = () => {
+    cancelSuccessor();
     checkpoint();
     if (!firstLoad) restorePosition = position();
     preview.set(undefined);
     void lease.prepare((abort) => play(props.drama, props.episode, abort, { quality: quality() }));
   };
   const seek = (value: number) => {
+    cancelSuccessor();
     if (!enabled() || !Number.isFinite(value)) return;
     const next = Math.min(duration(), Math.max(0, value));
     session.seed(next, duration());
@@ -252,21 +318,61 @@ export function Player(props: {
     props.drama.episodes?.find(
       (episode) => episode.index === props.episode.index + 1 && !episode.locked,
     );
-  const selectEpisode = (episode: Episode) => {
-    if (episode.locked) return;
-    if (episode.video_id === props.episode.video_id) {
+  const startEpisode = (drama: Drama, candidate: Episode) => {
+    if (disposed || !active() || lifecycle() !== 'active') return;
+    const episode = seasonEpisode(drama, candidate);
+    if (!episode) return;
+    cancelSuccessor();
+    if (drama.series_id === props.drama.series_id && episode.video_id === props.episode.video_id) {
       closePanel();
       return;
     }
     checkpoint();
-    if (props.feed) props.feed.onEpisode(episode);
-    else props.store.nav.replace({ name: 'player', drama: props.drama, episode });
+    if (props.feed) {
+      if (drama.series_id === props.drama.series_id) props.feed.onEpisode(episode);
+      else props.feed.onSeason(drama, episode);
+    } else props.store.nav.replace({ name: 'player', drama, episode });
+  };
+  const selectEpisode = (drama: Drama, episode: Episode) => {
+    cancelSuccessor();
+    if (seasonDetail.drama() !== drama || seasons.selectedId() !== drama.series_id) return;
+    startEpisode(drama, episode);
   };
   const nextEpisode = () => {
+    cancelSuccessor();
     const episode = next();
-    if (episode) selectEpisode(episode);
+    if (episode) startEpisode(props.drama, episode);
+  };
+  const nextSeason = async (retry = false) => {
+    if (
+      disposed ||
+      !active() ||
+      lifecycle() !== 'active' ||
+      error() ||
+      !completed() ||
+      !isFinalEpisode(props.drama, props.episode)
+    )
+      return;
+    const revision = ++successorRevision;
+    const drama = props.drama;
+    const episode = props.episode;
+    const result = await (retry ? seasons.retryNext() : seasons.next(drama, episode));
+    if (
+      !result ||
+      disposed ||
+      revision !== successorRevision ||
+      !active() ||
+      lifecycle() !== 'active' ||
+      error() ||
+      !completed() ||
+      props.drama.series_id !== drama.series_id ||
+      props.episode.video_id !== episode.video_id
+    )
+      return;
+    startEpisode(result.drama, result.episode);
   };
   const toggle = () => {
+    cancelSuccessor();
     if (!enabled()) return;
     if (completed()) {
       session.restart();
@@ -299,12 +405,14 @@ export function Player(props: {
     requestAnimationFrame(() => stageRef?.focus());
   };
   const leave = () => {
+    cancelSuccessor();
     checkpoint();
     if (fullScreen()) window?.setMode(previousMode);
     if (props.feed) props.feed.onLeave();
     else props.store.nav.pop();
   };
   const back = () => {
+    cancelSuccessor();
     if (panel()) {
       closePanel();
       return;
@@ -335,6 +443,7 @@ export function Player(props: {
     if (active()) return props.store.registerPlayerCheckpoint(checkpoint);
   });
   const previewSeek = (delta: number) => {
+    cancelSuccessor();
     if (!enabled()) {
       showControls();
       return;
@@ -359,6 +468,7 @@ export function Player(props: {
         if (paused()) showControls();
       } else if (command === 'play' && (paused() || completed())) toggle();
       else if (command === 'pause') {
+        cancelSuccessor();
         if (!paused()) toggle();
         showControls();
       } else if (command === 'next') nextEpisode();
@@ -379,6 +489,7 @@ export function Player(props: {
     const foreground = lifecycle() === 'active' && active();
     untracked(() => {
       if (!foreground) {
+        cancelSuccessor();
         paused.set(true);
         checkpoint();
         if (lifecycle() === 'background' || !active()) {
@@ -455,6 +566,8 @@ export function Player(props: {
     return () => removers.forEach((remove) => remove());
   });
   cleanup(() => {
+    disposed = true;
+    cancelSuccessor();
     checkpoint();
     lease.dispose();
     if (fullScreen()) window?.setMode(previousMode);
@@ -470,16 +583,21 @@ export function Player(props: {
           </Text>
         </View>
       </If>
-      <Scroll
-        class="flex-1"
-        contentStyle={{
-          width: '100%',
-          flexGrow: 1,
+      <View
+        class="flex-1 min-h-0 flex-row gap-6"
+        style={{
           paddingHorizontal: tv || fullScreen() || props.feed ? 0 : 40,
-          paddingBottom: tv || fullScreen() || props.feed ? 0 : 40,
         }}
       >
-        <View class="flex-1 flex-row gap-6 items-start">
+        <Scroll
+          testID="player-media-scroll"
+          class="flex-1 min-h-0 min-w-0"
+          contentStyle={{
+            width: '100%',
+            flexGrow: 1,
+            paddingBottom: tv || fullScreen() || props.feed ? 0 : 40,
+          }}
+        >
           <View class="flex-1 min-w-0" style={{ height: tv ? '100%' : undefined }}>
             <View
               class={
@@ -561,18 +679,28 @@ export function Player(props: {
                       }}
                       onBuffer={(value) => buffering.set(value)}
                       onError={() => {
+                        cancelSuccessor();
                         error.set('播放失败，请重试。');
                         buffering.set(false);
                         paused.set(true);
                         layer.set('controls');
                       }}
                       onEnd={() => {
-                        if (completed() || error() || !loaded() || !active()) return;
+                        if (
+                          completed() ||
+                          error() ||
+                          !loaded() ||
+                          !active() ||
+                          paused() ||
+                          lifecycle() !== 'active'
+                        )
+                          return;
                         session.end();
                         completed.set(true);
                         paused.set(true);
                         layer.set('controls');
                         if (next()) nextEpisode();
+                        else if (isFinalEpisode(props.drama, props.episode)) void nextSeason();
                       }}
                     />
                   )}
@@ -615,6 +743,20 @@ export function Player(props: {
                       </Controls>
                     </If>
                     <If when={completed() && !next()}>
+                      <If when={seasons.nextLoading()}>
+                        <CinemaText>正在加载下一季…</CinemaText>
+                      </If>
+                      <If when={seasons.nextStatus()}>
+                        <CinemaText>{seasons.nextStatus()}</CinemaText>
+                      </If>
+                      <If when={seasons.nextError()}>
+                        <CinemaText>{seasons.nextError()}</CinemaText>
+                        <CinemaButton
+                          testID="player-next-season-retry"
+                          label="重试下一季"
+                          onPress={() => void nextSeason(true)}
+                        />
+                      </If>
                       <CinemaButton label="重新播放" icon="play" onPress={toggle} />
                     </If>
                   </View>
@@ -647,6 +789,7 @@ export function Player(props: {
                     max={duration()}
                     disabled={!enabled()}
                     onChange={(value) => {
+                      cancelSuccessor();
                       preview.set(value);
                       interaction.update((value) => value + 1);
                     }}
@@ -749,6 +892,7 @@ export function Player(props: {
                   </If>
                   <If when={tv || fullScreen()}>
                     <CinemaButton
+                      testID="player-episode-panel"
                       label="选集"
                       icon="list"
                       buttonRef={(ref) => {
@@ -759,7 +903,6 @@ export function Player(props: {
                         layer.set('episode-panel');
                       }}
                     />
-                    <CinemaButton label="评论" disabled onPress={() => {}} />
                   </If>
                   <If when={tv}>
                     <CinemaButton
@@ -794,7 +937,6 @@ export function Player(props: {
                   </View>
                 </If>
                 <Button label="收藏" disabled onPress={() => {}} />
-                <Button label="点赞" disabled onPress={() => {}} />
                 <Button label="追更" disabled onPress={() => {}} />
                 <If when={props.feed}>
                   <Button
@@ -812,34 +954,47 @@ export function Player(props: {
               <Notice error message={props.store.warning()} retry={session.retry} />
             </If>
           </View>
-          <If when={!tv && !fullScreen()}>
-            <EpisodeRail>
-              <View class="p-5 gap-5 flex-1">
-                <Controls label="播放上下文">
-                  <Button label="选集" selected compact onPress={() => {}} />
-                  <Button label="评论" compact disabled onPress={() => {}} />
-                </Controls>
-                <Text class="text-lg font-semibold text-foreground">{props.drama.title}</Text>
-                <Episodes
-                  drama={props.drama}
-                  current={props.episode}
-                  target={props.store.target}
-                  onSelect={selectEpisode}
-                />
-              </View>
-            </EpisodeRail>
-          </If>
-        </View>
-      </Scroll>
+        </Scroll>
+        <If when={!tv && !fullScreen()}>
+          <EpisodeRail>
+            <View class="p-5 gap-5 flex-1">
+              <Text
+                testID="player-episodes-title"
+                role="header"
+                accessibilityLevel={2}
+                class="text-xl font-semibold text-foreground"
+              >
+                选集
+              </Text>
+              <SeasonEpisodes
+                seasons={seasons}
+                detail={seasonDetail}
+                drama={props.drama}
+                episode={props.episode}
+                target={props.store.target}
+                resume={props.store.resume}
+                onBrowse={cancelSuccessor}
+                onSelect={selectEpisode}
+              />
+            </View>
+          </EpisodeRail>
+        </If>
+      </View>
       <EpisodePanel open={panel()} onClose={closePanel}>
         <View class="flex-row items-center justify-between">
-          <Text class="text-xl font-semibold text-foreground">选集</Text>
+          <Text role="header" accessibilityLevel={2} class="text-xl font-semibold text-foreground">
+            选集
+          </Text>
           <Button label="关闭选集" icon="close" iconOnly compact onPress={closePanel} />
         </View>
-        <Episodes
+        <SeasonEpisodes
+          seasons={seasons}
+          detail={seasonDetail}
           drama={props.drama}
-          current={props.episode}
+          episode={props.episode}
           target={props.store.target}
+          resume={props.store.resume}
+          onBrowse={cancelSuccessor}
           onSelect={selectEpisode}
         />
       </EpisodePanel>

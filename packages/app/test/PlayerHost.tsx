@@ -36,6 +36,12 @@ export function registerPlayerHost(
               return ok({ logged_in: false, qr_login_available: false });
             if (url.pathname.endsWith('/search')) return ok({ items: [drama], has_more: false });
             if (url.pathname.endsWith('/series/detail')) return ok(drama);
+            if (
+              url.pathname === '/api/v1/series/seasons' &&
+              request.method === 'GET' &&
+              url.search === '?series_id=123'
+            )
+              return ok({ items: [] });
             if (url.pathname.endsWith('/play/info'))
               return { status: 503, body: { ok: false, error: '测试媒体未提供，请重试' } };
             return { status: 404, body: { ok: false, error: 'Unknown fixture' } };

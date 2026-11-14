@@ -29,6 +29,19 @@ function fixture(request: StubRequest): StubResponse {
   if (url.pathname === '/api/v1/account') return ok({ logged_in: false, qr_login_available: true });
   if (url.pathname === '/api/v1/search') return ok({ items: [drama], has_more: false });
   if (url.pathname === '/api/v1/series/detail') return ok(drama);
+  if (
+    url.pathname === '/api/v1/series/seasons' &&
+    request.method === 'GET' &&
+    [...url.searchParams.keys()].length === 1 &&
+    [
+      '123',
+      '124',
+      '125',
+      ...Array.from({ length: 120 }, (_, i) => String(10000 + i)),
+      ...Array.from({ length: 60 }, (_, i) => String(20000 + i)),
+    ].includes(url.searchParams.get('series_id') ?? '')
+  )
+    return ok({ items: [] });
   if (url.pathname === '/api/v1/play/info')
     return ok({
       path: '/minireel-proxy/media/' + 'a'.repeat(64),

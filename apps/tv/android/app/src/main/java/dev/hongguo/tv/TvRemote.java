@@ -30,6 +30,7 @@ final class TvRemote extends View {
     private String currentIdentity;
     private int currentPageDepth = -1;
     private View currentPageRoot;
+    private boolean currentPageLocal;
     private View currentFocusScope;
     private final List<SavedFocus> coveredFocus = new ArrayList<>();
     private final List<SavedFocus> recentFocus = new ArrayList<>();
@@ -41,10 +42,12 @@ final class TvRemote extends View {
         final long intent;
         final View scope;
         final boolean temporary;
-        SavedFocus(View view, String identity, int depth, View pageRoot, long intent, View scope, boolean temporary) {
+        final boolean pageLocal;
+        SavedFocus(View view, String identity, int depth, View pageRoot, long intent, View scope, boolean temporary, boolean pageLocal) {
             this.view = view; this.identity = identity; this.depth = depth; this.pageRoot = pageRoot; this.intent = intent;
             this.scope = scope;
             this.temporary = temporary;
+            this.pageLocal = pageLocal;
         }
     }
     private int previousIndex;
@@ -222,13 +225,14 @@ final class TvRemote extends View {
         if (current != view) {
             if (current != null) {
                 recentFocus.removeIf(saved -> saved.view == current);
-                recentFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot, focusIntent, currentFocusScope, false));
+                recentFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot, focusIntent, currentFocusScope, false, currentPageLocal));
                 if (recentFocus.size() > 32) recentFocus.remove(0);
             }
             current = view;
             currentIdentity = identity(view);
             currentPageDepth = pageDepth;
             currentPageRoot = pageRoot;
+            currentPageLocal = within(view, pageRoot);
             currentFocusScope = currentScope;
             previousIndex = Math.max(0, targets.indexOf(view));
             if (view != null) {
@@ -279,7 +283,7 @@ final class TvRemote extends View {
             // Replacement content covers outside sources even when it shares their modal scope.
             if (coveredFocus.stream().noneMatch(saved -> saved.view == current))
                 coveredFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot, focusIntent, currentFocusScope,
-                        currentFocusScope == currentScope && (activeFocusEntry == null || within(current, activeFocusEntry))));
+                        currentFocusScope == currentScope && (activeFocusEntry == null || within(current, activeFocusEntry)), currentPageLocal));
             if (coveredFocus.size() > 32) coveredFocus.remove(0);
         }
         if (enteringFocusEntry != null) {
@@ -342,8 +346,13 @@ final class TvRemote extends View {
             for (int i = coveredFocus.size() - 1; i >= 0; i--) {
                 SavedFocus saved = coveredFocus.get(i);
                 if (saved.pageRoot == pageRoot && saved.depth == pageDepth && saved.identity != null && saved.identity.startsWith("id:")) {
-                    waitingSource = saved;
-                    break;
+                    if (waitingSource == null) waitingSource = saved;
+                    // Native chrome can take focus while a page disappears. Prefer that intent's
+                    // page source, captured before its row can detach, over the transient chrome.
+                    if (saved.intent == waitingSource.intent && saved.pageLocal) {
+                        waitingSource = saved;
+                        break;
+                    }
                 }
             }
         }

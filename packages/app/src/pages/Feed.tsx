@@ -17,6 +17,7 @@ import type { Drama, Episode } from '@hongguo/core-client';
 import { createFeed, type FeedChannel } from '../feed';
 import { Player, type PlayerCheckpoint } from './Player';
 import type { Store } from '../store';
+import { seasonEpisode } from '../season-detail';
 
 const channels: { value: FeedChannel; label: string }[] = [
   { value: '16', label: '推荐' },
@@ -31,7 +32,7 @@ export function Feed(props: { store: Store }) {
   const feed = createFeed(props.store.request, active);
   const window = isAvailable ? currentWindow() : undefined;
   const fullScreen = () => !tv && window?.state()?.placement.mode === 'fullScreen';
-  const selected = signal<Record<string, string>>({});
+  const selected = signal<Record<string, { drama: Drama; video_id: string }>>({});
   const checkpoints = new Map<string, PlayerCheckpoint>();
   const storyKey = () => `${feed.channel()}:${feed.current()?.series_id ?? ''}`;
   const result = resource(
@@ -42,12 +43,15 @@ export function Feed(props: { store: Store }) {
         signal,
       ),
   );
-  const drama = () => (result()?.series_id === feed.current()?.series_id ? result() : undefined);
+  const drama = () =>
+    selected()[storyKey()]?.drama ??
+    (result()?.series_id === feed.current()?.series_id ? result() : undefined);
   const episode = () => {
     const episodes = drama()?.episodes ?? [];
     const current = drama() ?? feed.current();
     const video =
-      selected()[storyKey()] ?? (current ? props.store.resume(current)?.video_id : undefined);
+      selected()[storyKey()]?.video_id ??
+      (current ? props.store.resume(current)?.video_id : undefined);
     return (
       episodes.find((item) => item.video_id === video && !item.locked) ??
       episodes.find((item) => !item.locked)
@@ -55,7 +59,13 @@ export function Feed(props: { store: Store }) {
   };
   const player = () =>
     drama() && episode()
-      ? [{ key: `${storyKey()}:${episode()!.video_id}`, drama: drama()!, episode: episode()! }]
+      ? [
+          {
+            key: `${storyKey()}:${drama()!.series_id}:${episode()!.video_id}`,
+            drama: drama()!,
+            episode: episode()!,
+          },
+        ]
       : [];
   const nextLabel = () =>
     feed.loading() ? '正在加载…' : feed.state().error ? '重试下一部' : '下一部';
@@ -228,7 +238,23 @@ export function Feed(props: { store: Store }) {
                         // Captured identities keep outgoing cleanup from checkpointing into the new story.
                         const key = item().key;
                         const owner = storyKey();
+                        const currentDrama = item().drama;
                         const checkpoint = checkpoints.get(key);
+                        const chooseSeason = (drama: Drama, candidate: Episode) => {
+                          if (
+                            !active() ||
+                            owner !== storyKey() ||
+                            player()[0]?.key !== key ||
+                            lifecycle() !== 'active'
+                          )
+                            return;
+                          const episode = seasonEpisode(drama, candidate);
+                          if (!episode) return;
+                          selected.update((all) => ({
+                            ...all,
+                            [owner]: { drama, video_id: episode.video_id },
+                          }));
+                        };
                         return (
                           <ContentArrival class="flex-1">
                             <Player
@@ -240,7 +266,8 @@ export function Feed(props: { store: Store }) {
                                 checkpoint,
                                 onCheckpoint: (value) => checkpoints.set(key, value),
                                 onEpisode: (episode: Episode) =>
-                                  selected.update((all) => ({ ...all, [owner]: episode.video_id })),
+                                  chooseSeason(currentDrama, episode),
+                                onSeason: chooseSeason,
                                 onLeave: () => {
                                   props.store.navigate('home');
                                   props.store.restoreFocus();

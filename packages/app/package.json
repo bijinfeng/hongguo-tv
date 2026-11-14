@@ -29,7 +29,14 @@
     "./testing/calendar-back-state": "./test/CalendarBackState.tsx",
     "./testing/calendar-web-terminal": "./test/CalendarWebTerminal.tsx",
     "./testing/rankings-state": "./test/RankingsState.tsx",
-    "./testing/rankings-host": "./test/RankingsHost.tsx"
+    "./testing/rankings-host": "./test/RankingsHost.tsx",
+    "./testing/seasons-host": "./test/SeasonsHost.tsx",
+    "./testing/seasons-state": "./test/SeasonsState.tsx",
+    "./testing/seasons": "./test/seasons.tsx",
+    "./testing/season-picker-state": "./test/SeasonPicker.tsx",
+    "./testing/season-picker": "./test/season-picker.tsx",
+    "./testing/season-detail-state": "./test/SeasonDetail.tsx",
+    "./testing/season-detail": "./test/season-detail.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

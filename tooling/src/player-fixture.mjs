@@ -14,6 +14,7 @@ export async function playerFixture({ port = 0 } = {}) {
     series_id: '123',
     title: '自制媒体验收',
     cover: '',
+    intro: '',
     episode_count: 3,
     episodes: [
       { index: 1, video_id: '456', locked: false },
@@ -84,6 +85,12 @@ export async function playerFixture({ port = 0 } = {}) {
       return reply({ logged_in: false, qr_login_available: false });
     if (url.pathname === '/api/v1/search') return reply({ items: [drama], has_more: false });
     if (url.pathname === '/api/v1/series/detail') return reply(drama);
+    if (
+      url.pathname === '/api/v1/series/seasons' &&
+      request.method === 'GET' &&
+      url.search === '?series_id=123'
+    )
+      return reply({ items: [] });
     if (url.pathname === '/api/v1/play/info')
       return reply({
         path:

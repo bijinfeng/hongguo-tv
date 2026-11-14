@@ -655,3 +655,21 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 播放器初次回归失败 `tv-player-regression.log` 来自独立验收薄入口未传 `subscribePlayerCommands`；视频已开始播放，但媒体暂停命令没有送入 TSX，隐藏控制层使后续解码推进断言失败。验收入口已按生产 `apps/tv/App.tsx` 装配 `host.on('player-command', receive)`，未修改生产播放器或解码实现，旧失败保留。
 
 独立视觉终审已确认浅深／1.3 字号筛选裁切修复、现有圆角／字级／间距／颜色、缺图／缺榜位及来源焦点环；终态截图不能证明 hover／pressed 的连续效果、精确对比度或逐帧动效。共享控件 fast100ms、ContentArrival 180ms／8pt 与减少动态路径有源码清单，追加不重播；无声音。辅助技术、桌面系统大字、人工 IME、逐帧动效、物理 TV／旧 Android runtime、真实账号、独立原生官网业务 C3.2、安全与正式发行继续开放，不把合成 HTTP 或隔离宿主视作完整 MVP 验收。
+
+## 系列／季共享 UI · 2026-11-15
+
+本批交付源码、测试输入和提交均位于主项目目录。详情选集区、播放器右栏和 TV 选集面板共用 SeasonPicker／SeasonChoice；浏览季与实际媒体、进度、推荐来源分别绑定身份。预告／禁播只看摘要，无可播详情、媒体或历史副作用；真正末集结束后仅继续完整 selector 中唯一紧邻且可播的下一季，不使用“最近更高可播季”跳季。暂停、再次确认当前季、切集、定位、重播、离页与后台撤销旧后继。评论／点赞入口已移除，不新增预约成功模拟。责任与复现见[系列浏览交接](docs/season-browsing.md)。
+
+验证根目录 `artifacts/seasons-ui/`（ignored）：
+
+- `logs/verify-final.log` 与 Android 修复后的 `logs/verify-delivery-final.log` 完整 `pnpm verify` 均退出 0：Rust 197／197、工程 37／37、Web 116／116、Desktop 118／118、TV 118／118；三端 check **和** build、格式／lint、包边界、生成契约与发行基础检查通过。`logs/state-final.log` 的 18／18 独立状态回归包含关系和详情迟到、内容类型变化、相邻缺失／重复／预告／禁播及同季确认取消。mixed runner 存在 NSH 汇总但未展开的 warning，不称零警告。
+- Web `logs/web-http-layout-fixed.log` 与 macOS `logs/macos-http-first.log` 各 32／32，覆盖 1180×780、1440×1000 浅深：详情／身份拒绝／迟到详情／只浏览不换媒体／实际解码结束续季／同址重试／迟到后继／显式暂停取消。桌面媒体列已独立滚动，右栏顶部不再被揭示动作裁掉；macOS 实际前台窗口通过 focused 检查。两轮保存的 `source-manifest.json` 保持原样，不将其冒充最后同季确认修复后的完整重跑。
+- 同季确认缺陷先由 `logs/same-selection-red.log` 重现，再由 18 项状态回归转绿；最终 Web／macOS 各补 4／4 两尺寸浅深真实 HTTP／解码场景，日志为 `web-same-selection-final.log`／`macos-same-selection-final.log`。待加载时再次确认当前季，迟到详情不能准备下一季媒体或写入其历史。最终源码身份另存 `final-source-manifest.json`；与前轮 62 文件快照相比，原有路径仅 controller 和这项宿主用例／编排发生变化，Android 修复另有输入摘要。
+- `logs/tv-focus-fixed.log`：API34 TV 模拟器生产 Java 输入适配层的独立安装 ID，浅色 1.0／深色 1.0／深色 1.3 × 详情重试／身份错配／播放器浏览共 9／9 组合，每档 31＋23＋54 项，共 324 项通过。目录 `android-real-adapter/2026-11-14T23-04-24-603Z/` 保存请求、截图、输入 SHA 和 `restoration.json`：9 项请求断言通过，11 项清理／恢复均成功、errors 为空，原生产 APK 字节、主题／字号、前台和 reverse 恢复，独立验收包已卸载。
+- TV 首轮与诊断轮分别在 `logs/tv-final.log`、`logs/tv-focus-diagnostic.log` 重现跨季返回焦点被顶部搜索按钮覆盖；原集来源未丢失，同一用户意图内的临时 chrome 抢焦被错误排为更晚来源。修复在选择时记录来源是否属于页面，仅同一意图内优先页内来源，保留较新用户意图及虚拟行身份恢复；临时诊断日志已从源码移除。最终 9 组合均返回原第一季第 1 集，包含其完整焦点外圈。
+- `logs/tv-player-regression-final.log`：固定播放器 suite 在同三档各 24／24，共 72 项通过，覆盖真实解码、媒体键幂等、定位、音量／速度／嵌套质量选择、逐层 Back 与来源恢复。对应 `artifacts/rankings-ui/android-real-adapter/2026-11-14T23-07-12-584Z/` 的设备恢复记录保留，与系列 suite 分开计数。
+- 独立功能复审确认同季取消不会重复报告选择变化，迟到 relation／detail 失去所有权后无法触发 Player 播放；独立视觉复审对照浅深组件基准及两尺寸桌面，另实际查看最终 TV 深色／大字等 19 张代表图。所见圆角、字级、主题、间距、状态、焦点与选中区分正常；大字聚焦返回后按钮和外圈完整揭示。初始未聚焦条目的正常滚动视口裁切不记为“全部条目始终可见”。
+
+早轮格式与旧 fixture 未声明精确空系列路由的问题已修；旧夹具仍拒绝未知身份、参数与写入，新增兼容与证据自检未放宽门禁。图形早轮另出现一次 Chrome 启动 SIGBUS 和一次截图 ENOSPC，保留原失败日志，清理明确可再生构建后重新通过；这些失败与 UI 裁切、续播取消及 TV 焦点缺陷分别记录。
+
+边界：图形宿主使用真实 HTTP、本地自制 mp4 与合成游客记录；不证明当前官网所有系列、真实账号／预约、macOS 独立官网 C3.2、物理电视或正式安装发行通过。正常／减少动态效果路径有终态观察，不代表逐帧动效、帧率、全量长标题、人工 IME 或读屏验收。本批无依赖变化，未重跑 security，既有安全阻塞保留。保留基础组件并行改动；仅本切片本地提交，不推送、发布或归档，完整 MVP 尚未完成。

@@ -26,14 +26,18 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
     video_id: String(1000 + i),
     locked: i === 59,
   }));
-  const drama = (i = 0) => ({
-    series_id: String(123 + i),
-    title: i ? `重生之后 ${i + 1}` : '重生之后',
-    cover: `${origin}/cover/${i % 4}`,
-    intro: '重新开始的故事。面对熟悉的选择，这一次她决定走自己的路。',
-    episode_count: 75,
-    episodes,
-  });
+  const knownDramaIds = new Set();
+  const drama = (i = 0) => {
+    knownDramaIds.add(String(123 + i));
+    return {
+      series_id: String(123 + i),
+      title: i ? `重生之后 ${i + 1}` : '重生之后',
+      cover: `${origin}/cover/${i % 4}`,
+      intro: '重新开始的故事。面对熟悉的选择，这一次她决定走自己的路。',
+      episode_count: 75,
+      episodes,
+    };
+  };
   const server = createServer(async (req, res) => {
     const record = { method: req.method, url: req.url };
     requests.push(record);
@@ -55,6 +59,15 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
         .writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
         .end(JSON.stringify(status === 200 ? { ok: true, data } : { ok: false, error: data }));
     };
+    if (url.pathname === '/api/v1/series/seasons') {
+      if (
+        req.method !== 'GET' ||
+        [...url.searchParams.keys()].length !== 1 ||
+        !knownDramaIds.has(url.searchParams.get('series_id'))
+      )
+        return reply('Unexpected seasonless browsing drama identity or parameters', 400);
+      return reply({ items: [] });
+    }
     if (feed && url.pathname.startsWith('/minireel-proxy/media/')) {
       const token = url.pathname.split('/').at(-1);
       const sample =
@@ -356,6 +369,8 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
       return;
     }
     if (url.pathname === '/api/v1/series/detail') {
+      if (!knownDramaIds.has(url.searchParams.get('series_id')))
+        return reply('Unknown browsing drama identity', 404);
       reply(drama(Number(url.searchParams.get('series_id')) - 123));
       return;
     }

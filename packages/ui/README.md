@@ -88,6 +88,14 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 独立样例为 `dev/RankingRows.tsx`，经 `@hongguo/ui/preview/ranking-card` 暴露；行为测试经 `@hongguo/ui/testing/ranking-card` 暴露。三端显式入口为 `apps/*/RankingCardPreview.tsx` 和相邻 `.test.tsx`，与产品路由分离。样例覆盖外部接受／拒绝选择、同原始 ID 的演员／剧目、名次缺失与非法值、长标题及同一 Product 的端型切换。
 
+### SeasonChoice
+
+包根导出 `SeasonChoice`／`SeasonChoiceProps`。它只承载一个受控选季目标：`title`、可选 `status`、`selected`、`onPress`，以及有限 `size` 和通用定位／焦点接口。季号、可播资格、实际播放、观看历史、请求和预约均由 app 提供；不能从 selected 推断播放中，不能把待上线等同 disabled。
+
+桌面与 TV 使用同一组件和 `CardControls` 方向寻焦语义：左右移动焦点，确认才报告选择，外部 owner 决定是否接受。标题与状态使用独立字级；状态可换行并自然增高；单一无障碍名称组合两者，内部文本不重复成为朗读目标。选中 accent 前景配对，焦点独立外环，按压不移动布局；颜色变化使用 fast token，减少动态效果时关闭过渡。TV 尺寸读取 `controlMetrics`／`tvUnit`，不建立另一个 package。
+
+app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标签与横滚安全区，`createSeasons` 负责浏览选择及严格相邻后继，`createSeasonDetail` 负责身份与类型绑定的详情缓存。预告与不可播仍可浏览摘要，但不能读可播选集、准备媒体或写观看历史。独立组件样例为 `dev/SeasonChoices.tsx` 与三端 `SeasonChoicePreview.tsx`；组合样例为三端 `SeasonComponentsPreview.tsx`，测试经相邻 `.test.tsx` 运行，不进入产品路由。
+
 ### PosterCard 的可用高度
 
 `availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。TV 沿用既有可用高度与字体缩放规则。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。
