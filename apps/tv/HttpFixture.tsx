@@ -1,4 +1,5 @@
 import { host, mount } from 'nsh';
+import { subscribeFocus } from './focus';
 import { App } from '@hongguo/app';
 import { configureClient } from '@hongguo/core-client';
 import logoMark from './assets/hongguo-logo.png';
@@ -9,6 +10,7 @@ mount(() => (
   <App
     target="tv"
     logoMark={logoMark}
+    subscribeFocus={subscribeFocus}
     subscribePlayerCommands={(receive) => host.on('player-command', receive)}
   />
 ));

@@ -54,6 +54,19 @@ final class BrowsingAcceptance {
         while (node != null) { if (node.isFocused()) return true; node = node.getParent(); }
         return false;
     }
+    private AccessibilityNodeInfo findId(AccessibilityNodeInfo node, String id) {
+        if (node == null || !node.isVisibleToUser()) return null;
+        if (id.equals(node.getViewIdResourceName())) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo found = findId(node.getChild(i), id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+    private boolean focusedId(String id) {
+        AccessibilityNodeInfo node = findId(root(), id);
+        return node != null && node.isFocused();
+    }
     private boolean identified(String label, String id) {
         AccessibilityNodeInfo node = find(root(), label);
         while (node != null) { if (id.equals(node.getViewIdResourceName())) return true; node = node.getParent(); }
@@ -78,6 +91,11 @@ final class BrowsingAcceptance {
             if (edit != null) ((InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE))
                 .hideSoftInputFromWindow(edit.getWindowToken(), 0);
         });
+        long until = SystemClock.uptimeMillis() + 3000;
+        while (activity.getWindow().getDecorView().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime())) {
+            if (SystemClock.uptimeMillis() > until) throw new AssertionError("soft keyboard did not close");
+            SystemClock.sleep(50);
+        }
     }
     private void dump(View view, StringBuilder text, String indent) {
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
@@ -98,7 +116,8 @@ final class BrowsingAcceptance {
             if (image == null || !image.compress(Bitmap.CompressFormat.PNG, 100, out)) throw new AssertionError("screenshot");
         }
     }
-    void run() {
+    void run() { run(false); }
+    void run(boolean typedOnly) {
         Bundle result = new Bundle();
         try {
             Intent launch = runner.getTargetContext().getPackageManager().getLeanbackLaunchIntentForPackage(runner.getTargetContext().getPackageName());
@@ -106,8 +125,9 @@ final class BrowsingAcceptance {
             activity = runner.startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             check("real library continuation", () -> has("选集与详情") && has("重生之后"));
             screenshot("home");
+            if (!typedOnly) {
             key(KeyEvent.KEYCODE_DPAD_RIGHT); confirm();
-            check("remote opens independent search", () -> has("搜索短剧"));
+            check("remote opens independent search", () -> has("搜索短剧、演员"));
             key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
             check("remote enters input", () -> activity.getCurrentFocus() instanceof EditText);
             runner.sendStringSync("story");
@@ -229,7 +249,91 @@ final class BrowsingAcceptance {
             click("我的");
             check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 15 秒"));
             screenshot("history");
-            result.putString("stream", "TV browsing acceptance: " + checks + " checks passed\n");
+            }
+            click("找剧");
+            runner.runOnMainSync(() -> {
+                EditText edit = input(activity.getWindow().getDecorView());
+                edit.requestFocus(); edit.setText("");
+                InputConnection connection = edit.onCreateInputConnection(new EditorInfo());
+                connection.setComposingText("lin", 1);
+            });
+            hideKeyboard();
+            SystemClock.sleep(500);
+            check("typed composition keeps suggestions closed", () -> !has("林初") && activity.getCurrentFocus() instanceof EditText);
+            runner.runOnMainSync(() -> {
+                EditText edit = input(activity.getWindow().getDecorView());
+                InputConnection connection = edit.onCreateInputConnection(new EditorInfo());
+                connection.commitText("林", 1); connection.finishComposingText();
+            });
+            check("committed native input opens typed suggestions", () -> has("林初") && has("演员"));
+            hideKeyboard();
+            screenshot("typed-suggestions");
+            StringBuilder before = new StringBuilder();
+            runner.runOnMainSync(() -> dump(activity.getWindow().getDecorView(), before, ""));
+            try (FileOutputStream out = new FileOutputStream(new File(runner.getTargetContext().getExternalFilesDir(null), "typed-before-" + appearance + ".txt"))) { out.write(before.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            check("remote enters actor suggestion", () -> focusedId("suggestion-actor:9007199254740993"));
+            confirm();
+            check("actor route shows its named works", () -> has("林初") && has("用故事连接每一种生活。") && has("重生之后"));
+            screenshot("actor");
+            click("重生之后");
+            check("actor first work uses exact saved identity", () -> has("继续第 59 集") && has("重生之后"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("actor detail returns exact first work focus", () -> focused("重生之后") && has("林初"));
+            for (int i = 0; i < 14; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("actor shelf recycles to exact later work", () -> focused("重生之后 15") && identified("重生之后 15", "drama-137"));
+            confirm();
+            check("later actor work opens own detail", () -> has("重生之后 15") && has("开始观看") && !has("继续第 59 集"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("actor return preserves later source focus", () -> focused("重生之后 15"));
+            key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            SystemClock.sleep(500);
+            check("newer remote movement wins actor return", () -> focused("重生之后 16"));
+            screenshot("actor-return");
+            key(KeyEvent.KEYCODE_BACK);
+            check("actor back restores source suggestion", () -> focusedId("suggestion-actor:9007199254740993") && has("演员"));
+            key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            check("drama suggestion opens explicit detail", () -> has("重生之后") && has("继续第 59 集"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("drama back restores exact suggestion", () -> focusedId("suggestion-drama:123") && has("演员"));
+            key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            check("keyword suggestion submits visible name", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.getText().toString().equals("山海归来") && has("加载更多"); });
+            runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.requestFocus(); edit.setText("林"); });
+            check("typed suggestions reopen after ordinary search", () -> has("林初"));
+            key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            check("long keyword stays whole editable and invalid", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.hasFocus() && edit.getText().length() == 81 && has("搜索内容过长，请缩短后重试。") && !has("演员"); });
+            hideKeyboard(); screenshot("typed-validation");
+            runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.setText("缩短"); });
+            key(KeyEvent.KEYCODE_ENTER);
+            check("shortened invalid keyword recovers search", () -> has("加载更多") && !has("搜索内容过长，请缩短后重试。"));
+            runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.requestFocus(); edit.setText("建议失败"); });
+            check("typed error keeps input available", () -> has("建议未能加载") && has("重试"));
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            check("typed retry reachable by remote", () -> focused("重试"));
+            confirm();
+            check("typed retry preserves recoverable failure", () -> has("建议未能加载"));
+            // Android owns the soft keyboard's Back before the application's overlay stack.
+            hideKeyboard();
+            key(KeyEvent.KEYCODE_BACK);
+            check("system back dismisses suggestion before page", () -> !has("建议未能加载") && has("加载更多"));
+            screenshot("typed-dismissed");
+            runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.requestFocus(); edit.setText("林"); });
+            check("pointer return starts with actor suggestion", () -> has("林初"));
+            hideKeyboard(); key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            check("pointer return starts on actor works", () -> has("用故事连接每一种生活。"));
+            android.graphics.Rect home = new android.graphics.Rect();
+            find(root(), "精选").getBoundsInScreen(home);
+            runner.runOnMainSync(() -> {
+                activity.onBackPressed();
+                long now = SystemClock.uptimeMillis();
+                android.view.MotionEvent down = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, home.centerX(), home.centerY(), 0);
+                android.view.MotionEvent up = android.view.MotionEvent.obtain(now, now + 10, android.view.MotionEvent.ACTION_UP, home.centerX(), home.centerY(), 0);
+                activity.dispatchTouchEvent(down); activity.dispatchTouchEvent(up);
+                down.recycle(); up.recycle();
+            });
+            SystemClock.sleep(600);
+            check("newer pointer navigation wins pending actor return", () -> has("选集与详情") && !has("用故事连接每一种生活。") && !has("演员"));
+            result.putString("stream", (typedOnly ? "TV suggestions acceptance: " : "TV browsing acceptance: ") + checks + " checks passed\n");
             runner.finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             try { screenshot("failure"); } catch (Exception ignored) { /* Preserve the assertion. */ }

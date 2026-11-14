@@ -3,6 +3,7 @@ import { configureClient, configureTransport, CoreError } from '@hongguo/core-cl
 import { createNativeTransport, type NativeSession } from '@hongguo/core-client/native';
 import { Notice, Product, type ProductTarget } from '@hongguo/ui';
 import { App } from './index';
+import type { FocusSource } from './store';
 import type { PlaybackCommandSource } from './playback';
 
 function initializationError(error: unknown): Error {
@@ -26,6 +27,7 @@ export function NativeApp(props: {
   runtime: { mode: string; coreOrigin?: string };
   openCore: () => Promise<NativeSession>;
   subscribePlayerCommands?: PlaybackCommandSource;
+  subscribeFocus?: FocusSource;
 }) {
   let transport: ReturnType<typeof createNativeTransport> | undefined;
   let handedOff = false;
@@ -92,6 +94,7 @@ export function NativeApp(props: {
               target={props.target}
               logoMark={props.logoMark}
               subscribePlayerCommands={props.subscribePlayerCommands}
+              subscribeFocus={props.subscribeFocus}
               onReady={() => {
                 handedOff = !!owner;
               }}

@@ -16,7 +16,9 @@
     "./testing/recent-search-state": "./test/RecentSearchState.tsx",
     "./testing/focused-removal-state": "./test/FocusedRemovalState.tsx",
     "./testing/discovery-state": "./test/DiscoveryState.tsx",
-    "./testing/card-controls-state": "./test/CardControlsState.tsx"
+    "./testing/card-controls-state": "./test/CardControlsState.tsx",
+    "./testing/suggestions-state": "./test/SuggestionsState.tsx",
+    "./testing/suggestions-host": "./test/SuggestionsHost.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

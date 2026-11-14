@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.FrameLayout;
 import com.longbridge.nsh.NshView;
 
@@ -17,6 +18,11 @@ public final class MainActivity extends Activity {
         nsh = new NshView(this);
         nsh.setErrorListener(message -> Log.e("HongguoTV", message));
         FrameLayout frame = new FrameLayout(this) {
+            @Override public boolean dispatchTouchEvent(MotionEvent event) {
+                if (remote != null && event.getActionMasked() == MotionEvent.ACTION_DOWN)
+                    remote.noteFocusIntent();
+                return super.dispatchTouchEvent(event);
+            }
             @Override public boolean dispatchKeyEventPreIme(KeyEvent event) {
                 return remote != null && remote.dispatchInputExit(event) || super.dispatchKeyEventPreIme(event);
             }

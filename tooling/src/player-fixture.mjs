@@ -78,6 +78,8 @@ export async function playerFixture() {
       return reply({ owner_id: '', entries: [] });
     }
     if (url.pathname === '/api/v1/search/history') return reply({ items: [] });
+    if (url.pathname === '/api/v1/search/suggestions') return reply({ items: [] });
+    if (url.pathname === '/api/v1/search/discovery') return reply({ guesses: [], boards: [] });
     if (url.pathname === '/api/v1/account')
       return reply({ logged_in: false, qr_login_available: false });
     if (url.pathname === '/api/v1/search') return reply({ items: [drama], has_more: false });

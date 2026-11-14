@@ -1,4 +1,13 @@
-import { batch, cleanup, effect, resource, signal, type InputRef, type ViewRef } from 'nsh';
+import {
+  batch,
+  cleanup,
+  effect,
+  lifecycle,
+  resource,
+  signal,
+  type InputRef,
+  type ViewRef,
+} from 'nsh';
 import type { ProductTarget } from '@hongguo/ui';
 import { createNavStack } from 'nsh/base';
 import {
@@ -13,12 +22,18 @@ import {
   type SearchDiscovery,
 } from '@hongguo/core-client';
 import { createRecentSearches } from './recent-searches';
+import { createSearchSuggestions } from './search-suggestions';
+import { validateSearchInput } from './search-input';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
+
+// Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
+export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
 
 export type Section = 'home' | 'search' | 'history';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
+  | { name: 'actor'; actorId: string; title: string }
   | { name: 'player'; drama: Drama; episode: Episode }
   | { name: 'account' };
 
@@ -26,6 +41,7 @@ export type Route =
 export function createStore(
   target: ProductTarget,
   subscribePlayerCommands?: PlaybackCommandSource,
+  subscribeFocus?: FocusSource,
 ) {
   const request = captureRequest();
   const nav = createNavStack<Route>([{ name: 'browse' }]);
@@ -35,6 +51,15 @@ export function createStore(
   const sources = new Map<number, () => void>();
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
+  let focusIntent = 0;
+  const hostFocus = signal('');
+  if (subscribeFocus)
+    cleanup(
+      subscribeFocus((id) => {
+        if (id === undefined) focusIntent++;
+        else hostFocus.set(id);
+      }),
+    );
   let searchInput: InputRef | undefined;
   let playerCheckpoint: (() => void) | undefined;
   let playerBack: (() => void) | undefined;
@@ -133,6 +158,7 @@ export function createStore(
       .slice()
       .sort((a, b) => b.last_played_at! - a.last_played_at!);
   const navigate = (next: Section) => {
+    suggestions.dismiss();
     batch(() => {
       nav.popToRoot();
       section.set(next);
@@ -151,10 +177,22 @@ export function createStore(
   });
   const discoveryData = () => discovery() ?? discoverySnapshot();
   const recent = createRecentSearches(request, () => activePage('search') && !query());
+  const suggestions = createSearchSuggestions(
+    request,
+    draft,
+    () =>
+      nav.routes().at(-1)?.name === 'browse' &&
+      (target === 'desktop' || section() === 'search') &&
+      lifecycle() === 'active',
+  );
+  const searchFailure = signal<{ raw: string; message: string } | undefined>(undefined);
+  const searchError = () => (searchFailure()?.raw === draft() ? searchFailure()!.message : '');
   const warning = signal('');
   let writes = Promise.resolve();
   return {
     target,
+    hostFocus,
+    hostOwnsFocus: !!subscribeFocus,
     nav,
     section,
     activePage,
@@ -190,7 +228,10 @@ export function createStore(
     discovery,
     discoveryData,
     recent,
+    suggestions,
+    searchError,
     clearQuery() {
+      suggestions.dismiss();
       resetContinuation();
       query.set('');
       draft.set('');
@@ -214,10 +255,19 @@ export function createStore(
     primaryRef(name: Section, ref: ViewRef) {
       primary.set(name, ref);
     },
+    noteFocusIntent() {
+      focusIntent++;
+    },
+    focusGuard() {
+      const owned = focusIntent;
+      return () => owned === focusIntent;
+    },
     restoreFocus() {
+      const owned = focusIntent;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         frame = requestAnimationFrame(() => {
+          if (owned !== focusIntent) return;
           const source = sources.get(nav.routes().length);
           if (source) source();
           else if (nav.routes().length === 1) primary.get(section())?.focus();
@@ -239,8 +289,16 @@ export function createStore(
     account,
     warning,
     submit() {
-      const q = draft().trim().replace(/\s+/g, ' ');
-      if (!q) return;
+      if (suggestions.composing()) return false;
+      const { query: q, error } = validateSearchInput(draft());
+      searchFailure.set({ raw: draft(), message: error });
+      if (!q) {
+        if (error) {
+          suggestions.dismiss();
+          searchInput?.focus();
+        }
+        return false;
+      }
       batch(() => {
         navigate('search');
         searchSelection.set('');
@@ -248,10 +306,17 @@ export function createStore(
         else query.set(q);
       });
       void recent.add(q);
+      return true;
     },
     open(drama: Drama, origin?: () => void) {
+      suggestions.dismiss();
       if (origin) sources.set(nav.routes().length, origin);
       nav.push({ name: 'detail', drama });
+    },
+    openActor(actorId: string, title: string, origin?: () => void) {
+      suggestions.dismiss();
+      if (origin) sources.set(nav.routes().length, origin);
+      nav.push({ name: 'actor', actorId, title });
     },
     resume(drama: Drama) {
       return library()?.entries.find((e) => e.drama.series_id === drama.series_id);

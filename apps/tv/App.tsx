@@ -1,4 +1,5 @@
 import { host, mount } from 'nsh';
+import { subscribeFocus } from './focus';
 import { NativeApp } from '@hongguo/app';
 import { NativeCore } from 'hongguo-tv/native';
 import runtime from './runtime.generated.json';
@@ -10,6 +11,7 @@ mount(() => (
     logoMark={logoMark}
     runtime={runtime}
     openCore={() => NativeCore.open()}
+    subscribeFocus={subscribeFocus}
     subscribePlayerCommands={(receive) => host.on('player-command', receive)}
   />
 ));

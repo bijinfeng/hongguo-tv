@@ -14,12 +14,14 @@ import {
   type ImageAsset,
   type JSX,
   type InputRef,
+  type InputHostProps,
   type ViewRef,
 } from 'nsh';
 import { Button as BaseButton, Input as BaseInput, Toolbar, Select } from 'nsh/base';
 import { entrance } from './motion';
 import { SelectFocus } from './select-focus';
 import { CardRoot } from './card-controls';
+export { SearchPicker, SearchSuggestionRow } from './search-picker';
 export { CardControls } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 
@@ -190,6 +192,11 @@ export function SearchInput(props: {
   onSubmit: () => void;
   inputRef: (ref: InputRef) => void;
   embedded?: boolean;
+  expanded?: boolean;
+  invalid?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onCompositionChange?: InputHostProps['onCompositionChange'];
 }) {
   return (
     <BaseInput
@@ -205,8 +212,13 @@ export function SearchInput(props: {
       value={props.value}
       onChange={({ value }) => props.onChange(value)}
       onSubmit={props.onSubmit}
-      placeholder={props.embedded ? '搜索短剧、演员' : '搜索短剧'}
-      accessibilityLabel="搜索短剧"
+      submitBehavior="submit"
+      onFocus={props.onFocus}
+      onBlur={props.onBlur}
+      onCompositionChange={props.onCompositionChange}
+      accessibilityState={{ expanded: !!props.expanded, hasPopup: true, invalid: !!props.invalid }}
+      placeholder="搜索短剧、演员"
+      accessibilityLabel="搜索短剧、演员"
       class={`flex-1 rounded-(--radius) text-foreground ${props.embedded ? 'border-2 border-transparent focus:border-ring bg-transparent text-sm px-1 py-2' : `border-2 border-input bg-card px-4 py-2 focus:border-ring ${Product() === 'tv' ? 'text-xl' : 'text-base'}`}`}
     />
   );

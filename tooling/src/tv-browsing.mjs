@@ -8,7 +8,8 @@ import { tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const suite = process.argv[2] || 'browsing';
-if (!['browsing', 'player'].includes(suite)) throw new Error('Expected browsing|player');
+if (!['browsing', 'player', 'suggestions'].includes(suite))
+  throw new Error('Expected browsing|player|suggestions');
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
 const devices = output(adb, ['devices'])
   .split('\n')
@@ -38,7 +39,11 @@ if (
   throw new Error('Requires the pinned TV API 34 emulator.');
 const artifacts = resolve(
   root,
-  suite === 'player' ? 'artifacts/playback/tv-apk' : 'artifacts/browsing/tv',
+  suite === 'player'
+    ? 'artifacts/playback/tv-apk'
+    : suite === 'suggestions'
+      ? 'artifacts/typed-search-ui/tv'
+      : 'artifacts/browsing/tv',
 );
 await mkdir(artifacts, { recursive: true });
 const runtime = resolve(root, 'apps/tv/runtime.generated.json');
@@ -106,7 +111,9 @@ try {
       !report.includes(
         suite === 'player'
           ? 'TV player acceptance: 24 checks passed'
-          : 'TV browsing acceptance: 47 checks passed',
+          : suite === 'suggestions'
+            ? 'TV suggestions acceptance: 25 checks passed'
+            : 'TV browsing acceptance: 71 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {
@@ -117,7 +124,7 @@ try {
         `/sdcard/Android/data/dev.hongguo.tv/files/failure-${appearance}.png`,
         resolve(artifacts, `failure-${appearance}.png`),
       ]);
-      if (suite === 'browsing')
+      if (suite !== 'player')
         await run(adb, [
           '-s',
           serial,
@@ -129,22 +136,29 @@ try {
     }
     for (const screen of suite === 'player'
       ? ['paused', 'preview', 'settings']
-      : [
-          'home',
-          'search',
-          'detail',
-          'pagination-error',
-          'pagination-append',
-          'pagination-return',
-          'pagination-terminal',
-          'recent-populated',
-          'recent-error',
-          'recent-empty',
-          'discovery',
-          'discovery-return',
-          'discovery-keyword',
-          'history',
-        ])
+      : suite === 'suggestions'
+        ? ['typed-suggestions', 'actor', 'actor-return', 'typed-validation', 'typed-dismissed']
+        : [
+            'home',
+            'search',
+            'detail',
+            'pagination-error',
+            'pagination-append',
+            'pagination-return',
+            'pagination-terminal',
+            'recent-populated',
+            'recent-error',
+            'recent-empty',
+            'discovery',
+            'discovery-return',
+            'discovery-keyword',
+            'history',
+            'typed-suggestions',
+            'actor',
+            'actor-return',
+            'typed-validation',
+            'typed-dismissed',
+          ])
       await run(adb, [
         '-s',
         serial,
@@ -154,7 +168,7 @@ try {
       ]);
   }
   if (
-    suite === 'browsing' &&
+    suite !== 'player' &&
     fixture.requests.some(
       (request) => request.method === 'POST' && request.url !== '/api/v1/search/history',
     )

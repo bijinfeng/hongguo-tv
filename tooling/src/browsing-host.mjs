@@ -4,6 +4,8 @@ import { browsingFixture } from './browsing-fixture.mjs';
 import { executable, root, run, runtimeConfig, rustEnvironment } from './process.mjs';
 
 const target = process.argv[2];
+const suite = process.argv[3] || 'browsing';
+if (!['browsing', 'suggestions'].includes(suite)) throw new Error('Expected browsing|suggestions');
 if (!['macos', 'web'].includes(target))
   throw new Error(
     'Expected macos|web graphical host; desktop font scaling needs a supported host control.',
@@ -11,19 +13,32 @@ if (!['macos', 'web'].includes(target))
 const fixture = await browsingFixture();
 const runtime = resolve(root, 'apps/web/runtime.generated.json');
 const previous = await readFile(runtime);
-const artifacts = resolve(root, `artifacts/browsing/${target}`);
+const artifacts = resolve(
+  root,
+  `artifacts/${suite === 'suggestions' ? 'typed-search-ui' : 'browsing'}/${target}`,
+);
 try {
   await mkdir(artifacts, { recursive: true });
   await runtimeConfig('web', fixture.origin);
-  const file = resolve(root, 'apps/web/.nsh/BrowsingHost.test.tsx');
+  const file = resolve(
+    root,
+    `apps/web/.nsh/${suite === 'suggestions' ? 'Suggestions' : 'Browsing'}Host.test.tsx`,
+  );
+  const register =
+    suite === 'suggestions' ? 'registerSuggestionsHostTests' : 'registerBrowsingHostTests';
+  const module = suite === 'suggestions' ? 'suggestions-host' : 'host';
   await writeFile(
     file,
-    `import { registerBrowsingHostTests } from '@hongguo/app/testing/host';\nregisterBrowsingHostTests('../App.tsx', ${JSON.stringify(artifacts)}, ${JSON.stringify(target)});\n`,
+    `import { ${register} } from '@hongguo/app/testing/${module}';\n${register}('../App.tsx', ${JSON.stringify(artifacts)}, ${JSON.stringify(target)});\n`,
   );
-  await run(executable('nsh'), ['test', file, '--target', target], {
-    cwd: resolve(root, 'apps/web'),
-    env: rustEnvironment(),
-  });
+  await run(
+    executable('nsh'),
+    ['test', file, '--target', target, ...(target === 'macos' ? ['--foreground'] : [])],
+    {
+      cwd: resolve(root, 'apps/web'),
+      env: rustEnvironment(),
+    },
+  );
   if (
     fixture.requests.some(
       (request) => request.method === 'POST' && request.url !== '/api/v1/search/history',

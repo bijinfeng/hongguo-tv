@@ -80,6 +80,45 @@ export async function browsingFixture({ discovery = 'populated' } = {}) {
         ],
       });
     }
+    if (url.pathname === '/api/v1/search/suggestions') {
+      const q = url.searchParams.get('q');
+      if (q === '建议失败') return reply('合成联想失败', 503);
+      if (q === '无建议') return reply({ items: [] });
+      return reply({
+        items: [
+          {
+            kind: 'short_play_actor',
+            key: 'actor-opaque',
+            name: '林初',
+            actor_id: '9007199254740993',
+            meta: '演员',
+          },
+          {
+            kind: 'short_play_name',
+            key: 'series-opaque',
+            name: '重生之后',
+            drama: drama(),
+            meta: '75 集',
+          },
+          { kind: 'common_query', key: 'keyword-opaque', name: '山海归来' },
+          { kind: 'common_query', key: 'long-opaque', name: '词'.repeat(81) },
+        ],
+      });
+    }
+    if (url.pathname === '/api/v1/actors/works') {
+      if (url.searchParams.get('actor_id') !== '9007199254740993')
+        return reply('Wrong actor identity', 400);
+      await new Promise((resolve) => setTimeout(resolve, 360));
+      return reply({
+        actor: {
+          id: '9007199254740993',
+          name: '林初',
+          description: '用故事连接每一种生活。',
+          avatar: `${origin}/cover/0`,
+        },
+        items: Array.from({ length: 82 }, (_, i) => drama(i)),
+      });
+    }
     if (url.pathname === '/api/v1/search/history') {
       if (req.method === 'POST') {
         let body = '';

@@ -126,7 +126,7 @@ SDK 安装完成后，`pnpm package:tv` 已通过预检并生成技术验证 APK
 | 开发生命周期   | 从仓库外启动真实 dev:web；NSH Web 页可访问，Rust status 与精确 CORS 通过；SIGTERM 后 API 监听关闭，无遗留 NSH/API 进程                                                                                             |
 | Git            | Lefthook 已安装；hooks:check 通过，Conventional Commits 的通过/拒绝路径有测试；发现并关闭 Lefthook 默认隐式 stash，新增实际 wrapper 的部分暂存回归，检查期间未暂存内容可见、成功/失败后 index/工作区不变且无 stash |
 | 安全           | `cargo deny --locked check` 的漏洞、许可证、来源、依赖策略通过；官方 npm registry 上 `pnpm audit` 未发现已知漏洞。机器默认镜像不支持 audit，项目已固定官方 registry                                                |
-| 旧行为保护     | `pnpm legacy:verify` 通过：legacy 脚本经 `apps/web` check/build、2 项脚本测试、5 项 NSH 测试和原 Go 核心测试；共享 UI 没有复制一套旧版本                                                                                 |
+| 旧行为保护     | `pnpm legacy:verify` 通过：legacy 脚本经 `apps/web` check/build、2 项脚本测试、5 项 NSH 测试和原 Go 核心测试；共享 UI 没有复制一套旧版本                                                                           |
 
 当前新增 6 项工程自动化测试。旧播放的真实网络/界面证据保留在下文，本次结构迁移未重新做真实账号扫码和全量视频验收。
 
@@ -403,3 +403,18 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - native取消／close验证499、pending清空、无后续重试及无观看／最近词写入，close后410、取消后可恢复。core丢弃future的真实socket关闭／不重试及deadline有专项；演员接口HTTP客户端真实断开、HTTP/native端到端timeout对照未单独测，不能用共用映射或播放器断开回归替代。
 - 显式匿名 `actor_works_probe -- --anonymous-live <public-actor-id>` 本次返回82部支持作品、82精确系列摘要、avatar／description均存在、episodes0；只输出数量，不记录姓名／身份／简介／URL／作品原文。此证据仅为该公开演员页当次读取，不代表其他演员、全网全集、实际界面或播放验收。
 - 独立功能／UI产品范围报告见同目录 `function-review.md`／`ui-review.md`。本批无packages/app／packages/ui／apps可见改动，不重复计宿主截图／鼠标／TV矩阵；typed联想入口、演员作品共享UI、防抖／IME／焦点、100字联想与80字普通搜索／100 UTF16最近词边界仍待后续实现及真实宿主观察。C3.2、辅助技术、物理TV／遥控／解码、全屏、安全阻塞、其余D/E/F/G及正式发行继续开放，完整MVP未完成。本批仅本地提交，不push／归档／发布，并行品牌／设计dirty保留。
+
+### D4 · 定稿输入联想与演员作品共享 UI（2026-11-14）
+
+- `wire-typed-search-suggestions` 接通同一顶栏输入下的非模态建议层，复用主题、动效、语义按钮与定稿海报 grid／TV shelf。只有 kind 与合法显式 ID 共同支持时打开剧集详情或演员作品，其余以完整 name 普通搜索；不把 opaque key 当身份。按最终动作身份去重，避免不同原始 kind 回退为同名 query 后重复注册。
+- App 独立 controller 拥有240ms防抖、组合输入、活动／交互归属、取消、generation／raw迟到隔离、当前词缓存、关闭、重试与销毁。离页／后台取消，不由异步完成导航或抢焦；不写观看记录。普通提交统一 Unicode 空白、拒绝 C0/C1，最多80 scalar／100 UTF16；联想最多100 scalar，均不截短原文。无效提交关闭建议、保留完整草稿与旧结果，错误紧邻输入，修改后可再提交；仅合法普通提交进入最近词。
+- SearchForm 使用公开 Input／Overlay，支持 Down／首项 Up／Enter／Escape／Tab／outside。blur 仅延后一帧判断输入与列表归属；重试先聚焦输入，避免行卸载关闭浮层。演员／剧集动作激活前 blur，避免原生 Enter 连带提交；返回恢复服从最新用户意图。Actor 使用 typed 作品接口及页面局部 snapshot，详情覆盖期间保留数据，隐藏取消请求；复用 List 虚拟化、精确 series ID、offset 和 refs ownership，提供加载／失败重试／空态，无假分页、总数或全网作品承诺。
+- Android 薄宿主转发公开焦点身份和按键／指针意图，程序 focus 不作新意图。公开 `focus-surface-*` 仅过滤其遮挡范围内的背景焦点，包括浮层行间空隙；没有全局 toolbar 排除。返回来源绑定具体 navigation-page View、depth 与稳定 ID，隔离同深度新页面；原生滚动回调检查 intent epoch 与 attached，防止迟到恢复覆盖更新的导航。
+- 最终工程结果见 `artifacts/typed-search-ui/gates-result.json`，均为工具实际 exit0：`verify-latest.log` 含 Rust138/138、工具21/21、Web／Desktop／TV UI45/43/44，三端 check **和** build、fmt／lint／codegen 与 release 基础检查；`clippy-final.log` 为 workspace／all-targets／-D warnings。`focus-final.log` 1/1覆盖共享／宿主新意图优先、hostFocus传递和订阅清理。没有依赖、Rust DTO 或数据库变化，本批不重跑 security，不代表既有安全阻塞解除。
+- 可重复图形宿主入口为 `node tooling/src/browsing-host.mjs web suggestions` 与 `node tooling/src/browsing-host.mjs macos suggestions`。最终 `host-web-command-second.log`／`host-macos-command-final.log` 各4/4：1180×780、1440×1000浅深，1180组 reducedMotion。82项演员列表滚动后首次打开和返回 Enter 均断言同一具体较后作品，包含两级来源、建议焦点、error／retry／empty、81字完整草稿、350ms后错误仍无弹层及缩短提交。Mac driver 使用 foreground，不能将后台 NSApplication inactive 的运行当可见窗口验收。
+- macOS另有实际可见窗口鼠标／键盘检查：演员→第二部详情→返回 Enter 同部；82项中的第15部 drama137 精确返回／重开；两级来源、Up返输入、Tab、Escape、重试、完整长词编辑、empty／outside。证据为同目录 `macos/manual-*`。手动1440组受屏幕限制实际高969；自动正式矩阵为1440×1000，二者不混用。未重新要求解锁或将所有历史失败归于锁屏。
+- `tv-browsing-third.log` 最终模拟器浅色／深色／字号1.3各71项通过（213项），`tv-player-second.log` 各24项通过（72项）。可复现入口 `node tooling/src/tv-browsing.mjs suggestions` 的专项为各25项，最终完整浏览已覆盖其更新后的pageRoot实现。包含 InputConnection 原生 composing／commit、演员首部／第15部精确返回、第16部新遥控意图、两级来源、同一UI turn返回并用原生 MotionEvent点击精选的新指针优先、三种动作、校验、重试与系统返回。播放器保留原24项媒体／定位／设置／返回断言，首个搜索改为原生 Enter 提交。
+- TV wrapper 每轮恢复原 native APK并实际pull回核对：`tv-before.json` 与 `tv-restored.json` 均为 SHA256 `140304dd98b1b37dc8f7a706278b9ecf7efdc73d00c5acd884aaa0df893a8327`、night yes、font_scale1.0、reverse空。HTTP fixture／合成媒体和模拟器不替代官网独立业务或物理电视验收。
+- 历史失败分类保留：Mac早期锁屏与默认后台 inactive是两类条件，foreground后4/4；Web command首轮Chrome启动SIGBUS为3/4，未改业务的第二轮4/4。TV完整首轮52项后的演员返回是真实同depth来源隔离缺陷，已修pageRoot；第二轮59项后的旧label断言误匹配背景同名海报，改公开精确ID后第三轮通过。player首轮2项后的HTTP fixture失败在解码前发生，补新增联想／发现的合法空响应后全72项通过。早期retry涉及IME关闭异步与focus重开，原生等待WindowInsets后分开验证系统键盘Back和应用浮层Back。早期格式／控制正则lint已修；既有mixed headless linker `__eh_frame section too large` 警告保留，未屏蔽。
+- 独立功能及UI终审报告位于同目录 `function-review.md`／`ui-review.md`，结论为本切片已观察范围通过。圆角、字体、间距、对齐、浅深表面、焦点、长名及错误可见性均有截图核对；实际hover／pressed逐帧、加载帧、全部动效、人工系统IME候选、VoiceOver／TalkBack、Mac系统字体缩放、物理TV／遥控／硬解仍未逐项验收。减少动态配置及静态图不等同动态过程通过。
+- 本批只完成D4当前UI切片，不关闭C3.2真实Mac独立官网观看／重启续播、全屏、推荐／筛选等其余D、E/F/G、安全和正式发行，完整MVP仍未完成。保留并行品牌／设计dirty，精确分批本地提交，不push／归档／发布。

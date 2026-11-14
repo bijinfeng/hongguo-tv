@@ -17,6 +17,7 @@ const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
 function fixture(request: StubRequest): StubResponse {
   const url = new URL(request.url);
   if (url.pathname === '/api/v1/search/history') return ok({ items: [] });
+  if (url.pathname === '/api/v1/search/suggestions') return ok({ items: [] });
   if (url.pathname === '/api/v1/search/discovery') return ok({ guesses: [], boards: [] });
   if (url.pathname === '/api/v1/library') return ok({ entries: [], owner_id: '' });
   if (url.pathname === '/api/v1/account') return ok({ logged_in: false, qr_login_available: true });
@@ -35,6 +36,256 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  test('typed suggestions validate Unicode, debounce composition, cancel superseded/dismissed/inactive/disposed reads and retry', async () => {
+    const app = await open('./SuggestionsStatePreview.tsx', { clock: {} });
+    await app.press('验证输入');
+    await app.waitFor('validation-passed');
+    await app.press('开始组合');
+    await app.press('聚焦建议');
+    await app.wait(300);
+    expect(app.texts().some((text) => text.includes('read-'))).toBe(false);
+    await app.press('结束组合');
+    await app.wait(160);
+    expect(app.texts().some((text) => text.includes('read-'))).toBe(false);
+    await app.wait(100);
+    await app.waitUntil(() => app.texts().some((text) => text.includes('read-1-甲')));
+    await app.press('输入乙');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('abort-1')));
+    await app.press('完成旧建议');
+    expect(app.shows('text:items:建议1')).toBe(false);
+    await app.wait(260);
+    await app.press('失败建议');
+    await app.waitFor('suggestion-error');
+    await app.press('重试建议');
+    await app.wait(260);
+    await app.press('完成当前建议');
+    await app.waitFor('text:items:建议3');
+    await app.press('关闭建议');
+    await app.waitFor('text:open:false');
+    await app.press('聚焦建议');
+    await app.waitFor('text:open:true');
+    await app.press('重试建议');
+    await app.wait(260);
+    await app.press('离开建议');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('abort-4')));
+    await app.press('完成当前建议');
+    await app.waitFor('text:open:false');
+    expect(app.shows('text:items:建议4')).toBe(false);
+    await app.press('返回建议');
+    await app.press('聚焦建议');
+    await app.wait(260);
+    await app.press('移除建议');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('abort-5')));
+    await app.press('完成当前建议');
+    expect(app.shows('id:suggestions-owner')).toBe(false);
+  });
+  test('typed suggestion actions preserve exact actor/drama identity, return sources and full invalid keyword editing', async () => {
+    const writes: string[] = [];
+    const searchQueries: string[] = [];
+    const typed = (request: StubRequest): StubResponse => {
+      const url = new URL(request.url);
+      if (request.method === 'POST') writes.push(request.body || '');
+      if (url.pathname === '/api/v1/search') searchQueries.push(url.searchParams.get('q') || '');
+      if (url.pathname === '/api/v1/search/suggestions')
+        return ok({
+          items: [
+            {
+              kind: 'short_play_actor',
+              key: 'not-an-id',
+              name: '演员甲',
+              actor_id: '9007199254740993',
+            },
+            { kind: 'short_play_name', key: 'wrong-series', name: '指定作品', drama },
+            { kind: 'common_query', key: 'opaque', name: '词'.repeat(81) },
+            { kind: 'short_play_actor', key: '123', name: '普通词' },
+            { kind: 'short_play_name', key: 'other', name: '普通词' },
+            { kind: 'common_query', key: 'third', name: '普通词' },
+          ],
+        });
+      if (url.pathname === '/api/v1/actors/works') {
+        expect(url.searchParams.get('actor_id')).toBe('9007199254740993');
+        return ok({
+          actor: { id: '9007199254740993', name: '演员甲', description: '公开简介' },
+          items: [drama, { ...drama, series_id: '124', title: '第二部作品' }],
+        });
+      }
+      if (url.pathname === '/api/v1/series/detail' && url.searchParams.get('series_id') === '124')
+        return ok({ ...drama, series_id: '124', title: '第二部作品' });
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      platform: 'macos',
+      reducedMotion: true,
+      clock: {},
+      network: { '*': typed, 'POST *': typed },
+    });
+    await app.press('id:nav-search');
+    await app.type('id:search-input', '演员');
+    await app.waitFor('id:suggestion-actor:9007199254740993');
+    await app.keyboard.press('down');
+    await app.keyboard.press('enter');
+    await app.waitFor('id:actor-works');
+    await app.waitFor('id:drama-124');
+    expect(app.shows('公开简介')).toBe(true);
+    await app.press('id:drama-124');
+    await app.waitFor('id:episode-range-trigger');
+    expect(app.shows('第二部作品')).toBe(true);
+    await app.back();
+    await app.waitFor('id:drama-124');
+    await app.wait(100);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:episode-range-trigger');
+    expect(app.shows('第二部作品')).toBe(true);
+    await app.back();
+    await app.waitFor('id:actor-works');
+    await app.back();
+    await app.waitFor('id:suggestion-actor:9007199254740993');
+    await app.wait(100);
+    await app.keyboard.press('down');
+    await app.keyboard.press('enter');
+    await app.waitFor('id:episode-range-trigger');
+    expect(app.shows('id:actor-works')).toBe(false);
+    await app.back();
+    await app.waitFor('id:suggestion-query:' + '词'.repeat(81));
+    await app.press('id:suggestion-query:' + '词'.repeat(81));
+    await app.waitFor('id:search-validation');
+    expect(app.value('id:search-input')).toBe('词'.repeat(81));
+    expect(searchQueries.length).toBe(0);
+    expect(writes.length).toBe(0);
+    await app.clear('id:search-input');
+    await app.type('id:search-input', '已缩短');
+    await app.submit('id:search-input');
+    await app.waitFor('id:drama-123');
+    expect(searchQueries).toEqual(['已缩短']);
+    await app.clear('id:search-input');
+    await app.type('id:search-input', '普通');
+    await app.waitFor('id:suggestion-query:普通词');
+    expect(app.count('id:suggestion-query:普通词')).toBe(1);
+    await app.press('id:suggestion-query:普通词');
+    await app.waitUntil(() => searchQueries.includes('普通词'));
+    expect(searchQueries).toEqual(['已缩短', '普通词']);
+    expect(writes.every((body) => JSON.parse(body).action === 'add')).toBe(true);
+  });
+  test('suggestion Escape, Tab, outside and first-row Up keep navigation and editing usable', async () => {
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      platform: 'macos',
+      clock: {},
+      network: {
+        '*': (request) =>
+          new URL(request.url).pathname === '/api/v1/search/suggestions'
+            ? ok({ items: [{ kind: 'common_query', key: 'opaque', name: '建议查询' }] })
+            : fixture(request),
+      },
+    });
+    await app.press('id:nav-search');
+    await app.type('id:search-input', '查');
+    await app.waitFor('id:search-suggestions');
+    await app.keyboard.press('down');
+    await app.keyboard.press('up');
+    await app.keyboard.press('x');
+    expect(app.value('id:search-input')).toBe('查x');
+    await app.keyboard.press('escape');
+    expect(app.shows('id:search-suggestions')).toBe(false);
+    expect(app.shows('找剧') || target === 'tv').toBe(true);
+    await app.type('id:search-input', '新查');
+    await app.waitFor('id:search-suggestions');
+    await app.keyboard.press('tab');
+    expect(app.shows('id:search-suggestions')).toBe(false);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:drama-123');
+    await app.type('id:search-input', '再查');
+    await app.waitFor('id:search-suggestions');
+    await app.press('id:nav-history');
+    expect(app.shows('id:search-suggestions')).toBe(false);
+  });
+  test('suggestion retry is reachable by Down/Enter, background cancels reads and actor states retry without writes', async () => {
+    let suggestionReads = 0;
+    let actorReads = 0;
+    const writes: string[] = [];
+    const network = (request: StubRequest): StubResponse => {
+      const url = new URL(request.url);
+      if (request.method === 'POST') writes.push(url.pathname);
+      if (url.pathname === '/api/v1/search/suggestions') {
+        suggestionReads++;
+        if (suggestionReads === 1) return { status: 503, body: { ok: false, error: '合成失败' } };
+        return {
+          ...ok({
+            items: [{ kind: 'short_play_actor', key: 'opaque', name: '演员乙', actor_id: '42' }],
+          }),
+          delay: suggestionReads === 2 ? 500 : 100,
+        };
+      }
+      if (url.pathname === '/api/v1/actors/works') {
+        actorReads++;
+        if (actorReads === 1)
+          return { status: 503, body: { ok: false, error: '合成作品失败' }, delay: 200 };
+        return {
+          ...ok({ actor: { id: '42', name: '演员乙' }, items: [] }),
+          delay: actorReads === 3 ? 500 : 50,
+        };
+      }
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': network, 'POST *': network },
+    });
+    await app.press('id:nav-search');
+    await app.type('id:search-input', '演员');
+    await app.waitFor('建议未能加载');
+    await app.keyboard.press('down');
+    await app.keyboard.press('enter');
+    await app.waitFor('正在加载建议…');
+    expect(suggestionReads).toBe(2);
+    await app.setLifecycle('background');
+    await app.wait(600);
+    expect(app.shows('id:search-suggestions')).toBe(false);
+    await app.setLifecycle('active');
+    expect(app.shows('id:search-suggestions')).toBe(false);
+    await app.type('id:search-input', '乙');
+    await app.waitFor('id:suggestion-actor:42');
+    await app.press('id:suggestion-actor:42');
+    await app.waitFor('正在加载作品…');
+    await app.waitFor('作品未能加载');
+    await app.press('重试');
+    await app.waitFor('暂时没有可展示的作品');
+    expect(actorReads).toBe(2);
+    await app.back();
+    await app.waitFor('id:suggestion-actor:42');
+    await app.press('id:suggestion-actor:42');
+    await app.waitFor('正在加载作品…');
+    await app.back();
+    await app.wait(600);
+    expect(app.shows('id:actor-works')).toBe(false);
+    expect(app.shows('暂时没有可展示的作品')).toBe(false);
+    expect(writes).toEqual([]);
+  });
+  test('newer pointer, keyboard or host focus intent cancels returns and subscriptions dispose', async () => {
+    const app = await open('./ReturnFocusStatePreview.tsx', { clock: {} });
+    await app.press('打开来源');
+    await app.press('返回后用户移动');
+    await app.wait(120);
+    await app.waitFor('text:returns:0');
+    await app.press('宿主输入焦点');
+    await app.waitFor('text:host-focus:search-input');
+    await app.press('打开来源');
+    await app.press('返回后遥控移动');
+    await app.wait(120);
+    await app.waitFor('text:returns:0');
+    await app.press('打开来源');
+    await app.press('正常返回来源');
+    await app.waitFor('text:returns:1');
+    await app.press('移除焦点所有者');
+    await app.waitFor('text:focus-subscriptions:0');
+  });
   test('card controls preserve one Tab stop, arrow/home/end movement, exact ref focus and disposal', async () => {
     const app = await open('./CardControlsStatePreview.tsx', {
       platform: 'macos',

@@ -27,13 +27,25 @@ const Group = context<Group | undefined>(undefined);
 /** Stable-slot card rows: the pressed item becomes the return stop before navigation.
  * shortcut: registration order is navigation order; use keyed row slots, not reordered members.
  */
-export function CardControls(props: { label: string; class?: string; children?: JSX.Element }) {
+export function CardControls(props: {
+  label: string;
+  class?: string;
+  children?: JSX.Element;
+  vertical?: boolean;
+  onPreviousFromFirst?: () => void;
+  onNavigate?: () => void;
+}) {
   const members: CardMember[] = [];
   const current = signal<CardMember | undefined>(undefined);
   const focused = signal<CardMember | undefined>(undefined);
   const move = (step: 'next' | 'previous' | 'first' | 'last') => {
     if (!members.length) return;
+    props.onNavigate?.();
     const index = members.indexOf(current()!);
+    if (step === 'previous' && index === 0 && props.onPreviousFromFirst) {
+      props.onPreviousFromFirst();
+      return;
+    }
     const next =
       members[
         step === 'first'
@@ -49,8 +61,8 @@ export function CardControls(props: { label: string; class?: string; children?: 
     if (!focused()) return;
     const unbind = keymap.bind(
       {
-        right: () => move('next'),
-        left: () => move('previous'),
+        [props.vertical ? 'down' : 'right']: () => move('next'),
+        [props.vertical ? 'up' : 'left']: () => move('previous'),
         home: () => move('first'),
         end: () => move('last'),
       },
@@ -87,7 +99,7 @@ export function CardControls(props: { label: string; class?: string; children?: 
       <View
         role="toolbar"
         accessibilityLabel={props.label}
-        class={`flex-row gap-3 ${props.class ?? ''}`}
+        class={`${props.vertical ? 'flex-col' : 'flex-row'} gap-3 ${props.class ?? ''}`}
       >
         {props.children}
       </View>
@@ -104,6 +116,8 @@ export function CardRoot(props: {
   style?: ViewProps['style'];
   class?: string;
   onPress: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   children?: JSX.Element;
 }) {
   const member = Group()?.register();
@@ -140,8 +154,14 @@ export function CardRoot(props: {
       accessibilityLabel={props.accessibilityLabel}
       accessibilityState={{ selected: !!props.selected }}
       focusable={member.stop()}
-      onFocus={member.focus}
-      onBlur={member.blur}
+      onFocus={() => {
+        member.focus();
+        props.onFocus?.();
+      }}
+      onBlur={() => {
+        member.blur();
+        props.onBlur?.();
+      }}
       onPress={() => {
         member.activate();
         props.onPress();

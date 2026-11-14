@@ -1,22 +1,10 @@
-import {
-  List,
-  Text,
-  View,
-  signal,
-  effect,
-  cleanup,
-  platform,
-  type ListRef,
-  type ViewRef,
-} from 'nsh';
-import { Button, Controls, CardControls, Notice, PosterCard, tvUnit } from '@hongguo/ui';
+import { Text, View, platform, type ViewRef } from 'nsh';
+import { Button, Controls, Notice, tvUnit } from '@hongguo/ui';
+import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
 
 export function Search(props: { store: Store }) {
-  const width = signal(0);
-  const listHeight = signal(0);
-  const columns = () => (props.store.target === 'tv' ? 1 : 4);
   const discoveries = () => {
     const seen = new Set<string>();
     return (props.store.discoveryData()?.boards ?? [])
@@ -48,19 +36,6 @@ export function Search(props: { store: Store }) {
     const comic = discoveries().some((item) => discoveryFamily(item.series_id) === 'comic');
     return short && comic ? '热门短剧与漫剧' : comic ? '热门漫剧' : '热门短剧';
   };
-  let list: ListRef | undefined;
-  let anchor: { id: string; offset: number } | undefined;
-  let frame = 0;
-  let lastQuery = '';
-  effect(() => {
-    const query = props.store.query();
-    if (query !== lastQuery) {
-      lastQuery = query;
-      anchor = undefined;
-      list?.scrollToOffset({ offset: 0, animated: false });
-    }
-  });
-  const refs = new Map<string, ViewRef>();
   let more: ViewRef | undefined;
   let continuationQuery = '';
   const loadMore = () => {
@@ -79,22 +54,6 @@ export function Search(props: { store: Store }) {
     )
       props.store.focusSearchInput();
   };
-  cleanup(() => cancelAnimationFrame(frame));
-  const restore = () => {
-    if (!anchor) return;
-    const index = items().findIndex((drama) => drama.series_id === anchor!.id);
-    if (index >= 0)
-      list?.scrollToIndex({
-        index: Math.floor(index / columns()),
-        viewOffset: -anchor.offset,
-        animated: false,
-      });
-  };
-  effect(() => {
-    if (!props.store.activePage('search')) return;
-    void columns();
-    frame = requestAnimationFrame(restore);
-  });
   return (
     <View
       class={`flex-1 ${props.store.query() ? 'gap-7' : 'gap-4'} ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
@@ -260,100 +219,30 @@ export function Search(props: { store: Store }) {
           </Text>
         </If>
       </If>
-      <List
-        ref={(ref) => {
-          list = ref;
-        }}
-        onScroll={() => {
-          if (!props.store.activePage('search')) return;
-          void list?.measureScrollPosition().then((position) => {
-            if (props.store.activePage('search') && position) {
-              const item = items()[position.index * columns()];
-              if (item) anchor = { id: item.series_id, offset: position.offset };
-            }
-          });
-        }}
-        onLayout={({ bounds }) => {
-          if (bounds.size.height > 0) listHeight.set(bounds.size.height);
-          if (bounds.size.width > 0) width.set(bounds.size.width);
-        }}
+      <PosterCollection
+        onNavigate={props.store.noteFocusIntent}
+        focusGuard={props.store.focusGuard}
+        target={props.store.target}
+        active={props.store.activePage('search')}
         testID="results"
-        each={Array.from({ length: Math.ceil(items().length / columns()) }, (_, i) => ({
-          id: items()[i * columns()].series_id,
-          items: items().slice(i * columns(), (i + 1) * columns()),
-        }))}
-        keyExtractor={(row) => row.id}
-        horizontal={props.store.target === 'tv'}
-        estimatedItemSize={
-          props.store.target === 'tv' ? tvUnit(260) : ((width() - 84) / 4) * 1.35 + 84
+        collection={props.store.query()}
+        items={items()}
+        label={props.store.query() ? '搜索结果' : discoveryTitle()}
+        selected={props.store.searchSelection()}
+        caption={(drama) =>
+          [
+            !props.store.query() && discoveryFamily(drama.series_id) === 'comic' ? '漫剧' : '',
+            drama.episode_count ? `${drama.episode_count} 集` : '',
+          ]
+            .filter(Boolean)
+            .join(' · ') || undefined
         }
-        class="flex-1"
-        style={props.store.target === 'desktop' ? { width: '100%', maxWidth: 1100 } : undefined}
-        contentStyle={{ gap: props.store.target === 'tv' ? tvUnit(28) : 28 }}
-      >
-        {(row) => (
-          <View style={props.store.target === 'tv' ? { width: tvUnit(260) } : undefined}>
-            <CardControls
-              label={props.store.query() ? '搜索结果' : discoveryTitle()}
-              class="w-full gap-7"
-            >
-              <Each of={Array.from({ length: columns() }, (_, i) => i)}>
-                {(slot) => (
-                  <View class="flex-1">
-                    <If when={row().items[slot()]}>
-                      {(drama) => {
-                        let ref: ViewRef | undefined;
-                        effect(() => {
-                          const id = drama().series_id;
-                          if (ref) refs.set(id, ref);
-                          cleanup(() => {
-                            if (refs.get(id) === ref) refs.delete(id);
-                          });
-                        });
-                        return (
-                          <PosterCard
-                            buttonRef={(node) => {
-                              ref = node;
-                              refs.set(drama().series_id, node);
-                            }}
-                            testID={`drama-${drama().series_id}`}
-                            availableHeight={listHeight()}
-                            width={(width() - 84) / 4 - 4}
-                            title={drama().title}
-                            cover={drama().cover_fallback || drama().cover}
-                            caption={
-                              [
-                                !props.store.query() &&
-                                discoveryFamily(drama().series_id) === 'comic'
-                                  ? '漫剧'
-                                  : '',
-                                drama().episode_count ? `${drama().episode_count} 集` : '',
-                              ]
-                                .filter(Boolean)
-                                .join(' · ') || undefined
-                            }
-                            onPress={() => {
-                              props.store.searchSelection.set(drama().series_id);
-                              const id = drama().series_id;
-                              props.store.open(drama(), () => {
-                                restore();
-                                frame = requestAnimationFrame(() => {
-                                  refs.get(id)?.focus();
-                                });
-                              });
-                            }}
-                            selected={props.store.searchSelection() === drama().series_id}
-                          />
-                        );
-                      }}
-                    </If>
-                  </View>
-                )}
-              </Each>
-            </CardControls>
-          </View>
-        )}
-      </List>
+        onOpen={(drama, restore) => {
+          props.store.searchSelection.set(drama.series_id);
+          props.store.open(drama, restore);
+        }}
+      />
+
       <If when={props.store.moreError()}>
         <Notice error message={props.store.moreError()} />
       </If>

@@ -132,7 +132,7 @@ final class PlayerAcceptance {
             key(KeyEvent.KEYCODE_DPAD_LEFT);
             check("native input retains media and caret keys", () -> activity.getCurrentFocus() instanceof EditText
                     && input(activity.getWindow().getDecorView()).getText().toString().equals("story"));
-            key(KeyEvent.KEYCODE_DPAD_DOWN); click("搜索");
+            key(KeyEvent.KEYCODE_ENTER);
             check("HTTP fixture result", () -> has("自制媒体验收"));
             click("自制媒体验收");
             check("real detail route", () -> has("开始观看"));

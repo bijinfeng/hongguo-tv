@@ -2,9 +2,10 @@ import { cleanup, View, keymap, reduceMotion, type ImageAsset } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
 import { currentWindow, isAvailable } from 'nsh/desktop';
 import { Button, Controls, Logo, Product, tvUnit, type ProductTarget } from '@hongguo/ui';
-import { createStore, type Store } from './store';
+import { createStore, type Store, type FocusSource } from './store';
 import { SearchForm } from './SearchForm';
 import { Search } from './pages/Search';
+import { Actor } from './pages/Actor';
 import { Detail } from './pages/Detail';
 import { Player } from './pages/Player';
 import { History } from './pages/History';
@@ -113,6 +114,16 @@ function Pages(props: { store: Store }) {
                 <Detail
                   drama={(route as Extract<typeof route, { name: 'detail' }>).drama}
                   store={props.store}
+                />
+              )}
+            </If>
+            <If when={route.name === 'actor'}>
+              {() => (
+                <Actor
+                  store={props.store}
+                  actorId={(route as Extract<typeof route, { name: 'actor' }>).actorId}
+                  title={(route as Extract<typeof route, { name: 'actor' }>).title}
+                  active={props.store.nav.routes().at(-1) === route}
                 />
               )}
             </If>
@@ -225,17 +236,23 @@ export function App(props: {
   target: ProductTarget;
   logoMark: ImageAsset;
   subscribePlayerCommands?: PlaybackCommandSource;
+  subscribeFocus?: FocusSource;
   onShutdown?: (drained: Promise<void>) => void;
   onReady?: () => void;
 }) {
-  const store = createStore(props.target, props.subscribePlayerCommands);
+  const store = createStore(props.target, props.subscribePlayerCommands, props.subscribeFocus);
   cleanup(() => props.onShutdown?.(store.shutdown()));
   keymap.bind('escape', store.back, { when: 'notEditing' });
+  keymap.bind(
+    { tab: store.noteFocusIntent, 'shift+tab': store.noteFocusIntent },
+    { when: 'always', passThrough: true },
+  );
   props.onReady?.();
   return (
     <Product.Provider value={props.target}>
       <View
         testID={`app-${props.target}`}
+        onTouchStartCapture={store.noteFocusIntent}
         class="flex-1 bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
       >
         <If
