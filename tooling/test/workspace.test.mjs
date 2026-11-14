@@ -19,6 +19,11 @@ import { ready, stop, nativeDev } from '../src/dev.mjs';
 import { hookArgs } from '../src/lefthook.mjs';
 import { tvBuildType } from '../src/tv-host.mjs';
 
+// Nested repositories must not inherit the caller's hook/worktree Git context.
+const isolatedGitEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')),
+);
+
 async function temp(fn) {
   const dir = await mkdtemp(resolve(tmpdir(), 'hongguo-test-'));
   try {
@@ -220,7 +225,7 @@ test('native dev propagates host failure and cleans up its only child on shutdow
 test('commit rules accept conventional commits and hooks never change partial staging', () =>
   temp(async (dir) => {
     const git = (args) => {
-      const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+      const result = spawnSync('git', args, { cwd: dir, env: isolatedGitEnv, encoding: 'utf8' });
       assert.equal(result.status, 0, result.stderr);
       return result.stdout;
     };
@@ -237,6 +242,7 @@ test('commit rules accept conventional commits and hooks never change partial st
     ]) {
       const result = spawnSync(hook, ['--config', resolve(root, 'commitlint.config.mjs')], {
         cwd: dir,
+        env: isolatedGitEnv,
         encoding: 'utf8',
         input: message + '\n',
         shell: process.platform === 'win32',
@@ -252,7 +258,7 @@ test('commit rules accept conventional commits and hooks never change partial st
 test('installed hook wrapper never hides unstaged content or creates a stash', () =>
   temp(async (dir) => {
     const exec = (command, args, valid = true) => {
-      const result = spawnSync(command, args, { cwd: dir, encoding: 'utf8' });
+      const result = spawnSync(command, args, { cwd: dir, env: isolatedGitEnv, encoding: 'utf8' });
       assert.equal(result.status === 0, valid, result.stdout + result.stderr);
       return result.stdout;
     };
