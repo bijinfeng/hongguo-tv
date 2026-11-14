@@ -9,11 +9,13 @@ import {
   reduceMotion,
   signal,
   token,
+  windowSize,
   type JSX,
   type ViewRef,
 } from 'nsh';
 import { Button, Select, Sheet, Slider } from 'nsh/base';
-import { Icon, Product, tvUnit, type IconName } from './index';
+import { Icon, type IconName } from './icon';
+import { Product, controlMetrics, tvUnit } from './foundation';
 import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
 
@@ -33,7 +35,7 @@ export function CinemaButton(props: {
   const enabled = CinemaEnabled();
   return (
     <Button
-      ref={props.buttonRef}
+      ref={(ref) => props.buttonRef?.(ref)}
       testID={props.testID}
       accessibilityLabel={props.label}
       tooltip={props.iconOnly ? props.label : undefined}
@@ -41,23 +43,27 @@ export function CinemaButton(props: {
       selected={props.selected}
       onPress={props.onPress}
       style={{
-        minHeight: Product() === 'tv' ? tvUnit(60) : 40,
-        minWidth: Product() === 'tv' ? tvUnit(60) : 36,
-        paddingHorizontal:
-          Product() === 'tv' ? tvUnit(props.iconOnly ? 16 : 24) : props.iconOnly ? 6 : 8,
-        paddingVertical: Product() === 'tv' ? tvUnit(12) : 6,
-        borderRadius: Product() === 'tv' ? tvUnit(12) : 8,
-        gap: Product() === 'tv' ? tvUnit(12) : 6,
+        minHeight: controlMetrics().height,
+        minWidth: props.iconOnly ? controlMetrics().height : undefined,
+        paddingHorizontal: props.iconOnly
+          ? controlMetrics().gap
+          : controlMetrics().paddingHorizontal,
+        paddingVertical: controlMetrics().paddingVertical,
+        borderRadius: controlMetrics().radius,
+        gap: controlMetrics().gap,
       }}
-      class={`flex-row items-center justify-center border border-transparent bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active focus-visible:border-cinema-focus selected:bg-cinema-active disabled:opacity-40 ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
+      class={`flex-row items-center justify-center border border-transparent bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
       <If when={props.icon}>
-        <Icon name={props.icon!} color={token('cinema-foreground')} />
+        <Icon
+          name={props.icon!}
+          color={token(props.disabled || !enabled() ? 'cinema-muted' : 'cinema-foreground')}
+        />
       </If>
       <If when={!props.iconOnly}>
         <Text
-          style={{ fontSize: Product() === 'tv' ? tvUnit(22) : 14 }}
-          class="text-cinema-foreground"
+          style={{ fontSize: controlMetrics().fontSize }}
+          class={props.disabled || !enabled() ? 'text-cinema-muted' : 'text-cinema-foreground'}
         >
           {props.label}
         </Text>
@@ -95,14 +101,14 @@ export function CinemaSlider(props: {
       }}
       class="flex-1 min-w-0 disabled:opacity-40"
       trackClass="justify-center"
-      trackStyle={{ minHeight: Product() === 'tv' ? tvUnit(28) : 24 }}
+      trackStyle={{ minHeight: controlMetrics().height }}
       indicatorClass="rounded-full bg-cinema-track"
       indicatorStyle={{ height: Product() === 'tv' ? tvUnit(6) : 4 }}
       rangeClass="rounded-full bg-primary"
-      thumbClass="rounded-full border-2 border-transparent bg-cinema-foreground hover:bg-cinema-focus active:bg-cinema-focus focus-visible:border-cinema-focus"
+      thumbClass="rounded-full bg-cinema-foreground hover:bg-cinema-focus active:bg-cinema-focus focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4"
       thumbStyle={{
-        width: Product() === 'tv' ? tvUnit(20) : 12,
-        height: Product() === 'tv' ? tvUnit(20) : 12,
+        width: Product() === 'tv' ? tvUnit(24) : 16,
+        height: Product() === 'tv' ? tvUnit(24) : 16,
       }}
     />
   );
@@ -132,32 +138,44 @@ export function CinemaSelect(props: {
       onChange={({ value }) => {
         if (value !== null) props.onChange(value);
       }}
-      class={`rounded-lg border border-transparent hover:bg-cinema-hover active:bg-cinema-active focus-visible:border-cinema-focus focus-within:border-cinema-focus disabled:opacity-40 ${open() ? 'bg-cinema-active' : 'bg-cinema-control'}`}
       trigger={
-        <View
-          class="flex-row items-center justify-center"
+        <Button
+          accessibilityLabel={props.label}
+          disabled={props.disabled || !enabled()}
+          onPress={() => open.set(true)}
+          class={`flex-row items-center justify-center rounded-(--radius) focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 ${open() ? 'bg-cinema-active focus-within:outline-2 focus-within:outline-cinema-focus focus-within:outline-offset-4' : 'bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active'}`}
           style={{
-            minHeight: Product() === 'tv' ? tvUnit(60) : 40,
-            gap: Product() === 'tv' ? tvUnit(12) : 6,
-            paddingHorizontal: Product() === 'tv' ? tvUnit(24) : 8,
+            minHeight: controlMetrics().height,
+            borderRadius: controlMetrics().radius,
+            gap: controlMetrics().gap,
+            paddingHorizontal: controlMetrics().paddingHorizontal,
+            paddingVertical: controlMetrics().paddingVertical,
           }}
         >
-          <SelectFocus open={open()} gap={Product() === 'tv' ? tvUnit(12) : 6}>
-            <Icon name="down" color={token('cinema-foreground')} />
+          <SelectFocus open={open()} gap={controlMetrics().gap}>
+            <Icon
+              name="down"
+              color={token(props.disabled || !enabled() ? 'cinema-muted' : 'cinema-foreground')}
+            />
             <Text
-              class="text-cinema-foreground"
-              style={{ fontSize: Product() === 'tv' ? tvUnit(22) : 14 }}
+              class={props.disabled || !enabled() ? 'text-cinema-muted' : 'text-cinema-foreground'}
+              style={{ fontSize: controlMetrics().fontSize }}
             >
               {props.items.find((item) => item.value === props.value)?.title ?? props.label}
             </Text>
           </SelectFocus>
-        </View>
+        </Button>
       }
       placement="top"
       popupClass="bg-card border border-border rounded-(--radius) p-2"
       popupStyle={{ minWidth: Product() === 'tv' ? tvUnit(220) : 120 }}
-      itemClass="p-3 text-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
-      itemStyle={Product() === 'tv' ? { fontSize: tvUnit(22), padding: tvUnit(16) } : undefined}
+      itemClass="text-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
+      itemStyle={{
+        minHeight: controlMetrics().height,
+        fontSize: controlMetrics().fontSize,
+        paddingHorizontal: controlMetrics().paddingHorizontal,
+        paddingVertical: controlMetrics().paddingVertical,
+      }}
     />
   );
 }
@@ -232,10 +250,12 @@ export function CinemaText(props: {
       style={{
         fontSize:
           Product() === 'tv'
-            ? tvUnit(props.variant === 'title' ? 36 : props.variant === 'preview' ? 24 : 22)
+            ? tvUnit(props.variant === 'title' ? 32 : props.variant === 'preview' ? 22 : 20)
             : props.variant === 'title'
               ? 24
-              : 14,
+              : props.variant === 'preview'
+                ? 16
+                : 14,
       }}
     >
       {props.children}
@@ -257,7 +277,7 @@ export function EpisodePanel(props: {
         if (!open) props.onClose();
       }}
       popupClass={props.cinema ? 'bg-cinema' : 'bg-card'}
-      popupStyle={{ width: Product() === 'tv' ? tvUnit(820) : 400 }}
+      popupStyle={{ width: Math.min(Product() === 'tv' ? tvUnit(640) : 440, windowSize().width) }}
       backdropClass="bg-cinema/60"
     >
       <View
@@ -265,8 +285,8 @@ export function EpisodePanel(props: {
         accessibilityLabel={props.cinema ? '播放设置' : '选集'}
         class="flex-1"
         style={{
-          padding: Product() === 'tv' ? tvUnit(36) : 24,
-          gap: Product() === 'tv' ? tvUnit(24) : 20,
+          padding: Product() === 'tv' ? tvUnit(32) : 32,
+          gap: Product() === 'tv' ? tvUnit(24) : 24,
         }}
       >
         {props.children}
@@ -284,11 +304,11 @@ export function CinemaStageAction(props: {
 }) {
   return (
     <Button
-      ref={props.buttonRef}
+      ref={(ref) => props.buttonRef?.(ref)}
       accessibilityLabel={props.label}
       disabled={props.disabled}
       onPress={props.onPress}
-      class="absolute inset-0 items-center justify-center bg-transparent border-2 border-transparent focus-visible:border-cinema-focus"
+      class="absolute inset-0 items-center justify-center bg-transparent focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4"
     >
       <If when={props.showPlay && !props.disabled}>
         <View class="w-16 h-16 rounded-full bg-cinema/60 items-center justify-center">
@@ -314,7 +334,11 @@ export function EpisodeRail(props: { children?: JSX.Element }) {
   return (
     <View
       class="bg-card border border-border rounded-(--radius) overflow-hidden"
-      style={{ width: 316, height: 552 }}
+      style={{
+        width: Math.min(Product() === 'tv' ? tvUnit(640) : 316, windowSize().width),
+        height: Math.min(Product() === 'tv' ? tvUnit(720) : 552, windowSize().height),
+        borderRadius: controlMetrics().radius,
+      }}
     >
       {props.children}
     </View>

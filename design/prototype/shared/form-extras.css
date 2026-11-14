@@ -1,0 +1,95 @@
+/* Composite fields own one boundary and one focus ring. */
+.input-with-icon:focus-within {
+  outline: none;
+}
+.input-with-icon:has(.ui-input:focus) {
+  outline: var(--focus-width) solid var(--ring);
+  outline-offset: 4px;
+}
+:root[data-platform='tv'] .input-with-icon .ui-input:focus,
+dialog .input-with-icon .ui-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.input-with-icon:has(.ui-input.editing) {
+  background: var(--accent);
+}
+:root[data-platform='tv'] .input-with-icon .ui-input.editing {
+  background: transparent;
+}
+.field-hint {
+  color: var(--muted-foreground);
+  font-size: var(--meta);
+}
+.suggestion-shell {
+  position: relative;
+  max-width: 640px;
+  display: grid;
+  gap: 10px;
+}
+.suggestion-shell > label {
+  font-size: var(--meta);
+  font-weight: 550;
+}
+.suggestion-list {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 32px #00000026;
+  padding: 8px;
+}
+.suggestion-list button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: var(--control);
+  color: var(--foreground);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px var(--pad);
+  text-align: left;
+}
+.suggestion-list button span:not(.icon) {
+  flex: 1;
+}
+.suggestion-list button:hover {
+  background: var(--muted);
+}
+.suggestion-list button[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.progress-popover {
+  padding: 24px;
+  min-width: 300px;
+}
+.progress-popover p {
+  margin: 12px 0 20px;
+  color: var(--muted-foreground);
+}
+.check-label input:indeterminate::after {
+  content: '';
+  width: 10px;
+  height: 2px;
+  background: var(--primary-foreground);
+  border: 0;
+  transform: none;
+}
+.check-label input:indeterminate {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.check-label input:disabled {
+  border-color: var(--input);
+  background: var(--muted);
+}
+.check-label input:disabled::after {
+  border-color: var(--muted-foreground);
+}
+.switch-hit:disabled {
+  cursor: default;
+}
+.switch-hit:disabled .switch {
+  background: var(--input);
+}

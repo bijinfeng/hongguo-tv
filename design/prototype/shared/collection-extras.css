@@ -1,0 +1,172 @@
+.cx-collection,
+.cx-records {
+  width: 100%;
+  max-width: 840px;
+  min-width: 0;
+}
+.cx-scroll {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+  height: 320px;
+  overflow: auto;
+  padding: 8px;
+  scroll-padding: 8px;
+  scrollbar-color: var(--muted-foreground) var(--muted);
+}
+.cx-scroll[hidden] {
+  display: none;
+}
+.cx-card {
+  min-width: 0;
+}
+.cx-card-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  text-align: left;
+  color: var(--foreground);
+  background: transparent;
+}
+.cx-card-action img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: var(--radius);
+  background: var(--muted);
+}
+.cx-card-action strong {
+  font-size: var(--body);
+  overflow-wrap: anywhere;
+}
+.cx-card-action:hover img {
+  opacity: 0.92;
+}
+.cx-card-action:active img {
+  opacity: 0.84;
+}
+.cx-collection-footer,
+.cx-record-toolbar,
+.cx-record-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding-top: 24px;
+}
+.cx-record-toolbar {
+  padding: 0 0 16px;
+}
+.cx-record-toolbar > .ui-button:last-child {
+  margin-left: auto;
+}
+.cx-record-scroll {
+  max-height: 360px;
+  overflow: auto;
+  padding: 8px;
+  scroll-padding: 8px;
+  scrollbar-color: var(--muted-foreground) var(--muted);
+}
+.cx-record-cover {
+  flex: none;
+  width: 56px;
+  height: 76px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 8px;
+  background: var(--muted);
+}
+.cx-records h3 {
+  font-size: var(--body);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.cx-records .content-result-body {
+  min-width: 100px;
+}
+.cx-empty {
+  padding: 32px 8px;
+  color: var(--muted-foreground);
+  grid-column: 1 / -1;
+}
+.cx-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 8px;
+}
+.cx-detail > img {
+  width: 128px;
+  height: 172px;
+  flex: none;
+  object-fit: cover;
+  object-position: top;
+  border-radius: var(--radius);
+}
+.cx-detail h3 {
+  font-size: var(--section);
+}
+.cx-detail p {
+  margin-block: 8px 24px;
+}
+.cx-detail .inline {
+  flex-wrap: wrap;
+}
+.cx-statistics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 48px;
+  margin-bottom: 16px;
+}
+.cx-statistics dt {
+  color: var(--muted-foreground);
+  font-size: var(--meta);
+}
+.cx-statistics dd {
+  margin: 8px 0 0;
+  font-size: var(--section);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cx-statistics dd span {
+  font-size: var(--meta);
+  font-weight: 400;
+}
+:root[data-platform='tv'] .cx-scroll {
+  display: flex;
+  height: auto;
+  padding-bottom: 24px;
+  gap: 32px;
+}
+:root[data-platform='tv'] .cx-scroll[hidden] {
+  display: none;
+}
+:root[data-platform='tv'] .cx-card {
+  width: 260px;
+  flex: 0 0 260px;
+}
+:root[data-platform='tv'] .cx-card-action img {
+  height: 240px;
+}
+:root[data-platform='tv'] .cx-record-scroll {
+  max-height: 440px;
+}
+:root[data-platform='tv'] .cx-record-cover {
+  width: 80px;
+  height: 108px;
+}
+:root[data-platform='tv'] .cx-detail > img {
+  width: 180px;
+  height: 240px;
+}
+@media (max-width: 560px) {
+  .cx-detail {
+    flex-direction: column;
+  }
+}

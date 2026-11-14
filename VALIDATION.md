@@ -525,3 +525,14 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 并行更新器已先提交a0f3ea2；本批核心提交随后基于该提交重放，冲突仅为VALIDATION末尾追加，两个任务的记录均保留。对含更新器的最终集成源码又实际运行`pnpm verify`与全工作区Clippy，均exit0（`verify-updater-integration.log`／`clippy-updater-integration.log`）：tooling27、Rust196、Web52／Desktop54／TV55全部通过；三个核心的运行文件与首次通过版本一致。该门禁仍不包含主工作区尚未提交的品牌／设计或发行任务改动。
 
 - 随后并行发行任务2611c0b提交tag检查与依赖feature裁剪，本批重放到该父提交，保留其完整源码和记录。本批上述全量门禁精确对应a0f3ea2加三个核心的快照，不冒充2611c0b之后的全树复验；新父提交的验证证据属于其独立发行任务。
+
+### 基础组件单包还原与原型共源（2026-11-15）
+
+- 已授权范围为 `@hongguo/ui` 基础组件、包工程规范、原生验收页与浏览器原型基础样式共源。使用单包和根 `Product.Provider`，共享 API／受控值／主题／官方 Lucide 来源；集中 44／60 端型尺寸，只在文本编辑、Slider 确认取消、返回与焦点等真实边界适配。没有把所有产品页面迁移或业务样例算作已接通。
+- `pnpm install --frozen-lockfile --ignore-scripts` 通过。三端组件入口 NSH check **和** build 通过；组件 headless 各 13／13（共39），macOS可见宿主桌面与TV密度各13／13（共26），原型28项加UI包工程2项定向回归30／30；图标40份官方源／SHA及三方生成同步、定向Oxfmt／Oxlint与diff检查通过。证据在ignored `artifacts/ui-components/`，macOS的TV密度不等于Android TV。
+- 产品回归初轮发现 Notice 在窄容器挤压／隐藏错误文案；已按实测容器宽度调整纵横布局，保留原位重试。修复后定向2／2，最终Web52／52、Desktop54／54、TV55／55通过。真实macOS验收还暴露并修复TV输入导航态截获点击、Slider不可聚焦外壳、可选ref与移除交接等问题，没有删除既有来源焦点适配。
+- 视觉独立审查发现Gallery海报宽高装配、选集单列与feature缺图浅色表面三个问题，均在共享层或验收页原职责内修正。面板选集四列另扣除左右边线并定点重拍，影院组两端各1／1；具体最终结论与实看截图见 `docs/design/component-native-review.md`。原型实际观察双端输入与按钮等高、单边界、选择／确认／返回，桌面924／1440与TV924／1440／1920视口；不把浏览器字体与几何代替NSH宿主还原。
+- 完整 `pnpm verify` 仍失败于 `contracts/openapi.json` 生成漂移；先前完整check另有三个Rust示例引用未导出API。工程工具回归30项中29通过，安装钩子夹具的commit-msg用例触发pnpm自动安装并因无TTY失败（`tooling-final.log`）；没有关闭门禁或改写无关契约。`pnpm security` 的许可证及ttf-parser未维护问题仍开放。上述类别分别记录，不混称同一失败。
+- Android组件尝试在armeabi-v7a的libnsh.so构建阶段失败，未进入UI；随后磁盘不足仅清理可重建的Rust incremental缓存，不能断言Android失败唯一源于磁盘。物理TV／真实遥控／IME／读屏／系统大字／正常动效逐帧／媒体解码／独立发行未通过本批确认。完整度矩阵、用法及后续迁移门槛见 `docs/design/component-implementation.md`。未提交、未推送，保留并行修改。
+
+- 本次基础组件提交仅纳入独立组件板、共享资源、NSH UI、验收工具与规范；产品原型整页适配和更早产品设计修订保留工作区。原型28项及合计30项结果来自完整工作区，不冒充该提交包含所有原型改动。提交前用已有独立 `CARGO_TARGET_DIR=/tmp/hongguo-discovery-target` 实际运行契约检查通过（`codegen-commit-check.log`），未修改Rust或生成契约；默认缓存的早前漂移失败保留。安全、Android和辅助技术边界继续开放。

@@ -1,0 +1,124 @@
+.spec-row > * {
+  min-width: 0;
+}
+.contract + .spec-section {
+  margin-top: 40px;
+}
+.spec-state-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.spec-state-tools .ui-button {
+  font-size: var(--meta);
+}
+.select-trigger:disabled,
+.popup button:disabled,
+.tabs button:disabled,
+input[type='range']:disabled {
+  color: var(--muted-foreground);
+  background: var(--muted);
+  cursor: default;
+}
+.popup {
+  max-height: min(360px, 65vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding: 12px;
+}
+.popup button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-block: 10px;
+}
+.edge-anchor {
+  display: flex;
+  justify-content: flex-end;
+  min-height: calc(var(--control) + 72px);
+  align-items: flex-end;
+}
+.cinema-state-demo {
+  max-width: 1100px;
+}
+.cinema-state-stage {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  border-radius: var(--radius);
+  background: var(--cinema);
+}
+.cinema-state-message {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 20px;
+  color: var(--cinema-foreground);
+}
+.cinema-state-message p {
+  font-size: var(--meta);
+  color: var(--cinema-muted);
+}
+.cinema-state-message strong {
+  font-size: var(--section);
+}
+.cinema-state-controls {
+  display: grid;
+  gap: 24px;
+  padding-top: 24px;
+}
+.cinema-state-seek {
+  display: grid;
+  gap: 8px;
+  color: var(--cinema-muted);
+  font-size: var(--meta);
+}
+.cinema-state-demo input:disabled {
+  background: transparent;
+  opacity: 0.55;
+}
+.episode-state-grid {
+  margin-top: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.episode-state-grid .ui-button {
+  white-space: normal;
+  padding: 8px;
+}
+#sheet-episodes {
+  max-height: 50vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  scroll-padding: 8px;
+}
+.suggestion-list {
+  max-height: 360px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.suggestion-state {
+  padding: 16px;
+  color: var(--muted-foreground);
+  font-size: var(--meta);
+}
+.suggestion-kind {
+  color: var(--muted-foreground);
+  font-size: var(--meta);
+}
+:root[data-platform='tv'] .cinema-state-stage {
+  min-height: 300px;
+}
+@media (max-width: 700px) {
+  .episode-state-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  .spec-row,
+  :root[data-platform='tv'] .spec-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

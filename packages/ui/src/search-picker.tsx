@@ -9,7 +9,8 @@ import {
   type ViewRef,
 } from 'nsh';
 import { CardControls, CardRoot } from './card-controls';
-import { Icon, Product, tvUnit, type IconName } from './index';
+import { Icon, type IconName } from './icon';
+import { Product, tvUnit } from './foundation';
 import { motionTokens } from './motion';
 
 /** Anchored, nonmodal: editing remains in the input until the user moves to a row. */
@@ -79,7 +80,7 @@ export function SearchSuggestionRow(props: {
 }) {
   return (
     <CardRoot
-      ref={props.rowRef}
+      ref={(ref) => props.rowRef?.(ref)}
       testID={props.testID}
       accessibilityLabel={props.label}
       onFocus={props.onFocus}

@@ -48,6 +48,22 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 
 默认忽略 `.nsh/`、`target/`、`node_modules/`、`.local/`、产物与第三方上游。契约生成代码由生成器控制格式；先检查来源可再生，不手工批量修补。
 
+### 图标资源与依赖
+
+NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [基础组件方案](docs/design/nsh-components-plan.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
+
+- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标规范」](DESIGN.md#统一图标规范--2026-11-14) 为准。生产资源、语义名称映射与 NSH 适配统一归 `packages/ui`，设计原型复用同一来源；业务页面和各端入口不复制图标路径。
+- 首次接入时固定官方包精确版本及锁文件，或记录所纳入官方资源的版本、来源和校验信息，并保留对应许可证。只打包实际使用的图标，不依赖运行时 CDN；版本升级时同步设计稿、资源和映射。
+- 采用静态 SVG 资源或构建期提取；不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。NSH 适配以锁定版本生成的 `.nsh/types/` 为准；必要转换必须可重复生成，禁止手工修改生成的几何数据。
+- 迁移时核对每个语义名称、主题颜色、尺寸、状态及可访问名称，执行对应 NSH check **和** build，并在实际宿主观察。新增依赖执行 `pnpm security`；依赖或资源落地前，本规则仅表示已确定的约束，不表示已完成迁移或验收。
+
+### 基础组件工程边界
+
+- `packages/ui/src/index.tsx` 仅导出；内部直接导入组件所属模块，禁止循环回引自身入口。`./preview` 与 `./testing` 仅用于显式开发入口。
+- 一个package共用API／值／状态，根注入 `Product.Provider`，尺寸集中于 foundation；只有真实输入／宿主边界适配，不复制业务控制器，不拆 desktop-ui／tv-ui。
+- `pnpm ui:check` 同时检查并构建三端验收入口；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host` 在macOS观察桌面／TV密度与浅深主题。它不代表Android TV或遥控／输入法验收。
+- 产品原型与浏览器组件板使用同一 `design/prototype/shared/` 资源；新增原型先扩共用组件，不在页面复刻视觉。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
+
 ## 3. Rust
 
 Rust 检查覆盖 core、HTTP 层、Web 服务、native bridge 及实际宿主成员，不用一个空 crate 通过检查来声称核心和原生工程完备。

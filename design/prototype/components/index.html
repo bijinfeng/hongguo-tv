@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-platform="desktop">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>红果 · 基础组件设计</title>
+    <link rel="stylesheet" href="assets/theme.css" />
+    <link rel="stylesheet" href="components.css" />
+    <link rel="stylesheet" href="../shared/foundations.css" />
+    <link rel="stylesheet" href="../shared/content.css" />
+    <link rel="stylesheet" href="../shared/feedback.css" />
+    <link rel="stylesheet" href="../shared/form-extras.css" />
+    <link rel="stylesheet" href="../shared/discovery-extras.css" />
+    <link rel="stylesheet" href="../shared/account-extras.css" />
+    <link rel="stylesheet" href="../shared/collection-extras.css" />
+    <link rel="stylesheet" href="coverage-states.css" />
+    <link rel="stylesheet" href="../shared/frequent-extras.css" />
+    <link rel="stylesheet" href="../shared/controls.css" />
+    <script src="../shared/icons.js"></script>
+    <script src="../shared/controls.js"></script>
+    <script type="module" src="components.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#board">跳到组件</a>
+    <header class="review-bar">
+      <a href="../index.html" class="wordmark">红果<span>基础组件</span></a>
+      <nav aria-label="设计平台">
+        <button data-platform="common">公共基础</button>
+        <button data-platform="desktop">桌面端</button>
+        <button data-platform="tv">TV</button>
+      </nav>
+      <button id="theme-toggle" class="review-theme" aria-label="切换深色">深色</button>
+    </header>
+    <div class="review-note">交互设计样板 · 内容与状态均为演示，不连接账号或媒体服务</div>
+    <main id="board" tabindex="-1"></main>
+    <div id="overlay-root"></div>
+  </body>
+</html>

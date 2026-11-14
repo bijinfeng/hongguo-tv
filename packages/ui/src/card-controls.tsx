@@ -129,6 +129,8 @@ export function CardRoot(props: {
   ref?: (ref: ViewRef) => void;
   testID?: string;
   accessibilityLabel: string;
+  accessibilityDescription?: string;
+  expanded?: boolean;
   selected?: boolean;
   disabled?: boolean;
   style?: ViewProps['style'];
@@ -140,12 +142,19 @@ export function CardRoot(props: {
 }) {
   const member = Group()?.register(() => !props.disabled);
   if (!member) {
-    const Root = props.onFocus || props.onBlur ? FocusedRemovalRoot : BaseButton;
+    const Root =
+      props.onFocus ||
+      props.onBlur ||
+      props.expanded !== undefined ||
+      props.accessibilityDescription
+        ? FocusedRemovalRoot
+        : BaseButton;
     return (
       <Root
-        ref={props.ref}
+        ref={(ref) => props.ref?.(ref)}
         testID={props.testID}
         accessibilityLabel={props.accessibilityLabel}
+        {...{ accessibilityDescription: props.accessibilityDescription, expanded: props.expanded }}
         selected={props.selected}
         disabled={props.disabled}
         onFocus={props.onFocus}
@@ -176,7 +185,12 @@ export function CardRoot(props: {
       testID={props.testID}
       role="button"
       accessibilityLabel={props.accessibilityLabel}
-      accessibilityState={{ selected: !!props.selected, disabled: !!props.disabled }}
+      accessibilityHint={props.accessibilityDescription}
+      accessibilityState={{
+        selected: !!props.selected,
+        disabled: !!props.disabled,
+        expanded: props.expanded,
+      }}
       disabled={props.disabled}
       focusable={!props.disabled && member.stop()}
       onFocus={() => {

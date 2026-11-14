@@ -1,0 +1,2 @@
+/* Compatibility entry: canonical browser component styles live in shared/. */
+@import url('../shared/feedback.css');

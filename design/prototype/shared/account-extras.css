@@ -1,0 +1,159 @@
+.ax-demo-note {
+  margin: 0 0 24px;
+}
+.ax-status {
+  margin: 12px 0;
+}
+.ax-demo-controls,
+.ax-input-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.ax-qr-layout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+.ax-scan-placeholder {
+  width: 180px;
+  height: 180px;
+  border: 1px dashed var(--input);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted-foreground);
+  flex: none;
+}
+.ax-scan-placeholder small {
+  font-size: var(--meta);
+}
+.ax-qr-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+.ax-phone-form,
+.ax-settings {
+  width: 100%;
+  max-width: 880px;
+  min-width: 0;
+}
+.ax-phone-fields,
+.ax-code-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.ax-phone-fields > .field {
+  min-width: 220px;
+}
+.ax-phone-fields .ax-picker {
+  width: 100%;
+}
+.ax-code-row {
+  gap: 12px;
+  margin-bottom: 0;
+}
+.ax-code-row > .field {
+  max-width: 360px;
+}
+.ax-code-row > .ui-button {
+  flex: none;
+}
+.ax-phone-form > .inline {
+  margin-top: 24px;
+}
+.ax-picker .popup {
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ax-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: calc(var(--control) + 40px);
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ax-setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ax-setting-control {
+  min-width: 0;
+  flex: none;
+}
+.ax-setting-control .select-wrap {
+  min-width: 220px;
+}
+.ax-readonly {
+  color: var(--muted-foreground);
+}
+.ax-setting-feedback {
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--border);
+}
+.ax-input-adapter,
+.ax-mfa {
+  padding: 24px 0;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.ax-adapter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.ax-digit-output {
+  display: block;
+  min-height: var(--control);
+  padding: 12px 0;
+  margin: 12px 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.ax-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 420px;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+:root[data-platform='tv'] .ax-scan-placeholder {
+  width: 240px;
+  height: 240px;
+}
+:root[data-platform='tv'] .ax-phone-form,
+:root[data-platform='tv'] .ax-settings {
+  max-width: 1120px;
+}
+:root[data-platform='tv'] .ax-setting-row {
+  min-height: calc(var(--control) + 56px);
+  padding-block: 28px;
+}
+:root[data-platform='tv'] .ax-setting-control .select-wrap {
+  min-width: 280px;
+}
+@media (max-width: 1000px) {
+  .ax-setting-row {
+    flex-wrap: wrap;
+  }
+  .ax-setting-control {
+    max-width: 100%;
+  }
+}

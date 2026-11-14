@@ -9,6 +9,8 @@ export function FocusedRemovalRoot(props: {
   disabled?: boolean;
   selected?: boolean;
   accessibilityLabel?: string | null;
+  accessibilityDescription?: string;
+  expanded?: boolean;
   onPress?: () => void;
   onFocusedRemoval?: () => void;
   onFocus?: () => void;
@@ -23,13 +25,18 @@ export function FocusedRemovalRoot(props: {
   });
   return (
     <View
-      ref={props.ref}
+      ref={(ref) => props.ref?.(ref)}
       style={props.style}
       class={props.class}
       testID={props.testID}
       role="button"
       accessibilityLabel={props.accessibilityLabel ?? undefined}
-      accessibilityState={{ disabled: !!props.disabled, selected: !!props.selected }}
+      accessibilityHint={props.accessibilityDescription}
+      accessibilityState={{
+        disabled: !!props.disabled,
+        selected: !!props.selected,
+        expanded: props.expanded,
+      }}
       disabled={props.disabled}
       onPress={props.onPress}
       onFocus={() => {

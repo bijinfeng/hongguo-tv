@@ -1,0 +1,53 @@
+/* Generated from packages/ui/theme.json; run node design/prototype/components/sync-theme.mjs. */
+:root[data-theme="light"] {
+  --radius: 12px;
+  --background: #f8f8f7;
+  --foreground: #20211f;
+  --card: #ffffff;
+  --card-foreground: #20211f;
+  --primary: #c52e39;
+  --primary-foreground: #ffffff;
+  --muted: #efefed;
+  --muted-foreground: #686a64;
+  --border: #dedfd9;
+  --input: #d0d2cb;
+  --ring: #b42130;
+  --accent: #fbe8e9;
+  --accent-foreground: #9f202a;
+  --cinema: #131514;
+  --cinema-foreground: #f7f8f5;
+  --cinema-muted: #b8bdb6;
+  --cinema-control: #242823;
+  --cinema-hover: #353b33;
+  --cinema-active: #434b40;
+  --cinema-track: #737b6d;
+  --cinema-focus: #ffa6ab;
+  --cinema-transparent: #13151400;
+  --destructive: #a92330;
+}
+:root[data-theme="dark"] {
+  --radius: 12px;
+  --background: #161816;
+  --foreground: #f3f4ef;
+  --card: #20231f;
+  --card-foreground: #f3f4ef;
+  --primary: #f2777d;
+  --primary-foreground: #311216;
+  --muted: #292d27;
+  --muted-foreground: #a6ada0;
+  --border: #383e35;
+  --input: #50584a;
+  --ring: #ffa6ab;
+  --accent: #42282a;
+  --accent-foreground: #ffb5b9;
+  --cinema: #0c0e0c;
+  --cinema-foreground: #f7f8f5;
+  --cinema-muted: #b8bdb6;
+  --cinema-control: #242823;
+  --cinema-hover: #353b33;
+  --cinema-active: #434b40;
+  --cinema-track: #737b6d;
+  --cinema-focus: #ffa6ab;
+  --cinema-transparent: #0c0e0c00;
+  --destructive: #ff9ca2;
+}

@@ -1,6 +1,8 @@
 import { Text, View, Scroll, signal, effect, cleanup, type ViewRef } from 'nsh';
 import { Select } from 'nsh/base';
-import { Button, CardControls, Product, tvUnit } from './index';
+import { Button } from './button';
+import { CardControls } from './card-controls';
+import { Product, tvUnit } from './foundation';
 
 /** Approved desktop choice row / TV selector. The caller owns the service value. */
 export function FilterChoices(props: {
