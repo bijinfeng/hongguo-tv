@@ -91,6 +91,12 @@ export function FeedStateFixture() {
           }}
         />
         <Button label="单次下一部" onPress={() => feed?.next()} />
+        <Button
+          label="遍历大量作品"
+          onPress={() => {
+            for (let i = 0; i < 150; i++) feed?.next();
+          }}
+        />
         <Button label="重试" onPress={() => feed?.retry()} />
         <Button label="完成" onPress={() => complete(number)} />
         <Button label="完成旧请求" onPress={() => complete(number - 1)} />

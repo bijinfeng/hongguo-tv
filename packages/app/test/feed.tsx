@@ -70,7 +70,7 @@ export function registerFeedTests() {
     await app.press('真人剧');
     await app.waitUntil(() => app.texts().some((t) => t.includes('read6:')));
     await app.press('完成大量');
-    for (let i = 0; i < 150; i++) await app.press('单次下一部');
+    await app.press('遍历大量作品');
     await app.waitUntil(() => app.texts().some((t) => t.includes('read7:')));
     const path = app
       .texts()
@@ -80,6 +80,7 @@ export function registerFeedTests() {
     expect(shown.length).toBe(128);
     expect(shown[0]).toBe('23');
     expect(shown[127]).toBe('150');
+    expect(app.shows('text:current:150')).toBe(true);
     await app.press('移除');
     await app.waitUntil(() => app.texts().some((t) => t.includes('abort7')));
     await app.press('完成');

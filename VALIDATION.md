@@ -502,3 +502,5 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 
 - `b05dc83` 经正常 pre-push 全量验证通过（251.04 秒）：Rust 164／164、tooling 28／28、Web 52／52、Desktop 54／54、TV 55／55，三端 check／build 通过。[TV 专项预览 43593567840](https://github.com/bijinfeng/hongguo-tv/actions/runs/43593567840) 实际成功，原始 APK 已下载回验 SHA／版本／大小／签名；真实安装验收与完整最终状态保存在 ignored github 证据目录。
 - 最新 Windows 原先争锁的两项测试均通过；随后 native bridge 的关闭监听器测试在等待 TcpStream::connect 失败时耗尽 2 秒预算。判据改为重新绑定同一端口，直接确认监听资源已释放，保留原有 2 秒测试期限、不修改生产关闭路径。此修正只影响测试；预览运行源码与后续测试提交分别记录，不混称同 SHA 的正式发行候选。
+
+- `b05dc83` 的远端 workspace 中 Web 52／52 通过；Desktop 的刷剧状态用例因 150 次 UI 自动化点击累计超过默认 30 秒而失败，日志已到 read7／abort7。夹具新增批量调用同一 feed.next 控制器的动作，保留状态隔离、精确游标、shown 首尾／128 上限和移除取消断言，并补当前第 150 条断言；其他用例继续验证真实下一部按钮。没有延长全局时限或更改产品刷剧路径。
