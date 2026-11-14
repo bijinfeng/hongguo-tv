@@ -1,7 +1,10 @@
 import { expect, open, test } from 'nsh/test';
+import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 
 /** Only invoked by the explicit graphical-host acceptance script. HTTP data is a local fixture. */
-export function registerBrowsingHostTests(entry: string, artifacts: string) {
+export function registerBrowsingHostTests(entry: string, artifacts: string, host: 'macos' | 'web') {
+  registerFocusedRemovalTests('../FocusedRemovalStatePreview.tsx', artifacts);
+  if (host === 'macos') registerSearchFocusTests('../SearchFocusStatePreview.tsx');
   test('graphical browsing: desktop, dark, history, segments and keyboard return', async () => {
     const app = await open(entry, {
       width: 1440,
@@ -77,6 +80,52 @@ export function registerBrowsingHostTests(entry: string, artifacts: string) {
     await app.setColorScheme('dark');
     await app.screenshot(`${artifacts}/controls-dark.png`);
   });
+  for (const moved of [false, true]) {
+    test(`terminal continuation with no prior selection, moved card focus=${moved}`, async () => {
+      const app = await open(entry, {
+        width: 1440,
+        height: 1000,
+        colorScheme: moved ? 'light' : 'dark',
+        reducedMotion: true,
+        network: 'live',
+      });
+      const term = `未选中末页-${moved}`;
+      await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+      await app.type('id:search-input', term);
+      await app.submit('id:search-input');
+      await app.waitFor('id:search-more');
+      await app.press('id:search-more');
+      await app.waitFor('加载失败：合成分页失败');
+      await app.keyboard.press('enter');
+      await app.waitFor('正在加载…');
+      await app.waitFor('加载更多');
+      await app.scroll('id:results', 6000);
+      await app.waitFor('id:drama-186');
+      await app.press('id:search-more');
+      await app.waitFor('正在加载…');
+      if (moved) {
+        await app.keyboard.press('shift+tab');
+        await app.keyboard.press('left');
+        await app.screenshot(`${artifacts}/pagination-card-pending.png`);
+      }
+      await app.waitUntil(() => !app.shows('id:search-more'));
+      const visibleTitles = app.texts().filter((text) => text.startsWith('重生之后'));
+      if (!moved) {
+        if (host === 'macos') {
+          await app.keyboard.press('x');
+          expect(app.value('id:search-input')).toBe(`${term}x`);
+          for (let i = 0; i < 6; i++) await app.keyboard.press('tab');
+        } else await app.keyboard.press('shift+tab');
+      }
+      await app.screenshot(`${artifacts}/pagination-unselected-${moved}-focus.png`);
+      await app.keyboard.press('enter');
+      await app.waitFor('id:episode-range-trigger');
+      const opened = app.texts().find((text) => text.startsWith('重生之后'));
+      expect(visibleTitles).toContain(opened);
+      await app.screenshot(`${artifacts}/pagination-unselected-${moved}-detail.png`);
+      app.dispose();
+    });
+  }
   for (const [width, height] of [
     [1180, 780],
     [1440, 1000],
@@ -150,12 +199,24 @@ export function registerBrowsingHostTests(entry: string, artifacts: string) {
         await app.keyboard.press('escape');
         await app.waitFor('id:drama-186');
         await app.screenshot(`${artifacts}/pagination-return-${width}-${colorScheme}.png`);
+        if (host === 'macos' && width === 1440 && colorScheme === 'dark') {
+          await app.keyboard.press('left');
+          await app.screenshot(`${artifacts}/pagination-roving-${width}-${colorScheme}.png`);
+        }
         await app.press('id:search-more');
         await app.waitFor('正在加载…');
         if (width === 1440 && colorScheme === 'dark') {
           await app.waitUntil(() => !app.shows('id:search-more'));
           const visibleTitles = app.texts().filter((text) => text.startsWith('重生之后'));
-          await app.keyboard.press('shift+tab');
+          if (host === 'macos') {
+            // The exhausted action hands focus to the existing input, outside the retained List.
+            await app.keyboard.press('x');
+            expect(app.value('id:search-input')).toBe(`续页-${width}-${colorScheme}x`);
+            await app.screenshot(
+              `${artifacts}/pagination-terminal-input-${width}-${colorScheme}.png`,
+            );
+            for (let i = 0; i < 6; i++) await app.keyboard.press('tab');
+          } else await app.keyboard.press('shift+tab');
           await app.screenshot(
             `${artifacts}/pagination-terminal-focus-${width}-${colorScheme}.png`,
           );

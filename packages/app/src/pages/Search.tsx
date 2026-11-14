@@ -1,4 +1,14 @@
-import { List, Text, View, signal, effect, cleanup, type ListRef, type ViewRef } from 'nsh';
+import {
+  List,
+  Text,
+  View,
+  signal,
+  effect,
+  cleanup,
+  platform,
+  type ListRef,
+  type ViewRef,
+} from 'nsh';
 import { Button, Controls, Notice, PosterCard, tvUnit } from '@hongguo/ui';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
@@ -22,9 +32,22 @@ export function Search(props: { store: Store }) {
   });
   const refs = new Map<string, ViewRef>();
   let more: ViewRef | undefined;
+  let continuationQuery = '';
   const loadMore = () => {
+    continuationQuery = props.store.query();
     more?.focus();
     void props.store.loadMore();
+  };
+
+  const restoreTerminalFocus = () => {
+    if (
+      props.store.activePage('search') &&
+      props.store.query() === continuationQuery &&
+      props.store.results.state() === 'ready' &&
+      props.store.catalog()?.has_more === false &&
+      !props.store.moreError()
+    )
+      props.store.focusSearchInput();
   };
   cleanup(() => cancelAnimationFrame(frame));
   const restore = () => {
@@ -255,6 +278,7 @@ export function Search(props: { store: Store }) {
             }
             disabled={props.store.results.state() !== 'ready'}
             onPress={loadMore}
+            onFocusedRemoval={platform.os === 'macos' ? restoreTerminalFocus : undefined}
           />
         </View>
       </If>

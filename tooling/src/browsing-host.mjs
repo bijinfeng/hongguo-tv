@@ -18,7 +18,7 @@ try {
   const file = resolve(root, 'apps/web/.nsh/BrowsingHost.test.tsx');
   await writeFile(
     file,
-    `import { registerBrowsingHostTests } from '@hongguo/app/testing/host';\nregisterBrowsingHostTests('../App.tsx', ${JSON.stringify(artifacts)});\n`,
+    `import { registerBrowsingHostTests } from '@hongguo/app/testing/host';\nregisterBrowsingHostTests('../App.tsx', ${JSON.stringify(artifacts)}, ${JSON.stringify(target)});\n`,
   );
   await run(executable('nsh'), ['test', file, '--target', target], {
     cwd: resolve(root, 'apps/web'),

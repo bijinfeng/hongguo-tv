@@ -19,6 +19,7 @@ import {
 import { Button as BaseButton, Input as BaseInput, Toolbar, Select } from 'nsh/base';
 import { entrance } from './motion';
 import { SelectFocus } from './select-focus';
+import { FocusedRemovalRoot } from './focused-removal-root';
 
 /** Product target, deliberately independent of the host operating system. */
 export type ProductTarget = 'desktop' | 'tv';
@@ -114,9 +115,12 @@ export function Button(props: {
   buttonRef?: (ref: ViewRef) => void;
   /** Internal Select trigger: its open list owns Enter on macOS. */
   selectOpen?: boolean;
+  /** Only removable standalone actions; never use inside Controls/Toolbar. */
+  onFocusedRemoval?: () => void;
 }) {
+  const Root = props.onFocusedRemoval ? FocusedRemovalRoot : BaseButton;
   return (
-    <BaseButton
+    <Root
       ref={props.buttonRef}
       style={{
         minHeight:
@@ -143,6 +147,7 @@ export function Button(props: {
       }}
       testID={props.testID}
       onPress={props.onPress}
+      onFocusedRemoval={props.onFocusedRemoval}
       disabled={props.disabled}
       selected={props.selected}
       accessibilityLabel={props.label}
@@ -174,7 +179,7 @@ export function Button(props: {
           </Text>
         </If>
       </SelectFocus>
-    </BaseButton>
+    </Root>
   );
 }
 export function SearchInput(props: {

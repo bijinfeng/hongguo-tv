@@ -346,3 +346,12 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 圆角、字号、间距、对齐、颜色与状态复用现有ui；Web／Mac各16张最近搜索图、TV9张图分别复核。hover／pressed／focus／disabled与reduceMotion沿用Button，清空前保留内容、成功后自然重排，无逐词入退场或异步抢焦；截图不能证明逐帧动画、辅助技术或物理输入。功能／UI独立审查位于`artifacts/recent-searches/{function-review,ui-review}.md`。
 - 最终 `artifacts/recent-searches/verify-final.log` 完整通过：106 Rust（0跳过）、21工程测试、Web33／Desktop31／TV32，含新增A成功B失败后保留快照专项、三端check／build、格式／lint／生成契约与发行基础检查；`codegen-final.log`、OpenSpec strict及最终diff检查通过。未新增依赖，不把verify当作既有安全阻塞已解除。
 - 本批验收为本地夹具宿主与隔离Rust持久化测试，未进行真实Mac mixed独立官网观看／重启续播、VoiceOver／TalkBack、物理电视／遥控／解码或正式发行。D1 Mac焦点、C3.2及其余D/E/F/G、安全门禁（既有2项停止维护与6项许可证阻塞）继续开放；未推送、归档或发布，并行品牌文档保留。
+
+### D1 · macOS 末页焦点修复验收
+
+- 实现：仅 macOS 的可移除独立分页操作观察实际 focus/blur；仍持焦的 owner 清理时同步交回现有搜索输入，并核对活动搜索页、同一查询、ready、成功末页和无追加错误。普通按钮／Toolbar 继续使用 BaseButton。输入位于 List 外，交接不重置阅读位置；之后 Tab 进入结果是用户主动导航，可触发原生焦点可见区域调整。
+- 完整 `pnpm verify` 通过（`artifacts/mac-pagination-focus/verify-first.log`，exit 0）：Rust 106 项、0 skipped，tooling 21 项，Web／Desktop／TV UI 36／34／35 项，三端 check/build、fmt、lint、契约和发行元数据基础检查通过。`codegen-first.log`、`openspec-first.log`、`fmt-first.log` 通过；不含安全／签名／正式发行放行。
+- macOS 图形宿主第四轮 16/16（`host-macos-fourth.log`）：两种批准尺寸浅深与减少动态、失败后 Enter 重试、追加详情返回、最近搜索回归。实际确认 Enter／Space、按 role 查询的禁用 press 拒绝、单 Tab 停靠、失焦不交接；1440 深色末页输入可继续输入，再六次 Tab／Enter 打开结果。无既有卡片 selection、箭头改变行内 roving stop 和 pending 移至卡片后终页不抢焦均通过。真实 Search 专项最终 1/1（`search-focus-macos-final.log`）还覆盖换查询／刷新／导航／owner 移除、新查询复用分支后再次末页交接。固定截图在同目录 `macos/`。
+- Web 图形宿主最终 15/15（`host-web-final.log`），两种批准尺寸浅深及既有原生键盘恢复通过，固定截图 `web/`。Mac 专属 Search 交接专项仅在实际 macOS 注册，浏览器不会因 open 的 platform 参数启用 macOS 生产分支。TV fixture 浅／深／字体1.3三组浏览108项、播放器72项通过（`host-tv-first.log`）；最近词使用 DPAD，清除／重试等仍为 Accessibility ACTION_CLICK，不扩大为全链 DPAD。恢复后重新拉取设备 APK 比对实际 SHA256 `140304dd98b1b37dc8f7a706278b9ecf7efdc73d00c5acd884aaa0df893a8327`，night yes／font_scale 1.0／reverse 空，与保存状态一致（`tv-before.json`、`tv-restored.json`）。
+- 原始失败保留：Mac 第一轮测试读取运行器平台走错 Web 分支，第二轮五次 Tab 落到清除搜索；显式 host 与实际六次 Tab 后，第三轮末页已过但新增夹具在完成时点击驱动按钮先失焦，第四轮改为先预约驱动、再聚焦真实操作后全过。早期 headless type/paste 不可靠地产生 blur，已以真实 Shift+Tab／逐键输入替代，后续控件专项2/2及完整 verify 全过。Web 首轮误注册 Mac 专项导致15/16，按实际 host 限定后最终15/15；这些失败均不记通过。
+- 独立功能与 UI 审查报告在 `artifacts/mac-pagination-focus/{function-review,ui-review}.md`。按钮半径、字号、间距、对齐、浅深颜色与 hover／pressed／selected／disabled／loading／error／focus 沿用同一 Button，未新增标签、布局或位移动效。图形宿主行为和截图不等于独立鼠标设备、VoiceOver／TalkBack、逐帧动画或物理遥控验收。C3.2 真实 Mac 独立官网观看／重启续播、字体缩放、辅助技术、实际全屏、安全阻塞及正式发行继续开放。

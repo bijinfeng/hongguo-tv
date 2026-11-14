@@ -1,4 +1,5 @@
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
+import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 
 const drama = {
   series_id: '123',
@@ -33,6 +34,8 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  registerFocusedRemovalTests('./FocusedRemovalStatePreview.tsx');
+  registerSearchFocusTests('./SearchFocusStatePreview.tsx');
   test('recent keyword loads cannot overwrite a committed mutation and failed clear retries its exact intent', async () => {
     const app = await open('./RecentSearchStatePreview.tsx');
     await app.press('进入发现');
