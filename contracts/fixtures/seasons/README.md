@@ -1,0 +1,7 @@
+# Public series-season fixtures
+
+Synthetic values follow the fixed `series_seasons.go`, `seasons.go` and their tests at the manifest commit. No Go execution, real account, old-client data or live payload is used. Selector13/14 retains numeric IDs beyond JS safe integer, duplicate identity, a trailer with validVID, disabled and unready seasons. The nested subscription item ID intentionally differs from the season ID; it enables only eligibility, never anonymous reserved success.
+
+`relation.input.json` omits current100, lists season3 before2 and includes upcoming4; reciprocal200 identifies current100 as season1. Choosing2 requires that exact reciprocal confirmation, not title inference or assuming1. Unit tests mutate these samples for unknown/conflicting/ambiguous relations, missing status, malformed containers, creator albums and raw bounds. No summary contains episodes, comments, account state or trailer playback ID.
+
+Run `cargo test --locked -p hongguo-core seasons` and `cargo test --locked -p hongguo-native-bridge seasons` for offline invariants and shared HTTP/native parity. The explicit optional anonymous probe is `cargo run --locked -p hongguo-core --example seasons_probe -- --anonymous-live`; it prints aggregate counts and never runs in the offline suite. Core evidence does not verify the later season selector UI, automatic navigation, reservation writes, physical TV or fullMVP.

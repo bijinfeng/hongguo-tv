@@ -1,0 +1,33 @@
+{
+  "code": 0,
+  "data": [
+    {
+      "video_data": [
+        {
+          "series_id": "300",
+          "title": "第三季",
+          "season_index": 3,
+          "vid": "3001",
+          "episode_cnt": 10
+        },
+        {
+          "series_id": "200",
+          "title": "第二季",
+          "season_index": 2,
+          "vid": "2001",
+          "episode_cnt": 10
+        },
+        {
+          "series_id": "400",
+          "title": "未来季",
+          "season_index": 4,
+          "vid": "4001",
+          "episode_cnt": 1,
+          "subscribe_item": {
+            "item_id": "4002"
+          }
+        }
+      ]
+    }
+  ]
+}

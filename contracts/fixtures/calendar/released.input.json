@@ -1,0 +1,35 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": true,
+    "next_offset": 45,
+    "session_id": "fixture-calendar",
+    "subscribe_items": [
+      {
+        "is_online": true,
+        "item_id": "0",
+        "subscribe_data": {
+          "series_id": "9007199254740993",
+          "title": "Released fixture",
+          "cover": "https://p3-reading-sign.fqnovelpic.com/example.jpg",
+          "video_desc": "Public fixture",
+          "episode_cnt": 12,
+          "content_type": "1004",
+          "episodes": [
+            {
+              "private": "ignored"
+            }
+          ]
+        },
+        "schedule_publish_time": 1794614400,
+        "categories": ["Drama"],
+        "has_subscribed": true
+      }
+    ],
+    "calendar_schema": {
+      "date_list": ["20261114", "20261115"],
+      "default_date": "20261114",
+      "current_date": "20261114"
+    }
+  }
+}

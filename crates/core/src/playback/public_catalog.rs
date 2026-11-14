@@ -10,6 +10,52 @@ use std::{collections::BTreeMap, time::Duration};
 use tokio::time::{sleep, timeout};
 const UA: &str = "com.phoenix.read/73532 (Linux; U; Android 16; zh_CN; 25053RT47C; Build/BP2A.250605.031.A3; Cronet/TTNetVersion:04657795 2026-01-23 QuicVersion:c67e9834 2025-09-08)";
 impl PlaybackClient {
+    pub(crate) async fn public_new_series(
+        &self,
+        query: &crate::catalog::NewSeriesQuery,
+    ) -> Result<crate::catalog::NewSeriesResult, CatalogError> {
+        let bytes = self
+            .anonymous_catalog(
+                crate::catalog::calendar::NEW_ENDPOINT,
+                query.params(),
+                None,
+                Duration::from_secs(12),
+                Duration::from_secs(5),
+            )
+            .await?;
+        crate::catalog::parse_new_series(&bytes, query)
+    }
+    pub(crate) async fn public_calendar(
+        &self,
+        query: &crate::catalog::CalendarQuery,
+    ) -> Result<crate::catalog::CalendarResult, CatalogError> {
+        let bytes = self
+            .anonymous_catalog(
+                crate::catalog::calendar::CALENDAR_ENDPOINT,
+                query.params(),
+                None,
+                Duration::from_secs(12),
+                Duration::from_secs(5),
+            )
+            .await?;
+        crate::catalog::parse_calendar(&bytes, query)
+    }
+
+    pub(crate) async fn public_rankings(
+        &self,
+        query: &crate::catalog::RankQuery,
+    ) -> Result<crate::catalog::RankResult, CatalogError> {
+        let bytes = self
+            .anonymous_catalog(
+                crate::catalog::rankings::ENDPOINT,
+                query.params(),
+                None,
+                Duration::from_secs(12),
+                Duration::from_secs(5),
+            )
+            .await?;
+        crate::catalog::parse_rankings(&bytes, query)
+    }
     pub(crate) async fn public_feed(&self, query: &FeedQuery) -> Result<FeedResult, CatalogError> {
         let bytes = self
             .anonymous_catalog(

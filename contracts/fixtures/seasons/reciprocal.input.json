@@ -1,0 +1,16 @@
+{
+  "code": 0,
+  "data": [
+    {
+      "video_data": [
+        {
+          "series_id": "100",
+          "title": "当前季",
+          "season_index": 1,
+          "vid": "1001",
+          "episode_cnt": 10
+        }
+      ]
+    }
+  ]
+}

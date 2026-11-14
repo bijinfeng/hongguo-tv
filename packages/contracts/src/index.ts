@@ -35,3 +35,19 @@ export interface Account {
   qr_login_available?: boolean;
 }
 export type { paths, components } from './generated';
+
+export type SeriesSeason = components['schemas']['SeriesSeason'];
+export type SeriesSeasonsResult = components['schemas']['SeriesSeasonsResult'];
+export type NextSeasonResult = components['schemas']['NextSeasonResult'];
+
+export type NewSeriesResult = components['schemas']['NewSeriesResult'];
+export type CalendarResult = components['schemas']['CalendarResult'];
+export type CalendarSchema = components['schemas']['CalendarSchema'];
+export type CalendarEntry = components['schemas']['CalendarEntry'];
+export type CalendarItem = components['schemas']['CalendarItem'];
+
+export type RankEntry = components['schemas']['RankEntry'];
+export type RankItem = components['schemas']['RankItem'];
+export type RankOption = components['schemas']['RankOption'];
+export type RankPanel = components['schemas']['RankPanel'];
+export type RankResult = components['schemas']['RankResult'];

@@ -1,0 +1,23 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": false,
+    "next_offset": 24,
+    "calendar_loc_info": {
+      "subscribe_offset": 23,
+      "down_has_more": true
+    },
+    "subscribe_items": [
+      {
+        "is_online": false,
+        "item_id": "9007199254740995",
+        "name": "Upcoming fixture",
+        "cover": "https://p3-reading-sign.fqnovelpic.com/upcoming.jpg",
+        "item_desc": "Announcement only",
+        "expected_publish_time": "1794700800",
+        "expected_rec_text": "Tomorrow",
+        "has_subscribed": true
+      }
+    ]
+  }
+}

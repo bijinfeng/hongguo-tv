@@ -1,0 +1,10 @@
+{
+  "referenceCommit": "de9712bf358dcbdf8a188e26cba711e3e5354e8a",
+  "kind": "synthetic; no captured account/live payload",
+  "reference": {
+    "series_seasons.go": "fda44aaa5be3f03b5c209704f5ffe860b1c05b117c61ff425ea05ac01ac050c8",
+    "seasons.go": "b67bf12c6d43c972eb7f3d01a32e0cec71240fe0b7b6cc5e1a3ec6de090f0ae6",
+    "series_seasons_test.go": "8bea04845c3e6189ff37b101b8c9aa8bfa9c81e2ef33cd1541c71b243828aa81",
+    "seasons_test.go": "e59a5ae1cd1ac6f3ea9776e925195eb745cfe3e18989b5e3d80cbd9a0cd916ce"
+  }
+}

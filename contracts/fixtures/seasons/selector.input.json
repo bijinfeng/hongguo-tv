@@ -1,0 +1,73 @@
+{
+  "code": 0,
+  "data": [
+    {
+      "video_data": [
+        {
+          "series_id": 7690163276214176792,
+          "vid": "7690223053078268953",
+          "episode_cnt": 209,
+          "title": "合成第十三季",
+          "secondary_info_list": [
+            {
+              "content": "第13季"
+            }
+          ],
+          "sub_title_list": [
+            {
+              "content": "合成热度"
+            },
+            {
+              "content": "第二条仅未上线显示"
+            }
+          ],
+          "secret": "not-public"
+        },
+        {
+          "series_id": "7691518344146455576",
+          "title": "合成第十四季预告",
+          "vid": "7691520694017854526",
+          "episode_cnt": 1,
+          "subscribe_item": {
+            "item_id": 7691518344146455577,
+            "is_subscribed": true
+          },
+          "secondary_info_list": [
+            {
+              "content": "第14季"
+            }
+          ],
+          "sub_title_list": [
+            {
+              "content": "预告"
+            },
+            {
+              "content": "即将上线"
+            }
+          ]
+        },
+        {
+          "series_id": "123",
+          "title": "禁播季",
+          "vid": "789",
+          "episode_cnt": 10,
+          "disable_play": true
+        },
+        {
+          "series_id": "456",
+          "title": "未就绪",
+          "episode_cnt": 0
+        },
+        {
+          "series_id": "7690163276214176792",
+          "title": "重复"
+        },
+        {
+          "content_type": "1003",
+          "series_id": "1003",
+          "title": "创作者专辑"
+        }
+      ]
+    }
+  ]
+}

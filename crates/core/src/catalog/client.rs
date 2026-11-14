@@ -81,9 +81,48 @@ impl CatalogClient {
         self.discovery.get().await
     }
 
+    /// Read complete public same-IP seasons without account state or media preparation.
+    pub async fn series_seasons(
+        &self,
+        query: &super::SeriesQuery,
+    ) -> Result<super::SeriesSeasonsResult, CatalogError> {
+        self.public_catalog.public_series_seasons(query).await
+    }
+    /// Confirm current-season identity before selecting a public playable successor.
+    pub async fn next_season(
+        &self,
+        query: &super::SeriesQuery,
+    ) -> Result<super::NextSeasonResult, CatalogError> {
+        self.public_catalog.public_next_season(query).await
+    }
+
+    /// Read one official anonymous ranking page; dropping the future cancels reads and retries.
+    pub async fn rankings(
+        &self,
+        query: &super::RankQuery,
+    ) -> Result<super::RankResult, CatalogError> {
+        self.public_catalog.public_rankings(query).await
+    }
+
     /// Read a real anonymous channel page; dropping the future cancels reads and retries.
     pub async fn feed(&self, query: &super::FeedQuery) -> Result<super::FeedResult, CatalogError> {
         self.public_catalog.public_feed(query).await
+    }
+
+    /// Read one anonymous new-release page without account state.
+    pub async fn new_series(
+        &self,
+        query: &super::NewSeriesQuery,
+    ) -> Result<super::NewSeriesResult, CatalogError> {
+        self.public_catalog.public_new_series(query).await
+    }
+
+    /// Read a full calendar page with independent released/upcoming cursors.
+    pub async fn calendar(
+        &self,
+        query: &super::CalendarQuery,
+    ) -> Result<super::CalendarResult, CatalogError> {
+        self.public_catalog.public_calendar(query).await
     }
 
     /// Read one anonymous category page. Dropping this future stops reads and retries.

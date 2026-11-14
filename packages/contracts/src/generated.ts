@@ -52,6 +52,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lists/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lists/new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["new_series"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lists/rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rankings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lists/recommend": {
         parameters: {
             query?: never;
@@ -180,6 +228,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/series/next-season": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["next_season"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/series/seasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["series_seasons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/status": {
         parameters: {
             query?: never;
@@ -265,6 +345,79 @@ export interface components {
             error: string;
             /** @description Always false. */
             ok: boolean;
+        };
+        /** @description Mutually exclusive released media summary and nonplayable upcoming announcement. */
+        CalendarEntry: {
+            /** @description Public drama summary without episodes. */
+            drama: components["schemas"]["Drama"];
+            /** @enum {string} */
+            kind: "released";
+        } | {
+            /** @description Public image under the existing catalog image policy, or empty. */
+            cover: string;
+            /** @description JPEG alternative when applicable. */
+            cover_fallback?: string;
+            /** @description Bounded announcement description. */
+            intro: string;
+            /** @enum {string} */
+            kind: "upcoming";
+            /** @description Explicit nested series identity when supplied, never inferred from item_id. */
+            series_id?: string;
+            /** @description Bounded announcement title. */
+            title: string;
+        };
+        /** @description Public release metadata with media and reservation identities kept separate. */
+        CalendarItem: {
+            /** @description Released drama or upcoming announcement. */
+            entry: components["schemas"]["CalendarEntry"];
+            /** @description Bounded upstream release label, if supplied. */
+            publish_text?: string;
+            /**
+             * Format: int64
+             * @description Positive Unix seconds, if supplied; no fabricated local scheduling.
+             */
+            publish_time?: number;
+            /** @description Exact public reservation item ID when nonzero; never use as a playable series ID. */
+            reservation_id?: string;
+            /** @description At most eight public category labels. */
+            tags: string[];
+        };
+        /** @description Successful anonymous calendar page. */
+        CalendarResponse: {
+            /** @description Typed public entries and exact continuation context. */
+            data: components["schemas"]["CalendarResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description A full-day page spanning released and upcoming sections independently. */
+        CalendarResult: {
+            /** @description Optional upstream date schema; continuation may omit it. */
+            calendar?: components["schemas"]["CalendarSchema"];
+            /** @description True while either released or upcoming section continues with progress. */
+            has_more: boolean;
+            /** @description Ordered unique public entries, without account subscription state or episodes. */
+            items: components["schemas"]["CalendarItem"][];
+            /**
+             * Format: int32
+             * @description Exact released-section offset; can move backward at the subscription phase transition.
+             */
+            next_offset: number;
+            /**
+             * Format: int32
+             * @description Upcoming offset, absent until introduced; retains the requested value when not repeated.
+             */
+            next_subscribe_offset?: number;
+            /** @description Opaque session, retaining the request value if not repeated. */
+            session_id: string;
+        };
+        /** @description Upstream public dates, without generated local clock assumptions. */
+        CalendarSchema: {
+            /** @description Upstream current date. */
+            current_date: string;
+            /** @description Ordered unique real dates in YYYYMMDD format. */
+            dates: string[];
+            /** @description Upstream default date. */
+            default_date: string;
         };
         /** @description Implemented capabilities, shared by every transport. */
         Capabilities: {
@@ -550,6 +703,43 @@ export interface components {
             /** @description Always true. */
             ok: boolean;
         };
+        /** @description Successful anonymous new series page. */
+        NewSeriesResponse: {
+            /** @description Typed public entries and exact continuation context. */
+            data: components["schemas"]["NewSeriesResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description One new-release page with raw service continuation, not a visible-card offset. */
+        NewSeriesResult: {
+            /** @description Whether an advancing continuation exists. */
+            has_more: boolean;
+            /** @description Ordered unique supported drama summaries; no episode lists. */
+            items: components["schemas"]["Drama"][];
+            /**
+             * Format: int32
+             * @description Exact upstream next offset.
+             */
+            next_offset: number;
+            /** @description Opaque session, retaining the request value if omitted in the response. */
+            session_id: string;
+        };
+        /** @description Successful verified next-season result, without navigating or preparing media. */
+        NextSeasonResponse: {
+            /** @description Confirmed current season and optional nearest playable successor. */
+            data: components["schemas"]["NextSeasonResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Verified successor selection without automatic navigation or media preparation. */
+        NextSeasonResult: {
+            /**
+             * Format: int32
+             * @description Confirmed current season; 0 only when no playable sibling exists to verify it.
+             */
+            current_season: number;
+            next?: components["schemas"]["SeriesSeason"] | null;
+        };
         /** @description Prepared local resource; never contains upstream addresses, keys or device IDs. */
         PlayInfo: {
             /** @description Same-service opaque media route. */
@@ -595,6 +785,79 @@ export interface components {
             position: number;
             /** @description Nonzero decimal video ID, up to 32 digits. */
             video_id: string;
+        };
+        /** @description Tagged content prevents actor IDs being passed to drama playback. */
+        RankEntry: {
+            /** @description Existing public drama summary. */
+            drama: components["schemas"]["Drama"];
+            /** @enum {string} */
+            kind: "drama";
+        } | {
+            /** @description Existing public actor summary. */
+            actor: components["schemas"]["ActorSummary"];
+            /** @enum {string} */
+            kind: "actor";
+            /** @description Bounded public actor labels, without navigation or account state. */
+            tags: string[];
+        };
+        /** @description A ranked entry with only public, explicitly supplied ranking labels. */
+        RankItem: {
+            /** @description Explicit ranking label only; no heat-only tags or remote styling. */
+            badge?: string;
+            /** @description Mutually exclusive drama or actor data. */
+            entry: components["schemas"]["RankEntry"];
+            /** @description Bounded upstream heat/recommendation text, when available. */
+            heat?: string;
+            /**
+             * Format: int32
+             * @description Positive upstream rank, if supplied; never inferred from filtered rows.
+             */
+            rank?: number;
+        };
+        /** @description One exact server-provided selector, without navigation schemas or styling. */
+        RankOption: {
+            /** @description Nested selector options in upstream order. */
+            children: components["schemas"]["RankOption"][];
+            /** @description Opaque dynamic selector identity; an empty value can represent the upstream default. */
+            id: string;
+            /** @description Bounded public display label. */
+            label: string;
+            /** @description Additional upstream panel groups. */
+            panels: components["schemas"]["RankPanel"][];
+            /** @description Upstream default selection; page owners keep explicit user selection separately. */
+            selected: boolean;
+        };
+        /** @description A dynamic panel dimension attached to a ranking option. */
+        RankPanel: {
+            /** @description Public group label. */
+            label: string;
+            /** @description Ordered unique panel choices; no fabricated All option. */
+            options: components["schemas"]["RankOption"][];
+            /** @description Exact bounded upstream dimension. */
+            type: string;
+        };
+        /** @description Successful official anonymous ranking page with distinct drama/actor entries. */
+        RankResponse: {
+            /** @description Ordered public summaries, selectors and exact continuation. */
+            data: components["schemas"]["RankResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description One official ranking page, with service continuation independent of filtered entries. */
+        RankResult: {
+            /** @description Whether an advancing continuation exists. */
+            has_more: boolean;
+            /** @description Ordered unique supported summaries. */
+            items: components["schemas"]["RankItem"][];
+            /**
+             * Format: int32
+             * @description Exact service offset; not computed from visible item count.
+             */
+            next_offset: number;
+            /** @description Dynamic selector tree; empty when not supplied on continuation. */
+            ranks: components["schemas"]["RankOption"][];
+            /** @description Opaque upstream session, or the requested session if not repeated. */
+            session_id: string;
         };
         /** @description Release a previously issued local playback path. */
         ReleaseRequest: {
@@ -682,6 +945,40 @@ export interface components {
         SearchSuggestions: {
             /** @description Empty when the current term is empty or the upstream has no valid suggestions. */
             items: components["schemas"]["SearchSuggestion"][];
+        };
+        /** @description Public season metadata, separate from detail episodes and account reservation state. */
+        SeriesSeason: {
+            /** @description Existing supported drama summary; never includes episode details. */
+            drama: components["schemas"]["Drama"];
+            /** @description First released video only when playable; a trailer never exposes this field. */
+            first_video_id?: string;
+            /** @description Official bounded public season label. */
+            label?: string;
+            /** @description True only for a released row with a valid video/count and no disable flag. */
+            playable: boolean;
+            /** @description Eligible season series ID, never the nested reservation item ID; not a write result. */
+            reservation_id?: string;
+            /**
+             * Format: int32
+             * @description Explicit numeric season or parsed official 第N季 label, never inferred from title.
+             */
+            season_index?: number;
+            /** @description Bounded public subtitle, without remote styling or navigation. */
+            subtitle?: string;
+            /** @description True for subscription/trailer rows or missing released video/count. */
+            upcoming: boolean;
+        };
+        /** @description Successful public same-IP season selector. */
+        SeriesSeasonsResponse: {
+            /** @description Ordered public seasons with explicit readiness and eligibility only. */
+            data: components["schemas"]["SeriesSeasonsResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Complete supported selector in official response order, not guessed season order. */
+        SeriesSeasonsResult: {
+            /** @description Unique ordered public seasons, including unavailable and upcoming entries. */
+            items: components["schemas"]["SeriesSeason"][];
         };
         /** @description Successful status result using the shared response envelope. */
         StatusResponse: {
@@ -975,6 +1272,212 @@ export interface operations {
                 };
             };
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    calendar: {
+        parameters: {
+            query?: {
+                /** @description Real Gregorian date YYYYMMDD; absent uses the upstream current-day default. */
+                date?: string;
+                /** @description Released-section upstream offset0–100000. */
+                offset?: number;
+                /** @description Upcoming-section offset0–100000; omitted on the initial full-day request. */
+                subscribe_offset?: number;
+                /** @description Opaque upstream session, at most1024 control-free bytes. */
+                session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    new_series: {
+        parameters: {
+            query?: {
+                /** @description New-release audience0/1/2; defaults to2. */
+                gender?: string;
+                /** @description Consumed upstream offset0–100000. */
+                offset?: number;
+                /** @description Opaque upstream session, at most1024 control-free bytes. */
+                session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewSeriesResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    rankings: {
+        parameters: {
+            query?: {
+                /** @description Exact dynamic top-level selector, at most256 control-free bytes; absent means upstream default. */
+                rank?: string;
+                /** @description Exact dynamic subrank, at most256 control-free bytes. */
+                rank_sub?: string;
+                /** @description Exact dynamic panel selection, at most256 control-free bytes. */
+                rank_panel?: string;
+                /** @description Consumed upstream offset, 0–100000, independent of visible record count. */
+                offset?: number;
+                /** @description Opaque session, at most1024 control-free bytes. */
+                session_id?: string;
+                /** @description Up to128 comma-separated exact decimal series or actor IDs. */
+                shown?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1523,6 +2026,130 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    next_season: {
+        parameters: {
+            query: {
+                /** @description Exact nonzero decimal series identity, 1–32 digits; no title inference. */
+                series_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NextSeasonResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    series_seasons: {
+        parameters: {
+            query: {
+                /** @description Exact nonzero decimal series identity, 1–32 digits; no title inference. */
+                series_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesSeasonsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

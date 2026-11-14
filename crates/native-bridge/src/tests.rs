@@ -31,6 +31,9 @@ struct Upstream {
     actor_reply: Arc<Mutex<(StatusCode, &'static str)>>,
     category_reply: Arc<Mutex<(StatusCode, &'static str)>>,
     feed_reply: Arc<Mutex<(StatusCode, &'static str)>>,
+    seasons_reply: Arc<Mutex<(StatusCode, &'static str)>>,
+    calendar_reply: Arc<Mutex<(StatusCode, &'static str)>>,
+    new_reply: Arc<Mutex<(StatusCode, &'static str)>>,
 }
 async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Response {
     state.calls.fetch_add(1, Ordering::SeqCst);
@@ -48,6 +51,16 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
         state.gate.acquire().await.unwrap().forget();
     }
     match path {
+        "/reading/bookapi/plan/v" => {
+            let reply = *state.seasons_reply.lock().unwrap();
+            reply.into_response()
+        }
+        "/reading/user/subscribe/list/v1/" => {
+            (*state.calendar_reply.lock().unwrap()).into_response()
+        }
+        "/reading/bookapi/bookmall/cell/change/v1/" => {
+            (*state.new_reply.lock().unwrap()).into_response()
+        }
         "/reading/bookapi/bookmall/tab/v" | "/reading/bookapi/bookmall/cell/change/v" => {
             let reply = *state.feed_reply.lock().unwrap();
             reply.into_response()
@@ -150,6 +163,18 @@ impl Fixture {
             stalled,
             calls: Arc::new(AtomicUsize::new(0)),
             discovery_status: Arc::new(AtomicUsize::new(200)),
+            seasons_reply: Arc::new(Mutex::new((
+                StatusCode::OK,
+                include_str!("../../../contracts/fixtures/seasons/selector.input.json"),
+            ))),
+            calendar_reply: Arc::new(Mutex::new((
+                StatusCode::OK,
+                include_str!("../../../contracts/fixtures/calendar/released.input.json"),
+            ))),
+            new_reply: Arc::new(Mutex::new((
+                StatusCode::OK,
+                include_str!("../../../contracts/fixtures/calendar/new.input.json"),
+            ))),
             feed_reply: Arc::new(Mutex::new((
                 StatusCode::OK,
                 include_str!("../../../contracts/fixtures/feed/cell.input.json"),
@@ -1841,4 +1866,743 @@ async fn feed_http_native_tab_phase_retains_zero_offset_and_exact_context() {
         .await
         .unwrap();
     assert_eq!(next.body, serde_json::from_slice::<Value>(&bytes).unwrap());
+}
+
+#[tokio::test]
+async fn seasons_share_strict_http_native_validation_success_and_sanitized_errors() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        Some(fixture.session.services.library.clone()),
+        Some(fixture.session.services.playback.clone()),
+    );
+    for endpoint in ["seasons", "next-season"] {
+        for suffix in [
+            "",
+            "?series_id=0",
+            "?series_id=bad",
+            "?series_id=1&series_id=2",
+            "?series_id=1&uid=2",
+            "?series_id=1&url=https://secret.invalid",
+        ] {
+            let path = format!("/api/v1/series/{endpoint}{suffix}");
+            let native = fixture.call(&path, None).await;
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(&path)
+                        .header("host", "127.0.0.1:8080")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(native.status, 400, "{path}");
+            assert_eq!(response.status().as_u16(), 400, "{path}");
+            let bytes = axum::body::to_bytes(response.into_body(), 32768)
+                .await
+                .unwrap();
+            assert_eq!(
+                native.body,
+                serde_json::from_slice::<Value>(&bytes).unwrap()
+            );
+        }
+        let path = format!("/api/v1/series/{endpoint}?series_id=100");
+        assert_eq!(fixture.call(&path, Some("{}")).await.status, 405);
+        for (method, body, status) in [
+            (Method::GET, "{}", 400),
+            (Method::POST, "", 405),
+            (Method::DELETE, "", 405),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .method(method)
+                        .uri(&path)
+                        .header("host", "127.0.0.1:8080")
+                        .header("content-type", "application/json")
+                        .body(Body::from(body))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status().as_u16(), status);
+        }
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+    for endpoint in ["seasons", "next-season"] {
+        for (status, body, code) in [
+            (
+                StatusCode::OK,
+                include_str!("../../../contracts/fixtures/seasons/reciprocal.input.json"),
+                None,
+            ),
+            (
+                StatusCode::OK,
+                "secret malformed",
+                Some("UPSTREAM_INVALID_DATA"),
+            ),
+            (
+                StatusCode::FORBIDDEN,
+                "secret",
+                Some("SEARCH_VERIFICATION_REQUIRED"),
+            ),
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "secret",
+                Some("UPSTREAM_HTTP_ERROR"),
+            ),
+        ] {
+            *fixture.upstream.seasons_reply.lock().unwrap() = (status, body);
+            fixture.upstream.calls.store(0, Ordering::SeqCst);
+            let path = format!("/api/v1/series/{endpoint}?series_id=100");
+            let native = fixture.call(&path, None).await;
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(&path)
+                        .header("host", "127.0.0.1:8080")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.headers()["cache-control"], "no-store");
+            assert_eq!(native.status, if code.is_some() { 502 } else { 200 });
+            assert_eq!(native.status, response.status().as_u16());
+            let bytes = axum::body::to_bytes(response.into_body(), 32768)
+                .await
+                .unwrap();
+            assert_eq!(
+                native.body,
+                serde_json::from_slice::<Value>(&bytes).unwrap()
+            );
+            if let Some(code) = code {
+                assert_eq!(native.body["code"], code);
+                assert!(!native.body.to_string().contains("secret"));
+            } else if endpoint == "seasons" {
+                assert_eq!(native.body["data"]["items"][0]["drama"]["series_id"], "100");
+            } else {
+                assert_eq!(native.body["data"]["current_season"], 1);
+                assert!(native.body["data"]["next"].is_null());
+            }
+            assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 2);
+        }
+    }
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .snapshot()
+            .await
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .search_history()
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+}
+#[tokio::test]
+async fn seasons_native_cancellation_and_session_close_stop_pending_relations_without_history() {
+    for endpoint in ["seasons", "next-season"] {
+        for close in [false, true] {
+            let fixture = Fixture::new(true).await;
+            let call = fixture
+                .session
+                .start(&format!("/api/v1/series/{endpoint}?series_id=100"), None);
+            timeout(Duration::from_secs(2), fixture.upstream.started.acquire())
+                .await
+                .unwrap()
+                .unwrap()
+                .forget();
+            if close {
+                fixture.session.close();
+            } else {
+                call.cancel();
+            }
+            let reply = timeout(Duration::from_secs(1), call.inner.result())
+                .await
+                .unwrap();
+            assert_eq!(reply.status, 499);
+            assert_eq!(reply.body["code"], "CORE_CANCELLED");
+            assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+            fixture.upstream.gate.add_permits(1);
+            tokio::time::sleep(Duration::from_millis(250)).await;
+            assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 1);
+            assert!(
+                fixture
+                    .session
+                    .services
+                    .library
+                    .snapshot()
+                    .await
+                    .unwrap()
+                    .entries
+                    .is_empty()
+            );
+            assert!(
+                fixture
+                    .session
+                    .services
+                    .library
+                    .search_history()
+                    .await
+                    .unwrap()
+                    .items
+                    .is_empty()
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn seasons_encoded_query_length_limits_match_http_native() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    for route in ["/api/v1/series/seasons", "/api/v1/series/next-season"] {
+        for (len, status) in [(8192, 400), (8193, 413)] {
+            let prefix = format!("{route}?unknown=");
+            let remaining = len - prefix.len();
+            let path = format!(
+                "{prefix}{}{}",
+                "%78".repeat(remaining / 3),
+                "x".repeat(remaining % 3)
+            );
+            assert_eq!(path.len(), len);
+            let native = fixture.call(&path, None).await;
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(&path)
+                        .header("host", "127.0.0.1:8080")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(native.status, status);
+            assert_eq!(response.status().as_u16(), status);
+            let bytes = axum::body::to_bytes(response.into_body(), 32768)
+                .await
+                .unwrap();
+            assert_eq!(
+                native.body,
+                serde_json::from_slice::<Value>(&bytes).unwrap()
+            );
+        }
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn calendar_native_cancellation_and_session_close_leave_no_pending_work_or_history() {
+    for close in [false, true] {
+        let fixture = Fixture::new(true).await;
+        let call = fixture.session.start("/api/v1/lists/calendar", None);
+        timeout(Duration::from_secs(2), fixture.upstream.started.acquire())
+            .await
+            .unwrap()
+            .unwrap()
+            .forget();
+        if close {
+            fixture.session.close();
+        } else {
+            call.cancel();
+        }
+        let reply = timeout(Duration::from_secs(1), call.inner.result())
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 499);
+        assert_eq!(reply.body["code"], "CORE_CANCELLED");
+        assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+        fixture.upstream.gate.add_permits(1);
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 1);
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .snapshot()
+                .await
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .search_history()
+                .await
+                .unwrap()
+                .items
+                .is_empty()
+        );
+        if close {
+            assert_eq!(
+                fixture.call("/api/v1/lists/calendar", None).await.status,
+                410
+            );
+        } else {
+            fixture.upstream.gate.add_permits(1);
+            assert_eq!(
+                fixture.call("/api/v1/lists/calendar", None).await.status,
+                200
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn calendar_http_native_parity_and_strict_inputs() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    for path in [
+        "/api/v1/lists/calendar?date=20260229",
+        "/api/v1/lists/calendar?gender=2",
+        "/api/v1/lists/calendar?subscribe_offset=-1",
+        "/api/v1/lists/calendar?offset=100001",
+        "/api/v1/lists/calendar?session_id=a%00b",
+        "/api/v1/lists/calendar?date=20261114&date=20261115",
+        "/api/v1/lists/new?gender=3",
+        "/api/v1/lists/new?url=https://evil.invalid",
+    ] {
+        let native = fixture.call(path, None).await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri(path)
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(native.status, 400);
+        assert_eq!(response.status().as_u16(), 400);
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+    for (path, slot, valid) in [
+        (
+            "/api/v1/lists/calendar",
+            &fixture.upstream.calendar_reply,
+            include_str!("../../../contracts/fixtures/calendar/released.input.json"),
+        ),
+        (
+            "/api/v1/lists/new",
+            &fixture.upstream.new_reply,
+            include_str!("../../../contracts/fixtures/calendar/new.input.json"),
+        ),
+    ] {
+        assert_eq!(fixture.call(path, Some("{}")).await.status, 405);
+        for (status, body, expected) in [
+            (StatusCode::OK, valid, 200),
+            (StatusCode::OK, "secret malformed", 502),
+            (StatusCode::FORBIDDEN, "secret", 502),
+            (StatusCode::INTERNAL_SERVER_ERROR, "secret", 502),
+        ] {
+            *slot.lock().unwrap() = (status, body);
+            let native = fixture.call(path, None).await;
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(path)
+                        .header("host", "127.0.0.1:8080")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.headers()["cache-control"], "no-store");
+            assert_eq!(native.status, expected);
+            assert_eq!(response.status().as_u16(), expected);
+            let bytes = axum::body::to_bytes(response.into_body(), 32768)
+                .await
+                .unwrap();
+            assert_eq!(
+                native.body,
+                serde_json::from_slice::<Value>(&bytes).unwrap()
+            );
+            assert!(!native.body.to_string().contains("secret"));
+        }
+    }
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .snapshot()
+            .await
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .search_history()
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+}
+
+#[tokio::test]
+async fn calendar_new_query_length_limits_match_native_http() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    for route in ["/api/v1/lists/new", "/api/v1/lists/calendar"] {
+        for (len, status) in [(8192, 400), (8193, 413)] {
+            let prefix = format!("{route}?unknown=");
+            let path = format!("{prefix}{}", "x".repeat(len - prefix.len()));
+            let native = fixture.call(&path, None).await;
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(&path)
+                        .header("host", "127.0.0.1:8080")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(native.status, status);
+            assert_eq!(response.status().as_u16(), status);
+            let bytes = axum::body::to_bytes(response.into_body(), 32768)
+                .await
+                .unwrap();
+            assert_eq!(
+                native.body,
+                serde_json::from_slice::<Value>(&bytes).unwrap()
+            );
+        }
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn rankings_strict_http_native_contract_success_and_sanitized_failures() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    let mut invalid = vec![
+        "offset=-1".into(),
+        "offset=100001".into(),
+        "offset=4294967296".into(),
+        "offset=0&offset=1".into(),
+        "rank=a&rank=b".into(),
+        "rank=x%00y".into(),
+        "rank_sub=a%0Ab".into(),
+        "rank_panel=a%7Fb".into(),
+        "shown=actor-1".into(),
+        "shown=0".into(),
+        "shown=1,,2".into(),
+        "url=https://secret.invalid".into(),
+        "uid=1".into(),
+        "session_id=a%00b".into(),
+    ];
+    invalid.extend([
+        format!("rank={}", "x".repeat(257)),
+        format!("rank_sub={}", "x".repeat(257)),
+        format!("rank_panel={}", "x".repeat(257)),
+        format!("session_id={}", "x".repeat(1025)),
+        format!("shown={}", vec!["1"; 129].join(",")),
+    ]);
+    for q in invalid {
+        let path = format!("/api/v1/lists/rank?{q}");
+        let native = fixture.call(&path, None).await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri(&path)
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(native.status, 400, "{path}");
+        assert_eq!(response.status().as_u16(), 400, "{path}");
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+    }
+    for body in ["", "{}"] {
+        assert_eq!(
+            fixture.call("/api/v1/lists/rank", Some(body)).await.status,
+            405
+        );
+    }
+    for (method, body, want) in [
+        (Method::POST, "{}", 405),
+        (Method::DELETE, "", 405),
+        (Method::GET, "{}", 400),
+        (Method::GET, " ", 400),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .method(method)
+                    .uri("/api/v1/lists/rank")
+                    .header("host", "127.0.0.1:8080")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status().as_u16(), want);
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+    for (status, body, code, calls) in [
+        (
+            StatusCode::OK,
+            include_str!("../../../contracts/fixtures/rankings/page.input.json"),
+            None,
+            2,
+        ),
+        (
+            StatusCode::OK,
+            "secret malformed",
+            Some("UPSTREAM_INVALID_DATA"),
+            2,
+        ),
+        (
+            StatusCode::FORBIDDEN,
+            "secret",
+            Some("SEARCH_VERIFICATION_REQUIRED"),
+            2,
+        ),
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "secret",
+            Some("UPSTREAM_HTTP_ERROR"),
+            2,
+        ),
+        (StatusCode::OK, "", Some("UPSTREAM_INVALID_DATA"), 6),
+    ] {
+        *fixture.upstream.feed_reply.lock().unwrap() = (status, body);
+        fixture.upstream.calls.store(0, Ordering::SeqCst);
+        let path = "/api/v1/lists/rank?rank=all&rank_sub=ranklist_hot_play_sc&offset=10&session_id=prior&shown=11,12";
+        let native = fixture.call(path, None).await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri(path)
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        assert_eq!(native.status, if code.is_some() { 502 } else { 200 });
+        assert_eq!(native.status, response.status().as_u16());
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+        if let Some(code) = code {
+            assert_eq!(native.body["code"], code);
+            assert!(!native.body.to_string().contains("secret"));
+        } else {
+            let expected: Value = serde_json::from_str(include_str!(
+                "../../../contracts/fixtures/rankings/page.expected.json"
+            ))
+            .unwrap();
+            assert_eq!(native.body["data"], expected);
+        }
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), calls);
+    }
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .snapshot()
+            .await
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .search_history()
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+}
+#[tokio::test]
+async fn rankings_native_cancellation_and_session_close_have_no_late_write_or_retry() {
+    for close in [false, true] {
+        let fixture = Fixture::new(true).await;
+        *fixture.upstream.feed_reply.lock().unwrap() = (
+            StatusCode::OK,
+            include_str!("../../../contracts/fixtures/rankings/page.input.json"),
+        );
+        let call = fixture.session.start("/api/v1/lists/rank", None);
+        timeout(Duration::from_secs(2), fixture.upstream.started.acquire())
+            .await
+            .unwrap()
+            .unwrap()
+            .forget();
+        if close {
+            fixture.session.close();
+        } else {
+            call.cancel();
+        }
+        let reply = timeout(Duration::from_secs(1), call.inner.result())
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 499);
+        assert_eq!(reply.body["code"], "CORE_CANCELLED");
+        assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+        fixture.upstream.gate.add_permits(1);
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 1);
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .snapshot()
+                .await
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .search_history()
+                .await
+                .unwrap()
+                .items
+                .is_empty()
+        );
+        if close {
+            assert_eq!(fixture.call("/api/v1/lists/rank", None).await.status, 410);
+        } else {
+            fixture.upstream.gate.add_permits(1);
+            assert_eq!(fixture.call("/api/v1/lists/rank", None).await.status, 200);
+        }
+    }
+}
+
+#[tokio::test]
+async fn rankings_encoded_request_budget_is_equal_at_native_and_http_boundaries() {
+    let fixture = Fixture::new(false).await;
+    *fixture.upstream.feed_reply.lock().unwrap() = (
+        StatusCode::OK,
+        include_str!("../../../contracts/fixtures/rankings/page.input.json"),
+    );
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    let prefix = format!(
+        "/api/v1/lists/rank?rank={}&rank_sub={}&rank_panel={}&shown={}&session_id=",
+        "%21".repeat(256),
+        "%21".repeat(256),
+        "%21".repeat(256),
+        vec!["1".repeat(32); 128].join(",")
+    );
+    let padding = 8192 - prefix.len();
+    assert!((3..=3072).contains(&padding));
+    let session = "%21".repeat(padding / 3 - 1) + &"a".repeat(padding % 3 + 3);
+    let valid = prefix + &session;
+    assert_eq!(valid.len(), 8192);
+    for (path, want, calls) in [(valid.clone() + "a", 413, 0), (valid, 200, 2)] {
+        fixture.upstream.calls.store(0, Ordering::SeqCst);
+        let native = fixture.call(&path, None).await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri(&path)
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(native.status, want);
+        assert_eq!(response.status().as_u16(), want);
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), calls);
+    }
 }

@@ -222,3 +222,419 @@ async fn feed_only_retries_confirmed_empty_responses_and_cancels_owned_reads() {
     assert!(client.public_feed(&query).await.is_ok());
     assert_eq!(s.count.load(Ordering::SeqCst), 2);
 }
+
+#[tokio::test]
+async fn seasons_signed_reads_use_exact_scenes_and_verify_one_reciprocal_identity() {
+    use crate::catalog::SeriesQuery;
+    let mut s = server(vec![
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/seasons/selector.input.json"),
+        ),
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/seasons/relation.input.json"),
+        ),
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/seasons/reciprocal.input.json"),
+        ),
+    ])
+    .await;
+    let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+    assert_eq!(
+        client
+            .public_series_seasons(&SeriesQuery::new("7690163276214176792").unwrap())
+            .await
+            .unwrap()
+            .items
+            .len(),
+        4
+    );
+    let next = client
+        .public_next_season(&SeriesQuery::new("100").unwrap())
+        .await
+        .unwrap();
+    assert_eq!(next.current_season, 1);
+    assert_eq!(next.next.unwrap().drama.series_id, "200");
+    for (book, scene) in [
+        ("7690163276214176792", "single_col_same_ip_series"),
+        ("100", "series_short_play_info"),
+        ("200", "series_short_play_info"),
+    ] {
+        let request = s.requests.recv().await.unwrap();
+        assert!(request.starts_with("GET /reading/bookapi/plan/v?"));
+        let url = Url::parse(&format!(
+            "http://fixture{}",
+            request
+                .lines()
+                .next()
+                .unwrap()
+                .split_whitespace()
+                .nth(1)
+                .unwrap()
+        ))
+        .unwrap();
+        let q = url.query_pairs().collect::<BTreeMap<_, _>>();
+        assert_eq!(q["book_id"], book);
+        assert_eq!(q["filter_ids"], book);
+        assert_eq!(q["scene"], "10");
+        assert_eq!(q["from"], scene);
+        assert_eq!(q["limit"], "0");
+        assert_eq!(q["offset"], "0");
+        for forbidden in ["uid", "user_id", "history", "cdid", "openudid"] {
+            assert!(!q.contains_key(forbidden));
+        }
+        let head = request.to_ascii_lowercase();
+        for forbidden in ["cookie:", "authorization:", "x-tt-token:"] {
+            assert!(!head.contains(forbidden));
+        }
+        let h = head
+            .lines()
+            .filter_map(|l| l.split_once(": "))
+            .collect::<BTreeMap<_, _>>();
+        for name in ["x-medusa", "x-helios", "x-gorgon", "x-khronos"] {
+            assert!(h.contains_key(name));
+        }
+        let g = h["x-gorgon"];
+        let nonce = u16::from_le_bytes([
+            u8::from_str_radix(&g[4..6], 16).unwrap(),
+            u8::from_str_radix(&g[6..8], 16).unwrap(),
+        ]);
+        assert_eq!(
+            g,
+            protocol::registration_gorgon(
+                url.query().unwrap(),
+                b"",
+                h["x-khronos"].parse().unwrap(),
+                nonce
+            )
+        );
+    }
+    assert_eq!(s.count.load(Ordering::SeqCst), 3);
+}
+#[tokio::test]
+async fn seasons_finite_empty_retry_sanitized_status_and_cancellation_at_both_reads() {
+    use crate::catalog::SeriesQuery;
+    let query = SeriesQuery::new("100").unwrap();
+    let s = server(vec![response(200, ""); 3]).await;
+    assert_eq!(
+        PlaybackClient::for_loopback_tests(&s.origin)
+            .unwrap()
+            .public_series_seasons(&query)
+            .await,
+        Err(CatalogError::InvalidData)
+    );
+    assert_eq!(s.count.load(Ordering::SeqCst), 3);
+    for (status, body, want) in [
+        (403, "secret", CatalogError::VerificationRequired),
+        (302, "secret", CatalogError::UpstreamStatus(302)),
+        (500, "secret", CatalogError::UpstreamStatus(500)),
+        (200, "secret", CatalogError::InvalidData),
+    ] {
+        let s = server(vec![response(status, body)]).await;
+        assert_eq!(
+            PlaybackClient::for_loopback_tests(&s.origin)
+                .unwrap()
+                .public_series_seasons(&query)
+                .await,
+            Err(want)
+        );
+        assert_eq!(s.count.load(Ordering::SeqCst), 1);
+    }
+    for second in [false, true] {
+        let mut replies = vec![];
+        if second {
+            replies.push(response(
+                200,
+                include_str!("../../../../../contracts/fixtures/seasons/relation.input.json"),
+            ));
+        }
+        replies.push(None);
+        let mut s = server(replies).await;
+        let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+        let q = query.clone();
+        let task = tokio::spawn(async move { client.public_next_season(&q).await });
+        for _ in 0..if second { 2 } else { 1 } {
+            timeout(Duration::from_secs(2), s.requests.recv())
+                .await
+                .unwrap()
+                .unwrap();
+        }
+        task.abort();
+        let _ = task.await;
+        timeout(Duration::from_secs(2), s.closed.acquire())
+            .await
+            .unwrap()
+            .unwrap()
+            .forget();
+        assert_eq!(s.count.load(Ordering::SeqCst), if second { 2 } else { 1 });
+    }
+}
+
+#[tokio::test]
+async fn calendar_signed_transport_keeps_fixed_destination_omission_and_privacy() {
+    use crate::catalog::{CalendarParams, CalendarQuery, NewSeriesParams, NewSeriesQuery};
+    let mut s = server(vec![
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/calendar/released.input.json"),
+        ),
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/calendar/transition.input.json"),
+        ),
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/calendar/new.input.json"),
+        ),
+    ])
+    .await;
+    let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+    client
+        .public_calendar(&CalendarQuery::new(CalendarParams::default()).unwrap())
+        .await
+        .unwrap();
+    client
+        .public_calendar(
+            &CalendarQuery::new(CalendarParams {
+                offset: 45,
+                subscribe_offset: Some(0),
+                date: Some("20261114".into()),
+                ..Default::default()
+            })
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    client
+        .public_new_series(&NewSeriesQuery::new(NewSeriesParams::default()).unwrap())
+        .await
+        .unwrap();
+    for index in 0..3 {
+        let request = s.requests.recv().await.unwrap();
+        let lower = request.to_ascii_lowercase();
+        for secret in [
+            "cookie:",
+            "authorization:",
+            "passport-sdk-sign:",
+            "/service/",
+        ] {
+            assert!(!lower.contains(secret));
+        }
+        assert!(lower.contains("x-gorgon:"));
+        assert!(lower.contains("x-khronos:"));
+        let target = request
+            .lines()
+            .next()
+            .unwrap()
+            .split_whitespace()
+            .nth(1)
+            .unwrap();
+        let url = Url::parse(&format!("http://localhost{target}")).unwrap();
+        let q: BTreeMap<_, _> = url.query_pairs().into_owned().collect();
+        if index < 2 {
+            assert_eq!(url.path(), "/reading/user/subscribe/list/v1/");
+            assert_eq!(q["tab_type"], "5");
+            assert_eq!(q["gender_type"], "2");
+            if index == 0 {
+                assert!(!q.contains_key("subscribe_offset"));
+            } else {
+                assert_eq!(q["subscribe_offset"], "0");
+                assert_eq!(q["target_date"], "20261114");
+            }
+        } else {
+            assert_eq!(url.path(), "/reading/bookapi/bookmall/cell/change/v1/");
+            assert_eq!(q["selected_items"], "firstonlinetime_new");
+            assert_eq!(q["cell_gender"], "2");
+        }
+    }
+}
+#[tokio::test]
+async fn calendar_transport_retries_only_empty_and_drops_owned_reads() {
+    use crate::catalog::{CalendarParams, CalendarQuery};
+    let q = CalendarQuery::new(CalendarParams::default()).unwrap();
+    let mut s = server(vec![
+        response(200, ""),
+        response(200, ""),
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/calendar/released.input.json"),
+        ),
+    ])
+    .await;
+    let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+    assert!(client.public_calendar(&q).await.is_ok());
+    assert_eq!(s.count.load(Ordering::SeqCst), 3);
+    for _ in 0..3 {
+        s.requests.recv().await.unwrap();
+    }
+    let mut s = server(vec![None]).await;
+    let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+    let task = tokio::spawn(async move { client.public_calendar(&q).await });
+    s.requests.recv().await.unwrap();
+    task.abort();
+    let _ = task.await;
+    tokio::time::timeout(Duration::from_secs(1), s.closed.acquire())
+        .await
+        .unwrap()
+        .unwrap()
+        .forget();
+    assert_eq!(s.count.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn calendar_nonempty_failures_are_sanitized_without_retries() {
+    use crate::catalog::{CalendarParams, CalendarQuery};
+    for (status, body, expected) in [
+        (403, "secret", CatalogError::VerificationRequired),
+        (500, "secret", CatalogError::UpstreamStatus(500)),
+        (200, "secret", CatalogError::InvalidData),
+    ] {
+        let s = server(vec![response(status, body)]).await;
+        let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+        assert_eq!(
+            client
+                .public_calendar(&CalendarQuery::new(CalendarParams::default()).unwrap())
+                .await,
+            Err(expected)
+        );
+        assert_eq!(s.count.load(Ordering::SeqCst), 1);
+    }
+}
+
+#[tokio::test]
+async fn rankings_signed_transport_retains_exact_dynamic_context_without_credentials() {
+    use crate::catalog::{RankParams, RankQuery};
+    let mut s = server(vec![
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/rankings/page.input.json")
+        );
+        2
+    ])
+    .await;
+    let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+    for offset in [0, 10] {
+        let query = RankQuery::new(RankParams {
+            offset,
+            rank: Some("all&encoded=value".into()),
+            rank_sub: Some("ranklist_hot_play_sc".into()),
+            rank_panel: Some("any".into()),
+            session_id: Some("session+context".into()),
+            shown: Some("11,12".into()),
+        })
+        .unwrap();
+        assert_eq!(
+            client.public_rankings(&query).await.unwrap().next_offset,
+            20
+        );
+        let request = s.requests.recv().await.unwrap();
+        assert!(request.starts_with("GET /reading/bookapi/bookmall/cell/change/v?"));
+        let url = Url::parse(&format!(
+            "http://fixture{}",
+            request
+                .lines()
+                .next()
+                .unwrap()
+                .split_whitespace()
+                .nth(1)
+                .unwrap()
+        ))
+        .unwrap();
+        let q = url.query_pairs().collect::<BTreeMap<_, _>>();
+        assert_eq!(q["tab_type"], if offset == 0 { "26" } else { "18" });
+        assert_eq!(q["selected_items"], "all&encoded=value");
+        assert_eq!(q["sub_selected_items"], "ranklist_hot_play_sc");
+        assert_eq!(q["panel_selected_items"], "any");
+        assert_eq!(q["session_id"], "session+context");
+        assert_eq!(q["filter_ids"], "11,12");
+        assert_eq!(q["offset"], offset.to_string());
+        assert!(!q.contains_key("encoded"));
+        for forbidden in ["uid", "user_id", "history", "cdid", "openudid"] {
+            assert!(!q.contains_key(forbidden));
+        }
+        let head = request.to_ascii_lowercase();
+        for forbidden in ["cookie:", "authorization:", "x-tt-token:"] {
+            assert!(!head.contains(forbidden));
+        }
+        let h = head
+            .lines()
+            .filter_map(|l| l.split_once(": "))
+            .collect::<BTreeMap<_, _>>();
+        for name in ["x-medusa", "x-helios", "x-gorgon", "x-khronos"] {
+            assert!(h.contains_key(name));
+        }
+        let g = h["x-gorgon"];
+        let nonce = u16::from_le_bytes([
+            u8::from_str_radix(&g[4..6], 16).unwrap(),
+            u8::from_str_radix(&g[6..8], 16).unwrap(),
+        ]);
+        assert_eq!(
+            g,
+            protocol::registration_gorgon(
+                url.query().unwrap(),
+                b"",
+                h["x-khronos"].parse().unwrap(),
+                nonce
+            )
+        );
+    }
+    assert_eq!(s.count.load(Ordering::SeqCst), 2);
+}
+#[tokio::test]
+async fn rankings_retries_only_empty_and_cancellation_stops_owned_reads() {
+    use crate::catalog::{RankParams, RankQuery};
+    let query = RankQuery::new(RankParams::default()).unwrap();
+    let s = server(vec![response(200, ""); 3]).await;
+    assert_eq!(
+        PlaybackClient::for_loopback_tests(&s.origin)
+            .unwrap()
+            .public_rankings(&query)
+            .await,
+        Err(CatalogError::InvalidData)
+    );
+    assert_eq!(s.count.load(Ordering::SeqCst), 3);
+    for (status, body, want) in [
+        (403, "secret", CatalogError::VerificationRequired),
+        (302, "secret", CatalogError::UpstreamStatus(302)),
+        (500, "secret", CatalogError::UpstreamStatus(500)),
+        (200, "{secret", CatalogError::InvalidData),
+    ] {
+        let s = server(vec![response(status, body)]).await;
+        assert_eq!(
+            PlaybackClient::for_loopback_tests(&s.origin)
+                .unwrap()
+                .public_rankings(&query)
+                .await,
+            Err(want)
+        );
+        assert_eq!(s.count.load(Ordering::SeqCst), 1);
+    }
+    let mut s = server(vec![
+        None,
+        response(
+            200,
+            include_str!("../../../../../contracts/fixtures/rankings/page.input.json"),
+        ),
+    ])
+    .await;
+    let client = PlaybackClient::for_loopback_tests(&s.origin).unwrap();
+    let owned = client.clone();
+    let q = query.clone();
+    let task = tokio::spawn(async move { owned.public_rankings(&q).await });
+    timeout(Duration::from_secs(2), s.requests.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    task.abort();
+    let _ = task.await;
+    timeout(Duration::from_secs(2), s.closed.acquire())
+        .await
+        .unwrap()
+        .unwrap()
+        .forget();
+    assert_eq!(s.count.load(Ordering::SeqCst), 1);
+    assert!(client.public_rankings(&query).await.is_ok());
+    assert_eq!(s.count.load(Ordering::SeqCst), 2);
+}

@@ -1,0 +1,83 @@
+{
+  "items": [
+    {
+      "entry": {
+        "kind": "drama",
+        "drama": {
+          "series_id": "1234567890123456789",
+          "title": "合成短剧",
+          "cover": "https://p3-novel.byteimg.com/novel-pic/rank-test.jpg",
+          "intro": "",
+          "episode_count": 12,
+          "content_type": "1"
+        }
+      },
+      "rank": 3,
+      "heat": "合成热度",
+      "badge": "男频榜 No.3"
+    },
+    {
+      "entry": {
+        "kind": "actor",
+        "actor": {
+          "id": "1234567890123456789",
+          "name": "合成演员",
+          "avatar": "https://p3-novel.byteimg.com/novel-pic/actor-test.jpg",
+          "description": "合成演员简介"
+        },
+        "tags": ["演员"]
+      },
+      "rank": 4,
+      "heat": "合成推荐值"
+    }
+  ],
+  "has_more": true,
+  "next_offset": 20,
+  "session_id": "rank-session",
+  "ranks": [
+    {
+      "id": "all",
+      "label": "总榜",
+      "selected": true,
+      "children": [
+        {
+          "id": "ranklist_hot_play_sc",
+          "label": "热播榜",
+          "selected": true,
+          "children": [],
+          "panels": [
+            {
+              "type": "audience",
+              "label": "受众",
+              "options": [
+                {
+                  "id": "any",
+                  "label": "全部",
+                  "selected": true,
+                  "children": [],
+                  "panels": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "panels": []
+    },
+    {
+      "id": "ranklist_celebrity",
+      "label": "演员",
+      "selected": false,
+      "children": [
+        {
+          "id": "ranklist_actor_fans",
+          "label": "星光榜",
+          "selected": false,
+          "children": [],
+          "panels": []
+        }
+      ],
+      "panels": []
+    }
+  ]
+}

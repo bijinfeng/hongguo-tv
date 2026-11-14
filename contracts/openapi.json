@@ -416,6 +416,329 @@
         }
       }
     },
+    "/api/v1/lists/calendar": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "calendar",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Real Gregorian date YYYYMMDD; absent uses the upstream current-day default.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Released-section upstream offset0–100000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "subscribe_offset",
+            "in": "query",
+            "description": "Upcoming-section offset0–100000; omitted on the initial full-day request.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "description": "Opaque upstream session, at most1024 control-free bytes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lists/new": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "new_series",
+        "parameters": [
+          {
+            "name": "gender",
+            "in": "query",
+            "description": "New-release audience0/1/2; defaults to2.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Consumed upstream offset0–100000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "description": "Opaque upstream session, at most1024 control-free bytes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewSeriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lists/rank": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "rankings",
+        "parameters": [
+          {
+            "name": "rank",
+            "in": "query",
+            "description": "Exact dynamic top-level selector, at most256 control-free bytes; absent means upstream default.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rank_sub",
+            "in": "query",
+            "description": "Exact dynamic subrank, at most256 control-free bytes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rank_panel",
+            "in": "query",
+            "description": "Exact dynamic panel selection, at most256 control-free bytes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Consumed upstream offset, 0–100000, independent of visible record count.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "description": "Opaque session, at most1024 control-free bytes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shown",
+            "in": "query",
+            "description": "Up to128 comma-separated exact decimal series or actor IDs.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lists/recommend": {
       "get": {
         "tags": [
@@ -1168,6 +1491,156 @@
         }
       }
     },
+    "/api/v1/series/next-season": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "next_season",
+        "parameters": [
+          {
+            "name": "series_id",
+            "in": "query",
+            "description": "Exact nonzero decimal series identity, 1–32 digits; no title inference.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextSeasonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/series/seasons": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "series_seasons",
+        "parameters": [
+          {
+            "name": "series_id",
+            "in": "query",
+            "description": "Exact nonzero decimal series identity, 1–32 digits; no title inference.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesSeasonsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/status": {
       "get": {
         "tags": [],
@@ -1405,6 +1878,191 @@
           "ok": {
             "type": "boolean",
             "description": "Always false."
+          }
+        }
+      },
+      "CalendarEntry": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "A genuinely released supported drama; use existing detail/play flows.",
+            "required": [
+              "drama",
+              "kind"
+            ],
+            "properties": {
+              "drama": {
+                "$ref": "#/components/schemas/Drama",
+                "description": "Public drama summary without episodes."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "released"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Announcement metadata; its reservation identity is not a playable series ID.",
+            "required": [
+              "title",
+              "cover",
+              "intro",
+              "kind"
+            ],
+            "properties": {
+              "cover": {
+                "type": "string",
+                "description": "Public image under the existing catalog image policy, or empty."
+              },
+              "cover_fallback": {
+                "type": "string",
+                "description": "JPEG alternative when applicable."
+              },
+              "intro": {
+                "type": "string",
+                "description": "Bounded announcement description."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "upcoming"
+                ]
+              },
+              "series_id": {
+                "type": "string",
+                "description": "Explicit nested series identity when supplied, never inferred from item_id."
+              },
+              "title": {
+                "type": "string",
+                "description": "Bounded announcement title."
+              }
+            }
+          }
+        ],
+        "description": "Mutually exclusive released media summary and nonplayable upcoming announcement."
+      },
+      "CalendarItem": {
+        "type": "object",
+        "description": "Public release metadata with media and reservation identities kept separate.",
+        "required": [
+          "entry",
+          "tags"
+        ],
+        "properties": {
+          "entry": {
+            "$ref": "#/components/schemas/CalendarEntry",
+            "description": "Released drama or upcoming announcement."
+          },
+          "publish_text": {
+            "type": "string",
+            "description": "Bounded upstream release label, if supplied."
+          },
+          "publish_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Positive Unix seconds, if supplied; no fabricated local scheduling.",
+            "minimum": 0
+          },
+          "reservation_id": {
+            "type": "string",
+            "description": "Exact public reservation item ID when nonzero; never use as a playable series ID."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "At most eight public category labels."
+          }
+        }
+      },
+      "CalendarResponse": {
+        "type": "object",
+        "description": "Successful anonymous calendar page.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CalendarResult",
+            "description": "Typed public entries and exact continuation context."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "CalendarResult": {
+        "type": "object",
+        "description": "A full-day page spanning released and upcoming sections independently.",
+        "required": [
+          "items",
+          "has_more",
+          "next_offset",
+          "session_id"
+        ],
+        "properties": {
+          "calendar": {
+            "$ref": "#/components/schemas/CalendarSchema",
+            "description": "Optional upstream date schema; continuation may omit it."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "True while either released or upcoming section continues with progress."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarItem"
+            },
+            "description": "Ordered unique public entries, without account subscription state or episodes."
+          },
+          "next_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Exact released-section offset; can move backward at the subscription phase transition.",
+            "minimum": 0
+          },
+          "next_subscribe_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Upcoming offset, absent until introduced; retains the requested value when not repeated.",
+            "minimum": 0
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Opaque session, retaining the request value if not repeated."
+          }
+        }
+      },
+      "CalendarSchema": {
+        "type": "object",
+        "description": "Upstream public dates, without generated local clock assumptions.",
+        "required": [
+          "dates",
+          "default_date",
+          "current_date"
+        ],
+        "properties": {
+          "current_date": {
+            "type": "string",
+            "description": "Upstream current date."
+          },
+          "dates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ordered unique real dates in YYYYMMDD format."
+          },
+          "default_date": {
+            "type": "string",
+            "description": "Upstream default date."
           }
         }
       },
@@ -2062,6 +2720,101 @@
           }
         }
       },
+      "NewSeriesResponse": {
+        "type": "object",
+        "description": "Successful anonymous new series page.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NewSeriesResult",
+            "description": "Typed public entries and exact continuation context."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "NewSeriesResult": {
+        "type": "object",
+        "description": "One new-release page with raw service continuation, not a visible-card offset.",
+        "required": [
+          "items",
+          "has_more",
+          "next_offset",
+          "session_id"
+        ],
+        "properties": {
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether an advancing continuation exists."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Drama"
+            },
+            "description": "Ordered unique supported drama summaries; no episode lists."
+          },
+          "next_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Exact upstream next offset.",
+            "minimum": 0
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Opaque session, retaining the request value if omitted in the response."
+          }
+        }
+      },
+      "NextSeasonResponse": {
+        "type": "object",
+        "description": "Successful verified next-season result, without navigating or preparing media.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NextSeasonResult",
+            "description": "Confirmed current season and optional nearest playable successor."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "NextSeasonResult": {
+        "type": "object",
+        "description": "Verified successor selection without automatic navigation or media preparation.",
+        "required": [
+          "current_season"
+        ],
+        "properties": {
+          "current_season": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Confirmed current season; 0 only when no playable sibling exists to verify it.",
+            "minimum": 0
+          },
+          "next": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SeriesSeason",
+                "description": "Nearest confirmed higher playable season, or null when none is available."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "PlayInfo": {
         "type": "object",
         "description": "Prepared local resource; never contains upstream addresses, keys or device IDs.",
@@ -2164,6 +2917,210 @@
           }
         },
         "additionalProperties": false
+      },
+      "RankEntry": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Supported drama summary, with no episode list.",
+            "required": [
+              "drama",
+              "kind"
+            ],
+            "properties": {
+              "drama": {
+                "$ref": "#/components/schemas/Drama",
+                "description": "Existing public drama summary."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "drama"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Public actor profile; open its existing works endpoint.",
+            "required": [
+              "actor",
+              "tags",
+              "kind"
+            ],
+            "properties": {
+              "actor": {
+                "$ref": "#/components/schemas/ActorSummary",
+                "description": "Existing public actor summary."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "actor"
+                ]
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Bounded public actor labels, without navigation or account state."
+              }
+            }
+          }
+        ],
+        "description": "Tagged content prevents actor IDs being passed to drama playback."
+      },
+      "RankItem": {
+        "type": "object",
+        "description": "A ranked entry with only public, explicitly supplied ranking labels.",
+        "required": [
+          "entry"
+        ],
+        "properties": {
+          "badge": {
+            "type": "string",
+            "description": "Explicit ranking label only; no heat-only tags or remote styling."
+          },
+          "entry": {
+            "$ref": "#/components/schemas/RankEntry",
+            "description": "Mutually exclusive drama or actor data."
+          },
+          "heat": {
+            "type": "string",
+            "description": "Bounded upstream heat/recommendation text, when available."
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Positive upstream rank, if supplied; never inferred from filtered rows.",
+            "minimum": 0
+          }
+        }
+      },
+      "RankOption": {
+        "type": "object",
+        "description": "One exact server-provided selector, without navigation schemas or styling.",
+        "required": [
+          "id",
+          "label",
+          "selected",
+          "children",
+          "panels"
+        ],
+        "properties": {
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankOption"
+            },
+            "description": "Nested selector options in upstream order."
+          },
+          "id": {
+            "type": "string",
+            "description": "Opaque dynamic selector identity; an empty value can represent the upstream default."
+          },
+          "label": {
+            "type": "string",
+            "description": "Bounded public display label."
+          },
+          "panels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankPanel"
+            },
+            "description": "Additional upstream panel groups."
+          },
+          "selected": {
+            "type": "boolean",
+            "description": "Upstream default selection; page owners keep explicit user selection separately."
+          }
+        }
+      },
+      "RankPanel": {
+        "type": "object",
+        "description": "A dynamic panel dimension attached to a ranking option.",
+        "required": [
+          "type",
+          "label",
+          "options"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Public group label."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankOption"
+            },
+            "description": "Ordered unique panel choices; no fabricated All option."
+          },
+          "type": {
+            "type": "string",
+            "description": "Exact bounded upstream dimension."
+          }
+        }
+      },
+      "RankResponse": {
+        "type": "object",
+        "description": "Successful official anonymous ranking page with distinct drama/actor entries.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RankResult",
+            "description": "Ordered public summaries, selectors and exact continuation."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "RankResult": {
+        "type": "object",
+        "description": "One official ranking page, with service continuation independent of filtered entries.",
+        "required": [
+          "items",
+          "has_more",
+          "next_offset",
+          "session_id",
+          "ranks"
+        ],
+        "properties": {
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether an advancing continuation exists."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankItem"
+            },
+            "description": "Ordered unique supported summaries."
+          },
+          "next_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Exact service offset; not computed from visible item count.",
+            "minimum": 0
+          },
+          "ranks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankOption"
+            },
+            "description": "Dynamic selector tree; empty when not supplied on continuation."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Opaque upstream session, or the requested session if not repeated."
+          }
+        }
       },
       "ReleaseRequest": {
         "type": "object",
@@ -2406,6 +3363,85 @@
               "$ref": "#/components/schemas/SearchSuggestion"
             },
             "description": "Empty when the current term is empty or the upstream has no valid suggestions."
+          }
+        }
+      },
+      "SeriesSeason": {
+        "type": "object",
+        "description": "Public season metadata, separate from detail episodes and account reservation state.",
+        "required": [
+          "drama",
+          "playable",
+          "upcoming"
+        ],
+        "properties": {
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Existing supported drama summary; never includes episode details."
+          },
+          "first_video_id": {
+            "type": "string",
+            "description": "First released video only when playable; a trailer never exposes this field."
+          },
+          "label": {
+            "type": "string",
+            "description": "Official bounded public season label."
+          },
+          "playable": {
+            "type": "boolean",
+            "description": "True only for a released row with a valid video/count and no disable flag."
+          },
+          "reservation_id": {
+            "type": "string",
+            "description": "Eligible season series ID, never the nested reservation item ID; not a write result."
+          },
+          "season_index": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Explicit numeric season or parsed official 第N季 label, never inferred from title.",
+            "minimum": 0
+          },
+          "subtitle": {
+            "type": "string",
+            "description": "Bounded public subtitle, without remote styling or navigation."
+          },
+          "upcoming": {
+            "type": "boolean",
+            "description": "True for subscription/trailer rows or missing released video/count."
+          }
+        }
+      },
+      "SeriesSeasonsResponse": {
+        "type": "object",
+        "description": "Successful public same-IP season selector.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SeriesSeasonsResult",
+            "description": "Ordered public seasons with explicit readiness and eligibility only."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "SeriesSeasonsResult": {
+        "type": "object",
+        "description": "Complete supported selector in official response order, not guessed season order.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesSeason"
+            },
+            "description": "Unique ordered public seasons, including unavailable and upcoming entries."
           }
         }
       },

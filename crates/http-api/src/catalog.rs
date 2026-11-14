@@ -14,6 +14,117 @@ use hongguo_core::catalog::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+/// Successful public same-IP season selector.
+#[derive(Serialize, ToSchema)]
+pub struct SeriesSeasonsResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Ordered public seasons with explicit readiness and eligibility only.
+    pub data: hongguo_core::catalog::SeriesSeasonsResult,
+}
+/// Successful verified next-season result, without navigating or preparing media.
+#[derive(Serialize, ToSchema)]
+pub struct NextSeasonResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Confirmed current season and optional nearest playable successor.
+    pub data: hongguo_core::catalog::NextSeasonResult,
+}
+#[utoipa::path(get, path = "/api/v1/series/seasons", params(hongguo_core::catalog::SeriesParams),
+    responses((status=200, body=SeriesSeasonsResponse),(status=400, body=ApiError),(status=405, body=ApiError),(status=413, body=ApiError),(status=502, body=ApiError),(status=504, body=ApiError)))]
+pub(crate) async fn series_seasons(
+    State(client): State<CatalogClient>,
+    RawQuery(raw): RawQuery,
+    params: Result<Query<hongguo_core::catalog::SeriesParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<SeriesSeasonsResponse>, Response> {
+    if raw
+        .as_ref()
+        .is_some_and(|q| "/api/v1/series/seasons".len() + 1 + q.len() > 8192)
+    {
+        return Err(failure(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "BODY_TOO_LARGE",
+            "Request exceeds limit",
+        ));
+    }
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query =
+        hongguo_core::catalog::SeriesQuery::new(&params.series_id).map_err(catalog_failure)?;
+    let data = client
+        .series_seasons(&query)
+        .await
+        .map_err(catalog_failure)?;
+    Ok(Json(SeriesSeasonsResponse { ok: true, data }))
+}
+#[utoipa::path(get, path = "/api/v1/series/next-season", params(hongguo_core::catalog::SeriesParams),
+    responses((status=200, body=NextSeasonResponse),(status=400, body=ApiError),(status=405, body=ApiError),(status=413, body=ApiError),(status=502, body=ApiError),(status=504, body=ApiError)))]
+pub(crate) async fn next_season(
+    State(client): State<CatalogClient>,
+    RawQuery(raw): RawQuery,
+    params: Result<Query<hongguo_core::catalog::SeriesParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<NextSeasonResponse>, Response> {
+    if raw
+        .as_ref()
+        .is_some_and(|q| "/api/v1/series/next-season".len() + 1 + q.len() > 8192)
+    {
+        return Err(failure(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "BODY_TOO_LARGE",
+            "Request exceeds limit",
+        ));
+    }
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query =
+        hongguo_core::catalog::SeriesQuery::new(&params.series_id).map_err(catalog_failure)?;
+    let data = client.next_season(&query).await.map_err(catalog_failure)?;
+    Ok(Json(NextSeasonResponse { ok: true, data }))
+}
+
+/// Successful official anonymous ranking page with distinct drama/actor entries.
+#[derive(Serialize, ToSchema)]
+pub struct RankResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Ordered public summaries, selectors and exact continuation.
+    pub data: hongguo_core::catalog::RankResult,
+}
+#[utoipa::path(get, path = "/api/v1/lists/rank", params(hongguo_core::catalog::RankParams),
+    responses((status = 200, body = RankResponse), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 413, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn rankings(
+    State(client): State<CatalogClient>,
+    params: Result<Query<hongguo_core::catalog::RankParams>, QueryRejection>,
+    RawQuery(raw): RawQuery,
+    body: Bytes,
+) -> Result<Json<RankResponse>, Response> {
+    // Match the native bridge budget before decoding or performing any upstream work.
+    if raw
+        .as_ref()
+        .is_some_and(|q| q.len() + "/api/v1/lists/rank?".len() > 8192)
+    {
+        return Err(crate::failure(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "BODY_TOO_LARGE",
+            "Request exceeds limit",
+        ));
+    }
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = hongguo_core::catalog::RankQuery::new(params).map_err(catalog_failure)?;
+    let data = client.rankings(&query).await.map_err(catalog_failure)?;
+    Ok(Json(RankResponse { ok: true, data }))
+}
+
 /// Successful real anonymous channel page, independent of search and category pagination.
 #[derive(Serialize, ToSchema)]
 pub struct FeedResponse {
@@ -225,4 +336,76 @@ pub(crate) async fn discovery(
     }
     let data = client.search_discovery().await.map_err(catalog_failure)?;
     Ok(Json(DiscoveryResponse { ok: true, data }))
+}
+
+/// Successful anonymous new series page.
+#[derive(Serialize, ToSchema)]
+pub struct NewSeriesResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Typed public entries and exact continuation context.
+    pub data: hongguo_core::catalog::NewSeriesResult,
+}
+#[utoipa::path(get, path = "/api/v1/lists/new", params(hongguo_core::catalog::NewSeriesParams),
+    responses((status = 200, body = NewSeriesResponse), (status = 413, body = ApiError), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn new_series(
+    State(client): State<CatalogClient>,
+    RawQuery(raw): RawQuery,
+    params: Result<Query<hongguo_core::catalog::NewSeriesParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<NewSeriesResponse>, Response> {
+    if raw
+        .as_ref()
+        .is_some_and(|q| "/api/v1/lists/new".len() + 1 + q.len() > 8192)
+    {
+        return Err(failure(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "BODY_TOO_LARGE",
+            "Request exceeds limit",
+        ));
+    }
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = hongguo_core::catalog::NewSeriesQuery::new(params).map_err(catalog_failure)?;
+    let data = client.new_series(&query).await.map_err(catalog_failure)?;
+    Ok(Json(NewSeriesResponse { ok: true, data }))
+}
+
+/// Successful anonymous calendar page.
+#[derive(Serialize, ToSchema)]
+pub struct CalendarResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Typed public entries and exact continuation context.
+    pub data: hongguo_core::catalog::CalendarResult,
+}
+#[utoipa::path(get, path = "/api/v1/lists/calendar", params(hongguo_core::catalog::CalendarParams),
+    responses((status = 200, body = CalendarResponse), (status = 413, body = ApiError), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn calendar(
+    State(client): State<CatalogClient>,
+    RawQuery(raw): RawQuery,
+    params: Result<Query<hongguo_core::catalog::CalendarParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<CalendarResponse>, Response> {
+    if raw
+        .as_ref()
+        .is_some_and(|q| "/api/v1/lists/calendar".len() + 1 + q.len() > 8192)
+    {
+        return Err(failure(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "BODY_TOO_LARGE",
+            "Request exceeds limit",
+        ));
+    }
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = hongguo_core::catalog::CalendarQuery::new(params).map_err(catalog_failure)?;
+    let data = client.calendar(&query).await.map_err(catalog_failure)?;
+    Ok(Json(CalendarResponse { ok: true, data }))
 }

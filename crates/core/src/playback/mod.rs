@@ -6,6 +6,7 @@ mod provider;
 mod public_catalog;
 mod public_category;
 mod public_plan;
+mod public_seasons;
 mod public_sign;
 mod service;
 mod sign;

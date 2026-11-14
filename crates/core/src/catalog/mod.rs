@@ -1,13 +1,24 @@
 //! Anonymous website catalog with bounded, cancellable requests and stable wire DTOs.
 mod actor_works;
+pub(crate) mod calendar;
 mod category;
+pub use calendar::{
+    CalendarEntry, CalendarItem, CalendarParams, CalendarQuery, CalendarResult, CalendarSchema,
+    NewSeriesParams, NewSeriesQuery, NewSeriesResult, parse_calendar, parse_new_series,
+};
 mod client;
 mod discovery;
 mod feed;
 mod parse;
+pub(crate) mod rankings;
+pub(crate) mod seasons;
 mod suggestions;
 pub use discovery::{
     DiscoveryBoard, DiscoveryBoardKind, DiscoveryItem, SearchDiscovery, parse_discovery,
+};
+pub use seasons::{
+    NextSeasonResult, SeriesParams, SeriesQuery, SeriesSeason, SeriesSeasonsResult,
+    parse_series_seasons,
 };
 pub use suggestions::{
     SearchSuggestion, SearchSuggestions, SuggestionKind, SuggestionQuery, parse_suggestions,
@@ -20,6 +31,10 @@ pub use category::{
 };
 pub use client::CatalogClient;
 pub use feed::{FeedChannel, FeedDiagnostics, FeedParams, FeedQuery, FeedResult, parse_feed};
+
+pub use rankings::{
+    RankEntry, RankItem, RankOption, RankPanel, RankParams, RankQuery, RankResult, parse_rankings,
+};
 
 pub use parse::{parse_detail, parse_search};
 use serde::{Deserialize, Serialize};

@@ -276,3 +276,61 @@ fn feed_schema_declares_strict_anonymous_channels_context_and_failures() {
         serde_json::json!(["16", "36", "39"])
     );
 }
+
+#[test]
+fn rankings_schema_exposes_dynamic_selection_and_disjoint_actor_drama_contract() {
+    let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
+    let path = &schema["paths"]["/api/v1/lists/rank"]["get"];
+    let params = path["parameters"].as_array().unwrap();
+    assert_eq!(params.len(), 6);
+    for name in [
+        "rank",
+        "rank_sub",
+        "rank_panel",
+        "offset",
+        "session_id",
+        "shown",
+    ] {
+        assert!(params.iter().any(|p| p["name"] == name));
+    }
+    for status in ["200", "400", "405", "413", "502", "504"] {
+        assert!(path["responses"][status].is_object());
+    }
+    for name in [
+        "RankResponse",
+        "RankResult",
+        "RankItem",
+        "RankEntry",
+        "RankOption",
+        "RankPanel",
+    ] {
+        assert!(schema["components"]["schemas"][name].is_object());
+    }
+    let entries = schema["components"]["schemas"]["RankEntry"]["oneOf"]
+        .as_array()
+        .unwrap();
+    assert_eq!(entries.len(), 2);
+    let drama = entries
+        .iter()
+        .find(|v| v["properties"]["kind"]["enum"] == serde_json::json!(["drama"]))
+        .unwrap();
+    let actor = entries
+        .iter()
+        .find(|v| v["properties"]["kind"]["enum"] == serde_json::json!(["actor"]))
+        .unwrap();
+    assert!(drama["properties"]["drama"].is_object());
+    assert!(drama["properties"].get("actor").is_none());
+    assert!(actor["properties"]["actor"].is_object());
+    assert!(actor["properties"].get("drama").is_none());
+}
+
+#[test]
+fn rankings_recursive_selector_schema_keeps_real_refs_without_expanding_forever() {
+    let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
+    for (kind, field) in [("RankOption", "children"), ("RankPanel", "options")] {
+        assert_eq!(
+            schema["components"]["schemas"][kind]["properties"][field]["items"]["$ref"],
+            "#/components/schemas/RankOption"
+        );
+    }
+}

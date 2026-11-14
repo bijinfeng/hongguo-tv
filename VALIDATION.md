@@ -504,3 +504,24 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 最新 Windows 原先争锁的两项测试均通过；随后 native bridge 的关闭监听器测试在等待 TcpStream::connect 失败时耗尽 2 秒预算。判据改为重新绑定同一端口，直接确认监听资源已释放，保留原有 2 秒测试期限、不修改生产关闭路径。此修正只影响测试；预览运行源码与后续测试提交分别记录，不混称同 SHA 的正式发行候选。
 
 - `b05dc83` 的远端 workspace 中 Web 52／52 通过；Desktop 的刷剧状态用例因 150 次 UI 自动化点击累计超过默认 30 秒而失败，日志已到 read7／abort7。夹具新增批量调用同一 feed.next 控制器的动作，保留状态隔离、精确游标、shown 首尾／128 上限和移除取消断言，并补当前第 150 条断言；其他用例继续验证真实下一部按钮。没有延长全局时限或更改产品刷剧路径。
+
+### 新剧／日历匿名核心（2026-11-14，集成门禁待补）
+
+- `migrate-anonymous-calendar`迁移固定NewSeries与SubscriptionList(calendar=true)匿名GET，复用既有签名、临时身份、4MiB响应、12s总／5s单次预算和仅空200三次重试。新剧支持0／1／2，日历固定gender_type2且拒绝伪筛选；真实Gregorian日期、1024字节无控制字符session及双0–100000游标在联网前校验。HTTP/native均拒绝未知／重复参数、请求体及超8192完整路径，生成OpenAPI和TS契约。
+- 日历首屏省略subscribe_offset，显式0保留；released offset45→24及初次subscribe23为有效阶段推进，down_has_more与has_more分别跟踪。空但推进仍可继续，继续却双游标停滞报错；终页不推算游标。Released复用无episodes Drama，Upcoming为独立公告类型，预约ID不提升为剧集ID，匿名has_subscribed、tracking与完整选集不导出；不读取账号或旧数据、不写任何历史。
+- 证据位于`artifacts/calendar-core/`。core/calendar最终7／7、HTTP/native参数／结果／错误／路径边界及取消／会话关闭3／3通过；codegen:check、clippy --all-targets -D warnings与OpenSpec严格验证实际exit0。显式匿名复探新剧两页18／17项、日历四页各15已上线且15日期、显式subscribe_offset0另返24未上线；均仍more=true，无episodes，不能称遍历完成。最终完整verify以集成门禁为准。setup:tools因已存在cargo-nextest拒绝覆盖而exit1，日志保留；doctor通过，主代理统一补缺失工具，未为通过而覆盖或放宽检查。
+- 本批无可见UI、新依赖、数据库或upstream改动，尚未运行新剧／日历真实宿主；不能把既有分类／推荐截图或定向测试计作本页面UI验收。显式匿名读仅打印页数量／状态，不保存ID或session，不证明目标日期内容完整、预约写入、播放、物理TV、辅助技术、C3.2、安全或正式发行。独立功能／UI范围审查及完整verify由集成批次补齐后才可提交；本代理不提交、不推送、不归档。
+
+## 2026-11-14 D7：榜单、日历和系列的并行核心集成
+
+- 三个隔离切片基于e7c03c0，在`/tmp/hongguo-discovery`合并后统一生成OpenAPI／TypeScript；本批仅Rust目录、HTTP/native只读契约与离线样本，没有可见UI、数据库／依赖／账号写入或Go变更。独立功能及UI范围审查分别在ignored `artifacts/{rankings-core,calendar-core,series-core}/`；系列两项P2（完整encoded路径413、互读所有共享ID季号冲突）已修复并由另一代理复审。
+- 最终合并源码实际exit0：`pnpm install --frozen-lockfile --ignore-scripts`、`pnpm codegen`、`pnpm setup`、完整`pnpm verify`、`cargo clippy --locked --workspace --all-targets -- -D warnings`及三个change的`openspec validate <change> --strict`。统一证据在ignored `artifacts/discovery-core/`，verify含doctor／格式／lint／codegen:check、全工作区Rust check+build、三端NSH check+build、27项tooling、192项Rust及Web52／Desktop50／TV51项headless。NSH mixed runner报告各1条构建警告，日志未展开；不将该输出描述为零警告或可见宿主通过。
+- 使用独立`CARGO_TARGET_DIR=/tmp/hongguo-discovery-target`，由主target的APFS克隆后清理本工作区crate重建；不清主仓target。此前rankings-verify无法解析新增类型的失败日志保留，独立目录的同源合并代码已成功编译，不将共享缓存混用猜测写成已证实根因。
+- 统一首轮verify失败也保留：一次过宽格式命令改写旧HTML样本，恢复原字节后编译仍使用该轮旧样本，actor解析两项失败；原样本复查5/5通过后重新执行完整verify，最终exit0。setup首轮先于契约生成，因此TS找不到新增schema；生成后setup-final通过。最终源码不包含对旧HTML或native README的格式改动。
+- 固定质量工具安装：各原切片`setup:tools`因已存在nextest目标而exit1，未覆盖或声称成功；缺失的llvm-cov0.9.1、fuzz0.13.2和Rust1.97.0 LLVM组件已显式安装并核对版本。依赖未变化，本批不改setup工具安装行为、不关闭既有security门禁。
+- 显式匿名只读探针沿用各切片实际exit0证据：rankings-live-final六次榜单首／续页；calendar-core/live-probe-upcoming验证新剧、released续页和显式upcoming读取；series-core/live-probe读取14个可播季并确认后继。输出仅聚合，不记录响应、身份或凭据；动态数量不是稳定断言。最终verify运行了所有新增回归，包括排行榜768选择完整保留／2048上限、日历独立游标以及季冲突反例与两条413边界。
+- 范围审查通过仅证明核心足以承接定稿，不证明生产排行榜／日历／切季／自动下一季已接通；后续页面正在独立工作区并行实施。榜单雷达、账号预约／关注、完整D/E/F/G、macOS独立官网C3.2、辅助技术、物理TV、全平台安装／安全／正式发行仍开放。无推送、归档或发布。
+
+- 并行更新器已先提交a0f3ea2；本批核心提交随后基于该提交重放，冲突仅为VALIDATION末尾追加，两个任务的记录均保留。对含更新器的最终集成源码又实际运行`pnpm verify`与全工作区Clippy，均exit0（`verify-updater-integration.log`／`clippy-updater-integration.log`）：tooling27、Rust196、Web52／Desktop54／TV55全部通过；三个核心的运行文件与首次通过版本一致。该门禁仍不包含主工作区尚未提交的品牌／设计或发行任务改动。
+
+- 随后并行发行任务2611c0b提交tag检查与依赖feature裁剪，本批重放到该父提交，保留其完整源码和记录。本批上述全量门禁精确对应a0f3ea2加三个核心的快照，不冒充2611c0b之后的全树复验；新父提交的验证证据属于其独立发行任务。

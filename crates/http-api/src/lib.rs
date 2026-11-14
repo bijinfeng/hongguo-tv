@@ -252,7 +252,12 @@ pub fn router_with_playback(
         .route("/api/v1/search/suggestions", get(catalog::suggestions))
         .route("/api/v1/actors/works", get(catalog::actor_works))
         .route("/api/v1/category", get(catalog::category))
+        .route("/api/v1/series/seasons", get(catalog::series_seasons))
+        .route("/api/v1/series/next-season", get(catalog::next_season))
+        .route("/api/v1/lists/rank", get(catalog::rankings))
         .route("/api/v1/lists/recommend", get(catalog::feed))
+        .route("/api/v1/lists/new", get(catalog::new_series))
+        .route("/api/v1/lists/calendar", get(catalog::calendar))
         .route(
             "/api/v1/search/history",
             get(search_history::get).post(search_history::change),
@@ -300,6 +305,11 @@ pub fn router_with_playback(
         catalog::actor_works,
         catalog::category,
         catalog::feed,
+        catalog::series_seasons,
+        catalog::next_season,
+        catalog::new_series,
+        catalog::calendar,
+        catalog::rankings,
         catalog::detail,
         library::get,
         library::change,
@@ -321,6 +331,24 @@ pub fn router_with_playback(
         catalog::ActorWorksResponse,
         catalog::CategoryResponse,
         catalog::FeedResponse,
+        catalog::SeriesSeasonsResponse,
+        catalog::NextSeasonResponse,
+        hongguo_core::catalog::SeriesSeason,
+        hongguo_core::catalog::SeriesSeasonsResult,
+        hongguo_core::catalog::NextSeasonResult,
+        catalog::NewSeriesResponse,
+        catalog::CalendarResponse,
+        hongguo_core::catalog::NewSeriesResult,
+        hongguo_core::catalog::CalendarResult,
+        hongguo_core::catalog::CalendarSchema,
+        hongguo_core::catalog::CalendarEntry,
+        hongguo_core::catalog::CalendarItem,
+        catalog::RankResponse,
+        hongguo_core::catalog::RankResult,
+        hongguo_core::catalog::RankItem,
+        hongguo_core::catalog::RankEntry,
+        hongguo_core::catalog::RankOption,
+        hongguo_core::catalog::RankPanel,
         hongguo_core::catalog::FeedResult,
         hongguo_core::catalog::FeedChannel,
         hongguo_core::catalog::FeedDiagnostics,

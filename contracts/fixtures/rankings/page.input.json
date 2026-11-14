@@ -1,0 +1,176 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": true,
+    "next_offset": 20,
+    "session_id": "rank-session",
+    "cell_view": {
+      "cell_selector": {
+        "outer_row": {
+          "items": [
+            {
+              "selector_item_id": "all",
+              "show_name": "总榜",
+              "is_selected": 1,
+              "sub_cell_selector": {
+                "outer_row": {
+                  "items": [
+                    {
+                      "selector_item_id": "ranklist_hot_play_sc",
+                      "show_name": "热播榜",
+                      "is_selected": true,
+                      "panel_selector": {
+                        "inner_rows": [
+                          {
+                            "type": "audience",
+                            "row_name": "受众",
+                            "items": [
+                              {
+                                "selector_item_id": "any",
+                                "show_name": "全部",
+                                "is_selected": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "selector_item_id": "ranklist_celebrity",
+              "show_name": "演员",
+              "sub_cell_selector": {
+                "outer_row": {
+                  "items": [
+                    {
+                      "selector_item_id": "ranklist_actor_fans",
+                      "show_name": "星光榜"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cell_data": [
+        {
+          "video_data": {
+            "series_id_str": "1234567890123456789",
+            "series_title": "合成短剧",
+            "series_cover": "https://p3-novel.byteimg.com/novel-pic/rank-test.jpg",
+            "episode_cnt": 12,
+            "content_type": "1",
+            "rank": 3,
+            "heatText": "合成热度",
+            "rec_tags": [
+              {
+                "rec_type": 9,
+                "content": "男频榜 No.3",
+                "schema": "sslocal://secret",
+                "rec_icon_url": "https://secret.invalid/icon"
+              }
+            ],
+            "episodes": [
+              {
+                "secret": "must-not-export"
+              }
+            ]
+          },
+          "ugc_user_data": [
+            {
+              "user_info": {
+                "base_info": {
+                  "actor_id_str": "1234567890123456789",
+                  "user_name": "合成演员",
+                  "user_avatar": "https://p3-novel.byteimg.com/novel-pic/actor-test.jpg",
+                  "token": "secret"
+                }
+              },
+              "intro": "合成演员简介",
+              "rec_text_item": {
+                "RecommendText": "合成推荐值"
+              },
+              "rank": 4,
+              "sub_title_list": [
+                {
+                  "content": "演员"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "video_data": [
+            {
+              "series_id_str": "1234567890123456789",
+              "series_title": "合成短剧",
+              "series_cover": "https://p3-novel.byteimg.com/novel-pic/rank-test.jpg",
+              "episode_cnt": 12,
+              "content_type": "1",
+              "rank": 3,
+              "heatText": "合成热度",
+              "rec_tags": [
+                {
+                  "rec_type": 9,
+                  "content": "男频榜 No.3",
+                  "schema": "sslocal://secret",
+                  "rec_icon_url": "https://secret.invalid/icon"
+                }
+              ],
+              "episodes": [
+                {
+                  "secret": "must-not-export"
+                }
+              ]
+            },
+            {
+              "series_id": "9",
+              "content_type": "1003",
+              "title": "不支持的创作者专辑"
+            },
+            {
+              "series_id": "10",
+              "disable_play": "1",
+              "title": "禁播"
+            }
+          ]
+        },
+        {
+          "ugc_user_data": [
+            {
+              "user_info": {
+                "base_info": {
+                  "actor_id_str": "1234567890123456789",
+                  "user_name": "合成演员",
+                  "user_avatar": "https://p3-novel.byteimg.com/novel-pic/actor-test.jpg",
+                  "token": "secret"
+                }
+              },
+              "intro": "合成演员简介",
+              "rec_text_item": {
+                "RecommendText": "合成推荐值"
+              },
+              "rank": 4,
+              "sub_title_list": [
+                {
+                  "content": "演员"
+                }
+              ]
+            },
+            {
+              "user_info": {
+                "base_info": {
+                  "actor_id_str": "actor-fake"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

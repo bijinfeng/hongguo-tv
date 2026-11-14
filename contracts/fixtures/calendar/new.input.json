@@ -1,0 +1,52 @@
+{
+  "code": 0,
+  "data": {
+    "cell_view": {
+      "video_data": [
+        {
+          "series_id": "9007199254740993",
+          "title": "Released fixture",
+          "cover": "https://p3-reading-sign.fqnovelpic.com/example.jpg",
+          "video_desc": "Public fixture",
+          "episode_cnt": 12,
+          "content_type": "1004",
+          "episodes": [
+            {
+              "private": "ignored"
+            }
+          ]
+        },
+        {
+          "series_id": "9007199254740993",
+          "title": "Released fixture",
+          "cover": "https://p3-reading-sign.fqnovelpic.com/example.jpg",
+          "video_desc": "Public fixture",
+          "episode_cnt": 12,
+          "content_type": "1004",
+          "episodes": [
+            {
+              "private": "ignored"
+            }
+          ]
+        },
+        {
+          "series_id": "2",
+          "title": "Released fixture",
+          "cover": "https://p3-reading-sign.fqnovelpic.com/example.jpg",
+          "video_desc": "Public fixture",
+          "episode_cnt": 12,
+          "content_type": "1004",
+          "episodes": [
+            {
+              "private": "ignored"
+            }
+          ],
+          "disable_play": true
+        }
+      ]
+    },
+    "has_more": true,
+    "next_offset": 20,
+    "session_id": "fixture-new"
+  }
+}

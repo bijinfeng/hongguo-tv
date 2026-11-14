@@ -104,6 +104,11 @@ pub(crate) enum Request {
     ActorWorks(ActorQuery),
     Category(CategoryQuery),
     Feed(FeedQuery),
+    SeriesSeasons(hongguo_core::catalog::SeriesQuery),
+    NextSeason(hongguo_core::catalog::SeriesQuery),
+    NewSeries(hongguo_core::catalog::NewSeriesQuery),
+    Calendar(hongguo_core::catalog::CalendarQuery),
+    Rankings(hongguo_core::catalog::RankQuery),
     Detail(String, Option<String>),
     Play(PlaybackRequest),
     Library,
@@ -137,6 +142,38 @@ impl Request {
             return Err(Reply::failure(400, "CORE_REQUEST_INVALID", "请求地址无效"));
         }
         match (uri.path(), body) {
+            ("/api/v1/series/seasons" | "/api/v1/series/next-season", None) => {
+                let params = query::<hongguo_core::catalog::SeriesParams>(&uri)
+                    .map_err(|_| catalog_error(CatalogError::InvalidInput))?;
+                let query = hongguo_core::catalog::SeriesQuery::new(&params.series_id)
+                    .map_err(catalog_error)?;
+                Ok(if uri.path() == "/api/v1/series/seasons" {
+                    Self::SeriesSeasons(query)
+                } else {
+                    Self::NextSeason(query)
+                })
+            }
+            ("/api/v1/lists/new", None) => {
+                let params = query::<hongguo_core::catalog::NewSeriesParams>(&uri)
+                    .map_err(|_| catalog_error(CatalogError::InvalidInput))?;
+                Ok(Self::NewSeries(
+                    hongguo_core::catalog::NewSeriesQuery::new(params).map_err(catalog_error)?,
+                ))
+            }
+            ("/api/v1/lists/calendar", None) => {
+                let params = query::<hongguo_core::catalog::CalendarParams>(&uri)
+                    .map_err(|_| catalog_error(CatalogError::InvalidInput))?;
+                Ok(Self::Calendar(
+                    hongguo_core::catalog::CalendarQuery::new(params).map_err(catalog_error)?,
+                ))
+            }
+            ("/api/v1/lists/rank", None) => {
+                let params = query::<hongguo_core::catalog::RankParams>(&uri)
+                    .map_err(|_| catalog_error(CatalogError::InvalidInput))?;
+                Ok(Self::Rankings(
+                    hongguo_core::catalog::RankQuery::new(params).map_err(catalog_error)?,
+                ))
+            }
             ("/api/v1/lists/recommend", None) => {
                 let params: FeedParams =
                     query(&uri).map_err(|_| catalog_error(CatalogError::InvalidInput))?;
@@ -251,7 +288,12 @@ impl Request {
                 | "/api/v1/search/discovery"
                 | "/api/v1/search/suggestions"
                 | "/api/v1/actors/works"
+                | "/api/v1/series/seasons"
+                | "/api/v1/series/next-season"
+                | "/api/v1/lists/rank"
                 | "/api/v1/lists/recommend"
+                | "/api/v1/lists/new"
+                | "/api/v1/lists/calendar"
                 | "/api/v1/category"
                 | "/api/v1/series/detail"
                 | "/api/v1/play/info"
@@ -268,6 +310,36 @@ impl Request {
     }
     pub async fn execute(self, services: &Services) -> Reply {
         let result = match self {
+            Self::SeriesSeasons(query) => services
+                .catalog
+                .series_seasons(&query)
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
+            Self::NextSeason(query) => services
+                .catalog
+                .next_season(&query)
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
+            Self::NewSeries(query) => services
+                .catalog
+                .new_series(&query)
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
+            Self::Calendar(query) => services
+                .catalog
+                .calendar(&query)
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
+            Self::Rankings(query) => services
+                .catalog
+                .rankings(&query)
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
             Self::Feed(query) => services
                 .catalog
                 .feed(&query)
