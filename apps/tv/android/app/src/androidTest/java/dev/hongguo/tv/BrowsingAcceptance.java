@@ -53,6 +53,11 @@ final class BrowsingAcceptance {
         while (node != null) { if (node.isFocused()) return true; node = node.getParent(); }
         return false;
     }
+    private boolean identified(String label, String id) {
+        AccessibilityNodeInfo node = find(root(), label);
+        while (node != null) { if (id.equals(node.getViewIdResourceName())) return true; node = node.getParent(); }
+        return false;
+    }
     private void key(int code) { runner.sendKeyDownUpSync(code); SystemClock.sleep(220); }
     private void confirm() { key(KeyEvent.KEYCODE_DPAD_CENTER); }
     private void click(String label) {
@@ -126,12 +131,40 @@ final class BrowsingAcceptance {
             key(KeyEvent.KEYCODE_BACK);
             check("system back returns to detail", () -> has("第 59 集"));
             key(KeyEvent.KEYCODE_BACK);
-            check("back restores search source focus", () -> focused("重生之后") && has("当前显示首批结果，可用更具体的关键词查找。"));
+            check("back restores search source focus", () -> focused("重生之后") && has("加载更多"));
             for (int i = 0; i < 14; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
             check("remote scrolls recycled horizontal results", () -> !focused("重生之后") && has("重生之后 15"));
             confirm();
             check("recycled item keeps its own identity", () -> has("开始观看") && !has("继续第 59 集"));
             key(KeyEvent.KEYCODE_BACK);
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            check("remote reaches continuation", () -> focused("加载更多"));
+            confirm();
+            check("continuation pending is visible", () -> has("正在加载…"));
+            check("failed continuation retains retry focus", () -> has("加载失败：合成分页失败") && focused("重试") && has("重生之后 15"));
+            screenshot("pagination-error");
+            confirm();
+            check("remote retries the same continuation", () -> has("正在加载…"));
+            check("continuation recovers", () -> has("加载更多") && !has("加载失败：合成分页失败"));
+            key(KeyEvent.KEYCODE_DPAD_UP);
+            for (int i = 0; i < 55 && !focused("重生之后 64"); i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("remote reaches appended identity", () -> focused("重生之后 64") && identified("重生之后 64", "drama-186"));
+            screenshot("pagination-append");
+            confirm();
+            check("appended detail has correct identity", () -> has("重生之后 64") && has("开始观看"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("appended return restores source", () -> focused("重生之后 64"));
+            screenshot("pagination-return");
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            check("remote reaches terminal continuation", () -> focused("加载更多"));
+            confirm();
+            check("terminal continuation removes footer without moving the shelf", () -> !has("加载更多") && !has("正在加载…") && has("重生之后 64"));
+            check("terminal removal restores selected source focus", () -> focused("重生之后 64"));
+            key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("remote advances into final appended page", () -> focused("重生之后 65"));
+            key(KeyEvent.KEYCODE_DPAD_LEFT);
+            check("remote returns to the selected source", () -> focused("重生之后 64"));
+            screenshot("pagination-terminal");
             click("我的");
             check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 15 秒"));
             screenshot("history");

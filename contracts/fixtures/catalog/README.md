@@ -15,4 +15,4 @@
 cargo run --locked -p hongguo-core --example catalog_probe -- 重生
 ```
 
-此命令先搜索，再读取第一项详情，只输出数量和剧集 ID。官网挑战、超时或协议变更会明确失败；成功也只说明当时的匿名目录可用，不代表 App 搜索、账号或播放通过。生产 origin 固定为 `https://hongguoduanju.com`；loopback 注入只供离线测试，产品参数不能选择上游。
+此命令先搜索；有更多结果时按返回的官网游标再取一页，核对来源与推进并输出新增身份数量，再读取第一项详情，只输出数量和剧集 ID。官网挑战、超时或协议变更会明确失败；成功也只说明当时的匿名目录可用，不代表 App 搜索、账号或播放通过。生产 origin 固定为 `https://hongguoduanju.com`；loopback 注入只供离线测试，产品参数不能选择上游。

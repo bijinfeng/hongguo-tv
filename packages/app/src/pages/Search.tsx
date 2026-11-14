@@ -1,5 +1,5 @@
 import { List, Text, View, signal, effect, cleanup, type ListRef, type ViewRef } from 'nsh';
-import { Controls, Notice, PosterCard, tvUnit } from '@hongguo/ui';
+import { Button, Controls, Notice, PosterCard, tvUnit } from '@hongguo/ui';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
 
@@ -21,6 +21,11 @@ export function Search(props: { store: Store }) {
     }
   });
   const refs = new Map<string, ViewRef>();
+  let more: ViewRef | undefined;
+  const loadMore = () => {
+    more?.focus();
+    void props.store.loadMore();
+  };
   cleanup(() => cancelAnimationFrame(frame));
   const restore = () => {
     if (!anchor) return;
@@ -147,13 +152,27 @@ export function Search(props: { store: Store }) {
           </View>
         )}
       </List>
+      <If when={props.store.moreError()}>
+        <Notice error message={props.store.moreError()} />
+      </If>
       <If when={props.store.catalog()?.has_more}>
-        <Text
-          style={props.store.target === 'tv' ? { fontSize: tvUnit(20) } : undefined}
-          class="text-sm text-muted-foreground"
-        >
-          当前显示首批结果，可用更具体的关键词查找。
-        </Text>
+        <View class="items-start">
+          <Button
+            buttonRef={(ref) => {
+              more = ref;
+            }}
+            testID="search-more"
+            label={
+              props.store.loadingMore()
+                ? '正在加载…'
+                : props.store.moreError()
+                  ? '重试'
+                  : '加载更多'
+            }
+            disabled={props.store.results.state() !== 'ready'}
+            onPress={loadMore}
+          />
+        </View>
       </If>
     </View>
   );

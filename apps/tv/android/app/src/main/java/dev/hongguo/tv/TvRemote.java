@@ -29,6 +29,7 @@ final class TvRemote extends View {
     private View current;
     private String currentIdentity;
     private final List<SavedFocus> coveredFocus = new ArrayList<>();
+    private final List<SavedFocus> recentFocus = new ArrayList<>();
     private static final class SavedFocus {
         final View view;
         final String identity;
@@ -148,6 +149,11 @@ final class TvRemote extends View {
 
     private void select(View view, List<View> targets) {
         if (current != view) {
+            if (current != null) {
+                recentFocus.removeIf(saved -> saved.view == current);
+                recentFocus.add(new SavedFocus(current, currentIdentity));
+                if (recentFocus.size() > 32) recentFocus.remove(0);
+            }
             current = view;
             currentIdentity = identity(view);
             previousIndex = Math.max(0, targets.indexOf(view));
@@ -209,8 +215,15 @@ final class TvRemote extends View {
         }
         else if (!targets.contains(current)) {
             View selected = null;
+            for (int i = recentFocus.size() - 1; i >= 0; i--) {
+                SavedFocus saved = recentFocus.get(i);
+                if (targets.contains(saved.view) && java.util.Objects.equals(saved.identity, identity(saved.view))) {
+                    selected = saved.view;
+                    break;
+                }
+            }
             for (View target : targets)
-                if (target.createAccessibilityNodeInfo().isSelected()) { selected = target; break; }
+                if (selected == null && target.createAccessibilityNodeInfo().isSelected()) { selected = target; break; }
             select(targets.contains(focused) ? focused : selected != null ? selected
                     : targets.isEmpty() ? null : targets.get(Math.min(previousIndex, targets.size() - 1)), targets);
         } else if (targets.contains(focused) && focused != current) select(focused, targets);
@@ -220,6 +233,8 @@ final class TvRemote extends View {
     private String identity(View view) {
         if (view == null) return null;
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        if (node != null && node.getViewIdResourceName() != null)
+            return "id:" + node.getViewIdResourceName();
         return node == null ? null : String.valueOf(node.getContentDescription()) + "|" + node.getText();
     }
 

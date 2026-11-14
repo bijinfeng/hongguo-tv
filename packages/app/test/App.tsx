@@ -32,6 +32,106 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  test('search continuation retains results on failure, retries the same cursor and deduplicates appended identities', async () => {
+    let pages = 0;
+    const second = { ...drama, series_id: '124', title: '第二批故事' };
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      network: {
+        '*': (request) => {
+          const url = new URL(request.url);
+          if (url.pathname === '/api/v1/search') {
+            if (!url.searchParams.has('offset'))
+              return ok({ items: [drama], has_more: true, next_offset: 1, source: 'web' });
+            pages++;
+            expect(url.searchParams.get('offset')).toBe('1');
+            expect(url.searchParams.get('source')).toBe('web');
+            expect(url.searchParams.get('q')).toBe('重生');
+            if (pages === 1) return { status: 503, body: { ok: false, error: '合成分页失败' } };
+            return ok({
+              items: [drama, second, second],
+              has_more: false,
+              next_offset: 2,
+              source: 'web',
+            });
+          }
+          if (url.pathname === '/api/v1/series/detail')
+            return ok(url.searchParams.get('series_id') === '124' ? second : drama);
+          return fixture(request);
+        },
+      },
+    });
+    if (target === 'tv') await app.press('id:nav-search');
+    await app.type('id:search-input', '重生');
+    await app.press('搜索');
+    await app.waitFor('id:drama-123');
+    await app.press('id:search-more');
+    await app.waitFor('加载失败：合成分页失败');
+    expect(app.shows('id:drama-123')).toBe(true);
+    await app.press('重试');
+    await app.waitFor('id:drama-124');
+    expect(pages).toBe(2);
+    expect(app.count('id:drama-123')).toBe(1);
+    expect(app.count('id:drama-124')).toBe(1);
+    expect(app.shows('id:search-more')).toBe(false);
+    await app.press('id:drama-124');
+    await app.waitFor('开始观看');
+    await app.back();
+    await app.waitFor('id:drama-124');
+    expect(app.count('id:drama-124')).toBe(1);
+    expect(pages).toBe(2);
+  });
+
+  test('nonadvancing continuation fails visibly without consuming the current page', async () => {
+    let pages = 0;
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      network: {
+        '*': (request) => {
+          if (request.url.includes('/search?')) {
+            const more = new URL(request.url).searchParams.has('offset');
+            if (more) pages++;
+            return ok({ items: [drama], has_more: true, next_offset: 1, source: 'web' });
+          }
+          return fixture(request);
+        },
+      },
+    });
+    if (target === 'tv') await app.press('id:nav-search');
+    await app.type('id:search-input', '重生');
+    await app.press('搜索');
+    await app.waitFor('id:search-more');
+    await app.press('id:search-more');
+    await app.waitFor('加载失败：搜索分页数据无效，请重试。');
+    expect(app.shows('id:drama-123')).toBe(true);
+    expect(pages).toBe(1);
+    await app.press('重试');
+    await app.waitFor('加载失败：搜索分页数据无效，请重试。');
+    expect(pages).toBe(2);
+  });
+
+  test('query, refresh and disposal cancel owned continuation even when its transport ignores abort', async () => {
+    for (const action of ['搜索新查询', '刷新查询', '移除查询']) {
+      const app = await open('./SearchStatePreview.tsx');
+      await app.press('搜索旧查询');
+      await app.waitFor('100');
+      await app.press('替换宿主');
+      await app.press('追加两次');
+      await app.waitFor('request-旧查询-first|request-旧查询-1');
+      await app.press(action);
+      await app.waitUntil(() => app.texts().some((text) => text.includes('cancelled')));
+      await app.press('完成旧页');
+      if (action === '搜索新查询') await app.waitFor('200');
+      if (action === '刷新查询') await app.waitFor('100');
+      if (action === '移除查询') expect(app.shows('id:search-state')).toBe(false);
+      expect(app.texts().includes('100,999')).toBe(false);
+      expect(app.texts().some((text) => text.includes('foreign'))).toBe(false);
+      app.dispose();
+    }
+  });
+
   test('recycled result identity and scroll position survive details and primary navigation', async () => {
     const items = Array.from({ length: 120 }, (_, i) => ({
       ...drama,

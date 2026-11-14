@@ -4,12 +4,12 @@ import { createNavStack } from 'nsh/base';
 import {
   libraryDrama,
   captureRequest,
-  search,
   type Account,
   type Drama,
   type Episode,
   type HistoryChange,
   type Library,
+  type SearchResult,
 } from '@hongguo/core-client';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
@@ -48,10 +48,80 @@ export function createStore(
   const searchSelection = signal('');
   const draft = signal('');
   const query = signal('');
+  const continued = signal<SearchResult | undefined>(undefined);
+  const loadingMore = signal(false);
+  const moreError = signal('');
+  let searchRevision = 0;
+  let moreAbort: AbortController | undefined;
+  const resetContinuation = () => {
+    searchRevision++;
+    moreAbort?.abort();
+    moreAbort = undefined;
+    continued.set(undefined);
+    loadingMore.set(false);
+    moreError.set('');
+  };
+  cleanup(resetContinuation);
   const results = resource(
     () => query() || undefined,
-    (q, { signal }) => search(q, signal),
+    (q, { signal }) => {
+      resetContinuation();
+      return request<SearchResult>(`/api/v1/search?q=${encodeURIComponent(q)}&source=web`, signal);
+    },
   );
+  const catalog = () => continued() ?? results();
+  const loadMore = async () => {
+    const current = catalog();
+    if (!current?.has_more || results.state() !== 'ready' || loadingMore()) return;
+    const offset = current.next_offset;
+    if (
+      (current.source !== undefined && current.source !== 'web') ||
+      !Number.isInteger(offset) ||
+      offset < 1 ||
+      offset > 100000
+    ) {
+      moreError.set('搜索分页数据无效，请重新搜索。');
+      return;
+    }
+    const revision = searchRevision;
+    const term = query();
+    const abort = new AbortController();
+    moreAbort = abort;
+    const owns = () => revision === searchRevision && term === query() && !abort.signal.aborted;
+    loadingMore.set(true);
+    moreError.set('');
+    try {
+      const next = await request<SearchResult>(
+        `/api/v1/search?q=${encodeURIComponent(term)}&offset=${offset}&source=web`,
+        abort.signal,
+      );
+      if (!owns()) return;
+      if (
+        !Array.isArray(next?.items) ||
+        typeof next.has_more !== 'boolean' ||
+        (next.source !== undefined && next.source !== 'web') ||
+        !Number.isInteger(next.next_offset) ||
+        next.next_offset <= offset ||
+        next.next_offset > 100001
+      )
+        throw new Error('搜索分页数据无效，请重试。');
+      const seen = new Set(current.items.map((item) => item.series_id));
+      const added = next.items.filter((item) => {
+        if (seen.has(item.series_id)) return false;
+        seen.add(item.series_id);
+        return true;
+      });
+      continued.set({ ...next, items: [...current.items, ...added] });
+    } catch (error) {
+      if (owns())
+        moreError.set(`加载失败：${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      if (owns()) {
+        loadingMore.set(false);
+        moreAbort = undefined;
+      }
+    }
+  };
   const library = resource(({ signal }) => request<Library>('/api/v1/library', signal));
   const account = resource(({ signal }) => request<Account>('/api/v1/account', signal));
   const entries = () =>
@@ -101,7 +171,10 @@ export function createStore(
       };
     },
     searchSelection,
-    catalog: results,
+    catalog,
+    loadMore,
+    loadingMore,
+    moreError,
     entries,
     focusPrimary() {
       primary.get(section())?.focus();

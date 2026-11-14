@@ -6,6 +6,7 @@ import { root } from './process.mjs';
 /** Acceptance-only HTTP fixture; never imported or started by a product entry. */
 export async function browsingFixture() {
   const requests = [];
+  const continuations = new Map();
   let origin;
   const episodes = Array.from({ length: 75 }, (_, i) => ({
     index: i + 1,
@@ -58,7 +59,26 @@ export async function browsingFixture() {
       return;
     }
     if (url.pathname === '/api/v1/search') {
-      reply({ items: Array.from({ length: 40 }, (_, i) => drama(i)), has_more: true });
+      const offset = Number(url.searchParams.get('offset') || 0);
+      if (!offset) continuations.set(url.searchParams.get('q'), 0);
+      if (offset) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const term = url.searchParams.get('q');
+        const attempt = (continuations.get(term) || 0) + 1;
+        continuations.set(term, attempt);
+        if (offset === 1 && attempt === 1) {
+          reply('合成分页失败', 503);
+          return;
+        }
+      }
+      const start = offset === 0 ? 0 : offset === 1 ? 39 : 63;
+      const count = offset === 0 ? 40 : offset === 1 ? 25 : 17;
+      reply({
+        items: Array.from({ length: count }, (_, i) => drama(start + i)),
+        has_more: offset < 2,
+        next_offset: offset + 1,
+        source: 'web',
+      });
       return;
     }
     if (url.pathname === '/api/v1/series/detail') {

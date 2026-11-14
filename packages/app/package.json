@@ -11,7 +11,8 @@
     "./testing/player-controls-host": "./test/PlayerControlsHost.tsx",
     "./testing/player-host": "./test/PlayerHost.tsx",
     "./testing/player-media-host": "./test/PlayerMediaHost.tsx",
-    "./testing/native-startup": "./test/NativeStartup.tsx"
+    "./testing/native-startup": "./test/NativeStartup.tsx",
+    "./testing/search-state": "./test/SearchState.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

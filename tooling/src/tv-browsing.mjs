@@ -106,7 +106,7 @@ try {
       !report.includes(
         suite === 'player'
           ? 'TV player acceptance: 24 checks passed'
-          : 'TV browsing acceptance: 16 checks passed',
+          : 'TV browsing acceptance: 29 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {
@@ -121,7 +121,16 @@ try {
     }
     for (const screen of suite === 'player'
       ? ['paused', 'preview', 'settings']
-      : ['home', 'search', 'detail', 'history'])
+      : [
+          'home',
+          'search',
+          'detail',
+          'pagination-error',
+          'pagination-append',
+          'pagination-return',
+          'pagination-terminal',
+          'history',
+        ])
       await run(adb, [
         '-s',
         serial,

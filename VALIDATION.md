@@ -323,3 +323,15 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 实际 CUA 在 1180×780 合成控件包完成 End→Enter 切换至 1.5×，AX 仍为有名称的单 combo 并恢复焦点，边框可见，见 `fixed-end-enter.png/txt`。接续手动 Home 检查时工具报告 Mac 再次锁屏；未进入真实全屏、未打开原生 Chrome，未宣称后续手动操作通过。
 - `artifacts/search-pagination/verify-second.log` 完整 verify 通过：101 Rust、21 工程，Web29／Desktop27／TV28，含三端 check／build、格式、lint、生成契约与发行基础检查。独立源码复评 `select-fix-review.md` 与 18 张原生图的 UI 审查 `select-ui-review.md` 仅针对本修复；证据根目录为 `artifacts/playback/mac-unlocked/`，控件宿主图在 `artifacts/playback/controls-macos/`。
 - 圆角、字号、间距、对齐、颜色与状态沿用设计，浅深与减少动态效果未见本次布局回归。辅助技术、系统大字号、逐帧动效、真实 Desktop mixed 官网观看／重启续播、物理电视与安全发行仍未验证／未解除；A/B/C3.2 不因此整体关闭。此前安全阻塞保留；未推送、归档或发布。
+
+### D1 · 搜索结果分页与阅读位置（2026-11-14）
+
+- 共享 store 接通已有官网 `source=web`／`next_offset`，首屏与追加都使用挂载时捕获的 transport；单请求、推进游标校验、按 series_id 首次顺序去重。查询／重搜／卸载取消所属追加，忽略 abort 的迟到响应也不能回写。失败保留列表和游标，重试仍请求原页，不自动追页。
+- 定稿四列网格／TV 横向内容行、海报、身份锚点和详情返回保持复用。分页按钮在用户按下时同步获得焦点；pending 保留同一停靠并由 store 拦截重复请求，错误只显示正文、原按钮变“重试”。末页完成没有异步强制聚焦，等待期间移开的输入焦点不会被抢回。
+- TV 实测发现末页移除时，既有恢复策略会选择第一个 selected 导航；`TvRemote` 现在只在原控件已失效时使用有界的最近可用源，仍受当前作用域与 View／身份约束，保留覆盖层和已有原生焦点优先级。海报身份优先取现有 testID（Android 公开 viewIdResourceName），不以同名标题判断剧目；无 ID 的控件沿用既有可访问名称／文字。未额外构造重复标题回收专项场景。
+- 三端新增行为覆盖同游标失败／重试、重复身份、非法游标、重复调用、换查询／重搜／移除、忽略取消与 transport 替换、追加详情返回。`artifacts/search-pagination/verify-post-review.log` 在最终身份增量后完整通过：101 Rust／21 工程／Web29／Desktop27／TV28，含三端 check＋build、fmt／lint、codegen:check 与发行基础检查；无 DTO 或依赖变化。
+- Web 实际宿主 `host-web-seventh.log` 7/7：1180×780、1440×1000 浅深四组分页，1180 使用减少动态效果；失败后直接 Enter 重试、追加后详情返回、三组终页 pending 转移到输入后实体键 x 仍输入；1440 深色在终页持焦后 Shift+Tab 聚焦当前视口第 69 项，Enter 打开相同身份。该宿主使用 NSH 的后台浏览器测试器，没有打开原生 Chrome 窗口。图在 `artifacts/browsing/web/pagination-*.png`。
+- TV 的 `host-tv-third.log` 浅色／深色／深色字号1.3 各29项（87项）通过；末页恢复第64项后可遥控进入新增第65项并回到64。旧播放器 `tv-player-regression.log` 同三组各24项（72项）通过。收紧稳定 ID 后重新串行验收与原 APK 恢复记录在 `tv-final-regression.log`／`tv-final-restored.json`；图在 `artifacts/browsing/tv/pagination-*.png`。这些是显式电脑 HTTP fixture，不能计作 C3 原生独立业务、真实官网播放或物理电视验收。
+- 官网 smoke `website-smoke.log` 独立调用 Rust：offset0／1 各10项，第二页8个新增身份，游标推进0→1→2；第一项166集详情可读。只证明当时匿名官网目录分页与详情，不证明账号或实时内容始终可用。探针与样本说明同步，未运行 Go。
+- 亲看 Web 两尺寸浅深与 TV 浅深／大字的 pending、错误、追加、返回、终页焦点：圆角、文字层级、间距、对齐、颜色与选中／焦点沿用定稿；Web hover／键盘与 TV DPAD 有对应证据，TV 无 hover 要求；追加不重播整表动画，减少动态保持直接反馈。独立功能／UI 报告为 `function-review.md`、`ui-review.md`，均为局部 ship；UI 复核亲看33张分页图，1440两张错误图处于入场中间帧，不能作为稳定态对比度通过证据。OpenSpec strict、独立 codegen:check 均通过。早期失败原始日志保留，未用新增自动重试隐藏断言失败。
+- macOS 实际分页、VoiceOver／TalkBack、物理遥控／电视／解码与正式发行仍未验证；此前 C3.2、安全门禁及 D/E/F/G 其余 MVP 功能继续开放。本批未推送、归档或发布；并行品牌文档保留。
