@@ -392,3 +392,14 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 显式匿名官网探针 `suggestions_probe -- --anonymous-live` 本次返回items10／drama10／actor0／keyword0／合法summary9，日志仅数量。证明当次固定官网请求与解析可用，不能据此宣称10条均可打开、真实演员分支、UI或官网观看已验；混合类型由离线fixture验证。
 - 独立功能／UI范围报告见同目录 `function-review.md`／`ui-review.md`。本批没有app/ui/apps可见代码变化，因此只做定稿／数据含义范围审查，不重复计宿主截图、鼠标、TV矩阵或安装包验收。optional字段和kind须共同判断，key不能当搜索词、系列ID或全局UI身份；meta不推断排名／分类。100字联想与既有80字搜索／最近词、输入防抖／IME／弹层焦点和演员作品仍需后续实施与真实宿主验收。
 - 台账单列演员作品，不以普通关键词搜索替代该功能；其余D/E/F/G、C3.2、辅助技术、物理TV、全屏、既有安全阻塞与正式发行仍开放，完整MVP未完成。本批无新依赖／数据库／Go／upstream变化，仅分批本地提交，不push／归档／发布；并行品牌／设计文档保留。
+
+## D4 · 演员作品核心与严格契约（2026-11-14）
+
+- OpenSpec `migrate-actor-works-core` 单独交付匿名演员摘要与选定官网页面内的有序支持作品。Rust 固定请求 `/character/<actor_id>`，只读 `loaderData["character_(id)/page"]`；请求ID为trim后1–32位非零ASCII十进制，所有已给出的actor_id／actor_id_str／person_id须逐字一致，不从姓名、keyword或系列ID推断演员。无账号／数据库写入／发现注册／新依赖／Go或upstream改动。
+- `ActorSummary`／`ActorWorksResult` 与 `/api/v1/actors/works?actor_id=...` 已接通HTTP/native及生成OpenAPI／TS aliases。拒绝缺失／非法／重复／未知参数、HTTP非空GET body、native body及普通POST；保留Axum自动HEAD和全局OPTIONS语义。共用匿名传输，5秒单次／12秒总限、最多两次，禁止Cookie／Authorization／重定向。
+- HTML12MiB、videoList最多2048原始行，超限整页失败而不静默裁成“全部作品”。缺失／非数组videoList失败，合法空数组成功。归一化direct／video_data、精确系列ID、支持内容族、去重顺序；名称／剧名100字符、简介1024、标签3×24，图片复用既有HTTPS白名单。只带摘要与正集数，不返回episodes或原始视频列表；“完整”仅指该页面内有效支持的作品，未证明全网全集或新分页协议。
+- 最终证据位于忽略目录 `artifacts/actor-works-core/`：`targeted-wire-final.log` 为133/133、0skip；`verify-wire-final.log` 实际exit0，Rust138/138、工具21/21、三端UI40/38/39、三端NSH check和build、fmt／lint／codegen／release基础检查通过。`clippy-first.log`、`codegen-check.log`、`strict-final.log` 和diff check通过；`gates-result.json`记录实际退出码。最终fixture已恢复严格wire JSON并沿用detail的单文件格式排除规则，避免HTML格式化器把JSON改成JavaScript。
+- 早期失败分别保留：`targeted-first.log` 并发cargo test中既有discovery40ms测试超时，单独重跑及最终全套通过；`targeted-nextest.log` 132/133，新actor取消测试恢复请求少放一次模拟gate，修复后通过；`verify-first.log` 两个fixture格式检查失败，随后`verify-final.log` 中HTML格式化改写wire JSON，parser正确拒绝，修复后最终完整验证通过。没有放宽解析或跳过失败测试。
+- native取消／close验证499、pending清空、无后续重试及无观看／最近词写入，close后410、取消后可恢复。core丢弃future的真实socket关闭／不重试及deadline有专项；演员接口HTTP客户端真实断开、HTTP/native端到端timeout对照未单独测，不能用共用映射或播放器断开回归替代。
+- 显式匿名 `actor_works_probe -- --anonymous-live <public-actor-id>` 本次返回82部支持作品、82精确系列摘要、avatar／description均存在、episodes0；只输出数量，不记录姓名／身份／简介／URL／作品原文。此证据仅为该公开演员页当次读取，不代表其他演员、全网全集、实际界面或播放验收。
+- 独立功能／UI产品范围报告见同目录 `function-review.md`／`ui-review.md`。本批无packages/app／packages/ui／apps可见改动，不重复计宿主截图／鼠标／TV矩阵；typed联想入口、演员作品共享UI、防抖／IME／焦点、100字联想与80字普通搜索／100 UTF16最近词边界仍待后续实现及真实宿主观察。C3.2、辅助技术、物理TV／遥控／解码、全屏、安全阻塞、其余D/E/F/G及正式发行继续开放，完整MVP未完成。本批仅本地提交，不push／归档／发布，并行品牌／设计dirty保留。

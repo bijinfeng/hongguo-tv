@@ -7,8 +7,8 @@ use axum::{
     response::Response,
 };
 use hongguo_core::catalog::{
-    CatalogClient, CatalogError, Drama, SearchDiscovery, SearchQuery, SearchResult,
-    SearchSuggestions, SuggestionQuery,
+    ActorQuery, ActorWorksResult, CatalogClient, CatalogError, Drama, SearchDiscovery, SearchQuery,
+    SearchResult, SearchSuggestions, SuggestionQuery,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -49,6 +49,38 @@ pub(crate) struct DetailParams {
 #[serde(deny_unknown_fields)]
 pub(crate) struct SuggestionParams {
     q: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ActorParams {
+    actor_id: String,
+}
+
+/// Successful anonymous actor identity and ordered works.
+#[derive(Serialize, ToSchema)]
+pub struct ActorWorksResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Identity-bound actor summary and complete supported page works.
+    pub data: ActorWorksResult,
+}
+#[utoipa::path(get, path = "/api/v1/actors/works",
+    params(("actor_id" = String, Query, description = "Trimmed nonzero ASCII decimal actor ID, 1–32 digits")),
+    responses((status = 200, body = ActorWorksResponse), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn actor_works(
+    State(client): State<CatalogClient>,
+    params: Result<Query<ActorParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<ActorWorksResponse>, Response> {
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = ActorQuery::new(&params.actor_id).map_err(catalog_failure)?;
+    let data = client.actor_works(&query).await.map_err(catalog_failure)?;
+    Ok(Json(ActorWorksResponse { ok: true, data }))
 }
 
 /// Successful anonymous current-term suggestions.

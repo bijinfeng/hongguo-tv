@@ -1,0 +1,27 @@
+{
+  "actor": {
+    "id": "99999999999999999999",
+    "name": "测试演员",
+    "avatar": "https://p3.byteimg.com/avatar/test.image",
+    "description": "演员简介"
+  },
+  "items": [
+    {
+      "series_id": "1234567890123456789",
+      "title": "第一部",
+      "cover": "https://p9.fqnovelpic.com/novel-pic/object~signed.heic?token=synthetic",
+      "cover_fallback": "https://p3-novel.byteimg.com/novel-pic/object~tplv-shrink:640:0.image",
+      "intro": "简介",
+      "episode_count": 12,
+      "content_type": "1",
+      "tags": ["都市", "剧情"]
+    },
+    {
+      "series_id": "2234567890123456789",
+      "title": "第二部",
+      "cover": "",
+      "intro": "",
+      "episode_count": 2
+    }
+  ]
+}

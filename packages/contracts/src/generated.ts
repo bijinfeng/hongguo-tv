@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/v1/actors/works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["actor_works"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library": {
         parameters: {
             query?: never;
@@ -184,6 +200,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Public actor identity and bounded display fields, without account state. */
+        ActorSummary: {
+            /** @description Approved public HTTPS image, when available. */
+            avatar?: string;
+            /** @description Plain bounded description, when available. */
+            description?: string;
+            /** @description Exact actor identity; never use this as a series ID. */
+            id: string;
+            /** @description Display name, with a neutral fallback when unavailable. */
+            name: string;
+        };
+        /** @description Successful anonymous actor identity and ordered works. */
+        ActorWorksResponse: {
+            /** @description Identity-bound actor summary and complete supported page works. */
+            data: components["schemas"]["ActorWorksResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Complete supported works from the selected public character page; never silently truncated. */
+        ActorWorksResult: {
+            /** @description Actor whose identity was checked against the requested ID. */
+            actor: components["schemas"]["ActorSummary"];
+            /** @description Unique ordered drama summaries without episode details. */
+            items: components["schemas"]["Drama"][];
+        };
         /** @description Machine-readable errors keep human copy independent of client branching. */
         ApiError: {
             /** @description Stable error code. */
@@ -542,6 +583,60 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    actor_works: {
+        parameters: {
+            query: {
+                /** @description Trimmed nonzero ASCII decimal actor ID, 1–32 digits */
+                actor_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActorWorksResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     get: {
         parameters: {
             query?: {

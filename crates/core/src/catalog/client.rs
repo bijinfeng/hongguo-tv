@@ -97,6 +97,21 @@ impl CatalogClient {
         super::parse_suggestions(&body)
     }
 
+    /// Read the exact anonymous actor page; dropping the future cancels pending reads and retries.
+    pub async fn actor_works(
+        &self,
+        query: &super::ActorQuery,
+    ) -> Result<super::ActorWorksResult, CatalogError> {
+        let url = self
+            .origin
+            .join(&format!("/character/{}", query.id()))
+            .map_err(|_| CatalogError::Configuration)?;
+        let body = self
+            .fetch(url, "text/html", super::actor_works::BODY_LIMIT)
+            .await?;
+        super::parse_actor_works(&body, query)
+    }
+
     /// Query one validated website page. Dropping the future cancels pending work and retries.
     pub async fn search(&self, query: &SearchQuery) -> Result<SearchResult, CatalogError> {
         let mut url = self

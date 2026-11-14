@@ -78,6 +78,11 @@ async fn search_and_detail_emit_compatible_generated_envelopes() {
             include_str!("../../../contracts/fixtures/catalog/suggestions.input.json"),
             include_str!("../../../contracts/fixtures/catalog/suggestions.expected.json"),
         ),
+        (
+            "/api/v1/actors/works?actor_id=%2099999999999999999999%20",
+            include_str!("../../../contracts/fixtures/catalog/actor-works.input.html"),
+            include_str!("../../../contracts/fixtures/catalog/actor-works.expected.json"),
+        ),
     ];
     for (path, input, expected) in fixtures {
         let fixture = fixture(StatusCode::OK, input).await;
@@ -186,6 +191,20 @@ fn openapi_has_directory_schemas_parameters_and_error_responses() {
     assert_eq!(path["parameters"].as_array().unwrap().len(), 1);
     assert_eq!(path["parameters"][0]["name"], "q");
     for name in ["SearchSuggestions", "SearchSuggestion", "SuggestionKind"] {
+        assert!(schema["components"]["schemas"].get(name).is_some());
+    }
+}
+
+#[test]
+fn actor_openapi_defines_exact_query_summaries_and_failures() {
+    let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
+    let path = &schema["paths"]["/api/v1/actors/works"]["get"];
+    assert_eq!(path["parameters"].as_array().unwrap().len(), 1);
+    assert_eq!(path["parameters"][0]["name"], "actor_id");
+    for status in ["200", "400", "405", "502", "504"] {
+        assert!(path["responses"].get(status).is_some());
+    }
+    for name in ["ActorSummary", "ActorWorksResult", "ActorWorksResponse"] {
         assert!(schema["components"]["schemas"].get(name).is_some());
     }
 }

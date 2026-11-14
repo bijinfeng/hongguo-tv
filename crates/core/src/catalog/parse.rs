@@ -30,21 +30,7 @@ pub fn parse_search(body: &[u8], page: u32) -> Result<SearchResult, CatalogError
 /// Read JSON from router data without executing scripts, and check requested identity.
 pub fn parse_detail(body: &[u8], series_id: &str) -> Result<Drama, CatalogError> {
     super::validate_detail(series_id, None)?;
-    let html = std::str::from_utf8(body).map_err(|_| CatalogError::InvalidData)?;
-    let (_, suffix) = html
-        .split_once("_ROUTER_DATA")
-        .ok_or(CatalogError::InvalidData)?;
-    let json = suffix
-        .trim_start()
-        .strip_prefix('=')
-        .ok_or(CatalogError::InvalidData)?
-        .trim_start();
-    // The stream consumes exactly one JSON value; surrounding scripts are never evaluated.
-    let router = serde_json::Deserializer::from_str(json)
-        .into_iter::<Value>()
-        .next()
-        .ok_or(CatalogError::InvalidData)?
-        .map_err(|_| CatalogError::InvalidData)?;
+    let router = router_json(body)?;
     let data = find_object(&router, "seriesDetail").ok_or(CatalogError::InvalidData)?;
     let mut drama = normalize(data).ok_or(CatalogError::InvalidData)?;
     if drama.series_id != series_id {
@@ -70,6 +56,24 @@ pub fn parse_detail(body: &[u8], series_id: &str) -> Result<Drama, CatalogError>
             .collect(),
     );
     Ok(drama)
+}
+
+pub(super) fn router_json(body: &[u8]) -> Result<Value, CatalogError> {
+    let html = std::str::from_utf8(body).map_err(|_| CatalogError::InvalidData)?;
+    let (_, suffix) = html
+        .split_once("_ROUTER_DATA")
+        .ok_or(CatalogError::InvalidData)?;
+    let json = suffix
+        .trim_start()
+        .strip_prefix('=')
+        .ok_or(CatalogError::InvalidData)?
+        .trim_start();
+    // The stream consumes exactly one JSON value; surrounding scripts are never evaluated.
+    serde_json::Deserializer::from_str(json)
+        .into_iter::<Value>()
+        .next()
+        .ok_or(CatalogError::InvalidData)?
+        .map_err(|_| CatalogError::InvalidData)
 }
 
 fn find_object<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {

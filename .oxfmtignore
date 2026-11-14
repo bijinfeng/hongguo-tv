@@ -19,3 +19,4 @@ openspec/**
 
 # Preserve wire JSON inside the script; HTML formatting rewrites it as JavaScript.
 contracts/fixtures/catalog/detail.input.html
+contracts/fixtures/catalog/actor-works.input.html

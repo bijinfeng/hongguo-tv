@@ -9,6 +9,72 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/actors/works": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "actor_works",
+        "parameters": [
+          {
+            "name": "actor_id",
+            "in": "query",
+            "description": "Trimmed nonzero ASCII decimal actor ID, 1–32 digits",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActorWorksResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library": {
       "get": {
         "tags": [
@@ -965,6 +1031,71 @@
   },
   "components": {
     "schemas": {
+      "ActorSummary": {
+        "type": "object",
+        "description": "Public actor identity and bounded display fields, without account state.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "avatar": {
+            "type": "string",
+            "description": "Approved public HTTPS image, when available."
+          },
+          "description": {
+            "type": "string",
+            "description": "Plain bounded description, when available."
+          },
+          "id": {
+            "type": "string",
+            "description": "Exact actor identity; never use this as a series ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name, with a neutral fallback when unavailable."
+          }
+        }
+      },
+      "ActorWorksResponse": {
+        "type": "object",
+        "description": "Successful anonymous actor identity and ordered works.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ActorWorksResult",
+            "description": "Identity-bound actor summary and complete supported page works."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "ActorWorksResult": {
+        "type": "object",
+        "description": "Complete supported works from the selected public character page; never silently truncated.",
+        "required": [
+          "actor",
+          "items"
+        ],
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorSummary",
+            "description": "Actor whose identity was checked against the requested ID."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Drama"
+            },
+            "description": "Unique ordered drama summaries without episode details."
+          }
+        }
+      },
       "ApiError": {
         "type": "object",
         "description": "Machine-readable errors keep human copy independent of client branching.",
