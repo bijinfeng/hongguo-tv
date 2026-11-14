@@ -28,12 +28,13 @@ import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
 import { errorMessage } from './error-messages';
 import { createCalendar } from './calendar';
+import { createRankings } from './rankings';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
 
-export type Section = 'home' | 'feed' | 'discover' | 'search' | 'calendar' | 'history';
+export type Section = 'home' | 'feed' | 'discover' | 'search' | 'calendar' | 'rankings' | 'history';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -83,6 +84,7 @@ export function createStore(
   const searchSelection = signal('');
   const category = createCategory(request, () => activePage('discover'));
   const calendar = createCalendar(request, () => activePage('calendar'));
+  const rankings = createRankings(request, () => activePage('rankings'));
   const handleCalendarBack = () => activePage('calendar') && (calendarBack?.() ?? false);
   let searchSource: Section = 'home';
   let categorySource: { restore: () => void; key: string } | undefined;
@@ -286,6 +288,7 @@ export function createStore(
     searchSelection,
     category,
     calendar,
+    rankings,
     searchFromCategory: () => section() === 'search' && searchSource === 'discover',
     categorySource(restore: () => void) {
       categorySource = { restore, key: category.key() };

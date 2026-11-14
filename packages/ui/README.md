@@ -78,6 +78,16 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 独立验收例为 `dev/CalendarChoices.tsx`，经 `@hongguo/ui/preview/date-choice` 暴露，三端显式入口为 `apps/*/DateChoicePreview.tsx`，产品不导入 testing。对应 `DateChoicePreview.test.tsx` 覆盖外部拒绝／接受选择、合法闰日与非法日期、键盘焦点和一次激活，以及浅深色选中文字配对。该测试独立于 `ui:test` 的 Gallery 测试入口，使用 `cd apps/desktop && nsh test DateChoicePreview.test.tsx`（另对 web／tv 执行）运行；类型与预览构建分别执行 `nsh check` 和 `nsh build DateChoicePreview.tsx`。
 
+### RankingCard
+
+包根导出 `RankingCard`／`RankingCardProps`。它是受控的榜位媒体行，不持有榜单请求、筛选、分页、导航或账号状态。`title`、`cover`、`subtitle`、`metadata`、`rank` 和 `actionLabel` 都由调用方提供；只有真实正整数 rank 显示，缺失／非法值保留空榜位 lane，不补破折号、不按行号推算。`kind="actor"` 使用共享 Avatar lg，默认 drama 使用 Cover。剧目和演员的目的地由 app 决定。
+
+桌面与 TV 共用一个整行动作、selected 和焦点契约。桌面封面 64×86／行内间距 20，TV 封面 96×128／行内间距 28，TV 值均经 `tvUnit()` 换算；演员沿用 Avatar lg 的 68／84 尺寸，不在行内覆盖基础头像尺寸。标题、简介和元信息各最多两行，完整文本保留在无障碍名称／说明中。hover 使用 muted，selected 使用 accent 成对前景，pressed 加深／降低透明度，键盘焦点使用独立外环；颜色过渡读取 fast token，减少动态时关闭。
+
+`buttonRef`、`testID` 和 `onFocus` 只提供通用输入与定位接口；kind:id、虚拟行安全区、滚动锚点、受控选择、来源恢复和较新输入意图保护归 app。不要在页面重画榜位、头像或动作，也不要把整行拆成多个可聚焦目标。
+
+独立样例为 `dev/RankingRows.tsx`，经 `@hongguo/ui/preview/ranking-card` 暴露；行为测试经 `@hongguo/ui/testing/ranking-card` 暴露。三端显式入口为 `apps/*/RankingCardPreview.tsx` 和相邻 `.test.tsx`，与产品路由分离。样例覆盖外部接受／拒绝选择、同原始 ID 的演员／剧目、名次缺失与非法值、长标题及同一 Product 的端型切换。
+
 ### PosterCard 的可用高度
 
 `availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。TV 沿用既有可用高度与字体缩放规则。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。

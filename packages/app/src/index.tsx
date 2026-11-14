@@ -25,6 +25,7 @@ import { Account } from './pages/Account';
 import { Home } from './pages/Home';
 import { Feed } from './pages/Feed';
 import { Calendar } from './pages/Calendar';
+import { Rankings } from './pages/Rankings';
 import type { PlaybackCommandSource } from './playback';
 
 function Navigation(props: { store: Store }) {
@@ -68,6 +69,15 @@ function Navigation(props: { store: Store }) {
         onPress={() => props.store.navigate('discover')}
       />
       <If when={props.store.target === 'desktop'}>
+        <Button
+          testID="nav-rank"
+          buttonRef={(ref) => props.store.primaryRef('rankings', ref)}
+          variant="navigation"
+          icon="chart-no-axes-column-increasing"
+          label="排行榜"
+          selected={props.store.activePage('rankings')}
+          onPress={() => props.store.navigate('rankings')}
+        />
         <Button
           testID="nav-calendar"
           buttonRef={(ref) => props.store.primaryRef('calendar', ref)}
@@ -137,6 +147,23 @@ function Browse(props: { store: Store }) {
           focusGuard={props.store.focusGuard}
           onRegisterBack={props.store.registerCalendarBack}
           onPrimary={(ref) => props.store.primaryRef('calendar', ref)}
+        />
+      </View>
+      <View
+        class={props.store.section() === 'rankings' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'rankings'}
+        disabled={props.store.section() !== 'rankings'}
+      >
+        <Rankings
+          rankings={props.store.rankings}
+          target={props.store.target}
+          active={props.store.activePage('rankings')}
+          onOpen={props.store.open}
+          onActor={props.store.openActor}
+          onSource={props.store.rememberSource}
+          onNavigate={props.store.noteFocusIntent}
+          focusGuard={props.store.focusGuard}
+          onPrimary={(ref) => props.store.primaryRef('rankings', ref)}
         />
       </View>
       <View

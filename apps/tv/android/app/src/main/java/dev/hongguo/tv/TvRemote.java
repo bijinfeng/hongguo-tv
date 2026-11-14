@@ -30,6 +30,7 @@ final class TvRemote extends View {
     private String currentIdentity;
     private int currentPageDepth = -1;
     private View currentPageRoot;
+    private View currentFocusScope;
     private final List<SavedFocus> coveredFocus = new ArrayList<>();
     private final List<SavedFocus> recentFocus = new ArrayList<>();
     private static final class SavedFocus {
@@ -37,7 +38,14 @@ final class TvRemote extends View {
         final String identity;
         final int depth;
         final View pageRoot;
-        SavedFocus(View view, String identity, int depth, View pageRoot) { this.view = view; this.identity = identity; this.depth = depth; this.pageRoot = pageRoot; }
+        final long intent;
+        final View scope;
+        final boolean temporary;
+        SavedFocus(View view, String identity, int depth, View pageRoot, long intent, View scope, boolean temporary) {
+            this.view = view; this.identity = identity; this.depth = depth; this.pageRoot = pageRoot; this.intent = intent;
+            this.scope = scope;
+            this.temporary = temporary;
+        }
     }
     private int previousIndex;
     private boolean selecting;
@@ -84,7 +92,7 @@ final class TvRemote extends View {
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || enteringPageRoot != null || enteringFocusEntry != null || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
+            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || enteringPageRoot != null || enteringFocusEntry != null || restoringPage || waitingForTemporarySource() || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
@@ -214,18 +222,22 @@ final class TvRemote extends View {
         if (current != view) {
             if (current != null) {
                 recentFocus.removeIf(saved -> saved.view == current);
-                recentFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot));
+                recentFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot, focusIntent, currentFocusScope, false));
                 if (recentFocus.size() > 32) recentFocus.remove(0);
             }
             current = view;
             currentIdentity = identity(view);
             currentPageDepth = pageDepth;
             currentPageRoot = pageRoot;
+            currentFocusScope = currentScope;
             previousIndex = Math.max(0, targets.indexOf(view));
             if (view != null) {
                 selecting = true;
                 view.setFocusable(true);
                 view.requestFocus();
+                int inset = Math.round(ring.getStrokeWidth() * 2);
+                view.requestRectangleOnScreen(new Rect(-inset, -inset,
+                        view.getWidth() + inset, view.getHeight() + inset), true);
                 // Returning through the input can reopen the IME before a suggestion remounts.
                 if (!(view instanceof EditText))
                     ((InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
@@ -264,8 +276,10 @@ final class TvRemote extends View {
         }
         if (current != null && !targets.contains(current)) {
             // Android press-target refs do not restore native focus; retain the covered source identity.
-            coveredFocus.removeIf(saved -> saved.view == current);
-            coveredFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot));
+            // Replacement content covers outside sources even when it shares their modal scope.
+            if (coveredFocus.stream().noneMatch(saved -> saved.view == current))
+                coveredFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot, focusIntent, currentFocusScope,
+                        currentFocusScope == currentScope && (activeFocusEntry == null || within(current, activeFocusEntry))));
             if (coveredFocus.size() > 32) coveredFocus.remove(0);
         }
         if (enteringFocusEntry != null) {
@@ -397,13 +411,24 @@ final class TvRemote extends View {
     }
 
     private View resurfaced(SavedFocus saved, List<View> targets) {
+        boolean samePage = saved.pageRoot == pageRoot && saved.depth == pageDepth;
+        // Same-scope controls may remount; newer input cancels both raw-ref and identity restoration.
+        if (!restoringPage && saved.temporary && (!samePage || saved.intent != focusIntent || saved.scope != currentScope)) return null;
         if (targets.contains(saved.view) && java.util.Objects.equals(saved.identity, identity(saved.view)))
             return saved.view;
         // A refetched virtual row may have a new native View. Only a stable public ID can reconnect it.
-        if (restoringPage && saved.pageRoot == pageRoot && saved.depth == pageDepth && saved.identity != null && saved.identity.startsWith("id:"))
+        if (samePage && (restoringPage || saved.temporary && saved.intent == focusIntent && saved.scope == currentScope)
+                && saved.identity != null && saved.identity.startsWith("id:"))
             for (View target : targets)
                 if (saved.identity.equals(identity(target))) return target;
         return null;
+    }
+
+    private boolean waitingForTemporarySource() {
+        for (SavedFocus saved : coveredFocus)
+            if (saved.temporary && saved.intent == focusIntent && saved.scope == currentScope
+                    && saved.pageRoot == pageRoot && saved.depth == pageDepth) return true;
+        return false;
     }
 
     private String identity(View view) {
@@ -622,6 +647,8 @@ final class TvRemote extends View {
             boolean inRow = key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_LEFT
                     ? to.bottom > from.top && to.top < from.bottom
                     : to.right > from.left && to.left < from.right;
+            // Aligned hit areas share a navigation lane even when their widths differ.
+            if (inRow) minor = 0;
             double score = major * (double) major + 13 * minor * (double) minor;
             // Stay in the current row/column before crossing to a distant slider thumb.
             if (best == null || inRow && !bestInRow || inRow == bestInRow && score < bestScore) {
@@ -635,23 +662,20 @@ final class TvRemote extends View {
     private boolean scrollAtEdge(int key, Rect from, View best) {
         boolean horizontal = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT;
         int direction = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
-        // Prefer an existing control in the same row/column before scrolling.
-        if (best != null) {
-            Rect to = bounds(best);
-            boolean overlaps = horizontal ? to.bottom > from.top && to.top < from.bottom
-                    : to.right > from.left && to.left < from.right;
-            if (overlaps) return false;
-        }
         for (android.view.ViewParent parent = current.getParent(); parent instanceof View; parent = parent.getParent()) {
             View viewport = (View) parent;
             if (!(horizontal ? viewport.canScrollHorizontally(direction) : viewport.canScrollVertically(direction))) continue;
-            if (horizontal) {
-                // One remote step advances one poster, not a whole accessibility page.
-                viewport.scrollBy(direction * (from.width() + Math.round(28 * getWidth() / 1920f)), 0);
-            } else {
-                int action = direction > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
-                if (!viewport.performAccessibilityAction(action, null)) continue;
+            // Exhaust the current viewport before leaving for an aligned control outside it.
+            if (best != null && within(best, viewport)) {
+                Rect to = bounds(best);
+                boolean overlaps = horizontal ? to.bottom > from.top && to.top < from.bottom
+                        : to.right > from.left && to.left < from.right;
+                if (overlaps) return false;
             }
+            // Advance one full item; accessibility page scrolling skips virtualized rows.
+            int gap = Math.round(28 * getWidth() / 1920f);
+            viewport.scrollBy(horizontal ? direction * (current.getWidth() + gap) : 0,
+                    horizontal ? 0 : direction * (current.getHeight() + gap));
             // NSH can recycle cells after the native scroll; resolve the new target after layout.
             long ownedIntent = focusIntent;
             root.postDelayed(() -> {

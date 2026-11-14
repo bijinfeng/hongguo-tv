@@ -141,6 +141,15 @@ export function Discover(props: { store: Store }) {
       <If when={props.store.target === 'tv'}>
         <CardControls label="更多找剧方式" onNavigate={props.store.noteFocusIntent}>
           <Button
+            label="排行榜"
+            icon="chart-no-axes-column-increasing"
+            testID="discover-rankings"
+            onPress={() => {
+              props.store.navigate('rankings');
+              props.store.restoreFocus();
+            }}
+          />
+          <Button
             label="上新日历"
             icon="calendar-days"
             testID="discover-calendar"

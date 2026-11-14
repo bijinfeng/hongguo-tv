@@ -632,3 +632,26 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 失败分类：旧 Web 延迟网络 stub 全套为 20／22，日志保留。诊断为固定 NSH 0.5.0 测试 stub 延迟回复没有唤醒空闲引擎；常规 Web 用例明确改为即时终页，延迟竞态由上述生产 Web 真实 HTTP 独立验证，不修改 NSH runtime，也不靠额外等待掩盖失败。标准 Android NSH development host 普通 View 的 ref.focus 无法证明项目遥控焦点；该宿主渲染样本和原失败保留，最终遥控门禁使用项目 TvRemote 的独立安装 ID。桌面初始焦点裁切即使功能测试通过也未记为视觉通过，修复后才关闭阻塞。
 
 边界：均使用合成只读数据；官网全天完整遍历、真实账号预约、媒体解码、生产 native core／独立业务、正式安装包、物理电视／遥控、VoiceOver／TalkBack、桌面系统大字、逐帧正常动效及所有状态仍未在本批验证。API26–29 的显式阅读标记只有合成节点兼容断言，没有旧 runtime 实机运行证据。无依赖或 Rust DTO 变化，未重跑 security，既有许可证／停止维护阻塞仍在。仅本批日历及必要共享修复分批本地提交，保留基础组件规范补审等并行改动；不推送、不归档、不把该切片计作完整 D 或 MVP 完成。
+
+## 动态排行榜共享 UI · 2026-11-15
+
+交付源码在主仓 `/Users/admin/Desktop/hongguo-tv`。共享 controller 保留动态 rank/sub/panel、不透明与空 ID、children／panel 层级、kind:id 去重、精确 offset/session/shown、空推进页、同路径重试，以及活动页／真实后台／dispose 的迟到隔离。桌面单列、TV 两列共用 RankingCard；演员进入作品，剧目进入详情，来源恢复受列表 owner、稳定身份、几何及较新输入保护。缺名次不推算，未接账号写入或媒体。五轴演示评分已取消；固定上游第三方榜单快照／增长仍单列待迁移。
+
+工程与桌面宿主：
+
+- `pnpm verify` 首轮通过 Rust 197、tooling 30、Web 81／Desktop 83／TV 84；包含三端 check **和** build、格式／lint、包边界、契约与发行基础检查。第二轮再次通过，Web 89／Desktop 91／TV 92，增加的每端 8 项是并行系列状态模块的独立测试，不据此声称系列页面完成。日志为 `artifacts/rankings-ui/logs/verify.log`、`verify-final-adapter.log`。本批无依赖变化，未重跑 security，既有安全阻塞保留。
+- 最后一次完整 `pnpm verify` 通过 Rust 197／197、tooling 30／30、Web 95／95、Desktop 97／97、TV 98／98，三端 check／build、包边界与发行基础检查均通过，日志 `verify-delivery-boundary-fixed.log`。新增每端 6 项是系列独立控件／组合测试，尚未接入生产页面。此前 `verify-delivery.log` 在 `app/test → ui/dev` 私有跨包依赖处失败；已拆为独立 UI 与 app 样例入口，未放宽边界。代理先前直接执行仅导出函数的 boundaries 模块，不能算检查通过；修复后实际 `pnpm lint` 和 `pnpm test:tooling` 也分别通过，记录在 `artifacts/seasons-ui/logs/components-{lint,test-tooling}.log`。
+- RankingCard 独立样例三端各 4/4，验证受控接受／拒绝、演员／剧目同 ID、方向不提交、一次确认、缺失／非法榜位及同 Product 切换密度；各端 check 和独立 build 通过，见 `component-web.log`、`component-desktop-tv.log`。
+- 最终 Web 真实 HTTP 8/8（5m49s）、macOS 真实图形宿主 8/8（3m23s），两尺寸 1180×780／1440×1000 和浅深主题。覆盖动态选择、同 ID 不同目的地、503 精确重试、空页 offset 推进、1600ms 延迟终页所有权、32 面板／八层子榜、较后 540 来源返回和再次激活。命令见 `docs/rankings-browsing.md`，日志 `web-http-final.log`／`macos-http-final.log`，截图与 GET 请求在 `artifacts/rankings-ui/{web,macos}/desktop/`；fixture 拒绝未知路由、写入、媒体和选集请求，不使用延迟 stub。
+- 最终 API34 TV 隔离宿主在浅色 1.0、深色 1.0、深色 1.3 字号运行七组榜单 suite，共 21／21、348 项断言通过（每组 116）。日志 `tv-matrix-entry-fixed.log`；证据 `android-real-adapter/2026-11-14T21-48-22-892Z/`，最终 Java 包含日历 replacement-entry 修复，输入 SHA 与主仓无漂移。restoration 的 errors 为空、11 项清理全部成功，独立 host／test 包已卸载；生产 APK 路径／SHA、字号、主题、前台与 reverse 前后一致。此前同范围通过的 `tv-matrix-delivery.log` 保留，最终结论以本次源码为准。
+- 共用遥控播放器回归在同三组主题／字号各 24／24，共 72 项通过，复用生产 PlayerAcceptance、自制合成媒体、实际解码和 fixture 历史；覆盖暂停／定位确认取消、媒体键、选集、设置、嵌套 Select 与 Back／Escape 来源。日志 `tv-player-regression-entry-fixed.log`，证据 `android-real-adapter/2026-11-14T21-53-53-930Z/`；输入 SHA 无漂移、11 项清理成功、errors 为空，独立包卸载和生产 APK／设备状态回读一致。此前 `tv-player-regression-final.log` 的三组通过也保留，不能替代真实账号、官网媒体或物理 TV 验收。
+
+验收发现并修复：TV 筛选的第三行先前被视口截半；现按各组实测内容高度与焦点安全区取共同完整行高，视口按行数取整，焦点揭示整行。真实遥控还发现可滚区域外的对齐结果会提前截走焦点，pending 重新启用时没有布局回调导致恢复遗漏，以及整页滚动跳过虚拟行、宽卡片中心偏差使近处结果被跳过。TvRemote 先耗尽当前滚动区域，按一个完整条目滚动，按重叠命中区域决定同方向最近目标，并请求条目及焦点安全区完整进入视口；同 scope 临时失效来源记录页面、scope、稳定 ID 与输入代次，绘制前处理仍有效的恢复请求，不排帧轮询；较新输入拒绝原引用与换 View 两条恢复路径。跨 scope 弹层遮盖与页面返回保留原规则，不借 pending 扩大恢复权限。
+
+失败证据保留，不与最终通过混淆：最初 fixture 未允许真实详情的单个空 content_type，导致 6/8 失败；随后桌面测试未滚动到第四行深子榜，已补可见滚动。首个 TV dense 大字失败是 Android JSON 对 slash 转义造成测试 ID 不同，已对齐 JSON.stringify；一次 Java-only 构建被既有 1GiB 磁盘预检拒绝，未降低门槛。之后真实 selectors／pagination 失败分别促成上述宿主修复。日志、请求、失败树与截图均保存在 `artifacts/rankings-ui/`；诊断日志只用于定位，已移除临时源码打印。只清理明确属于本任务的旧生成缓存，未删除用户数据或其他任务源码。
+
+共用输入回归补充：日历首次在公告关闭后未恢复原卡片，`tv-calendar-regression.log` 保留实际失败。公告是 `focus-entry-*` 替换内容而非 modal；同 scope 的外部来源被误标为临时失效，关闭确认的新输入代次使其恢复被拒。现将新 entry 外部被遮盖的来源保留为原覆层返回语义，entry 内部临时禁用仍受新意图保护。修复后 `tv-calendar-regression-entry-fixed.log` 的浅／深／1.3 字号普通和长文共 6／6、106 项断言通过；证据 `artifacts/calendar-ui/android-real-adapter/2026-11-14T21-46-33-057Z/`，10 项清理成功、errors 为空、输入 SHA 无漂移，生产 APK 路径／SHA、字体、主题、前台和 reverse 恢复一致。
+
+播放器初次回归失败 `tv-player-regression.log` 来自独立验收薄入口未传 `subscribePlayerCommands`；视频已开始播放，但媒体暂停命令没有送入 TSX，隐藏控制层使后续解码推进断言失败。验收入口已按生产 `apps/tv/App.tsx` 装配 `host.on('player-command', receive)`，未修改生产播放器或解码实现，旧失败保留。
+
+独立视觉终审已确认浅深／1.3 字号筛选裁切修复、现有圆角／字级／间距／颜色、缺图／缺榜位及来源焦点环；终态截图不能证明 hover／pressed 的连续效果、精确对比度或逐帧动效。共享控件 fast100ms、ContentArrival 180ms／8pt 与减少动态路径有源码清单，追加不重播；无声音。辅助技术、桌面系统大字、人工 IME、逐帧动效、物理 TV／旧 Android runtime、真实账号、独立原生官网业务 C3.2、安全与正式发行继续开放，不把合成 HTTP 或隔离宿主视作完整 MVP 验收。

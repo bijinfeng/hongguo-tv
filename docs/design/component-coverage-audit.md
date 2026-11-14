@@ -99,3 +99,7 @@
 未运行产品 NSH check/build，未改变依赖。生产已有的集合焦点和影院恢复不因先前样板缺失而被判为产品缺失；原生 NSH、读屏、系统大字号、TV 遥控／输入法、真实媒体与长列表性能仍需后续真实宿主验收。
 
 字级与图片补充：基础组区分面板标题与卡片剧名，并列展示四种 Surface；原生内容组增加长剧名，保留封面占位及可操作卡片。PosterCard／ContinueCard 共用字号来源；inline 封面取消内圆角，影院取景保持现有配方。图片加载成功、来源切换和物理 TV 仍须分别验收，静态样板不能证明网络链路。
+
+### RankingCard 实施契约（2026-11-15）
+
+`packages/ui/src/ranking-card.tsx` 提供同一受控榜位媒体行：真实正整数榜位、缺失时保留空 lane，演员复用 Avatar lg，剧目复用 Cover；同一行只有一个动作与焦点目标，selected 和焦点独立。动态菜单、actor/drama 身份、分页与来源恢复属于 app，不为 UI 样例创建业务数据。桌面／TV 仅适配公共尺寸表与输入宿主，不拆 package 或业务控制器。公开 API、尺寸与无障碍职责见 [UI 包说明](../../packages/ui/README.md#rankingcard)；宿主通过范围以 VALIDATION 的榜单批次记录为准，样例和测试源码存在不代表验收已通过。

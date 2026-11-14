@@ -27,7 +27,9 @@
     "./testing/calendar-state": "./test/CalendarState.tsx",
     "./testing/calendar-host": "./test/CalendarHost.tsx",
     "./testing/calendar-back-state": "./test/CalendarBackState.tsx",
-    "./testing/calendar-web-terminal": "./test/CalendarWebTerminal.tsx"
+    "./testing/calendar-web-terminal": "./test/CalendarWebTerminal.tsx",
+    "./testing/rankings-state": "./test/RankingsState.tsx",
+    "./testing/rankings-host": "./test/RankingsHost.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

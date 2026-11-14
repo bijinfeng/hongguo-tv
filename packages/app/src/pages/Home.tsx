@@ -119,6 +119,15 @@ export function Home(props: { store: Store }) {
             <UiText role="section">新剧与热播</UiText>
             <CardControls label="新剧与热播" onNavigate={props.store.noteFocusIntent}>
               <Button
+                label="排行榜"
+                icon="chart-no-axes-column-increasing"
+                testID="home-rankings"
+                onPress={() => {
+                  props.store.navigate('rankings');
+                  props.store.restoreFocus();
+                }}
+              />
+              <Button
                 label="上新日历"
                 icon="calendar-days"
                 testID="home-calendar"

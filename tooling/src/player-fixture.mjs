@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { root } from './process.mjs';
 
 /** Actual APK decoder/input acceptance only: original footage and explicit stub APIs. */
-export async function playerFixture() {
+export async function playerFixture({ port = 0 } = {}) {
   const samples = await Promise.all(
     ['a', 'b'].map((name) => readFile(resolve(root, `apps/tv/fixtures/t0-${name}.mp4`))),
   );
@@ -96,7 +96,7 @@ export async function playerFixture() {
     if (url.pathname === '/api/v1/play/release') return reply({ released: true });
     return reply('Unknown player fixture route', 404);
   });
-  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  await new Promise((done) => server.listen(port, '127.0.0.1', done));
   origin = `http://127.0.0.1:${server.address().port}`;
   return {
     origin,
