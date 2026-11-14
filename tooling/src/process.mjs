@@ -44,12 +44,15 @@ export function executable(name, env = process.env) {
 /** Give NSH's Cargo subprocesses the same rustup tools the workspace resolves. */
 export function rustEnvironment(env = process.env) {
   const cargo = executable('cargo', env);
-  if (!isAbsolute(cargo)) return { ...env };
+  const resolved = isAbsolute(cargo)
+    ? cargo
+    : output(executable('rustup', env), ['which', 'cargo']);
+  if (!isAbsolute(resolved)) throw new Error('Rustup did not resolve an absolute Cargo path');
   const key =
     (process.platform === 'win32' &&
       Object.keys(env).find((key) => key.toUpperCase() === 'PATH')) ||
     'PATH';
-  const bin = dirname(cargo);
+  const bin = dirname(resolved);
   const paths = (env[key] || '').split(delimiter).filter(Boolean);
   return { ...env, [key]: [bin, ...paths.filter((path) => path !== bin)].join(delimiter) };
 }

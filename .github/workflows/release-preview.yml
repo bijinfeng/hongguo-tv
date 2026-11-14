@@ -76,7 +76,7 @@ jobs:
           retention-days: 14
 
   tv-preview:
-    name: Android TV T0 preview (arm64)
+    name: Android TV preview (arm64)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -98,9 +98,9 @@ jobs:
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - uses: ./.github/actions/setup-tv
       - run: pnpm setup
-      - name: Build the T0 technical APK
+      - name: Build the native TV preview
         env:
-          HONGGUO_RUNTIME_MODE: t0
+          HONGGUO_RUNTIME_MODE: native
         run: pnpm package:tv
       - name: Describe TV preview
         env:
@@ -109,7 +109,7 @@ jobs:
           set -euo pipefail
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           mkdir -p "$RUNNER_TEMP/release-preview"
-          archive="$RUNNER_TEMP/release-preview/hongguo-tv-t0-preview-${version}-android-arm64.apk"
+          archive="$RUNNER_TEMP/release-preview/hongguo-tv-preview-${version}-android-arm64.apk"
           cp apps/tv/.nsh/out/红果.apk "$archive"
           sha=$(git rev-parse HEAD)
           node - "$archive" "$RUNNER_TEMP/release-preview/candidate.json" <<'NODE'
@@ -118,7 +118,7 @@ jobs:
           const url = process.env.PREVIEW_URL;
           fs.writeFileSync(output, JSON.stringify({
             channel: 'preview',
-            artifacts: [{ target: 'tv-android-arm64', path: artifact, url, kind: 't0-preview' }],
+            artifacts: [{ target: 'tv-android-arm64', path: artifact, url, kind: 'preview' }],
           }, null, 2));
           NODE
           pnpm release:record \
@@ -130,7 +130,7 @@ jobs:
       - name: Upload TV preview evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: hongguo-tv-t0-preview-${{ github.run_id }}
+          name: hongguo-tv-preview-${{ github.run_id }}
           path: ${{ runner.temp }}/release-preview
           if-no-files-found: error
           retention-days: 14

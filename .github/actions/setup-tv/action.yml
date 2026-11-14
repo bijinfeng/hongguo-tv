@@ -33,7 +33,9 @@ runs:
         sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
         test -x "$sdkmanager"
         "$sdkmanager" --licenses < <(yes)
-        "$sdkmanager" "platforms;$TV_PLATFORM" "build-tools;$TV_BUILD_TOOLS" "ndk;$TV_NDK"
+        "$sdkmanager" "platform-tools" "platforms;$TV_PLATFORM" "build-tools;$TV_BUILD_TOOLS" "ndk;$TV_NDK"
+        test -x "$ANDROID_HOME/platform-tools/adb"
+        echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
         read -ra targets <<< "$TV_RUST_TARGETS"
         rustup target add "${targets[@]}"
         nsh component add android

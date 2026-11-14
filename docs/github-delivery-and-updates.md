@@ -173,7 +173,7 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 | 工作流（拟新增）                        | 触发与权限                                                                      | 交付                                                                        |
 | --------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥          | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                       |
-| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 预览包和 TV T0 APK，不拿生产密钥             | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable        |
+| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 与原生 TV arm64 预览包，不拿生产密钥         | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable        |
 | `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK   | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                   |
 | `release-candidate.yml`（后续，同仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；平台产物构建后才进入受控签名阶段   | 最终签名候选、SBOM、完整验收记录；不自动投放 stable                         |
 | `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；使用 `release-signing` environment 构建两端并校验资产 | 上传并验证草稿 → 发布并设为 latest 的 Release；不需要 `HONGGUO_CORE_ORIGIN` |
@@ -320,3 +320,7 @@ R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本�
 共享账号页现已提供应用更新入口，应用根持有状态；桌面接 NSH updater 和重启回执，TV 接 Rust 验签／下载与 Android PackageInstaller，安装前排空并重试失败观看进度。没有独立设置树或自动下载开关；默认只检查，用户决定下载与安装。实现、可复现命令、宿主截图及真实安装未验范围见 [客户端更新](client-updates.md)。
 
 发布工作流在同一源码 SHA 上强制 verify／Clippy／security，通过后才运行签名构建；TV 三个工作流共用固定工具安装，区分 NSH JDK 与 Gradle JDK 17。草稿前先创建缺失的 tag 或核对已有 tag 的实际源码 SHA，拒绝改写并以 `--verify-tag` 创建草稿，上传前再次复核。桌面目前签的是更新元数据，尚未完成 Developer ID／公证，不能把它称作已通过 Apple 平台签名的正式发行。当前安全阻塞与宿主图检查边界见 [原生发行依赖检查](dependencies/native-release-security.md)；没有运行远端发布。
+
+### 12. 首轮远端构建（2026-11-14）
+
+已确认并推送至 `2611c0b`，实际运行 CI 与 Release preview；三处 runner 环境问题及修正记录在 [客户端更新](client-updates.md#首轮-github-构建2026-11-14)。当前 preview workflow 使用两端原生业务入口，TV 为 debug 签名；本地 T0 入口仍保留。前文初始 T0 构建描述是调研时点快照，不能当作当前 workflow 或正式发行证据。安全阻塞仍有效，尚未运行正式 publish、创建 Release 或验证两版升级。

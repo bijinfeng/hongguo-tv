@@ -290,7 +290,7 @@ impl MediaStore {
             }
         }
         let path = base.join(format!("nsh-{}", token()?));
-        let mut builder = fs::DirBuilder::new();
+        let builder = &mut fs::DirBuilder::new();
         #[cfg(unix)]
         {
             use std::os::unix::fs::DirBuilderExt;
