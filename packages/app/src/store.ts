@@ -36,7 +36,8 @@ export type Route =
   | { name: 'detail'; drama: Drama }
   | { name: 'actor'; actorId: string; title: string }
   | { name: 'player'; drama: Drama; episode: Episode }
-  | { name: 'account' };
+  | { name: 'account' }
+  | { name: 'updates' };
 
 /** One navigation stack and resource lifetime per mounted application. */
 export function createStore(
@@ -195,6 +196,7 @@ export function createStore(
   const searchError = () => (searchFailure()?.raw === draft() ? searchFailure()!.message : '');
   const warning = signal('');
   let writes = Promise.resolve();
+  const failedProgress = new Map<string, HistoryChange>();
   const restoreFocus = () => {
     const owned = focusIntent;
     cancelAnimationFrame(frame);
@@ -238,6 +240,19 @@ export function createStore(
     shutdown() {
       playerCheckpoint?.();
       return Promise.all([writes, recent.drain()]).then(() => {});
+    },
+    async prepareUpdate() {
+      playerCommand?.('pause');
+      playerCheckpoint?.();
+      await writes;
+      // Failed checkpoints must be retried, not silently discarded by the ordinary UI queue.
+      for (const [key, change] of failedProgress) {
+        const next = await request<Library>('/api/v1/library', undefined, change);
+        if ((library()?.owner_id ?? '') === change.owner_id) library.mutate(next);
+        failedProgress.delete(key);
+      }
+      warning.set('');
+      await recent.drain();
     },
     registerPlayerBack(handler: () => void) {
       playerBack = handler;
@@ -313,6 +328,10 @@ export function createStore(
       if (origin) sources.set(nav.routes().length, () => origin.focus());
       nav.push({ name: 'player', drama, episode });
     },
+    openUpdates(restore: () => void) {
+      sources.set(nav.routes().length, restore);
+      nav.push({ name: 'updates' });
+    },
     accountPage() {
       account.refetch();
       nav.push({ name: 'account' });
@@ -375,12 +394,15 @@ export function createStore(
         duration,
         completed,
       };
+      const key = `${owner}:${drama.series_id}`;
       writes = writes.then(async () => {
         try {
           const next = await request<Library>('/api/v1/library', undefined, change);
           if ((library()?.owner_id ?? '') === owner) library.mutate(next);
+          failedProgress.delete(key);
           warning.set('');
         } catch (error) {
+          failedProgress.set(key, change);
           warning.set(`观看进度未保存：${String(error)}`);
         }
       });

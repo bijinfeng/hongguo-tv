@@ -53,15 +53,19 @@ pnpm release:record --input <候选描述 JSON> --out release.json --checksums S
 pnpm release:verify-record --record release.json --artifact-dir <下载目录>
 ```
 
-先编辑 `product-version.json`，再显式运行 `release:sync` 同步根 `package.json`、三个 NSH manifest；`release:check` 用于门禁。`release:metadata` 只生成带 SHA256、大小、版本、build 和源码 SHA 的摘要，不执行签名或发布。`release:record` 读取候选描述中的本地产物，生成不包含本地路径的确定性 `release.json` 和校验和文件；`release:verify-record` 在发布前绑定源码身份、版本、build 和下载文件字节，拒绝哈希、大小或路径漂移。两者都会拒绝非 HTTPS URL、重复 target、非法 Git SHA 和缺失产物，不执行签名、上传或发布。正式桌面/TV 产物、平台签名、GitHub Release 和更新清单仍需通过发行门禁后接入。
+先编辑 `product-version.json`，再显式运行 `release:sync` 同步根 `package.json`、三个 NSH manifest；`release:check` 用于门禁。`release:metadata` 只生成带 SHA256、大小、版本、build 和源码 SHA 的摘要，不执行签名或发布。`release:record` 读取候选描述中的本地产物，生成不包含本地路径的确定性 `release.json` 和校验和文件；`release:verify-record` 在发布前绑定源码身份、版本、build 和下载文件字节，拒绝哈希、大小或路径漂移。两者都会拒绝非 HTTPS URL、重复 target、非法 Git SHA 和缺失产物，不执行签名、上传或发布。正式发行由下面的 workflow 编排；现有依赖安全阻塞和实际升级验收仍未解除。
 
 公开仓库的手动 `Release preview` workflow 会从指定源码 SHA 构建 macOS arm64 桌面预览包和 Android TV arm64 T0 技术包，上传短期 Actions artifact，并附带 `release.json`/`SHA256SUMS`。桌面预览使用包内 Rust；TV 预览 workflow 显式选择 T0 技术验证。它们不是正式 Release，不会进入稳定更新渠道。
 
 `TV release candidate` workflow 使用 `release-signing` environment，读取 `TV_RELEASE_KEYSTORE_BASE64`、`TV_RELEASE_STORE_PASSWORD`、`TV_RELEASE_KEY_ALIAS` 和 `TV_RELEASE_KEY_PASSWORD`，生成正式签名候选并验证 applicationId、versionCode、证书摘要和 APK 完整性；它只上传候选 artifact，不创建 GitHub Release。正式发布前应在该 environment 增加 required reviewers 和分支/tag 限制。
 
-`Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成签名更新清单，并把安装包、清单、签名和验收记录全部上传到同一个 GitHub Release。桌面使用固定资产名 `latest.json` / `latest.json.sig`，由 NSH GitHub updater 直接读取；TV 使用 `tv-latest.json` / `tv-latest.json.sig`，由后续 TV 原生 adapter 显式读取。桌面与 TV 发行 workflow 显式选择 native，不读取电脑 API 地址；签名或发布前仍需通过独立安装与安全门禁。GitHub Pages 不参与正式更新链路。
+`Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成签名更新清单，并把安装包、清单、签名和验收记录全部上传到同一个 GitHub Release。桌面使用固定资产名 `latest.json` / `latest.json.sig`，由 NSH GitHub updater 直接读取；TV 使用 `tv-latest.json` / `tv-latest.json.sig`，由独立 Rust updater 验签、下载，Android 宿主再次核包并交给系统安装。两端从账号页进入「应用更新」，离页下载继续，安装前排空观看进度写入。详见 [客户端更新与验收边界](docs/client-updates.md)。桌面与 TV 发行 workflow 显式选择 native，不读取电脑 API 地址；GitHub Pages 不参与正式更新链路。
+
+正式发布先在同一源码 SHA 上执行 `pnpm verify`、Clippy 与 `pnpm security`，失败不会进入签名构建。三个 TV 构建 workflow 共用固定工具准备：NSH CLI 使用仓库指定 JDK，Gradle 宿主单独使用 JDK 17，并显式安装 Android SDK／NDK、Rust targets 和 NSH Android runtime。当前依赖安全检查失败，因此正式发布会被阻断；不能用候选构建通过替代发行验收。
 
 TV 清单由 `tooling/src/update-manifest.mjs tv` 在核对最终 APK 字节和签名身份后生成；`verify` 子命令在候选下载、草稿回验和匿名下载三个阶段校验两端签名、包摘要、大小与更新身份，匿名回验通过后才晋级 latest。正式桌面更新包名使用 NSH 识别的 `macos-aarch64.tar.gz` 后缀。详见 [发行清单验证记录](docs/release-metadata-validation.md)。
+
+更新专项复现：`pnpm test:desktop-updates` 在 macOS 原生宿主运行合成更新状态与键盘操作；`pnpm test:tv-updates` 需要唯一 ready 的 TV 模拟器，覆盖安装生产入口 APK、真实版本桥接、拒绝非法安装路径与返回。两者保存浅深截图到 ignored `artifacts/client-updates/`，不创建线上 Release；它们不代替正式签名 N-1 → N 更新和物理电视验收。
 
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 

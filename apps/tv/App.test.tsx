@@ -30,3 +30,6 @@ registerPlaybackTests();
 registerBrowsingTests('tv', './HttpFixture.tsx');
 
 registerNativeStartupTests();
+
+import { registerUpdateTests } from '@hongguo/app/testing';
+registerUpdateTests();

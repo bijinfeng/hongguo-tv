@@ -1,6 +1,6 @@
 # GitHub 构建、分发与自动更新方案
 
-调研日期：2026-11-13；发行清单与回验更新：2026-11-14。状态：R0、R1 与签名发布工作流基础已实施，正式远端发布与设备升级仍未验收。依据当前工作区、固定 NSH 0.5.0（f4d68f7）、本地 CLI/生成类型及官方资料；本文不代表远端流水线、正式签名或设备升级已经通过。
+调研日期：2026-11-13；发行清单、原生客户端与工作流更新：2026-11-14。状态：发行基础、客户端更新与发布门禁已实现，本地与模拟器结果见 [客户端更新](client-updates.md)；正式远端发布与设备升级仍未验收。依据当前工作区、固定 NSH 0.5.0（f4d68f7）、本地 CLI/生成类型及官方资料；本文不代表远端流水线、正式签名或设备升级已经通过。
 
 ## 1. 建议采用的方案
 
@@ -125,7 +125,7 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/latest.json
 https://github.com/bijinfeng/hongguo-tv/releases/latest/download/latest.json.sig
 ```
 
-TV `apps/tv/nsh.json` 不配置 NSH updater。发布工作流生成 `tv-latest.json` / `tv-latest.json.sig`，后续 TV 原生 adapter 固定请求：
+TV `apps/tv/nsh.json` 不配置 NSH updater。发布工作流生成 `tv-latest.json` / `tv-latest.json.sig`，TV 原生 adapter 固定请求：
 
 ```text
 https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json
@@ -228,7 +228,7 @@ macOS 正式发行需遵循 [Apple 公证流程](https://developer.apple.com/doc
 
 清单沿用 NSH 的 `id/version/platforms.android` 外壳，顶层包含 `schemaVersion: 1`、`channel: stable`；android 资产包含 `url`、`sha256`、`size`、`versionCode`、`packageName`、`minSdk`、`abis`、`signingCertificateSha256`。这是本项目扩展，不是 NSH 内置 APK 安装支持。首发只列 arm64；需要多 ABI 时先设计选择规则再扩展，不能靠 URL 猜 ABI。
 
-发布工具用 Node 标准库 Ed25519，按固定 NSH `nsh-updater-manifest\0` 上下文对完整原始 JSON 字节签名，不重排收到的 JSON 再验签。测试直接调用固定 NSH CLI，核对相同字节的签名完全一致，并覆盖错误上下文、篡改、错误公钥与正确签名但元数据不符。后续 TV Rust 校验器仍需消费同一格式并补跨语言校验；目前没有接入 TV 下载或安装。
+发布工具用 Node 标准库 Ed25519，按固定 NSH `nsh-updater-manifest\0` 上下文对完整原始 JSON 字节签名，不重排收到的 JSON 再验签。测试直接调用固定 NSH CLI，核对相同字节的签名完全一致，并覆盖错误上下文、篡改、错误公钥与正确签名但元数据不符。TV 的独立 Rust 校验器已消费同一格式并接通下载和 Android 安装 adapter；实际跨版本安装仍待验收。
 
 `node tooling/src/update-manifest.mjs verify` 同时重验两端清单签名、应用 ID、版本、平台、不可变 tag URL、安装包 SHA256/大小和校验和文件；TV 扩展元数据必须与受信任策略和发行记录完全一致。该命令在 workflow 下载候选、下载草稿和匿名下载三个阶段执行，不接触私钥。桌面归档固定使用 `macos-aarch64.tar.gz` 后缀，避免 NSH CLI 对原 `macos-arm64` 名称生成空平台清单。
 
@@ -312,3 +312,9 @@ R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本�
 ## 10. 签名清单与下载回验实施记录（2026-11-14）
 
 本批只改发行工具与 workflow，无客户端 UI、Rust DTO、业务数据或依赖变化。新增完整 TV 签名清单和两端制品回验；缩小构建 job 为 contents: read，仅 publish 获得 contents: write；临时签名文件在 always 清理步骤移除。实际命令、失败记录与边界见 [发行清单验证记录](release-metadata-validation.md)。远端正式发布、latest 晋级、真实 N-1 → N 和 TV PackageInstaller 仍未验收。
+
+## 11. 原生客户端接入与发布门禁（2026-11-14）
+
+共享账号页现已提供应用更新入口，应用根持有状态；桌面接 NSH updater 和重启回执，TV 接 Rust 验签／下载与 Android PackageInstaller，安装前排空并重试失败观看进度。没有独立设置树或自动下载开关；默认只检查，用户决定下载与安装。实现、可复现命令、宿主截图及真实安装未验范围见 [客户端更新](client-updates.md)。
+
+发布工作流在同一源码 SHA 上强制 verify／Clippy／security，通过后才运行签名构建；TV 三个工作流共用固定工具安装，区分 NSH JDK 与 Gradle JDK 17。草稿创建后还核对 tag 实际指向源码 SHA，避免同名旧 tag 配新包。桌面目前签的是更新元数据，尚未完成 Developer ID／公证，不能把它称作已通过 Apple 平台签名的正式发行。既有安全门禁失败保持阻断；没有运行远端发布。

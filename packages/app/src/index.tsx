@@ -11,6 +11,8 @@ import {
   tvUnit,
   type ProductTarget,
 } from '@hongguo/ui';
+import { createUpdates, type UpdateAdapter, type Updates } from './updates';
+import { UpdatesPage } from './pages/Updates';
 import { createStore, type Store, type FocusSource } from './store';
 import { SearchForm } from './SearchForm';
 import { Search } from './pages/Search';
@@ -98,7 +100,7 @@ function Browse(props: { store: Store }) {
     </View>
   );
 }
-function Pages(props: { store: Store }) {
+function Pages(props: { store: Store; updates?: Updates }) {
   return (
     <NavStack state={props.store.nav} class="flex-1" onChange={() => props.store.restoreFocus()}>
       {(route) => (
@@ -169,8 +171,25 @@ function Pages(props: { store: Store }) {
                 />
               )}
             </If>
+            <If when={route.name === 'updates' && props.updates}>
+              <UpdatesPage
+                updates={props.updates!}
+                tv={props.store.target === 'tv'}
+                active={props.store.nav.routes().at(-1) === route}
+                focusGuard={props.store.focusGuard}
+              />
+            </If>
             <If when={route.name === 'account'}>
-              <Account store={props.store} />
+              <Account
+                store={props.store}
+                openUpdates={
+                  props.updates
+                    ? (restore) => {
+                        props.store.openUpdates(restore);
+                      }
+                    : undefined
+                }
+              />
             </If>
           </View>
         </NavPage>
@@ -178,7 +197,7 @@ function Pages(props: { store: Store }) {
     </NavStack>
   );
 }
-function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
+function DesktopShell(props: { store: Store; logoMark: ImageAsset; updates?: Updates }) {
   const window = isAvailable ? currentWindow() : undefined;
   const cinema = () => props.store.playing() && window?.state()?.placement.mode === 'fullScreen';
   return (
@@ -229,12 +248,12 @@ function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
             />
           </Controls>
         </View>
-        <Pages store={props.store} />
+        <Pages store={props.store} updates={props.updates} />
       </View>
     </View>
   );
 }
-function TvShell(props: { store: Store; logoMark: ImageAsset }) {
+function TvShell(props: { store: Store; logoMark: ImageAsset; updates?: Updates }) {
   const playing = () => props.store.nav.routes().at(-1)?.name === 'player';
   return (
     <View
@@ -267,12 +286,13 @@ function TvShell(props: { store: Store; logoMark: ImageAsset }) {
           onPress={props.store.accountPage}
         />
       </View>
-      <Pages store={props.store} />
+      <Pages store={props.store} updates={props.updates} />
     </View>
   );
 }
 export function App(props: {
   target: ProductTarget;
+  updates?: UpdateAdapter;
   logoMark: ImageAsset;
   subscribePlayerCommands?: PlaybackCommandSource;
   subscribeFocus?: FocusSource;
@@ -280,6 +300,7 @@ export function App(props: {
   onReady?: () => void;
 }) {
   const store = createStore(props.target, props.subscribePlayerCommands, props.subscribeFocus);
+  const updates = props.updates ? createUpdates(props.updates, store.prepareUpdate) : undefined;
   cleanup(() => props.onShutdown?.(store.shutdown()));
   // The Web runtime does not expose native back listeners.
   if (typeof BackHandler?.on === 'function')
@@ -305,9 +326,9 @@ export function App(props: {
       >
         <If
           when={props.target === 'tv'}
-          else={<DesktopShell store={store} logoMark={props.logoMark} />}
+          else={<DesktopShell store={store} logoMark={props.logoMark} updates={updates} />}
         >
-          <TvShell store={store} logoMark={props.logoMark} />
+          <TvShell store={store} logoMark={props.logoMark} updates={updates} />
         </If>
       </View>
     </Product.Provider>
@@ -315,3 +336,5 @@ export function App(props: {
 }
 
 export { NativeApp } from './NativeApp';
+
+export type { UpdateAdapter, AppUpdate, InstallState } from './updates';

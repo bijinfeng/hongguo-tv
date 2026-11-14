@@ -96,6 +96,7 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/setup-tv
       - run: pnpm setup
       - name: Build the T0 technical APK
         env:

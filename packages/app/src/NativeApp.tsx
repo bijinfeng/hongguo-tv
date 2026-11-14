@@ -2,6 +2,7 @@ import { cleanup, resource, View, type ImageAsset } from 'nsh';
 import { configureClient, configureTransport, CoreError } from '@hongguo/core-client';
 import { createNativeTransport, type NativeSession } from '@hongguo/core-client/native';
 import { Notice, Product, type ProductTarget } from '@hongguo/ui';
+import type { UpdateAdapter } from './updates';
 import { App } from './index';
 import type { FocusSource } from './store';
 import type { PlaybackCommandSource } from './playback';
@@ -26,6 +27,7 @@ export function NativeApp(props: {
   logoMark: ImageAsset;
   runtime: { mode: string; coreOrigin?: string };
   openCore: () => Promise<NativeSession>;
+  updates?: UpdateAdapter;
   subscribePlayerCommands?: PlaybackCommandSource;
   subscribeFocus?: FocusSource;
 }) {
@@ -92,6 +94,7 @@ export function NativeApp(props: {
           return (
             <App
               target={props.target}
+              updates={props.updates}
               logoMark={props.logoMark}
               subscribePlayerCommands={props.subscribePlayerCommands}
               subscribeFocus={props.subscribeFocus}

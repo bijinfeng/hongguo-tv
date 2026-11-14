@@ -9,6 +9,8 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies]
+hongguo-updater.workspace = true
+serde_json.workspace = true
 nsh-base.workspace = true
 nsh-core.workspace = true
 hongguo-native-bridge.workspace = true

@@ -1105,8 +1105,24 @@ name = "hongguo-tv-native"
 version = "0.1.0"
 dependencies = [
  "hongguo-native-bridge",
+ "hongguo-updater",
  "nsh-base",
  "nsh-core",
+ "serde_json",
+]
+
+[[package]]
+name = "hongguo-updater"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "reqwest",
+ "ring",
+ "rustls",
+ "serde",
+ "serde_json",
+ "tokio",
+ "webpki-roots 1.0.12",
 ]
 
 [[package]]

@@ -76,8 +76,9 @@ export async function packageTvHost() {
   const fresh = resolve(root, 'apps/tv/.nsh/out');
   const assets = resolve(generated, 'assets/nsh');
   await mkdir(assets, { recursive: true });
-  for (const file of ['bundle.nshc', 'app.json'])
-    await cp(resolve(fresh, file), resolve(assets, file));
+  const bundleFiles = ['bundle.nshc', 'app.json'];
+  if (metadata.capabilities) bundleFiles.push('capabilities.json');
+  for (const file of bundleFiles) await cp(resolve(fresh, file), resolve(assets, file));
   if (existsSync(resolve(fresh, 'assets')))
     await cp(resolve(fresh, 'assets'), resolve(assets, 'assets'), { recursive: true });
   await mkdir(resolve(generated, 'jni/arm64-v8a'), { recursive: true });
@@ -113,13 +114,21 @@ export async function packageTvHost() {
   );
   await cp(resolve(host, `app/build/outputs/apk/${buildType}/app-${buildType}.apk`), apk);
   const packedBundle = resolve(generated, 'packed-bundle');
-  await run('unzip', ['-oq', apk, 'assets/nsh/bundle.nshc', '-d', packedBundle]);
+  await run('unzip', [
+    '-oq',
+    apk,
+    ...bundleFiles.map((file) => `assets/nsh/${file}`),
+    '-d',
+    packedBundle,
+  ]);
   const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
-  if (
-    hash(await readFile(resolve(assets, 'bundle.nshc'))) !==
-    hash(await readFile(resolve(packedBundle, 'assets/nsh/bundle.nshc')))
-  )
-    throw new Error('TV APK bundle differs from the current NSH build');
+  for (const file of bundleFiles) {
+    if (
+      hash(await readFile(resolve(assets, file))) !==
+      hash(await readFile(resolve(packedBundle, 'assets/nsh', file)))
+    )
+      throw new Error(`TV APK ${file} differs from the current NSH build`);
+  }
   const buildTools = resolve(env.ANDROID_HOME, 'build-tools', toolchain.android.buildTools);
   output(resolve(buildTools, 'apksigner'), ['verify', '--verbose', apk]);
   output(resolve(buildTools, 'zipalign'), ['-c', '-P', '16', '4', apk]);

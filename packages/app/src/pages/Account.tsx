@@ -1,8 +1,9 @@
-import { Image, Text, View, signal, cleanup } from 'nsh';
+import { Image, Text, View, signal, cleanup, type ViewRef } from 'nsh';
 import { request, type Account as AccountStatus } from '@hongguo/core-client';
 import { Button, Notice, Surface } from '@hongguo/ui';
 import type { Store } from '../store';
-export function Account(props: { store: Store }) {
+export function Account(props: { store: Store; openUpdates?: (restore: () => void) => void }) {
+  let updatesRef: ViewRef | undefined;
   const busy = signal(false);
   const error = signal('');
   let controller: AbortController | undefined;
@@ -64,6 +65,15 @@ export function Account(props: { store: Store }) {
   return (
     <View class="flex-1 gap-5 p-5 md:p-8">
       <Text class="text-2xl font-semibold text-foreground">账号</Text>
+      <If when={props.openUpdates}>
+        <Button
+          label="应用更新"
+          buttonRef={(ref) => {
+            updatesRef = ref;
+          }}
+          onPress={() => props.openUpdates?.(() => updatesRef?.focus())}
+        />
+      </If>
       <Surface>
         <Text class="text-lg text-foreground">
           {props.store.account()?.logged_in

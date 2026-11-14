@@ -1,5 +1,13 @@
 [workspace]
-members = ["apps/desktop/native", "apps/tv/native", "crates/core", "crates/http-api", "crates/native-bridge", "services/web-api"]
+members = [
+  "apps/desktop/native",
+  "apps/tv/native",
+  "crates/core",
+  "crates/http-api",
+  "crates/native-bridge",
+  "crates/updater",
+  "services/web-api",
+]
 exclude = ["fuzz"]
 resolver = "3"
 
@@ -10,6 +18,7 @@ rust-version = "1.97"
 publish = false
 
 [workspace.dependencies]
+hongguo-updater = { path = "crates/updater", version = "=0.1.0" }
 hongguo-core = { path = "crates/core", version = "=0.1.0" }
 hongguo-http-api = { path = "crates/http-api", version = "=0.1.0" }
 hongguo-native-bridge = { path = "crates/native-bridge", version = "=0.1.0" }

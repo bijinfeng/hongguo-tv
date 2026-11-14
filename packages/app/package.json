@@ -22,7 +22,8 @@
     "./testing/category-state": "./test/CategoryState.tsx",
     "./testing/category-host": "./test/CategoryHost.tsx",
     "./testing/feed-state": "./test/FeedState.tsx",
-    "./testing/feed-host": "./test/FeedHost.tsx"
+    "./testing/feed-host": "./test/FeedHost.tsx",
+    "./testing/updates-state": "./test/UpdatesState.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

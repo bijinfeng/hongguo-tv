@@ -2,6 +2,7 @@ import groovy.json.JsonSlurper
 
 plugins { id 'com.android.application' }
 
+def releasePolicy = new JsonSlurper().parse(file('../../../../tooling/release-policy.json'))
 def appMetadata = new JsonSlurper().parse(file('../../nsh.json'))
 def toolchain = new JsonSlurper().parse(file('../../../../tooling/tv-toolchain.json'))
 def generated = file('../../.nsh/android-host')
@@ -17,7 +18,9 @@ android {
     compileSdk Integer.parseInt(toolchain.android.platform.substring(8))
     buildToolsVersion toolchain.android.buildTools
     ndkVersion toolchain.android.ndk
+    buildFeatures { buildConfig true }
     defaultConfig {
+        buildConfigField 'String', 'UPDATE_CERTIFICATE_SHA256', '"' + releasePolicy.tv.signingCertificateSha256 + '"'
         applicationId appMetadata.id
         minSdk toolchain.android.minSdk
         targetSdk toolchain.android.targetSdk

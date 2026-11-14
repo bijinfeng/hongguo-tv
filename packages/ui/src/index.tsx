@@ -18,6 +18,7 @@ import {
   type ViewRef,
 } from 'nsh';
 import { Input as BaseInput, Toolbar, Select } from 'nsh/base';
+export { DownloadProgress } from './download-progress';
 import { entrance } from './motion';
 import { SelectFocus } from './select-focus';
 import { CardRoot } from './card-controls';

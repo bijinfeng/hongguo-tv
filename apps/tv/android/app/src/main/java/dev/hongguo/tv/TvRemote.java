@@ -49,6 +49,8 @@ final class TvRemote extends View {
     private View pageRoot;
     private View observedPageRoot;
     private boolean restoringPage;
+    private View enteringPageRoot;
+    private long enteringPageIntent;
     private long focusIntent;
     private String browseSection;
     private View browseSectionRoot;
@@ -74,7 +76,7 @@ final class TvRemote extends View {
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
+            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || enteringPageRoot != null || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
@@ -100,6 +102,10 @@ final class TvRemote extends View {
         observedPageRoot = null;
         collect(modal == null ? root : modal, targets);
         if (observedPageDepth >= 0) {
+            if (observedPageDepth > pageDepth) {
+                enteringPageRoot = observedPageRoot;
+                enteringPageIntent = focusIntent;
+            }
             if (pageDepth >= 0 && observedPageDepth != pageDepth)
                 restoringPage = observedPageDepth < pageDepth;
             pageDepth = observedPageDepth;
@@ -228,6 +234,16 @@ final class TvRemote extends View {
     private void restore() {
         if (selecting) return;
         List<View> targets = targets();
+        if (enteringPageIntent != focusIntent || enteringPageRoot != pageRoot) enteringPageRoot = null;
+        if (enteringPageRoot != null) {
+            View primary = primary(enteringPageRoot);
+            if (primary == null) enteringPageRoot = null;
+            else if (targets.contains(primary)) {
+                enteringPageRoot = null;
+                select(primary, targets);
+                return;
+            }
+        }
         if (current != null && !targets.contains(current)) {
             // Android press-target refs do not restore native focus; retain the covered source identity.
             coveredFocus.removeIf(saved -> saved.view == current);
@@ -326,6 +342,19 @@ final class TvRemote extends View {
             candidate = parent instanceof View ? (View) parent : null;
         }
         return false;
+    }
+
+    private View primary(View view) {
+        String id = view.createAccessibilityNodeInfo().getViewIdResourceName();
+        if (id != null && id.startsWith("navigation-primary-")) return view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = primary(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     private View resurfaced(SavedFocus saved, List<View> targets) {

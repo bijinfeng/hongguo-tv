@@ -1,5 +1,7 @@
 //! Thin TV native assembly, retaining the existing T0 host probes.
 
+mod updates;
+
 use std::time::Duration;
 
 use nsh_core::prelude::*;
@@ -9,6 +11,8 @@ use nsh_core::prelude::*;
 fn native(registry: &mut Registry) {
     hongguo_native_bridge::register(registry);
     registry
+        .module::<updates::TvUpdates>()
+        .class::<updates::TvUpdater>()
         .register::<T0Task>()
         .module::<T0Probe>()
         .class::<T0Session>();

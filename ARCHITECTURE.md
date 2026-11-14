@@ -66,6 +66,7 @@ crates/
       storage/
   http-api/                   # HTTP/媒体 Range 适配；调用同一 core
   native-bridge/              # NSH 原生 API、会话与资源生命周期
+  updater/                    # 独立 GitHub Releases 验签、下载与缓存；不调用内容服务
 services/
   web-api/                    # Rust binary：Web 会话、HTTP 服务与核心装配
     Cargo.toml

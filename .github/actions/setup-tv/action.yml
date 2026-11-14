@@ -1,0 +1,39 @@
+name: Prepare pinned TV build tools
+description: Install the Android and Java toolchains used by the NSH CLI and custom host
+runs:
+  using: composite
+  steps:
+    - id: toolchain
+      shell: bash
+      run: |
+        node --input-type=module - <<'NODE'
+        import fs from 'node:fs';
+        const tools = JSON.parse(fs.readFileSync('tooling/tv-toolchain.json'));
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `jdk=${tools.jdk.version}\nplatform=${tools.android.platform}\nbuild_tools=${tools.android.buildTools}\nndk=${tools.android.ndk}\ntargets=${tools.rustTargets.join(' ')}\n`);
+        NODE
+    - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+      with:
+        distribution: temurin
+        java-version: '17'
+    - shell: bash
+      run: echo "TV_JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+    - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+      with:
+        distribution: temurin
+        java-version: ${{ steps.toolchain.outputs.jdk }}
+    - name: Install pinned Android SDK and NSH runtime
+      shell: bash
+      env:
+        TV_PLATFORM: ${{ steps.toolchain.outputs.platform }}
+        TV_BUILD_TOOLS: ${{ steps.toolchain.outputs.build_tools }}
+        TV_NDK: ${{ steps.toolchain.outputs.ndk }}
+        TV_RUST_TARGETS: ${{ steps.toolchain.outputs.targets }}
+      run: |
+        set -euo pipefail
+        sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        test -x "$sdkmanager"
+        "$sdkmanager" --licenses < <(yes)
+        "$sdkmanager" "platforms;$TV_PLATFORM" "build-tools;$TV_BUILD_TOOLS" "ndk;$TV_NDK"
+        read -ra targets <<< "$TV_RUST_TARGETS"
+        rustup target add "${targets[@]}"
+        nsh component add android

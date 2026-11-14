@@ -5,5 +5,22 @@
   "build": 1,
   "rust": "native",
   "theme": "../../packages/ui/theme.json",
-  "appearance": "system"
+  "appearance": "system",
+  "capabilities": {
+    "network": {
+      "hosts": ["*"]
+    },
+    "webview": {
+      "hosts": ["*"]
+    },
+    "statusBar": true,
+    "clipboard": true,
+    "picker": true,
+    "speech": true,
+    "notifications": true,
+    "audio": true,
+    "openUrl": true,
+    "windows": true,
+    "host": ["update.info", "update.permission", "update.install", "update.allocate"]
+  }
 }

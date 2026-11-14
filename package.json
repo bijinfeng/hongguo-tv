@@ -47,7 +47,9 @@
     "setup:tools": "node tooling/src/cli.mjs setup:tools",
     "coverage": "node tooling/src/cli.mjs coverage",
     "test:rust": "node tooling/src/cli.mjs test:rust",
-    "fuzz": "node tooling/src/fuzz.mjs"
+    "fuzz": "node tooling/src/fuzz.mjs",
+    "test:tv-updates": "node tooling/src/tv-updates.mjs",
+    "test:desktop-updates": "node tooling/src/desktop-updates.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",

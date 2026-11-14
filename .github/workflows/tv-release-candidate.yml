@@ -38,6 +38,7 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/setup-tv
       - run: pnpm setup
       - name: Materialize signing keystore
         env:
@@ -111,3 +112,7 @@ jobs:
           path: ${{ runner.temp }}/tv-release-candidate
           if-no-files-found: error
           retention-days: 14
+      - name: Remove signing keystore
+        if: always()
+        run: |
+          node -e "require('node:fs').rmSync(process.env.RUNNER_TEMP + '/tv-release.jks', { force: true })"

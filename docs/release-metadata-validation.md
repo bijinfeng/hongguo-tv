@@ -46,4 +46,4 @@ workflow 顺序为：候选回验 → 上传草稿 → 鉴权下载回验 → �
 
 ## 剩余边界
 
-TV Rust adapter 尚未读取/验签这份清单，下载、取消、空间控制、APK 二次身份检查、未知来源授权和 PackageInstaller 尚未接通。桌面 N-1 → N、macOS Developer ID/公证、Windows/Linux、TV 真机安装器和真实网络均未验收。既有依赖安全阻塞保持开放；本批无依赖变化，未重跑 security。未推送或创建正式 Release；工作区并行 UI/设计改动保留。
+该元数据批次当时尚未接客户端；后续 Rust 验签／下载、APK 身份复核和安装 adapter 已实现，当前证据和未验范围见 [客户端更新](client-updates.md)。桌面 N-1 → N、macOS Developer ID/公证、Windows/Linux、TV 真机安装器和真实网络仍未验收。既有依赖安全阻塞保持开放；该元数据批次无依赖变化，未重跑 security。未推送或创建正式 Release；工作区并行 UI/设计改动保留。

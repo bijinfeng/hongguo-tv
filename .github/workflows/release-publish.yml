@@ -20,8 +20,64 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  quality:
+    name: Verify the exact release source
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - run: npm install --global pnpm@11.1.3
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Validate release identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          test "$RELEASE_TAG" = "v$version"
+      - name: Install pinned NSH
+        run: |
+          curl --fail --silent --show-error --location https://nsh.dev/install.sh -o "$RUNNER_TEMP/nsh-install.sh"
+          NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - run: pnpm setup
+      - run: pnpm setup:tools
+      - run: pnpm verify
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+  security:
+    name: Require release dependency policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - run: npm install --global pnpm@11.1.3
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: cargo install --locked cargo-deny --version 0.20.2
+      - run: pnpm security
+
   desktop:
-    name: Build signed desktop release
+    name: Build desktop with signed update metadata
+    needs: [quality, security]
     runs-on: macos-15
     environment: release-signing
     timeout-minutes: 60
@@ -120,6 +176,7 @@ jobs:
 
   tv:
     name: Build signed TV release
+    needs: [quality, security]
     runs-on: ubuntu-24.04
     environment: release-signing
     timeout-minutes: 60
@@ -140,6 +197,7 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/setup-tv
       - run: pnpm setup
       - name: Validate release identity
         env:
@@ -288,7 +346,8 @@ jobs:
             --target "$SOURCE_SHA" \
             --draft \
             --title "Hongguo TV $version" \
-            --notes "Signed desktop and Android TV artifacts for $RELEASE_TAG."
+            --notes "Desktop archive with signed update metadata and signed Android TV APK for $RELEASE_TAG."
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq '.sha')" = "$SOURCE_SHA"
           gh release upload "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             "$desktop/hongguo-desktop-${version}-macos-aarch64.tar.gz" \

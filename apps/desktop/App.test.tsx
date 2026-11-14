@@ -13,3 +13,6 @@ registerPlaybackTests();
 registerBrowsingTests('desktop', './HttpFixture.tsx');
 
 registerNativeStartupTests();
+
+import { registerUpdateTests } from '@hongguo/app/testing';
+registerUpdateTests();
