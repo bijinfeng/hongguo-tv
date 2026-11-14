@@ -380,3 +380,15 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 原始失败保留：Web exact第一轮1180浅色的headless Chrome SIGBUS属宿主启动失败，其余三组通过，随后4/4；TV第一／二轮测试没有建立正确首卡焦点，第三及第五至七轮则暴露真实View替换／迟到布局返回缺陷，分别修复后以第九轮复验；第四轮深色recent稀疏行导航步骤已纠正；第八轮缺Java import属runner编译错误。不同类别不合并成单一根因。
 - 独立功能／UI审查及截图见同目录 `function-review.md`／`ui-review.md`；修正了公共建议分组、Web错卡、TV返回及取消竞态。finishing清单逐组记录了圆角／字体／间距／对齐／色彩／hover／状态等已观察结果；静态图不能证明所有pressed、逐帧动效和辅助技术。VoiceOver／TalkBack、macOS系统字号、更窄布局／RTL、物理TV与遥控、实际全屏、C3.2官网独立业务、安全和正式发行继续开放。
 - 本批无DTO、数据库或依赖变化，无新Go、不改upstream；保留并行品牌／设计文档，只分批本地提交，不push／归档／发布。typed输入联想、其余D/E/F/G与完整MVP仍未完成。
+
+### D4 · 输入联想核心与类型契约（2026-11-14）
+
+- `migrate-typed-search-suggestions` 将固定上游 `SearchSuggestions` 协议迁至Rust，同一官网匿名client读取 `/incent_resource/suggestion`，参数仅app_id8662／count10／当前词。trim后空词本地返回，最多100 Unicode字符，剩余控制字符拒绝；无账号、Cookie、历史、发现注册调用、输入词缓存或持久写入。复用最多两次、单次5秒／总12秒的请求界限，响应256KiB；redirect／verification／坏数据／超限不重试。
+- 新生成SearchSuggestions／SearchSuggestion／SuggestionKind、HTTP `/api/v1/search/suggestions?q=…` 和同一native入口，只有q，未知／重复参数、非法词和非空GET body在联网前失败；native Some body按既有bridge代表POST，返回405。沿用Axum自动HEAD和全局CORS预检，不声称所有非GET方法都拒绝。提交OpenAPI、generated.ts及公开alias，codegen:check无漂移。
+- 合成input／expected固定样本和边界测试覆盖剧名／演员／关键词、display_words及剧名回退、大整数精确保留、kind+语义身份去重、前128行／最多10条、元信息／封面／支持内容类型／无效envelope。只有short_play_name的合法video_data带Drama，actor独立ID、未知类型降普通词；不从keyword推断系列、不输出详情集／简介或原始payload。public_cover只从discovery移动到parse复用，判断未变。
+- 独立审查发现numeric keyword绕过字符串上限，已统一限制100字符，并补201位数值key退回name、20位合法actor ID原样保留的回归。早期parser5／core8及定向121项都早于最后修复；最终完整验证包含新增修复测试，不能以旧结果代替。
+- `artifacts/search-suggestions-core/gates-result.json` 记录 `clippy-final`、`verify-first` 均exit0。最终Rust127/127（0跳过）、工具21/21、Web／Desktop／TV UI40/38/39，三端check **和** build、fmt／lint／codegen、release基础检查通过；随后strict OpenSpec、codegen drift及diff检查通过。新native专项验证cancel／session close后499、pending清空、不重试、不写观看／最近词、close后410；HTTP/native成功、坏JSON、verification、5xx的状态与body一致，no-store及请求计数准确。
+- core真实socket测试证明drop未完成联想future会关闭上游连接且不重试，native专项覆盖其owner取消／关闭。超时由core专项直接验证，HTTP/native的504映射共用代码；没有独立运行本接口的HTTP客户端真实断开或HTTP/native超时对照，不把core/native证据扩大成这些路径已验。
+- 显式匿名官网探针 `suggestions_probe -- --anonymous-live` 本次返回items10／drama10／actor0／keyword0／合法summary9，日志仅数量。证明当次固定官网请求与解析可用，不能据此宣称10条均可打开、真实演员分支、UI或官网观看已验；混合类型由离线fixture验证。
+- 独立功能／UI范围报告见同目录 `function-review.md`／`ui-review.md`。本批没有app/ui/apps可见代码变化，因此只做定稿／数据含义范围审查，不重复计宿主截图、鼠标、TV矩阵或安装包验收。optional字段和kind须共同判断，key不能当搜索词、系列ID或全局UI身份；meta不推断排名／分类。100字联想与既有80字搜索／最近词、输入防抖／IME／弹层焦点和演员作品仍需后续实施与真实宿主验收。
+- 台账单列演员作品，不以普通关键词搜索替代该功能；其余D/E/F/G、C3.2、辅助技术、物理TV、全屏、既有安全阻塞与正式发行仍开放，完整MVP未完成。本批无新依赖／数据库／Go／upstream变化，仅分批本地提交，不push／归档／发布；并行品牌／设计文档保留。

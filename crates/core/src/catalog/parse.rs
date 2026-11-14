@@ -151,3 +151,25 @@ pub(super) fn cover_fallback(cover: &str) -> Option<String> {
         "https://p3-novel.byteimg.com{object}~tplv-shrink:640:0.image"
     ))
 }
+
+pub(super) fn public_cover(row: &Value) -> String {
+    for key in ["series_cover", "cover", "cover_url"] {
+        let Some(text) = row[key].as_str().filter(|s| s.len() <= 2048) else {
+            continue;
+        };
+        let Ok(url) = reqwest::Url::parse(text) else {
+            continue;
+        };
+        if url.scheme() == "https"
+            && url.username().is_empty()
+            && url.password().is_none()
+            && url.port().is_none()
+            && url
+                .host_str()
+                .is_some_and(|h| h.ends_with(".byteimg.com") || h.ends_with(".fqnovelpic.com"))
+        {
+            return text.into();
+        }
+    }
+    String::new()
+}

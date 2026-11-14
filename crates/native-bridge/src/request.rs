@@ -1,7 +1,7 @@
 use axum::{extract::Query, http::Uri};
 use hongguo_core::{
     CoreStatus,
-    catalog::{CatalogClient, CatalogError, SearchQuery},
+    catalog::{CatalogClient, CatalogError, SearchQuery, SuggestionQuery},
     library::{HistoryChange, LibraryError, LibraryStore, SearchHistoryChange, SearchHistoryError},
     playback::{PlaybackError, PlaybackRequest, PlaybackService},
 };
@@ -55,6 +55,11 @@ struct Search {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct Suggestions {
+    q: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Detail {
     series_id: String,
     content_type: Option<String>,
@@ -87,6 +92,7 @@ pub(crate) enum Request {
     Status,
     Search(SearchQuery),
     Discovery,
+    Suggestions(SuggestionQuery),
     Detail(String, Option<String>),
     Play(PlaybackRequest),
     Library,
@@ -132,6 +138,13 @@ impl Request {
                     query(&uri).map_err(|_| catalog_error(CatalogError::InvalidInput))?;
                 Ok(Self::Search(
                     SearchQuery::new(&p.q, p.offset, p.source.as_deref()).map_err(catalog_error)?,
+                ))
+            }
+            ("/api/v1/search/suggestions", None) => {
+                let p: Suggestions =
+                    query(&uri).map_err(|_| catalog_error(CatalogError::InvalidInput))?;
+                Ok(Self::Suggestions(
+                    SuggestionQuery::new(&p.q).map_err(catalog_error)?,
                 ))
             }
             ("/api/v1/series/detail", None) => {
@@ -206,6 +219,7 @@ impl Request {
                 "/api/v1/status"
                 | "/api/v1/search"
                 | "/api/v1/search/discovery"
+                | "/api/v1/search/suggestions"
                 | "/api/v1/series/detail"
                 | "/api/v1/play/info"
                 | "/api/v1/play/release"
@@ -230,6 +244,12 @@ impl Request {
             Self::Discovery => services
                 .catalog
                 .search_discovery()
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
+            Self::Suggestions(query) => services
+                .catalog
+                .suggestions(&query)
                 .await
                 .map(Reply::success)
                 .map_err(catalog_error),

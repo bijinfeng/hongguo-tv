@@ -672,6 +672,72 @@
         }
       }
     },
+    "/api/v1/search/suggestions": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "suggestions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Trimmed current term, 0–100 Unicode characters; no controls",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/series/detail": {
       "get": {
         "tags": [
@@ -1654,6 +1720,57 @@
           }
         }
       },
+      "SearchSuggestion": {
+        "type": "object",
+        "description": "One bounded display/action summary, without arbitrary upstream objects or detail episodes.",
+        "required": [
+          "kind",
+          "key",
+          "name"
+        ],
+        "properties": {
+          "actor_id": {
+            "type": "string",
+            "description": "Exact nonzero decimal actor ID, if supplied for an actor item."
+          },
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Present only for a supported, explicitly identified drama-name result."
+          },
+          "key": {
+            "type": "string",
+            "description": "Bounded upstream key, falling back to name; never infer a series ID from this field."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SuggestionKind",
+            "description": "Distinct action meaning; only a drama-name item can carry drama."
+          },
+          "meta": {
+            "type": "string",
+            "description": "Bounded upstream categories, heat label and episode count, without invented popularity."
+          },
+          "name": {
+            "type": "string",
+            "description": "Plain display name and the term for ordinary keyword search."
+          }
+        }
+      },
+      "SearchSuggestions": {
+        "type": "object",
+        "description": "At most ten unique suggestions, preserving upstream order.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchSuggestion"
+            },
+            "description": "Empty when the current term is empty or the upstream has no valid suggestions."
+          }
+        }
+      },
       "StatusResponse": {
         "type": "object",
         "description": "Successful status result using the shared response envelope.",
@@ -1669,6 +1786,33 @@
           "ok": {
             "type": "boolean",
             "description": "Successful request."
+          }
+        }
+      },
+      "SuggestionKind": {
+        "type": "string",
+        "description": "Closed suggestion meanings; unknown upstream kinds become ordinary keyword search.",
+        "enum": [
+          "short_play_name",
+          "short_play_actor",
+          "common_query"
+        ]
+      },
+      "SuggestionsResponse": {
+        "type": "object",
+        "description": "Successful anonymous current-term suggestions.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SearchSuggestions",
+            "description": "Bounded typed suggestions; empty terms do not access the upstream."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
           }
         }
       }

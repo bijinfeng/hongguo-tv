@@ -100,6 +100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["suggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/series/detail": {
         parameters: {
             query?: never;
@@ -478,11 +494,43 @@ export interface components {
             /** @description Catalog source. Optional for legacy fixture compatibility; this service always emits web. */
             source?: string;
         };
+        /** @description One bounded display/action summary, without arbitrary upstream objects or detail episodes. */
+        SearchSuggestion: {
+            /** @description Exact nonzero decimal actor ID, if supplied for an actor item. */
+            actor_id?: string;
+            /** @description Present only for a supported, explicitly identified drama-name result. */
+            drama?: components["schemas"]["Drama"];
+            /** @description Bounded upstream key, falling back to name; never infer a series ID from this field. */
+            key: string;
+            /** @description Distinct action meaning; only a drama-name item can carry drama. */
+            kind: components["schemas"]["SuggestionKind"];
+            /** @description Bounded upstream categories, heat label and episode count, without invented popularity. */
+            meta?: string;
+            /** @description Plain display name and the term for ordinary keyword search. */
+            name: string;
+        };
+        /** @description At most ten unique suggestions, preserving upstream order. */
+        SearchSuggestions: {
+            /** @description Empty when the current term is empty or the upstream has no valid suggestions. */
+            items: components["schemas"]["SearchSuggestion"][];
+        };
         /** @description Successful status result using the shared response envelope. */
         StatusResponse: {
             /** @description Core state. */
             data: components["schemas"]["CoreStatus"];
             /** @description Successful request. */
+            ok: boolean;
+        };
+        /**
+         * @description Closed suggestion meanings; unknown upstream kinds become ordinary keyword search.
+         * @enum {string}
+         */
+        SuggestionKind: "short_play_name" | "short_play_actor" | "common_query";
+        /** @description Successful anonymous current-term suggestions. */
+        SuggestionsResponse: {
+            /** @description Bounded typed suggestions; empty terms do not access the upstream. */
+            data: components["schemas"]["SearchSuggestions"];
+            /** @description Always true. */
             ok: boolean;
         };
     };
@@ -1016,6 +1064,60 @@ export interface operations {
                 };
             };
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    suggestions: {
+        parameters: {
+            query: {
+                /** @description Trimmed current term, 0–100 Unicode characters; no controls */
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

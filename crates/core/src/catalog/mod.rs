@@ -2,8 +2,12 @@
 mod client;
 mod discovery;
 mod parse;
+mod suggestions;
 pub use discovery::{
     DiscoveryBoard, DiscoveryBoardKind, DiscoveryItem, SearchDiscovery, parse_discovery,
+};
+pub use suggestions::{
+    SearchSuggestion, SearchSuggestions, SuggestionKind, SuggestionQuery, parse_suggestions,
 };
 
 pub use client::CatalogClient;

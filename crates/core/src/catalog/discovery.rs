@@ -126,27 +126,7 @@ fn title(value: &Value) -> Option<String> {
     }
     crate::library::normalize_keyword(text).ok()
 }
-fn cover(row: &Value) -> String {
-    for key in ["series_cover", "cover", "cover_url"] {
-        let Some(text) = row[key].as_str().filter(|s| s.len() <= 2048) else {
-            continue;
-        };
-        let Ok(url) = reqwest::Url::parse(text) else {
-            continue;
-        };
-        if url.scheme() == "https"
-            && url.username().is_empty()
-            && url.password().is_none()
-            && url.port().is_none()
-            && url
-                .host_str()
-                .is_some_and(|h| h.ends_with(".byteimg.com") || h.ends_with(".fqnovelpic.com"))
-        {
-            return text.into();
-        }
-    }
-    String::new()
-}
+
 fn item(
     row: &Value,
     index: usize,
@@ -186,7 +166,7 @@ fn item(
             search_score: None,
         });
     };
-    let cover = cover(row);
+    let cover = super::parse::public_cover(row);
     let episode_count = ["episode_cnt", "episode_total_cnt"]
         .into_iter()
         .filter_map(|key| scalar(&row[key]).and_then(|s| s.parse::<u32>().ok()))

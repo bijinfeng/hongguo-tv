@@ -249,6 +249,7 @@ pub fn router_with_playback(
         .route("/api/v1/status", get(status))
         .route("/api/v1/search", get(catalog::search))
         .route("/api/v1/search/discovery", get(catalog::discovery))
+        .route("/api/v1/search/suggestions", get(catalog::suggestions))
         .route(
             "/api/v1/search/history",
             get(search_history::get).post(search_history::change),
@@ -292,6 +293,7 @@ pub fn router_with_playback(
         health,
         catalog::search,
         catalog::discovery,
+        catalog::suggestions,
         catalog::detail,
         library::get,
         library::change,
@@ -309,6 +311,10 @@ pub fn router_with_playback(
         ApiError,
         catalog::SearchResponse,
         catalog::DiscoveryResponse,
+        catalog::SuggestionsResponse,
+        hongguo_core::catalog::SearchSuggestions,
+        hongguo_core::catalog::SearchSuggestion,
+        hongguo_core::catalog::SuggestionKind,
         hongguo_core::catalog::SearchDiscovery,
         hongguo_core::catalog::DiscoveryItem,
         hongguo_core::catalog::DiscoveryBoard,

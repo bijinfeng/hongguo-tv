@@ -73,6 +73,11 @@ async fn search_and_detail_emit_compatible_generated_envelopes() {
             include_str!("../../../contracts/fixtures/catalog/detail.input.html"),
             include_str!("../../../contracts/fixtures/catalog/detail.expected.json"),
         ),
+        (
+            "/api/v1/search/suggestions?q=typed",
+            include_str!("../../../contracts/fixtures/catalog/suggestions.input.json"),
+            include_str!("../../../contracts/fixtures/catalog/suggestions.expected.json"),
+        ),
     ];
     for (path, input, expected) in fixtures {
         let fixture = fixture(StatusCode::OK, input).await;
@@ -172,6 +177,15 @@ fn openapi_has_directory_schemas_parameters_and_error_responses() {
         }
     }
     for name in ["Drama", "Episode", "SearchResult"] {
+        assert!(schema["components"]["schemas"].get(name).is_some());
+    }
+    let path = &schema["paths"]["/api/v1/search/suggestions"]["get"];
+    for status in ["200", "400", "405", "502", "504"] {
+        assert!(path["responses"].get(status).is_some());
+    }
+    assert_eq!(path["parameters"].as_array().unwrap().len(), 1);
+    assert_eq!(path["parameters"][0]["name"], "q");
+    for name in ["SearchSuggestions", "SearchSuggestion", "SuggestionKind"] {
         assert!(schema["components"]["schemas"].get(name).is_some());
     }
 }

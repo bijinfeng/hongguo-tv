@@ -27,6 +27,7 @@ struct Upstream {
     stalled: bool,
     calls: Arc<AtomicUsize>,
     discovery_status: Arc<AtomicUsize>,
+    suggestions_reply: Arc<Mutex<(StatusCode, &'static str)>>,
 }
 async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Response {
     state.calls.fetch_add(1, Ordering::SeqCst);
@@ -34,11 +35,19 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
     if path.starts_with("/service/") {
         return axum::Json(json!({"device_id_str":"111","install_id_str":"222"})).into_response();
     }
-    if state.stalled && (path.starts_with("/reading/") || path == "/api/search/result") {
+    if state.stalled
+        && (path.starts_with("/reading/")
+            || path == "/api/search/result"
+            || path == "/incent_resource/suggestion")
+    {
         state.started.add_permits(1);
         state.gate.acquire().await.unwrap().forget();
     }
     match path {
+        "/incent_resource/suggestion" => {
+            let reply = *state.suggestions_reply.lock().unwrap();
+            reply.into_response()
+        }
         "/reading/bookapi/plan/v1/" => (
             StatusCode::from_u16(state.discovery_status.load(Ordering::SeqCst) as u16).unwrap(),
             include_str!("../../../contracts/fixtures/discovery/plan.input.json"),
@@ -125,6 +134,10 @@ impl Fixture {
             stalled,
             calls: Arc::new(AtomicUsize::new(0)),
             discovery_status: Arc::new(AtomicUsize::new(200)),
+            suggestions_reply: Arc::new(Mutex::new((
+                StatusCode::OK,
+                include_str!("../../../contracts/fixtures/catalog/suggestions.input.json"),
+            ))),
         };
         let app = Router::new()
             .fallback(upstream_handler())
@@ -697,6 +710,258 @@ async fn discovery_rejects_inputs_before_network_and_matches_http_native() {
             assert_eq!(
                 native.body["data"]["boards"][0]["items"][0]["series_id"],
                 "90071992547409931234"
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn suggestions_share_strict_http_native_inputs_results_and_sanitized_failures() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    let mut invalid: Vec<String> = [
+        "/api/v1/search/suggestions",
+        "/api/v1/search/suggestions?q=x&q=y",
+        "/api/v1/search/suggestions?q=x&offset=0",
+        "/api/v1/search/suggestions?q=x&actor_id=1",
+        "/api/v1/search/suggestions?q=x&history=private",
+        "/api/v1/search/suggestions?q=x&url=https://evil.invalid",
+        "/api/v1/search/suggestions?q=a%00b",
+        "/api/v1/search/suggestions?q=a%0Ab",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    invalid.push(format!("/api/v1/search/suggestions?q={}", "x".repeat(101)));
+    for (path, body, method, expected) in invalid
+        .iter()
+        .map(|path| (path.as_str(), None, Method::GET, 400))
+        .chain([
+            ("/api/v1/search/suggestions?q=", None, Method::GET, 200),
+            (
+                "/api/v1/search/suggestions?q=%20%0A",
+                None,
+                Method::GET,
+                200,
+            ),
+            (
+                "/api/v1/search/suggestions?q=x",
+                Some("{}"),
+                Method::POST,
+                405,
+            ),
+            (
+                "/api/v1/search/suggestions?q=x",
+                Some(""),
+                Method::POST,
+                405,
+            ),
+        ])
+    {
+        let native = fixture.call(path, body).await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .method(method)
+                    .uri(path)
+                    .header("host", "127.0.0.1:8080")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.unwrap_or("").to_owned()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(native.status, expected, "{path}");
+        assert_eq!(response.status().as_u16(), expected, "{path}");
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+    }
+    for (method, body, status) in [
+        (Method::GET, "{}", 400),
+        (Method::GET, " ", 400),
+        (Method::DELETE, "", 405),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .method(method)
+                    .uri("/api/v1/search/suggestions?q=x")
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status().as_u16(), status);
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+    for (status, body, code, expected_calls) in [
+        (
+            StatusCode::OK,
+            include_str!("../../../contracts/fixtures/catalog/suggestions.input.json"),
+            None,
+            2,
+        ),
+        (
+            StatusCode::OK,
+            "secret malformed",
+            Some("UPSTREAM_INVALID_DATA"),
+            2,
+        ),
+        (
+            StatusCode::FORBIDDEN,
+            r#"{"code":"search_verification_required","secret":"hidden"}"#,
+            Some("SEARCH_VERIFICATION_REQUIRED"),
+            2,
+        ),
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "secret",
+            Some("UPSTREAM_HTTP_ERROR"),
+            4,
+        ),
+    ] {
+        *fixture.upstream.suggestions_reply.lock().unwrap() = (status, body);
+        fixture.upstream.calls.store(0, Ordering::SeqCst);
+        let native = fixture
+            .call("/api/v1/search/suggestions?q=typed", None)
+            .await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/v1/search/suggestions?q=typed")
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        assert_eq!(native.status, if code.is_some() { 502 } else { 200 });
+        assert_eq!(response.status().as_u16(), native.status);
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+        if let Some(code) = code {
+            assert_eq!(native.body["code"], code);
+            assert!(!native.body.to_string().contains("secret"));
+            assert!(!native.body.to_string().contains("hidden"));
+        } else {
+            let expected: Value = serde_json::from_str(include_str!(
+                "../../../contracts/fixtures/catalog/suggestions.expected.json"
+            ))
+            .unwrap();
+            assert_eq!(native.body["data"], expected);
+        }
+        assert_eq!(
+            fixture.upstream.calls.load(Ordering::SeqCst),
+            expected_calls
+        );
+    }
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .snapshot()
+            .await
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .search_history()
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+}
+
+#[tokio::test]
+async fn suggestion_native_cancellation_and_session_close_leave_no_pending_work_or_history() {
+    for close in [false, true] {
+        let fixture = Fixture::new(true).await;
+        let call = fixture
+            .session
+            .start("/api/v1/search/suggestions?q=typed", None);
+        timeout(Duration::from_secs(2), fixture.upstream.started.acquire())
+            .await
+            .unwrap()
+            .unwrap()
+            .forget();
+        if close {
+            fixture.session.close();
+        } else {
+            call.cancel();
+        }
+        let reply = timeout(Duration::from_secs(1), call.inner.result())
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 499);
+        assert_eq!(reply.body["code"], "CORE_CANCELLED");
+        assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+        fixture.upstream.gate.add_permits(1);
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 1);
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .snapshot()
+                .await
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .search_history()
+                .await
+                .unwrap()
+                .items
+                .is_empty()
+        );
+        if close {
+            assert_eq!(
+                fixture
+                    .call("/api/v1/search/suggestions?q=typed", None)
+                    .await
+                    .status,
+                410
+            );
+        } else {
+            assert_eq!(
+                fixture
+                    .call("/api/v1/search/suggestions?q=", None)
+                    .await
+                    .status,
+                200
             );
         }
     }

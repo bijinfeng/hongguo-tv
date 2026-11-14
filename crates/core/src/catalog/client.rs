@@ -75,6 +75,28 @@ impl CatalogClient {
         self.discovery.get().await
     }
 
+    /// Anonymous current-term suggestions. Dropping the future cancels reads and retries.
+    pub async fn suggestions(
+        &self,
+        query: &super::SuggestionQuery,
+    ) -> Result<super::SearchSuggestions, CatalogError> {
+        if query.term().is_empty() {
+            return Ok(super::SearchSuggestions::default());
+        }
+        let mut url = self
+            .origin
+            .join("/incent_resource/suggestion")
+            .map_err(|_| CatalogError::Configuration)?;
+        url.query_pairs_mut()
+            .append_pair("app_id", "8662")
+            .append_pair("query", query.term())
+            .append_pair("count", "10");
+        let body = self
+            .fetch(url, "application/json", super::suggestions::BODY_LIMIT)
+            .await?;
+        super::parse_suggestions(&body)
+    }
+
     /// Query one validated website page. Dropping the future cancels pending work and retries.
     pub async fn search(&self, query: &SearchQuery) -> Result<SearchResult, CatalogError> {
         let mut url = self

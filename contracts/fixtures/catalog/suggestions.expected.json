@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "kind": "short_play_name",
+      "key": "90071992547409931234",
+      "name": "合成剧名",
+      "meta": "剧情 · 合成热度 · 全42集",
+      "drama": {
+        "series_id": "90071992547409931234",
+        "title": "合成剧名",
+        "cover": "https://p9.fqnovelpic.com/novel-pic/synthetic~signed.heic?token=synthetic",
+        "cover_fallback": "https://p3-novel.byteimg.com/novel-pic/synthetic~tplv-shrink:640:0.image",
+        "intro": "",
+        "episode_count": 42
+      }
+    },
+    {
+      "kind": "short_play_name",
+      "key": "90071992547409931235",
+      "name": "合成第二季",
+      "meta": "全12集",
+      "drama": {
+        "series_id": "90071992547409931235",
+        "title": "合成第二季",
+        "cover": "",
+        "intro": "",
+        "episode_count": 12
+      }
+    },
+    {
+      "kind": "short_play_actor",
+      "key": "90071992547409931236",
+      "name": "合成演员",
+      "actor_id": "90071992547409931236"
+    },
+    {
+      "kind": "common_query",
+      "key": "opaque-key",
+      "name": "山海 & ? +"
+    },
+    {
+      "kind": "common_query",
+      "key": "普通检索",
+      "name": "普通检索"
+    },
+    {
+      "kind": "short_play_name",
+      "key": "90071992547409931237",
+      "name": "未确认剧名"
+    }
+  ]
+}

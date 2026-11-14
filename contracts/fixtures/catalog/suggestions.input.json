@@ -1,0 +1,70 @@
+{
+  "suggest_list": [
+    {
+      "word_type": "short_play_name",
+      "keyword": 90071992547409931234,
+      "name": "合成剧名",
+      "video_data": {
+        "series_id": 90071992547409931234,
+        "series_cover": "https://p9.fqnovelpic.com/novel-pic/synthetic~signed.heic?token=synthetic",
+        "episode_cnt": 42,
+        "category_list": [
+          {
+            "name": "剧情"
+          }
+        ],
+        "hot_score_data": {
+          "text": "合成热度"
+        },
+        "series_intro": "never-export",
+        "vid_list": ["private-detail"]
+      }
+    },
+    {
+      "word_type": "short_play_name",
+      "keyword": "90071992547409931235",
+      "name": "合成第二季",
+      "video_data": {
+        "series_id": "90071992547409931235",
+        "episode_cnt": "12",
+        "series_cover": "http://127.0.0.1/private"
+      }
+    },
+    {
+      "word_type": "short_play_actor",
+      "keyword": 90071992547409931236,
+      "name": "合成演员",
+      "video_data": {
+        "series_id": "90071992547409931234"
+      }
+    },
+    {
+      "word_type": "common_query",
+      "keyword": "opaque-key",
+      "display_words": ["山海 & ? +"]
+    },
+    {
+      "word_type": "new-kind",
+      "name": "普通检索",
+      "video_data": {
+        "series_id": "90071992547409931234"
+      }
+    },
+    {
+      "word_type": "short_play_name",
+      "keyword": "ignored",
+      "name": "重复剧名",
+      "video_data": {
+        "series_id": "90071992547409931234"
+      }
+    },
+    {
+      "name": "不可用\n名称"
+    },
+    {
+      "word_type": "short_play_name",
+      "keyword": "90071992547409931237",
+      "name": "未确认剧名"
+    }
+  ]
+}

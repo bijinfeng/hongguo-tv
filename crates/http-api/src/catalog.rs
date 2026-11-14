@@ -8,6 +8,7 @@ use axum::{
 };
 use hongguo_core::catalog::{
     CatalogClient, CatalogError, Drama, SearchDiscovery, SearchQuery, SearchResult,
+    SearchSuggestions, SuggestionQuery,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -42,6 +43,38 @@ pub(crate) struct SearchParams {
 pub(crate) struct DetailParams {
     series_id: String,
     content_type: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SuggestionParams {
+    q: String,
+}
+
+/// Successful anonymous current-term suggestions.
+#[derive(Serialize, ToSchema)]
+pub struct SuggestionsResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Bounded typed suggestions; empty terms do not access the upstream.
+    pub data: SearchSuggestions,
+}
+#[utoipa::path(get, path = "/api/v1/search/suggestions",
+    params(("q" = String, Query, description = "Trimmed current term, 0–100 Unicode characters; no controls")),
+    responses((status = 200, body = SuggestionsResponse), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn suggestions(
+    State(client): State<CatalogClient>,
+    params: Result<Query<SuggestionParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<SuggestionsResponse>, Response> {
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = SuggestionQuery::new(&params.q).map_err(catalog_failure)?;
+    let data = client.suggestions(&query).await.map_err(catalog_failure)?;
+    Ok(Json(SuggestionsResponse { ok: true, data }))
 }
 
 #[utoipa::path(get, path = "/api/v1/search",

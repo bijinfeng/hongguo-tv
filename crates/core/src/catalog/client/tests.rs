@@ -11,6 +11,8 @@ use tokio::{
 
 const SEARCH: &str = include_str!("../../../../../contracts/fixtures/catalog/search.input.json");
 const DETAIL: &str = include_str!("../../../../../contracts/fixtures/catalog/detail.input.html");
+const SUGGESTIONS: &str =
+    include_str!("../../../../../contracts/fixtures/catalog/suggestions.input.json");
 
 struct Server {
     origin: String,
@@ -266,6 +268,160 @@ async fn dropping_pending_response_closes_connection_and_prevents_retry() {
     let query = query();
     let mut pending = Box::pin(client.search(&query));
     tokio::select! { _ = rx => {}, _ = &mut pending => panic!("response should remain pending") }
+    drop(pending);
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn suggestions_use_only_the_fixed_public_query_without_history_registration_or_cache() {
+    let mut server = server(vec![
+        response(200, SUGGESTIONS, "Set-Cookie: account=synthetic\r\n"),
+        response(200, SUGGESTIONS, ""),
+    ])
+    .await;
+    let client = client(&server);
+    let empty = super::super::SuggestionQuery::new(" \n ").unwrap();
+    assert!(client.suggestions(&empty).await.unwrap().items.is_empty());
+    assert_eq!(server.count.load(Ordering::SeqCst), 0);
+    let query = super::super::SuggestionQuery::new(" 字 &?=+ ").unwrap();
+    for _ in 0..2 {
+        assert_eq!(client.suggestions(&query).await.unwrap().items.len(), 6);
+        let request = server.requests.recv().await.unwrap().to_ascii_lowercase();
+        assert!(request.starts_with("get /incent_resource/suggestion?app_id=8662&query=%e5%ad%97+%26%3f%3d%2b&count=10 http/1.1"), "{request}");
+        for forbidden in [
+            "\r\ncookie:",
+            "\r\nauthorization:",
+            "history",
+            "device_id",
+            "install_id",
+            "/service/",
+        ] {
+            assert!(!request.contains(forbidden), "{request}");
+        }
+        assert!(request.contains("\r\naccept: application/json\r\n"));
+    }
+    assert_eq!(server.count.load(Ordering::SeqCst), 2);
+}
+
+#[tokio::test]
+async fn suggestions_enforce_response_limit_error_categories_and_bounded_retries() {
+    let query = super::super::SuggestionQuery::new("typed").unwrap();
+    let limit = super::super::suggestions::BODY_LIMIT;
+    for (first, expected) in [
+        (
+            response(
+                403,
+                r#"{"code":"search_verification_required","secret":"hidden"}"#,
+                "",
+            ),
+            CatalogError::VerificationRequired,
+        ),
+        (
+            response(302, "hidden", "Location: http://127.0.0.1:1/leak\r\n"),
+            CatalogError::UpstreamStatus(302),
+        ),
+        (
+            response(403, "hidden", ""),
+            CatalogError::UpstreamStatus(403),
+        ),
+        (response(200, "{", ""), CatalogError::InvalidData),
+        (
+            response(200, r#"{"code":1,"suggest_list":[]}"#, ""),
+            CatalogError::InvalidData,
+        ),
+        (
+            response(200, SUGGESTIONS, "Content-Type: text/html\r\n"),
+            CatalogError::InvalidData,
+        ),
+        (
+            format!("HTTP/1.1 200 Test\r\nContent-Length: {}\r\n\r\n", limit + 1),
+            CatalogError::TooLarge,
+        ),
+        (
+            format!(
+                "HTTP/1.1 200 Test\r\nTransfer-Encoding: chunked\r\n\r\n{:x}\r\n{}\r\n0\r\n\r\n",
+                limit + 1,
+                "x".repeat(limit + 1)
+            ),
+            CatalogError::TooLarge,
+        ),
+    ] {
+        let server = server(vec![first, response(200, SUGGESTIONS, "")]).await;
+        assert_eq!(client(&server).suggestions(&query).await, Err(expected));
+        assert_eq!(server.count.load(Ordering::SeqCst), 1);
+        assert!(!expected.to_string().contains("hidden"));
+    }
+    for first in [
+        response(503, "hidden", ""),
+        "HTTP/1.1 200 Test\r\nContent-Length: 100\r\n\r\ntruncated".into(),
+    ] {
+        let mut server = server(vec![first, response(200, SUGGESTIONS, "")]).await;
+        assert!(client(&server).suggestions(&query).await.is_ok());
+        assert_eq!(
+            server.requests.recv().await.unwrap(),
+            server.requests.recv().await.unwrap()
+        );
+        assert_eq!(server.count.load(Ordering::SeqCst), 2);
+    }
+    let server = server(vec![response(500, "hidden", ""); 3]).await;
+    assert_eq!(
+        client(&server).suggestions(&query).await,
+        Err(CatalogError::UpstreamStatus(500))
+    );
+    assert_eq!(server.count.load(Ordering::SeqCst), 2);
+}
+
+#[tokio::test]
+async fn suggestion_deadlines_and_owner_drop_terminate_pending_work() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut client =
+        CatalogClient::for_loopback_tests(&format!("http://{}", listener.local_addr().unwrap()))
+            .unwrap();
+    let query = super::super::SuggestionQuery::new("typed").unwrap();
+    client.attempt_timeout = Duration::from_millis(10);
+    client.total_timeout = Duration::from_millis(50);
+    client.retry_delay = Duration::from_millis(1);
+    assert_eq!(client.suggestions(&query).await, Err(CatalogError::Timeout));
+    client.attempt_timeout = Duration::from_secs(1);
+    client.total_timeout = Duration::from_millis(20);
+    let start = tokio::time::Instant::now();
+    assert_eq!(client.suggestions(&query).await, Err(CatalogError::Timeout));
+    assert!(start.elapsed() < Duration::from_millis(500));
+    drop(listener);
+
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let client =
+        CatalogClient::for_loopback_tests(&format!("http://{}", listener.local_addr().unwrap()))
+            .unwrap();
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        let mut byte = [0];
+        while !request.ends_with(b"\r\n\r\n") {
+            socket.read_exact(&mut byte).await.unwrap();
+            request.push(byte[0]);
+        }
+        socket
+            .write_all(b"HTTP/1.1 200 Test\r\nContent-Length: 100000\r\n\r\n{")
+            .await
+            .unwrap();
+        tx.send(()).unwrap();
+        let closed = timeout(Duration::from_secs(1), socket.read(&mut byte))
+            .await
+            .unwrap();
+        assert!(
+            matches!(closed, Ok(0))
+                || closed.is_err_and(|e| e.kind() == std::io::ErrorKind::ConnectionReset)
+        );
+        assert!(
+            timeout(Duration::from_millis(300), listener.accept())
+                .await
+                .is_err()
+        );
+    });
+    let mut pending = Box::pin(client.suggestions(&query));
+    tokio::select! { _ = rx => {}, _ = &mut pending => panic!("suggestions must still be pending") }
     drop(pending);
     server.await.unwrap();
 }
