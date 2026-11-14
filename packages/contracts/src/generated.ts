@@ -68,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/discovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["discovery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search/history": {
         parameters: {
             query?: never;
@@ -185,6 +201,37 @@ export interface components {
         DetailResponse: {
             /** @description Requested drama and ordered episodes. */
             data: components["schemas"]["Drama"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description One nonempty public board. */
+        DiscoveryBoard: {
+            /** @description Stable content family. */
+            id: components["schemas"]["DiscoveryBoardKind"];
+            /** @description At most six unique playable summaries. */
+            items: components["schemas"]["DiscoveryItem"][];
+        };
+        /**
+         * @description The only accepted public video-board families.
+         * @enum {string}
+         */
+        DiscoveryBoardKind: "short" | "comic";
+        /** @description A display summary or an explicitly nonplayable keyword-only suggestion. */
+        DiscoveryItem: components["schemas"]["Drama"] & {
+            /**
+             * Format: int32
+             * @description Original one-based position before filtering and deduplication.
+             */
+            position?: number;
+            /** @description Search term only, never an inferred playable ID from a tag. */
+            query?: string;
+            /** @description Bounded official popularity display text. */
+            search_score?: string;
+        };
+        /** @description Successful anonymous public discovery snapshot. */
+        DiscoveryResponse: {
+            /** @description Bounded public suggestions and boards. */
+            data: components["schemas"]["SearchDiscovery"];
             /** @description Always true. */
             ok: boolean;
         };
@@ -380,6 +427,13 @@ export interface components {
         ReleaseResult: {
             /** @description Always true after accepting a valid local path. */
             released: boolean;
+        };
+        /** @description Public search-page snapshot; empty arrays are a valid optional result. */
+        SearchDiscovery: {
+            /** @description Nonempty boards in short, comic order. */
+            boards: components["schemas"]["DiscoveryBoard"][];
+            /** @description At most four public suggestions; keyword-only rows have query and no series identity. */
+            guesses: components["schemas"]["DiscoveryItem"][];
         };
         /** @description Committed recent keywords, newest first and at most ten. */
         SearchHistory: {
@@ -797,6 +851,49 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    discovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryResponse"];
+                };
+            };
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

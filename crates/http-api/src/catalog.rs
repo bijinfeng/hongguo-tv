@@ -1,11 +1,14 @@
 use crate::{ApiError, failure};
 use axum::{
     Json,
-    extract::{Query, State, rejection::QueryRejection},
+    body::Bytes,
+    extract::{Query, RawQuery, State, rejection::QueryRejection},
     http::StatusCode,
     response::Response,
 };
-use hongguo_core::catalog::{CatalogClient, CatalogError, Drama, SearchQuery, SearchResult};
+use hongguo_core::catalog::{
+    CatalogClient, CatalogError, Drama, SearchDiscovery, SearchQuery, SearchResult,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -83,4 +86,27 @@ fn catalog_failure(error: CatalogError) -> Response {
         _ => StatusCode::BAD_GATEWAY,
     };
     failure(status, error.code(), &error.to_string())
+}
+
+/// Successful anonymous public discovery snapshot.
+#[derive(Serialize, ToSchema)]
+pub struct DiscoveryResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Bounded public suggestions and boards.
+    pub data: SearchDiscovery,
+}
+#[utoipa::path(get, path = "/api/v1/search/discovery",
+    responses((status = 200, body = DiscoveryResponse), (status = 400, body = ApiError),
+        (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn discovery(
+    State(client): State<CatalogClient>,
+    RawQuery(query): RawQuery,
+    body: Bytes,
+) -> Result<Json<DiscoveryResponse>, Response> {
+    if query.as_ref().is_some_and(|q| !q.is_empty()) || !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let data = client.search_discovery().await.map_err(catalog_failure)?;
+    Ok(Json(DiscoveryResponse { ok: true, data }))
 }

@@ -86,6 +86,7 @@ struct Release {
 pub(crate) enum Request {
     Status,
     Search(SearchQuery),
+    Discovery,
     Detail(String, Option<String>),
     Play(PlaybackRequest),
     Library,
@@ -120,6 +121,12 @@ impl Request {
         }
         match (uri.path(), body) {
             ("/api/v1/status", None) => Ok(Self::Status),
+            ("/api/v1/search/discovery", None) => {
+                if uri.query().is_some_and(|q| !q.is_empty()) {
+                    return Err(catalog_error(CatalogError::InvalidInput));
+                }
+                Ok(Self::Discovery)
+            }
             ("/api/v1/search", None) => {
                 let p: Search =
                     query(&uri).map_err(|_| catalog_error(CatalogError::InvalidInput))?;
@@ -198,6 +205,7 @@ impl Request {
             (
                 "/api/v1/status"
                 | "/api/v1/search"
+                | "/api/v1/search/discovery"
                 | "/api/v1/series/detail"
                 | "/api/v1/play/info"
                 | "/api/v1/play/release"
@@ -219,6 +227,12 @@ impl Request {
                 status.capabilities.playback = true;
                 Ok(Reply::success(status))
             }
+            Self::Discovery => services
+                .catalog
+                .search_discovery()
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
             Self::Search(q) => services
                 .catalog
                 .search(&q)

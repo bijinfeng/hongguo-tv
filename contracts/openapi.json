@@ -508,6 +508,52 @@
         }
       }
     },
+    "/api/v1/search/discovery": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "discovery",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/search/history": {
       "get": {
         "tags": [
@@ -938,6 +984,81 @@
           "data": {
             "$ref": "#/components/schemas/Drama",
             "description": "Requested drama and ordered episodes."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "DiscoveryBoard": {
+        "type": "object",
+        "description": "One nonempty public board.",
+        "required": [
+          "id",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/DiscoveryBoardKind",
+            "description": "Stable content family."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryItem"
+            },
+            "description": "At most six unique playable summaries."
+          }
+        }
+      },
+      "DiscoveryBoardKind": {
+        "type": "string",
+        "description": "The only accepted public video-board families.",
+        "enum": [
+          "short",
+          "comic"
+        ]
+      },
+      "DiscoveryItem": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Summary fields; series_id is empty for a keyword-only suggestion."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "position": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Original one-based position before filtering and deduplication.",
+                "minimum": 0
+              },
+              "query": {
+                "type": "string",
+                "description": "Search term only, never an inferred playable ID from a tag."
+              },
+              "search_score": {
+                "type": "string",
+                "description": "Bounded official popularity display text."
+              }
+            }
+          }
+        ],
+        "description": "A display summary or an explicitly nonplayable keyword-only suggestion."
+      },
+      "DiscoveryResponse": {
+        "type": "object",
+        "description": "Successful anonymous public discovery snapshot.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SearchDiscovery",
+            "description": "Bounded public suggestions and boards."
           },
           "ok": {
             "type": "boolean",
@@ -1382,6 +1503,30 @@
           "released": {
             "type": "boolean",
             "description": "Always true after accepting a valid local path."
+          }
+        }
+      },
+      "SearchDiscovery": {
+        "type": "object",
+        "description": "Public search-page snapshot; empty arrays are a valid optional result.",
+        "required": [
+          "guesses",
+          "boards"
+        ],
+        "properties": {
+          "boards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryBoard"
+            },
+            "description": "Nonempty boards in short, comic order."
+          },
+          "guesses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryItem"
+            },
+            "description": "At most four public suggestions; keyword-only rows have query and no series identity."
           }
         }
       },

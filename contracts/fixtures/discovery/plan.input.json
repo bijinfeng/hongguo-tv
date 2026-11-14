@@ -1,0 +1,25 @@
+{
+  "code": 0,
+  "data": [
+    {
+      "cell_name": "猜你想搜",
+      "search_tag_data": [
+        {
+          "tag_title": "合成发现词",
+          "tag_id": "999"
+        }
+      ]
+    },
+    {
+      "cell_name": "短剧热搜榜",
+      "video_data": [
+        {
+          "title": "合成热榜",
+          "series_id": "90071992547409931234",
+          "content_type": "1",
+          "episode_cnt": 12
+        }
+      ]
+    }
+  ]
+}

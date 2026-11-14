@@ -3,6 +3,8 @@ mod identity;
 mod model;
 mod protocol;
 mod provider;
+mod public_plan;
+mod public_sign;
 mod service;
 mod sign;
 pub use identity::PlaybackClient;

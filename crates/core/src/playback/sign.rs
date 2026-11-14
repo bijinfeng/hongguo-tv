@@ -8,7 +8,7 @@ use base64::{Engine, engine::general_purpose};
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::collections::BTreeMap;
 
-fn sm3(data: &[u8]) -> [u8; 32] {
+pub(super) fn sm3(data: &[u8]) -> [u8; 32] {
     let mut bytes = data.to_vec();
     bytes.push(0x80);
     while bytes.len() % 64 != 56 {
@@ -73,7 +73,7 @@ fn sm3(data: &[u8]) -> [u8; 32] {
     }
     out
 }
-fn iv_hash(data: &[u8], mut iv: u32) -> u32 {
+pub(super) fn iv_hash(data: &[u8], mut iv: u32) -> u32 {
     for (i, b) in data.iter().enumerate() {
         iv = if i & 1 == 0 {
             (iv >> 4) ^ iv ^ (iv << 6) ^ u32::from(*b)
@@ -92,7 +92,7 @@ fn pad(data: &[u8]) -> Vec<u8> {
 fn le64(bytes: &[u8]) -> u64 {
     u64::from_le_bytes(bytes[..8].try_into().expect("eight-byte word"))
 }
-fn varint(out: &mut Vec<u8>, mut n: u64) {
+pub(super) fn varint(out: &mut Vec<u8>, mut n: u64) {
     while n >= 128 {
         out.push((n as u8) | 128);
         n >>= 7
@@ -103,15 +103,15 @@ fn number(out: &mut Vec<u8>, field: u64, value: u32) {
     varint(out, field << 3);
     varint(out, u64::from(value));
 }
-fn blob(out: &mut Vec<u8>, field: u64, value: &[u8]) {
+pub(super) fn blob(out: &mut Vec<u8>, field: u64, value: &[u8]) {
     varint(out, (field << 3) | 2);
     varint(out, value.len() as u64);
     out.extend_from_slice(value)
 }
-fn text(out: &mut Vec<u8>, field: u64, value: &str) {
+pub(super) fn text(out: &mut Vec<u8>, field: u64, value: &str) {
     blob(out, field, value.as_bytes())
 }
-fn unhex(value: &str) -> Vec<u8> {
+pub(super) fn unhex(value: &str) -> Vec<u8> {
     value
         .as_bytes()
         .chunks_exact(2)
@@ -283,7 +283,7 @@ fn argus(
     Ok(general_purpose::STANDARD.encode(out))
 }
 
-fn ladon(ts: u32, aid: &str, nonce: u32, license: &str) -> String {
+pub(super) fn ladon(ts: u32, aid: &str, nonce: u32, license: &str) -> String {
     let mut seed = nonce.to_le_bytes().to_vec();
     let mut input = seed.clone();
     input.extend_from_slice(aid.as_bytes());

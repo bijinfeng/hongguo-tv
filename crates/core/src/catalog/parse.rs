@@ -136,7 +136,7 @@ fn normalize(data: &Value) -> Option<Drama> {
         episodes: None,
     })
 }
-fn cover_fallback(cover: &str) -> Option<String> {
+pub(super) fn cover_fallback(cover: &str) -> Option<String> {
     let url = reqwest::Url::parse(cover).ok()?;
     let host = url.host_str()?;
     let path = url.path();

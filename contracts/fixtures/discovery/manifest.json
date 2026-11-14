@@ -1,0 +1,15 @@
+{
+  "reference": "upstream/hongguo (read only)",
+  "revision": "69f93dc610450803a34ec427b6db2dc3dd18d030",
+  "files": {
+    "search_discovery.go": "b3e281516d2d13bbace9c267ce55ea51e6ce6767ba881aaed575fcbb39219eac",
+    "search_discovery_test.go": "78dcaa3e2bd4869eda5a24739a289db5fd2e3579ef6b2c6034509574e89cc61d",
+    "passport_sign.go": "af999dec55d7717c19ff3d06473d3865185c7d6a5ba1c2ab7224862d417dc97e",
+    "passport_constants.go": "97157f335391e42b4514655011ccc7901b2c93738b1a9d74b13911242c0f9c08",
+    "passport_sign_test.go": "1aec647723b0c94a2171e146b25e5fc1413cef67cdb4fb64dea2b5bffa268952",
+    "passport_client.go": "7bcbecee27d870e28325f8be9027d9090795341f6397edff92ac2b6647aa0fe4",
+    "testdata/passport-vectors.json": "644b9c43ac565e73e993544ed9164ca64557d2e4043ed7b55087604e95058f20"
+  },
+  "fixture": "passport-vectors.json contains fixed synthetic device IDs, no captured client state; copied without executing Go, whitespace formatted only",
+  "revision_kind": "containing workspace commit; upstream behavior pin remains upstream.lock.json"
+}

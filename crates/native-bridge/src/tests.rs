@@ -25,8 +25,11 @@ struct Upstream {
     gate: Arc<Semaphore>,
     started: Arc<Semaphore>,
     stalled: bool,
+    calls: Arc<AtomicUsize>,
+    discovery_status: Arc<AtomicUsize>,
 }
 async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Response {
+    state.calls.fetch_add(1, Ordering::SeqCst);
     let path = request.uri().path();
     if path.starts_with("/service/") {
         return axum::Json(json!({"device_id_str":"111","install_id_str":"222"})).into_response();
@@ -36,6 +39,11 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
         state.gate.acquire().await.unwrap().forget();
     }
     match path {
+        "/reading/bookapi/plan/v1/" => (
+            StatusCode::from_u16(state.discovery_status.load(Ordering::SeqCst) as u16).unwrap(),
+            include_str!("../../../contracts/fixtures/discovery/plan.input.json"),
+        )
+            .into_response(),
         "/api/search/result" => {
             include_str!("../../../contracts/fixtures/catalog/search.input.json").into_response()
         }
@@ -115,6 +123,8 @@ impl Fixture {
             gate: Arc::new(Semaphore::new(0)),
             started: Arc::new(Semaphore::new(0)),
             stalled,
+            calls: Arc::new(AtomicUsize::new(0)),
+            discovery_status: Arc::new(AtomicUsize::new(200)),
         };
         let app = Router::new()
             .fallback(upstream_handler())
@@ -592,4 +602,102 @@ async fn native_keywords_match_http_persist_and_do_not_reach_media_listener() {
     assert_eq!(clear.inner.result().await.body["data"]["items"], json!([]));
     clear.accept();
     reopened.close();
+}
+
+#[tokio::test]
+async fn discovery_rejects_inputs_before_network_and_matches_http_native() {
+    for upstream_status in [200, 403, 500] {
+        let fixture = Fixture::new(false).await;
+        fixture
+            .upstream
+            .discovery_status
+            .store(upstream_status, Ordering::SeqCst);
+        let app = router_with_playback(
+            DevPolicy::new(8080, None),
+            fixture.session.services.catalog.clone(),
+            None,
+            None,
+        );
+        for (path, body, method, expected) in [
+            ("/api/v1/search/discovery?q=secret", None, Method::GET, 400),
+            ("/api/v1/search/discovery?uid=1", None, Method::GET, 400),
+            (
+                "/api/v1/search/discovery?upstream=https://evil.invalid",
+                None,
+                Method::GET,
+                400,
+            ),
+            ("/api/v1/search/discovery?&&", None, Method::GET, 400),
+            ("/api/v1/search/discovery", Some("{}"), Method::POST, 405),
+            ("/api/v1/search/discovery", Some(""), Method::POST, 405),
+        ] {
+            let native = fixture.call(path, body).await;
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .method(method)
+                        .uri(path)
+                        .header("host", "127.0.0.1:8080")
+                        .header("content-type", "application/json")
+                        .body(Body::from(body.unwrap_or("").to_owned()))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status().as_u16(), expected);
+            assert_eq!(native.status, expected);
+            let bytes = axum::body::to_bytes(response.into_body(), 32768)
+                .await
+                .unwrap();
+            assert_eq!(
+                native.body,
+                serde_json::from_slice::<Value>(&bytes).unwrap()
+            );
+        }
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/v1/search/discovery")
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::from("{}"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+        let native = fixture.call("/api/v1/search/discovery", None).await;
+        let response = app
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/v1/search/discovery")
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            native.status,
+            if upstream_status == 200 { 200 } else { 502 }
+        );
+        assert_eq!(response.status().as_u16(), native.status);
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 2);
+        if upstream_status == 200 {
+            assert_eq!(native.body["data"]["guesses"][0]["query"], "合成发现词");
+            assert_eq!(
+                native.body["data"]["boards"][0]["items"][0]["series_id"],
+                "90071992547409931234"
+            );
+        }
+    }
 }

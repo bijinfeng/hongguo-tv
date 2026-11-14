@@ -13,6 +13,7 @@ const DETAIL_LIMIT: usize = 12 * 1024 * 1024;
 #[derive(Clone)]
 pub struct CatalogClient {
     http: Client,
+    discovery: super::discovery::Discovery,
     origin: Url,
     attempt_timeout: Duration,
     total_timeout: Duration,
@@ -57,13 +58,21 @@ impl CatalogClient {
             .connect_timeout(Duration::from_secs(5))
             .build()
             .map_err(|_| CatalogError::Configuration)?;
+        let discovery =
+            super::discovery::Discovery::new((origin.scheme() == "http").then(|| origin.as_str()))?;
         Ok(Self {
             http,
+            discovery,
             origin,
             attempt_timeout: Duration::from_secs(5),
             total_timeout: Duration::from_secs(12),
             retry_delay: Duration::from_millis(200),
         })
+    }
+
+    /// Read the independent anonymous public search-page snapshot.
+    pub async fn search_discovery(&self) -> Result<super::SearchDiscovery, CatalogError> {
+        self.discovery.get().await
     }
 
     /// Query one validated website page. Dropping the future cancels pending work and retries.

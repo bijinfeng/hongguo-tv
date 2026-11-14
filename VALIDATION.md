@@ -355,3 +355,14 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - Web 图形宿主最终 15/15（`host-web-final.log`），两种批准尺寸浅深及既有原生键盘恢复通过，固定截图 `web/`。Mac 专属 Search 交接专项仅在实际 macOS 注册，浏览器不会因 open 的 platform 参数启用 macOS 生产分支。TV fixture 浅／深／字体1.3三组浏览108项、播放器72项通过（`host-tv-first.log`）；最近词使用 DPAD，清除／重试等仍为 Accessibility ACTION_CLICK，不扩大为全链 DPAD。恢复后重新拉取设备 APK 比对实际 SHA256 `140304dd98b1b37dc8f7a706278b9ecf7efdc73d00c5acd884aaa0df893a8327`，night yes／font_scale 1.0／reverse 空，与保存状态一致（`tv-before.json`、`tv-restored.json`）。
 - 原始失败保留：Mac 第一轮测试读取运行器平台走错 Web 分支，第二轮五次 Tab 落到清除搜索；显式 host 与实际六次 Tab 后，第三轮末页已过但新增夹具在完成时点击驱动按钮先失焦，第四轮改为先预约驱动、再聚焦真实操作后全过。早期 headless type/paste 不可靠地产生 blur，已以真实 Shift+Tab／逐键输入替代，后续控件专项2/2及完整 verify 全过。Web 首轮误注册 Mac 专项导致15/16，按实际 host 限定后最终15/15；这些失败均不记通过。
 - 独立功能与 UI 审查报告在 `artifacts/mac-pagination-focus/{function-review,ui-review}.md`。按钮半径、字号、间距、对齐、浅深颜色与 hover／pressed／selected／disabled／loading／error／focus 沿用同一 Button，未新增标签、布局或位移动效。图形宿主行为和截图不等于独立鼠标设备、VoiceOver／TalkBack、逐帧动画或物理遥控验收。C3.2 真实 Mac 独立官网观看／重启续播、字体缩放、辅助技术、实际全屏、安全阻塞及正式发行继续开放。
+
+### D3 · 匿名搜索发现核心与 API（2026-11-14）
+
+- 本批只完成 Rust 匿名 public-plan、Medusa 签名、受限发现 DTO 与 HTTP/native `/api/v1/search/discovery`，没有改共享页面、原型或 NSH 控件；消费端发现 UI、输入联想／推荐频道仍开放。注册使用独立临时设备；只重新构造 install_id Cookie，不发送账号、历史、搜索词或注册返回的其他 Cookie，不借用播放身份／失败冷却。
+- 固定合成签名向量覆盖 IV／SM3／F13／protobuf／Helios／Gorgon、四个 AESV3 分支及最终 Medusa。只复用匹配的 crate-private 原语，既有播放测试保留。来源文件哈希与向量说明在 `contracts/fixtures/discovery/`；JSON 仅格式化，值与只读参考一致，未运行 Go。
+- 解析只访问已知 wrapper／cell，精确保留数字 ID、原始排名和关键词非播放身份；每类榜最多6条、建议最多4条。2MiB body／字符串预算、深度8、单数组128、遍历1024、封面HTTPS域名白名单均有回归。独立功能审查发现 code=0 内部 error_code 失败会被误当空结果，已修复并补回归；失败不回显上游正文。
+- 单一6秒期限覆盖锁等待、注册和 plan；实例 clone 共享缓存并合并并发读取，有内容600秒，空／错误60秒。锁等待超时不改其他请求的缓存；持锁抓取超时缓存为稳定错误，drop／abort不写取消缓存。fixture 验证注册／plan取消关闭连接与后续重试、超时缓存到期恢复、签名请求隐私，以及HTTP/native成功／403／500响应一致；非空query、POST／native body和HTTP GET body均在联网前拒绝。
+- 显式 Rust 匿名探针 `discovery_probe -- --anonymous-live` 成功：3条建议、1个榜单（短剧0、漫剧6），仅打印计数，不记录原始数据／身份；见 `artifacts/search-discovery-core/live-probe-first.log`。这是一次真实可用性证据，不代表所有推荐频道、账号或真实宿主消费已验收。
+- 自动验证与独立审查证据集中于 `artifacts/search-discovery-core/`。首次 verify 仅因复制向量的JSON格式失败，修正空白后重跑，未改向量值；clippy-first 因shell未发现Cargo未执行，随后使用固定工具路径且零警告通过。完整工程最终状态见本段下方记录。
+- 本批没有可见UI变化，UI审查仅核对范围／定稿后续映射，未重跑鼠标、TV或安装包，不计为新增宿主验收。C3.2真实Mac独立官网观看／重启续播、字号／辅助技术、物理电视与遥控、实际全屏、安全和正式发行继续开放；不推送、归档或发布，并行品牌／设计文档保留。
+- 完整 `verify-second.log` exit0：Rust 116/116（0跳过）、工程工具21/21、Web／Desktop／TV UI 36/34/35，三端check与build、fmt／lint／codegen和release基础检查通过。独立功能与UI范围审查结论在同目录review文件；无未解决本批阻塞。该结果不扩展到上述未验证宿主／安全／发行项。

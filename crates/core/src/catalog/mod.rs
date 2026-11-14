@@ -1,6 +1,10 @@
 //! Anonymous website catalog with bounded, cancellable requests and stable wire DTOs.
 mod client;
+mod discovery;
 mod parse;
+pub use discovery::{
+    DiscoveryBoard, DiscoveryBoardKind, DiscoveryItem, SearchDiscovery, parse_discovery,
+};
 
 pub use client::CatalogClient;
 
