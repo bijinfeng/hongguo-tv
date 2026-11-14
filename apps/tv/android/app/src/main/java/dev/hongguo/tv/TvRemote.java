@@ -50,6 +50,9 @@ final class TvRemote extends View {
     private View observedPageRoot;
     private boolean restoringPage;
     private long focusIntent;
+    private String browseSection;
+    private View browseSectionRoot;
+    private boolean enteringSection;
 
     TvRemote(Context context, NshView root) {
         super(context);
@@ -71,7 +74,7 @@ final class TvRemote extends View {
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if ((root.isFocused() && !(current instanceof EditText)) || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
+            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
@@ -148,6 +151,11 @@ final class TvRemote extends View {
         if (!view.getGlobalVisibleRect(visible)) return;
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
         String id = node == null ? null : node.getViewIdResourceName();
+        if (id != null && id.startsWith("browse-section-")) {
+            if (browseSection != null && !browseSection.equals(id)) enteringSection = within(current, view);
+            browseSection = id;
+            browseSectionRoot = view;
+        }
         if (id != null && id.matches("navigation-page-[0-9]{1,3}")) {
             observedPageDepth = Integer.parseInt(id.substring("navigation-page-".length()));
             observedPageRoot = view;
@@ -247,6 +255,17 @@ final class TvRemote extends View {
                 }
             }
         }
+        if (root.findFocus() instanceof EditText) enteringSection = false;
+        if (enteringSection) {
+            // Native focus can jump to chrome before the new content is laid out.
+            for (View target : targets) {
+                if (within(target, browseSectionRoot) && target.createAccessibilityNodeInfo().isSelected()) {
+                    enteringSection = false;
+                    select(target, targets);
+                    return;
+                }
+            }
+        }
         View focused = root.findFocus();
         View source = null;
         SavedFocus waitingSource = null;
@@ -298,6 +317,15 @@ final class TvRemote extends View {
             try { current.requestFocus(); } finally { selecting = false; }
         }
         // Pre-draw owns geometry invalidation. An unresolved source must not schedule a render loop.
+    }
+
+    private boolean within(View view, View ancestor) {
+        for (View candidate = view; candidate != null;) {
+            if (candidate == ancestor) return true;
+            android.view.ViewParent parent = candidate.getParent();
+            candidate = parent instanceof View ? (View) parent : null;
+        }
+        return false;
     }
 
     private View resurfaced(SavedFocus saved, List<View> targets) {
@@ -419,6 +447,7 @@ final class TvRemote extends View {
     void noteFocusIntent() {
         focusIntent++;
         targets();
+        enteringSection = false;
         cancelPageRestoration();
         root.send("focus-intent", "");
     }

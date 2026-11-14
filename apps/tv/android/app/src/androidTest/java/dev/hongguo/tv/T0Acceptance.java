@@ -89,6 +89,10 @@ public final class T0Acceptance extends Instrumentation {
             new BrowsingAcceptance(this, arguments.getString("appearance", "light")).runCategory();
             return;
         }
+        if ("feed".equals(arguments.getString("suite"))) {
+            new BrowsingAcceptance(this, arguments.getString("appearance", "light")).runFeed();
+            return;
+        }
         if ("browsing".equals(arguments.getString("suite"))) {
             new BrowsingAcceptance(this, arguments.getString("appearance", "light")).run();
             return;

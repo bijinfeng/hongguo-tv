@@ -1,6 +1,7 @@
 import { cleanup, View, keymap, reduceMotion, type ImageAsset } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
 import { currentWindow, isAvailable } from 'nsh/desktop';
+import { BackHandler } from 'nsh/mobile';
 import {
   Button,
   CardControls,
@@ -20,6 +21,7 @@ import { Player } from './pages/Player';
 import { History } from './pages/History';
 import { Account } from './pages/Account';
 import { Home } from './pages/Home';
+import { Feed } from './pages/Feed';
 import type { PlaybackCommandSource } from './playback';
 
 function Navigation(props: { store: Store }) {
@@ -36,9 +38,23 @@ function Navigation(props: { store: Store }) {
         variant="navigation"
         icon={props.store.target === 'desktop' ? 'home' : undefined}
         label={props.store.target === 'tv' ? '精选' : '首页'}
-        selected={props.store.activePage('home')}
+        selected={
+          props.store.activePage('home') ||
+          (props.store.target === 'tv' && props.store.activePage('feed'))
+        }
         onPress={() => props.store.navigate('home')}
       />
+      <If when={props.store.target === 'desktop'}>
+        <Button
+          testID="nav-feed"
+          buttonRef={(ref) => props.store.primaryRef('feed', ref)}
+          variant="navigation"
+          icon="play"
+          label="刷剧"
+          selected={props.store.activePage('feed')}
+          onPress={() => props.store.navigate('feed')}
+        />
+      </If>
       <Button
         testID="nav-discover"
         buttonRef={(ref) => props.store.primaryRef('discover', ref)}
@@ -63,7 +79,7 @@ function Navigation(props: { store: Store }) {
 function Browse(props: { store: Store }) {
   // Keep page-local lists, anchors and refs alive; hidden sections have no input targets.
   return (
-    <View class="flex-1">
+    <View testID={`browse-section-${props.store.section()}`} class="flex-1">
       <View class={props.store.section() === 'home' ? 'flex-1' : 'hidden'}>
         <Home store={props.store} />
       </View>
@@ -75,6 +91,9 @@ function Browse(props: { store: Store }) {
       </View>
       <View class={props.store.section() === 'history' ? 'flex-1' : 'hidden'}>
         <History store={props.store} />
+      </View>
+      <View class={props.store.section() === 'feed' ? 'flex-1' : 'hidden'}>
+        <Feed store={props.store} />
       </View>
     </View>
   );
@@ -161,9 +180,7 @@ function Pages(props: { store: Store }) {
 }
 function DesktopShell(props: { store: Store; logoMark: ImageAsset }) {
   const window = isAvailable ? currentWindow() : undefined;
-  const cinema = () =>
-    props.store.nav.routes().at(-1)?.name === 'player' &&
-    window?.state()?.placement.mode === 'fullScreen';
+  const cinema = () => props.store.playing() && window?.state()?.placement.mode === 'fullScreen';
   return (
     <View class="flex-1 flex-row">
       <View
@@ -264,6 +281,15 @@ export function App(props: {
 }) {
   const store = createStore(props.target, props.subscribePlayerCommands, props.subscribeFocus);
   cleanup(() => props.onShutdown?.(store.shutdown()));
+  // The Web runtime does not expose native back listeners.
+  if (typeof BackHandler?.on === 'function')
+    cleanup(
+      BackHandler.on('press', () => {
+        if (!store.activePage('feed')) return false;
+        store.back();
+        return true;
+      }),
+    );
   keymap.bind('escape', store.back, { when: 'notEditing' });
   keymap.bind(
     { tab: store.noteFocusIntent, 'shift+tab': store.noteFocusIntent },

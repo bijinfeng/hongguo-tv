@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { root } from './process.mjs';
 
 /** Acceptance-only HTTP fixture; never imported or started by a product entry. */
-export async function browsingFixture({ discovery = 'populated' } = {}) {
+export async function browsingFixture({ discovery = 'populated', feed = false } = {}) {
   if (!['populated', 'failure-then-empty'].includes(discovery))
     throw new Error('Unknown discovery fixture scenario');
   const requests = [];
@@ -13,6 +13,13 @@ export async function browsingFixture({ discovery = 'populated' } = {}) {
   let clearAttempts = 0;
   let discoveryReads = 0;
   const categoryRetries = new Set();
+  const feedRetries = new Set();
+  const writes = [];
+  const samples = feed
+    ? await Promise.all(
+        ['a', 'b'].map((name) => readFile(resolve(root, `apps/tv/fixtures/t0-${name}.mp4`))),
+      )
+    : [];
   let origin;
   const episodes = Array.from({ length: 75 }, (_, i) => ({
     index: i + 1,
@@ -48,6 +55,106 @@ export async function browsingFixture({ discovery = 'populated' } = {}) {
         .writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
         .end(JSON.stringify(status === 200 ? { ok: true, data } : { ok: false, error: data }));
     };
+    if (feed && url.pathname.startsWith('/minireel-proxy/media/')) {
+      const token = url.pathname.split('/').at(-1);
+      const sample =
+        token === 'a'.repeat(64) ? samples[0] : token === 'b'.repeat(64) ? samples[1] : undefined;
+      if (!sample || !['GET', 'HEAD'].includes(req.method))
+        return reply('Unknown fixture media', 404);
+      let start = 0,
+        end = sample.length - 1;
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Accept-Ranges', 'bytes');
+      if (req.headers.range) {
+        const range = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range);
+        if (
+          !range ||
+          Number(range[1]) >= sample.length ||
+          (range[2] && Number(range[2]) < Number(range[1]))
+        ) {
+          res.writeHead(416, { 'Content-Range': `bytes */${sample.length}` }).end();
+          return;
+        }
+        start = Number(range[1]);
+        end = range[2] ? Math.min(Number(range[2]), end) : end;
+        res.statusCode = 206;
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${sample.length}`);
+      }
+      res.setHeader('Content-Length', end - start + 1);
+      res.end(req.method === 'HEAD' ? undefined : sample.subarray(start, end + 1));
+      return;
+    }
+    if (feed && url.pathname === '/api/v1/lists/recommend') {
+      const channel = url.searchParams.get('channel');
+      const more = url.searchParams.has('offset');
+      const offset = Number(url.searchParams.get('offset') || 0);
+      const retryKey = `${channel}:${offset}`;
+      if (channel === '16' && !more) feedRetries.clear();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (
+        ((channel === '39' && !more) || (channel === '16' && offset === 6)) &&
+        !feedRetries.has(retryKey)
+      ) {
+        feedRetries.add(retryKey);
+        return reply('推荐暂时不可用', 503);
+      }
+      const ids =
+        channel === '39'
+          ? more
+            ? [300]
+            : []
+          : channel === '36'
+            ? more
+              ? [101, 102]
+              : [100, 101]
+            : !more
+              ? [0, 1]
+              : offset === 6
+                ? []
+                : [1, 2];
+      return reply({
+        channel,
+        items: ids.map((i) => {
+          const value = drama(i);
+          delete value.episodes;
+          return value;
+        }),
+        has_more: channel === '16' ? offset < 12 : !more,
+        next_offset: channel !== '16' && !more ? 0 : offset + 6,
+        feed_cell: '123',
+        feed_plan: '456',
+        session_id: `fixture-feed-${channel}-${offset}`,
+        diagnostics: {},
+      });
+    }
+    if (feed && url.pathname === '/api/v1/play/info')
+      return reply({
+        path:
+          '/minireel-proxy/media/' +
+          (url.searchParams.get('vid') === '1001' ? 'b' : 'a').repeat(64),
+        vid: url.searchParams.get('vid'),
+        quality: '720P',
+        qualities: ['720P'],
+      });
+    if (feed && url.pathname === '/api/v1/play/release') return reply({ released: true });
+    if (feed && url.pathname === '/api/v1/library' && req.method === 'POST') {
+      let body = '';
+      for await (const chunk of req) {
+        body += chunk;
+        if (body.length > 65536) return reply('Fixture request too large', 413);
+      }
+      try {
+        const change = JSON.parse(body);
+        record.body = change;
+        writes.push(change);
+      } catch {
+        return reply('Invalid fixture JSON', 400);
+      }
+      return reply({
+        owner_id: '',
+        entries: writes.slice(-1).map((entry) => ({ ...entry, last_played_at: Date.now() / 1000 })),
+      });
+    }
     if (url.pathname === '/api/v1/category') {
       if (req.method !== 'GET' || url.searchParams.has('q'))
         return reply('Invalid category input', 400);
@@ -260,5 +367,14 @@ export async function browsingFixture({ discovery = 'populated' } = {}) {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
-  return { origin, requests, close: () => new Promise((resolve) => server.close(resolve)) };
+  return {
+    origin,
+    requests,
+    writes,
+    close: () =>
+      new Promise((resolve) => {
+        server.closeAllConnections();
+        server.close(resolve);
+      }),
+  };
 }

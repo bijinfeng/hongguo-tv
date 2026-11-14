@@ -27,12 +27,25 @@ export function Discover(props: { store: Store }) {
       class={`flex-1 gap-7 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
       style={props.store.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
     >
-      <Text
-        class="text-3xl font-semibold text-foreground"
-        style={props.store.target === 'tv' ? { fontSize: tvUnit(38) } : undefined}
-      >
-        {props.store.target === 'tv' ? '找剧' : '找一部想看的'}
-      </Text>
+      <View class="flex-row items-center justify-between">
+        <Text
+          class="text-3xl font-semibold text-foreground"
+          style={props.store.target === 'tv' ? { fontSize: tvUnit(38) } : undefined}
+        >
+          {props.store.target === 'tv' ? '找剧' : '找一部想看的'}
+        </Text>
+        <If when={props.store.target === 'tv'}>
+          <Button
+            label="刷剧"
+            icon="play"
+            testID="discover-feed"
+            onPress={() => {
+              props.store.navigate('feed');
+              props.store.restoreFocus();
+            }}
+          />
+        </If>
+      </View>
       <View class={props.store.target === 'tv' ? 'flex-row gap-4' : 'gap-3'}>
         <Each of={dimensions} key={(dimension) => dimension.key}>
           {(dimension) => (

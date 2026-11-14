@@ -226,6 +226,15 @@ export function SearchInput(props: {
     />
   );
 }
+/** One arrival per content identity, without adding a surface or replaying on progress ticks. */
+export function ContentArrival(props: { children?: JSX.Element; class?: string }) {
+  const motion = entrance();
+  return (
+    <View class={props.class} style={reduceMotion() ? undefined : motion.style}>
+      {props.children}
+    </View>
+  );
+}
 export function Surface(props: { children?: JSX.Element; class?: string }) {
   const motion = entrance();
   return (

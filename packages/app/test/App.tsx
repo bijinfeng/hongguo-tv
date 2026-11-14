@@ -1,3 +1,5 @@
+import { registerFeedUiTests } from './feed-ui';
+import { registerFeedTests } from './feed';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 import { registerCategoryTests } from './category';
@@ -38,6 +40,8 @@ function fixture(request: StubRequest): StubResponse {
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
   registerCategoryTests();
+  registerFeedTests();
+  registerFeedUiTests(target, entry);
   test('typed suggestions validate Unicode, debounce composition, cancel superseded/dismissed/inactive/disposed reads and retry', async () => {
     const app = await open('./SuggestionsStatePreview.tsx', { clock: {} });
     await app.press('验证输入');

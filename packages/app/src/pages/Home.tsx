@@ -104,6 +104,17 @@ export function Home(props: { store: Store }) {
             )}
           </If>
         </If>
+        <View class="items-start">
+          <Button
+            label={props.store.target === 'tv' ? '刷剧' : '刷一部短剧'}
+            icon="play"
+            testID="home-feed"
+            onPress={() => {
+              props.store.navigate('feed');
+              props.store.restoreFocus();
+            }}
+          />
+        </View>
       </View>
     </Scroll>
   );

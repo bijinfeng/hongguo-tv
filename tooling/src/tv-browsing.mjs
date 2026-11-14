@@ -8,8 +8,8 @@ import { tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const suite = process.argv[2] || 'browsing';
-if (!['browsing', 'player', 'suggestions', 'category'].includes(suite))
-  throw new Error('Expected browsing|player|suggestions|category');
+if (!['browsing', 'player', 'suggestions', 'category', 'feed'].includes(suite))
+  throw new Error('Expected browsing|player|suggestions|category|feed');
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
 const devices = output(adb, ['devices'])
   .split('\n')
@@ -39,13 +39,15 @@ if (
   throw new Error('Requires the pinned TV API 34 emulator.');
 const artifacts = resolve(
   root,
-  suite === 'category'
-    ? 'artifacts/category-ui/tv'
-    : suite === 'player'
-      ? 'artifacts/playback/tv-apk'
-      : suite === 'suggestions'
-        ? 'artifacts/typed-search-ui/tv'
-        : 'artifacts/browsing/tv',
+  suite === 'feed'
+    ? 'artifacts/feed-ui/tv'
+    : suite === 'category'
+      ? 'artifacts/category-ui/tv'
+      : suite === 'player'
+        ? 'artifacts/playback/tv-apk'
+        : suite === 'suggestions'
+          ? 'artifacts/typed-search-ui/tv'
+          : 'artifacts/browsing/tv',
 );
 await mkdir(artifacts, { recursive: true });
 const runtime = resolve(root, 'apps/tv/runtime.generated.json');
@@ -54,7 +56,9 @@ let reversed = false;
 const mode = device(['shell', 'cmd', 'uimode', 'night']).match(/Night mode: (\S+)/)?.[1];
 const scale = device(['shell', 'settings', 'get', 'system', 'font_scale']);
 if (!mode) throw new Error('Cannot read TV appearance');
-const fixture = await (suite === 'player' ? playerFixture() : browsingFixture());
+const fixture = await (suite === 'player'
+  ? playerFixture()
+  : browsingFixture({ feed: suite === 'feed' }));
 const port = new URL(fixture.origin).port;
 console.log(`TV ${suite} fixture: ${fixture.origin}`);
 const errors = [];
@@ -111,13 +115,15 @@ try {
     console.log(report);
     if (
       !report.includes(
-        suite === 'category'
-          ? 'TV category acceptance: 25 checks passed'
-          : suite === 'player'
-            ? 'TV player acceptance: 24 checks passed'
-            : suite === 'suggestions'
-              ? 'TV suggestions acceptance: 25 checks passed'
-              : 'TV browsing acceptance: 71 checks passed',
+        suite === 'feed'
+          ? 'TV feed acceptance: 23 checks passed'
+          : suite === 'category'
+            ? 'TV category acceptance: 25 checks passed'
+            : suite === 'player'
+              ? 'TV player acceptance: 24 checks passed'
+              : suite === 'suggestions'
+                ? 'TV suggestions acceptance: 25 checks passed'
+                : 'TV browsing acceptance: 71 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {
@@ -138,33 +144,35 @@ try {
         ]);
       throw new Error(`${appearance} business acceptance failed`);
     }
-    for (const screen of suite === 'category'
-      ? ['category', 'category-popup', 'category-return', 'category-error', 'category-empty']
-      : suite === 'player'
-        ? ['paused', 'preview', 'settings']
-        : suite === 'suggestions'
-          ? ['typed-suggestions', 'actor', 'actor-return', 'typed-validation', 'typed-dismissed']
-          : [
-              'home',
-              'search',
-              'detail',
-              'pagination-error',
-              'pagination-append',
-              'pagination-return',
-              'pagination-terminal',
-              'recent-populated',
-              'recent-error',
-              'recent-empty',
-              'discovery',
-              'discovery-return',
-              'discovery-keyword',
-              'history',
-              'typed-suggestions',
-              'actor',
-              'actor-return',
-              'typed-validation',
-              'typed-dismissed',
-            ])
+    for (const screen of suite === 'feed'
+      ? ['feed', 'feed-error', 'feed-empty', 'feed-next-error', 'feed-login', 'feed-player']
+      : suite === 'category'
+        ? ['category', 'category-popup', 'category-return', 'category-error', 'category-empty']
+        : suite === 'player'
+          ? ['paused', 'preview', 'settings']
+          : suite === 'suggestions'
+            ? ['typed-suggestions', 'actor', 'actor-return', 'typed-validation', 'typed-dismissed']
+            : [
+                'home',
+                'search',
+                'detail',
+                'pagination-error',
+                'pagination-append',
+                'pagination-return',
+                'pagination-terminal',
+                'recent-populated',
+                'recent-error',
+                'recent-empty',
+                'discovery',
+                'discovery-return',
+                'discovery-keyword',
+                'history',
+                'typed-suggestions',
+                'actor',
+                'actor-return',
+                'typed-validation',
+                'typed-dismissed',
+              ])
       await run(adb, [
         '-s',
         serial,
@@ -175,11 +183,18 @@ try {
   }
   if (
     suite !== 'player' &&
+    suite !== 'feed' &&
     fixture.requests.some(
       (request) => request.method === 'POST' && request.url !== '/api/v1/search/history',
     )
   )
     throw new Error('Browsing submitted progress');
+  if (
+    suite === 'feed' &&
+    (!fixture.writes.some((write) => write.position > 0) ||
+      fixture.writes.some((write) => write.drama?.series_id !== '125'))
+  )
+    throw new Error('Feed preview wrote history or explicit playback did not save');
   if (
     suite === 'player' &&
     (!fixture.writes.some((write) => write.position > 0) ||

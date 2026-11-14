@@ -198,6 +198,77 @@ final class BrowsingAcceptance {
             runner.finish(Activity.RESULT_CANCELED, result);
         }
     }
+    void runFeed() {
+        Bundle result = new Bundle();
+        try {
+            Intent launch = runner.getTargetContext().getPackageManager().getLeanbackLaunchIntentForPackage(runner.getTargetContext().getPackageName());
+            activity = runner.startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+            check("feed home entry", () -> findId(root(), "home-feed") != null);
+            focusAndConfirm("home-feed");
+            check("feed channel focus is visible", () -> focusedId("feed-channel-16"));
+            check("TV previews without opening player", () -> has("重生之后") && has("进入全屏观看") && findId(root(), "player") == null);
+            screenshot("feed");
+            key(KeyEvent.KEYCODE_DPAD_RIGHT); confirm();
+            check("real channel failure stays explicit", () -> has("加载失败：推荐暂时不可用"));
+            screenshot("feed-error");
+            click("重试");
+            check("empty first page can continue to cell zero", () -> has("本页暂无内容，可以继续浏览"));
+            screenshot("feed-empty");
+            click("继续浏览");
+            check("cell zero provides real channel story", () -> has("重生之后 301"));
+            focusAndConfirm("feed-channel-36");
+            check("comic channel has independent current story", () -> has("重生之后 101"));
+            focusAndConfirm("feed-next");
+            check("next changes only TV preview", () -> has("重生之后 102") && findId(root(), "player") == null);
+            confirm();
+            check("next retains remote focus through continuation", () -> has("重生之后 103"));
+            focusAndConfirm("feed-channel-16");
+            check("return restores recommendation story", () -> has("重生之后"));
+            focusAndConfirm("feed-next");
+            check("queued next needs no new first page", () -> has("重生之后 2"));
+            confirm();
+            check("failed continuation retains current story", () -> has("重试下一部") && has("重生之后 2"));
+            screenshot("feed-next-error");
+            confirm();
+            check("empty advancing page keeps current story", () -> has("下一部") && !has("重试下一部") && has("重生之后 2"));
+            confirm();
+            check("terminal continuation deduplicates", () -> has("重生之后 3"));
+            focusAndConfirm("feed-detail");
+            check("feed details keep exact story", () -> has("重生之后 3") && has("第 1 集"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("details return source focus", () -> focusedId("feed-detail") && has("进入全屏观看"));
+            focusAndConfirm("feed-channel-45");
+            check("following is a login gate", () -> has("登录后查看关注") && findId(root(), "player") == null);
+            screenshot("feed-login");
+            focusAndConfirm("feed-channel-16");
+            check("login gate preserves prior current story", () -> has("重生之后 3"));
+            focusAndConfirm("feed-play");
+            check("explicit play enters real media", () -> has("重生之后 3 · 第 1 集") && has("暂停"));
+            SystemClock.sleep(1500);
+            key(KeyEvent.KEYCODE_MEDIA_PAUSE);
+            check("media key pauses full-screen owner", () -> has("播放"));
+            screenshot("feed-player");
+            key(KeyEvent.KEYCODE_BACK); key(KeyEvent.KEYCODE_BACK);
+            check("player returns to same feed and play source", () -> has("重生之后 3") && focusedId("feed-play"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("preview back returns home", () -> has("精选") && findId(root(), "home-feed") != null);
+            key(KeyEvent.KEYCODE_BACK);
+            check("home root back keeps system exit", () -> activity.isFinishing() || !has("精选"));
+            result.putString("stream", "TV feed acceptance: " + checks + " checks passed\n");
+            runner.finish(Activity.RESULT_OK, result);
+        } catch (Throwable error) {
+            try { screenshot("failure"); } catch (Exception ignored) { /* Keep assertion. */ }
+            try {
+                StringBuilder tree = new StringBuilder();
+                runner.runOnMainSync(() -> dump(activity.getWindow().getDecorView(), tree, ""));
+                try (FileOutputStream out = new FileOutputStream(new File(runner.getTargetContext().getExternalFilesDir(null), "failure-" + appearance + ".txt"))) {
+                    out.write(tree.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+            } catch (Exception ignored) { /* Keep assertion. */ }
+            result.putString("stream", "FAIL " + error + " after " + checks + " checks\n");
+            runner.finish(Activity.RESULT_CANCELED, result);
+        }
+    }
     void run() { run(false); }
     void run(boolean typedOnly) {
         Bundle result = new Bundle();

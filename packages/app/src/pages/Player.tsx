@@ -137,12 +137,29 @@ function MediaView(props: {
   );
 }
 
-export function Player(props: { drama: Drama; episode: Episode; store: Store; active?: boolean }) {
+export type PlayerCheckpoint = { position: number; paused: boolean };
+export function Player(props: {
+  drama: Drama;
+  episode: Episode;
+  store: Store;
+  active?: boolean;
+  /** Feed owns story/episode navigation; media and progress still belong to this player. */
+  feed?: {
+    checkpoint?: PlayerCheckpoint;
+    onCheckpoint: (checkpoint: PlayerCheckpoint) => void;
+    onEpisode: (episode: Episode) => void;
+    onLeave: () => void;
+    onNext: () => void;
+    nextLabel: string;
+    nextDisabled: boolean;
+    nextRef: (ref: ViewRef) => void;
+  };
+}) {
   const tv = props.store.target === 'tv';
   const media = signal<Representation | undefined>(undefined);
   const preparing = signal(true);
   const loaded = signal(false);
-  const paused = signal(false);
+  const paused = signal(props.feed?.checkpoint?.paused ?? false);
   const completed = signal(false);
   const position = signal(0);
   const duration = signal(0);
@@ -157,7 +174,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   const menuOpen = signal(false);
   const layer = signal<TvLayer>('controls');
   const preview = signal<number | undefined>(undefined);
-  const keyboardEngaged = signal(false);
+  const keyboardEngaged = signal(!!props.feed);
   const interaction = signal(0);
   const window = isAvailable ? currentWindow() : undefined;
   const fullScreen = () => window?.state()?.placement.mode === 'fullScreen';
@@ -167,7 +184,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   let panelRef: ViewRef | undefined;
   let moreRef: ViewRef | undefined;
   let stageRef: ViewRef | undefined;
-  let restorePosition = 0;
+  let restorePosition = props.feed?.checkpoint?.position ?? 0;
   let seekingTo: number | undefined;
   let hadBackground = false;
   let firstLoad = true;
@@ -175,6 +192,13 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   const session = progressSession((time, total, finished) => {
     void props.store.save(props.drama, props.episode, time, total, finished);
   });
+  const checkpoint = () => {
+    session.save();
+    props.feed?.onCheckpoint({
+      position: loaded() ? position() : restorePosition,
+      paused: paused(),
+    });
+  };
   const lease = playbackLease<Media>({
     pending() {
       video = undefined;
@@ -212,8 +236,8 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   const enabled = () => loaded() && !error() && !preparing();
   const active = () => props.active !== false;
   const refresh = () => {
-    session.save();
-    restorePosition = position();
+    checkpoint();
+    if (!firstLoad) restorePosition = position();
     preview.set(undefined);
     void lease.prepare((abort) => play(props.drama, props.episode, abort, { quality: quality() }));
   };
@@ -237,8 +261,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       closePanel();
       return;
     }
-    session.save();
-    props.store.nav.replace({ name: 'player', drama: props.drama, episode });
+    checkpoint();
+    if (props.feed) props.feed.onEpisode(episode);
+    else props.store.nav.replace({ name: 'player', drama: props.drama, episode });
   };
   const nextEpisode = () => {
     const episode = next();
@@ -252,7 +277,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       completed.set(false);
     }
     paused.update((value) => !value);
-    if (paused()) session.save();
+    if (paused()) checkpoint();
     interaction.update((value) => value + 1);
   };
   const closePanel = () => {
@@ -277,9 +302,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     requestAnimationFrame(() => stageRef?.focus());
   };
   const leave = () => {
-    session.save();
+    checkpoint();
     if (fullScreen()) window?.setMode(previousMode);
-    props.store.nav.pop();
+    if (props.feed) props.feed.onLeave();
+    else props.store.nav.pop();
   };
   const back = () => {
     if (panel()) {
@@ -305,8 +331,12 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     }
     leave();
   };
-  cleanup(props.store.registerPlayerBack(back));
-  cleanup(props.store.registerPlayerCheckpoint(session.save));
+  effect(() => {
+    if (active()) return props.store.registerPlayerBack(back);
+  });
+  effect(() => {
+    if (active()) return props.store.registerPlayerCheckpoint(checkpoint);
+  });
   const previewSeek = (delta: number) => {
     if (!enabled()) {
       showControls();
@@ -319,8 +349,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     if (preview() !== undefined) seek(preview()!);
     showControls();
   };
-  cleanup(
-    props.store.registerPlayerCommand((command) => {
+  effect(() => {
+    if (!active()) return;
+    return props.store.registerPlayerCommand((command) => {
       if (!active() || lifecycle() !== 'active' || panel() || more() || menuOpen()) return;
       if (command === 'reveal') showControls();
       else if (command === 'preview-back') previewSeek(-10);
@@ -336,8 +367,8 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       } else if (command === 'next') nextEpisode();
       else if (command === 'seek-back') seek(position() - 10);
       else if (command === 'seek-forward') seek(position() + 10);
-    }),
-  );
+    });
+  });
   const fullscreen = () => {
     if (!window) return;
     if (fullScreen()) window.setMode(previousMode);
@@ -352,7 +383,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     untracked(() => {
       if (!foreground) {
         paused.set(true);
-        session.save();
+        checkpoint();
         if (lifecycle() === 'background' || !active()) {
           hadBackground = true;
           restorePosition = position();
@@ -362,9 +393,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           preparing.set(false);
         }
       } else if (firstLoad || hadBackground) {
-        firstLoad = false;
         hadBackground = false;
         refresh();
+        firstLoad = false;
       }
     });
   });
@@ -427,14 +458,14 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     return () => removers.forEach((remove) => remove());
   });
   cleanup(() => {
-    session.save();
+    checkpoint();
     lease.dispose();
     if (fullScreen()) window?.setMode(previousMode);
   });
 
   return (
     <View testID="player" class={tv ? 'flex-1 bg-cinema' : 'flex-1'}>
-      <If when={!tv && !fullScreen()}>
+      <If when={!tv && !fullScreen() && !props.feed}>
         <View class="px-10 pt-6 pb-5 gap-4 items-start">
           <Button label="返回" variant="quiet" compact icon="back" onPress={leave} />
           <Text class="text-2xl font-semibold text-foreground">
@@ -447,8 +478,8 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
         contentStyle={{
           width: '100%',
           flexGrow: 1,
-          paddingHorizontal: tv || fullScreen() ? 0 : 40,
-          paddingBottom: tv || fullScreen() ? 0 : 40,
+          paddingHorizontal: tv || fullScreen() || props.feed ? 0 : 40,
+          paddingBottom: tv || fullScreen() || props.feed ? 0 : 40,
         }}
       >
         <View class="flex-1 flex-row gap-6 items-start">
@@ -468,7 +499,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                     ? windowSize().height
                     : fullScreen()
                       ? Math.max(0, windowSize().height - 96)
-                      : 456,
+                      : props.feed
+                        ? 520
+                        : 456,
                 }}
               >
                 <Each of={media() ? [media()!] : []} key={(value) => value.revision}>
@@ -752,10 +785,28 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
               </CinemaControls>
             </View>
             <If when={!tv && !fullScreen()}>
-              <View class="flex-row gap-3 pt-4">
+              <View class="flex-row items-center gap-3 pt-4 flex-wrap">
+                <If when={props.feed}>
+                  <View class="gap-1 flex-1 min-w-0">
+                    <Text class="text-xl font-semibold text-foreground line-clamp-1">
+                      {props.drama.title}
+                    </Text>
+                    <Text class="text-sm text-muted-foreground">第 {props.episode.index} 集</Text>
+                  </View>
+                </If>
                 <Button label="收藏" disabled onPress={() => {}} />
                 <Button label="点赞" disabled onPress={() => {}} />
                 <Button label="追更" disabled onPress={() => {}} />
+                <If when={props.feed}>
+                  <Button
+                    testID="feed-next"
+                    label={props.feed!.nextLabel}
+                    icon="next"
+                    disabled={props.feed!.nextDisabled}
+                    buttonRef={props.feed!.nextRef}
+                    onPress={() => props.feed?.onNext()}
+                  />
+                </If>
               </View>
             </If>
             <If when={props.store.warning()}>

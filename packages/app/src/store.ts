@@ -30,7 +30,7 @@ import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } f
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
 
-export type Section = 'home' | 'discover' | 'search' | 'history';
+export type Section = 'home' | 'feed' | 'discover' | 'search' | 'history';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -49,6 +49,8 @@ export function createStore(
   const section = signal<Section>('home');
   const activePage = (name: Section) =>
     nav.routes().at(-1)?.name === 'browse' && section() === name;
+  const playing = () =>
+    nav.routes().at(-1)?.name === 'player' || (target === 'desktop' && activePage('feed'));
   const sources = new Map<number, () => void>();
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
@@ -69,8 +71,7 @@ export function createStore(
   if (subscribePlayerCommands)
     cleanup(
       subscribePlayerCommands((command) => {
-        if (nav.routes().at(-1)?.name === 'player' && isPlaybackCommand(command))
-          playerCommand?.(command);
+        if (playing() && isPlaybackCommand(command)) playerCommand?.(command);
       }),
     );
   cleanup(() => cancelAnimationFrame(frame));
@@ -213,9 +214,11 @@ export function createStore(
     nav,
     section,
     activePage,
+    playing,
+    request,
     navigate,
     back() {
-      if (nav.routes().at(-1)?.name === 'player' && playerBack) playerBack();
+      if (playing() && playerBack) playerBack();
       else if (nav.routes().length > 1) nav.pop();
       else if (section() === 'search' && searchSource === 'discover') {
         navigate('discover');
@@ -303,6 +306,9 @@ export function createStore(
       return () => owned === focusIntent;
     },
     restoreFocus,
+    rememberSource(restore: () => void) {
+      sources.set(nav.routes().length, restore);
+    },
     play(drama: Drama, episode: Episode, origin?: ViewRef) {
       if (origin) sources.set(nav.routes().length, () => origin.focus());
       nav.push({ name: 'player', drama, episode });
