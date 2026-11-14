@@ -168,30 +168,54 @@ async fn independent_connections_do_not_lose_concurrent_entries() {
     let tmp = Temp::new();
     let first = LibraryStore::open(tmp.db()).await.unwrap();
     let second = LibraryStore::open(tmp.db()).await.unwrap();
-    let mut jobs = Vec::new();
-    for index in 1..=20 {
-        let store = if index % 2 == 0 {
-            first.clone()
-        } else {
-            second.clone()
-        };
-        jobs.push(tokio::spawn(async move {
-            store
-                .apply(HistoryChange::Progress(Box::new(progress(
-                    &index.to_string(),
-                ))))
-                .await
-                .unwrap();
-        }));
-    }
-    for job in jobs {
-        job.await.unwrap();
+    // Keep two independent writers in flight. A burst of queued writes can exceed the
+    // documented busy timeout on slow durable storage without losing a commit.
+    for pair in 0..10 {
+        let (left, right) = tokio::join!(
+            first.apply(HistoryChange::Progress(Box::new(progress(
+                &(pair * 2 + 1).to_string(),
+            )))),
+            second.apply(HistoryChange::Progress(Box::new(progress(
+                &(pair * 2 + 2).to_string(),
+            )))),
+        );
+        left.unwrap();
+        right.unwrap();
     }
     assert_eq!(first.snapshot().await.unwrap().entries.len(), 20);
     assert_eq!(
         second.snapshot().await.unwrap(),
         first.snapshot().await.unwrap()
     );
+}
+
+#[tokio::test]
+async fn writer_contention_fails_without_losing_history_and_can_retry() {
+    let tmp = Temp::new();
+    let store = LibraryStore::open(tmp.db()).await.unwrap();
+    let baseline = store
+        .apply(HistoryChange::Progress(Box::new(progress("1"))))
+        .await
+        .unwrap();
+    let mut competing = Connection::open(tmp.db()).unwrap();
+    let writer = competing
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    assert_eq!(
+        store
+            .apply(HistoryChange::Progress(Box::new(progress("2"))))
+            .await,
+        Err(LibraryError::Storage),
+    );
+    assert_eq!(store.snapshot().await.unwrap(), baseline);
+    writer.rollback().unwrap();
+    let saved = store
+        .apply(HistoryChange::Progress(Box::new(progress("2"))))
+        .await
+        .unwrap();
+    assert_eq!(saved.entries.len(), 2);
+    assert!(saved.entries.contains(&baseline.entries[0]));
+    assert_eq!(store.snapshot().await.unwrap(), saved);
 }
 
 #[tokio::test]

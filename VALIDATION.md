@@ -491,3 +491,9 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 修复在隔离工作树 `/tmp/hongguo-github-build-fixes-2611c0b` 验证，避免混入并行提交和设计文档修改。setup 和最终完整 verify 均实际 exit 0：tooling 28／28、Rust 163／163、Web 52／52、Desktop 54／54、TV 55／55，三端 check／build、Clippy、格式／lint／codegen／发行基础通过；另在临时 HOME 下验证非标准 Cargo 路径回归通过。首轮 verify 因磁盘不足失败，使用 cargo clean 清理本轮临时 target 并复用已有缓存后重跑成功，日志分别为 `/tmp/hongguo-ci-fixes-verify.log` 与 `/tmp/hongguo-ci-fixes-verify-cached.log`；远端重跑另行追加。不是正式签名、N-1 → N、平台公证或物理 TV 验收。
 
 - 首次隔离树 pre-push 又暴露临时 Git 测试继承 hook 的 GIT_DIR：误把外层仓库初始化为 bare 并暂存 sample.txt，门禁失败而未推送。已将 core.bare 恢复 false、只撤销测试 sample.txt 的暂存，核对原工作树仍仅有原先设计文档修改。嵌套仓库与 hook 子进程统一清除 GIT_* 上下文；显式带外层 GIT_DIR／GIT_WORK_TREE／GIT_INDEX_FILE 执行 pnpm test:tooling，28／28 通过，外层 config 和 index 的 SHA256 前后相同。直接 node 调用的早期回归受临时 fixture 借用 node_modules 与 pnpm 自动依赖检查影响失败，按仓库 pnpm 入口运行通过，分别保留 git-env-test.log／git-env-tooling.log。后续仍通过正常 pre-push 完整验证，不跳过 hooks。
+
+### GitHub 第二轮与存储争锁验收（2026-11-14）
+
+- `ecbc72e`／`2d5fab2` 经正常 pre-push 全量 verify（268.88 秒，exit 0）推送；原工作树的 `b43633b` 与设计文档修改未混入。显式源码 SHA 的 [预览 43591710666](https://github.com/bijinfeng/hongguo-tv/actions/runs/43591710666) 正在构建两端原生包；一次 SHA 参数录入错误的运行 43591675389 已取消，没有形成候选。
+- [CI 43591614131](https://github.com/bijinfeng/hongguo-tv/actions/runs/43591614131)：Linux／macOS Rust 已通过，Windows Clippy 通过，后续并发历史测试在一次排队 20 次 FULL 同步写入时得到 Storage。现有接口明确使用 2 秒 busy timeout，并不承诺积压争锁永远无错；不能通过延长产品超时或降低持久化策略使测试变绿。测试改为每轮两个独立连接同时写入、仍核对 20 条记录；新增真实 SQLite 写锁下的超时不丢历史／解锁后重试验收。本地 library 专项 11／11、exit 0；强化原记录内容断言后仍需门禁复验。
+- 第二轮 security 日志仍为 5 项许可证策略拒绝及 ttf-parser unmaintained，bans／sources 通过；没有放宽策略。两端预览通过工具准备与 setup，正在独立 native 打包；workspace 和下载产物终态保存在 ignored `artifacts/client-updates/github/`，不把运行中状态记为通过。首轮桌面下载包实际启动原生窗口，账号→应用更新直接请求 Releases 的 latest.json，当前无 Release 返回 404；已关闭测试进程，未登录、播放或写入观看记录。
