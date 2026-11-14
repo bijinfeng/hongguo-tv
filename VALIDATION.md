@@ -474,3 +474,11 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - Android Java 编译及 `lintDebug`、独立 APK 打包通过；updater 复用锁定依赖，workspace Clippy 通过。3 份发行 workflow 经 actionlint 1.7.12 静态检查通过，共享 TV 工具 action 经 YAML 解析与人工核对；正式 publish 新增同 SHA 的 verify／security 前置门禁和上传前 tag 指向核对。上述结果不等于 GitHub runner 已执行。
 - `pnpm security` 实际失败：foldhash 两版本／zlib-rs 的 Zlib、webpki-roots 两版本的 CDLA-Permissive-2.0、winx 的 Apache-2.0 WITH LLVM-exception 共 6 项许可证拒绝，以及 bincode `RUSTSEC-2025-0141`、ttf-parser `RUSTSEC-2026-0192` 两项 unmaintained advisory；未改 allow／ignore 规避。独立 `pnpm audit --audit-level moderate` 无已知漏洞。完整日志 `artifacts/client-updates/logs/security.log`；安全门禁继续阻断正式发布。
 - 只读确认 `release-signing` 的 6 个 secret 名称存在；没有输出、提交私钥或凭据。检查时公开仓库尚无 Release。未验：远端 Actions、两版正式签名安装包升级、macOS 实际替换／重启／Developer ID 与公证、Android 真正系统授权／安装／取消／进程重启升级、物理 TV／硬解／长播、Windows／Linux、人工读屏和减少动态／逐帧动效。本批只做聚焦本地提交，保留其他设计文档修改，不推送或创建正式 Release；端到端自动更新仍待这些实际发布与安装证据。
+
+### 发行收尾 · 依赖图与首发 tag（2026-11-14）
+
+- 关闭应用 Rust 工作区未使用的 nsh-base 默认功能，根锁文件移除 16 个包，无新增版本；保留主题 API 和 NSH 0.5.0。完整 pnpm verify 实际 exit 0：tooling 27／27、Rust 163／163、Web 52／52、Desktop 54／54、TV 55／55，含三端 check/build 和 Clippy。随后新增 workflow tag 回归，全部 tooling 再跑 28／28、实际 exit 0。
+- pnpm test:tv-updates 重新打包并在生产入口独立 debug APK 上复验，浅／深／1.3 字号仍为 10×3／30 项通过，实际 exit 0，Java lintDebug 同时通过；主题／字号恢复。此轮无界面设计改动，不扩大为正式签名升级通过。
+- 当前根 pnpm security 实际 exit 1：5 项许可证拒绝、ttf-parser 1 项停止维护告警；单独 pnpm audit 实际 exit 0。根锁文件已无 bincode，但 NSH 生成宿主仍启用 highlight 和默认功能，不能据此称最终程序移除了 bincode。NSH 0.5.1 core 也仍依赖 ttf-parser 0.25；未改上游源码、升级运行时或增加策略忽略。当前完整依赖链与扫描范围见 [原生发行依赖检查](docs/dependencies/native-release-security.md)，前节 6／2 是变更前历史结果。
+- 发布 workflow 改为草稿前创建缺失的精确 tag 或核对已有 tag 的源码 SHA，再以 --verify-tag 创建草稿，上传前仍复核；不改写已有 tag。直接执行实际 YAML shell 的模拟 gh 测试覆盖首发、正确旧 tag、错误旧 tag、API 失败、并发 ref 冲突，全部通过；3 份发行 workflow 的 actionlint 静态检查通过。没有创建远端 tag、草稿、Release 或运行远端 Actions。
+- 本轮证据前缀为 artifacts/client-updates/logs/minimal-features-{verify,security,audit,tv}.log；新增 release-tag-tooling.log 和 headless-warning.log，旧记录保留。源码门禁和设备结论分别记录，正式发布、安全策略、预构建 runtime／生成宿主依赖与 notices、两版真实升级的剩余项继续开放。未推送，保留其他文档修改。

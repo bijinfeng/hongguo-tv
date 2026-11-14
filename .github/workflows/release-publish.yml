@@ -331,6 +331,17 @@ jobs:
             --tv-dir "$RUNNER_TEMP/release/tv-release" \
             --repository "$GITHUB_REPOSITORY" \
             --source-sha "$SOURCE_SHA"
+      - name: Ensure release tag matches source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --silent ||
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/${RELEASE_TAG}" -f "sha=${SOURCE_SHA}" --silent
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq '.sha')" = "$SOURCE_SHA"
       - name: Publish immutable release assets
         env:
           GH_TOKEN: ${{ github.token }}
@@ -343,7 +354,7 @@ jobs:
           tv="$RUNNER_TEMP/release/tv-release"
           gh release create "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --target "$SOURCE_SHA" \
+            --verify-tag \
             --draft \
             --title "Hongguo TV $version" \
             --notes "Desktop archive with signed update metadata and signed Android TV APK for $RELEASE_TAG."

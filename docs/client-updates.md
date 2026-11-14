@@ -43,6 +43,8 @@ pnpm security
 
 `Publish release` 已将相同源码 SHA 的完整验证和安全检查设为签名构建前置依赖。TV 三个构建 workflow 共用工具准备：仓库 JDK 版本用于 NSH CLI，`TV_JAVA_HOME` 的 JDK 17 用于 Gradle，显式安装固定 SDK／NDK、Rust targets 和 NSH runtime；action 固定提交。准备方式遵循 [setup-java](https://github.com/actions/setup-java) 和 [sdkmanager](https://developer.android.com/tools/sdkmanager) 官方用法；尚未据本地静态检查声称 GitHub runner 已通过。
 
-当前 `pnpm security` 仍因六项既有许可证拒绝及 bincode／ttf-parser 两项 unmaintained advisory 失败，未放宽策略或添加忽略；独立 `pnpm audit --audit-level moderate` 无已知漏洞。正式发布会被安全门禁阻断。签名 environment 的六个 secret 名称已只读确认，未输出或提交值。
+正式 workflow 在创建草稿前确保 tag 已指向源码 SHA：不存在时只创建新 ref，已存在时拒绝不同提交，不改写 tag，再用 `gh release create --verify-tag` 创建草稿。上传前仍复核 tag，避免依赖草稿阶段自动建 tag 的时机。实际 workflow 的 shell 已通过 5 种模拟 CLI 场景（首发／正确旧 tag／错误旧 tag／API 失败／并发建 tag 冲突）；这是本地控制流验证，未写入远端。命令语义见 [GitHub CLI](https://cli.github.com/manual/gh_release_create)。
+
+工作区关闭未使用的 `nsh-base` 默认功能后，`pnpm security` 仍因五项许可证拒绝及 ttf-parser 的 unmaintained advisory 失败，未放宽策略或添加忽略；独立 `pnpm audit --audit-level moderate` 无已知漏洞。NSH CLI 生成的宿主仍启用语法高亮，不能把根锁文件移除 bincode 解释成发行二进制已移除该依赖，分析与剩余范围见 [原生发行依赖检查](dependencies/native-release-security.md)。正式发布继续被安全门禁阻断。签名 environment 的六个 secret 名称已只读确认，未输出或提交值。
 
 远端 Actions、正式签名 N-1 → N、macOS 实际重启替换／Developer ID 与公证、Android 真正未知来源授权／系统安装／拒绝／进程重启升级、物理 TV／硬解／长播、Windows／Linux、人工读屏和减少动态仍未验收。当前公开仓库没有 Release；在首次成功公开两版之前，不能宣称自动更新端到端完成。没有推送源码或创建正式 Release。
