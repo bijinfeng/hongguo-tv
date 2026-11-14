@@ -366,3 +366,17 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 自动验证与独立审查证据集中于 `artifacts/search-discovery-core/`。首次 verify 仅因复制向量的JSON格式失败，修正空白后重跑，未改向量值；clippy-first 因shell未发现Cargo未执行，随后使用固定工具路径且零警告通过。完整工程最终状态见本段下方记录。
 - 本批没有可见UI变化，UI审查仅核对范围／定稿后续映射，未重跑鼠标、TV或安装包，不计为新增宿主验收。C3.2真实Mac独立官网观看／重启续播、字号／辅助技术、物理电视与遥控、实际全屏、安全和正式发行继续开放；不推送、归档或发布，并行品牌／设计文档保留。
 - 完整 `verify-second.log` exit0：Rust 116/116（0跳过）、工程工具21/21、Web／Desktop／TV UI 36/34/35，三端check与build、fmt／lint／codegen和release基础检查通过。独立功能与UI范围审查结论在同目录review文件；无未解决本批阻塞。该结果不扩展到上述未验证宿主／安全／发行项。
+
+### D3 · 定稿搜索发现共享 UI（2026-11-14）
+
+- `wire-approved-search-discovery` 接通同一 Search 的匿名建议与精确系列卡片：桌面紧凑建议／四列海报、TV“试试这些故事”横向 shelf。公共建议置于发现标题后，与最近搜索分区；按最终关键词去重并排除最近词，执行普通搜索。跨榜单卡片按系列 ID 去重，仅发现态所属 comic board 标“漫剧”，不将普通搜索 DTO 的 content_type 推断为漫剧。
+- store 捕获同一 transport，仅活动且空查询时读取固定无参数 GET；NSH resource 负责取消／迟到隔离，离页、提交、覆盖详情及销毁均有回归。挂载内最后成功快照仅供显示与来源恢复，TTL 仍归 Rust。失败／重试／空态保留手动搜索和最近词，无假内容、历史上送或观看写入。
+- `CardControls` 在共享 ui 管理稳定槽位的单 Tab 停靠、方向／Home／End／Enter／Space、外部精确 ref.focus 及清理；组外 PosterCard 保留 BaseButton 路径。它不支持任意 keyed 成员重排。Search 回收清理只删除仍由自身拥有的 ref，且不再以另一张卡冒充缺失来源。Android 只在公开导航深度下降时重连精确公开 ID，返回后恢复一次；正常 DPAD／确认操作可取消待恢复，无变化不自激重绘。该结论不扩大到所有输入／媒体键或所有确定性异步排列。
+- 最终 `artifacts/search-discovery-ui/verify-second.log` 完整运行至 release `ok:true`：Rust116/116（0跳过）、工具21/21、Web／Desktop／TV UI40/38/39，三端 check **和** build、fmt／lint／codegen、release基础检查通过。旧 PTY 收尾未再返回 exit 字段，因此这里记录完整命令输出与最终结果，不另造退出码；`verify-first.log` 早于最后焦点修复，不替代最终证据。
+- Web 与 macOS 均在1180×780、1440×1000浅深四组宿主检查；最终精确来源回归分别为 `host-web-exact-second.log` 4/4、`host-macos-exact-final.log` 4/4，返回后 Enter 必须重开剧41／52。早期只检查“进入了某个详情”的4/4不能证明恢复原卡。广回归 Web19／Mac20在最后 ref guard前运行，后续专项才用于证明最终身份恢复。unavailable各2/2覆盖浅深 loading／error／retry／empty及手动搜索。
+- 真实 macOS 可见窗口已用鼠标滚动并打开末卡52→Escape返回→Return精确重开52；原生 Select 的鼠标打开→Down→Return切到25–48集并回焦 trigger。`macos/cua-mouse-return.png` 只用于输入／焦点证据，标题分组以随后矩阵新图为准；窗口内容为1180×780。未进入实际全屏或启动可见原生 Chrome。
+- TV `tv-matrix-ninth.log` 在模拟器浅色、深色、字号1.3各47项浏览、24项播放器全部通过。浏览含首卡41／末卡52的详情返回、Right移动至42后500ms仍保持42、建议普通搜索；首屏截图已隐藏系统IME。这里只证明已运行序列，不将500ms检查当作所有迟到排列的证明。测试使用显式HTTP fixture，播放器使用既有合成媒体，不替代原生独立官网／硬件解码验收。
+- wrapper最终重新安装原 native APK，实际pull回字节；`native-before.apk`／`native-restored.apk` 的SHA256均为 `140304dd98b1b37dc8f7a706278b9ecf7efdc73d00c5acd884aaa0df893a8327`。`tv-before.json`／`tv-restored.json` 均为night yes、font_scale1.0、reverse空。
+- 原始失败保留：Web exact第一轮1180浅色的headless Chrome SIGBUS属宿主启动失败，其余三组通过，随后4/4；TV第一／二轮测试没有建立正确首卡焦点，第三及第五至七轮则暴露真实View替换／迟到布局返回缺陷，分别修复后以第九轮复验；第四轮深色recent稀疏行导航步骤已纠正；第八轮缺Java import属runner编译错误。不同类别不合并成单一根因。
+- 独立功能／UI审查及截图见同目录 `function-review.md`／`ui-review.md`；修正了公共建议分组、Web错卡、TV返回及取消竞态。finishing清单逐组记录了圆角／字体／间距／对齐／色彩／hover／状态等已观察结果；静态图不能证明所有pressed、逐帧动效和辅助技术。VoiceOver／TalkBack、macOS系统字号、更窄布局／RTL、物理TV与遥控、实际全屏、C3.2官网独立业务、安全和正式发行继续开放。
+- 本批无DTO、数据库或依赖变化，无新Go、不改upstream；保留并行品牌／设计文档，只分批本地提交，不push／归档／发布。typed输入联想、其余D/E/F/G与完整MVP仍未完成。

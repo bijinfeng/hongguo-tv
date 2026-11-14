@@ -106,7 +106,7 @@ try {
       !report.includes(
         suite === 'player'
           ? 'TV player acceptance: 24 checks passed'
-          : 'TV browsing acceptance: 36 checks passed',
+          : 'TV browsing acceptance: 47 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {
@@ -117,6 +117,14 @@ try {
         `/sdcard/Android/data/dev.hongguo.tv/files/failure-${appearance}.png`,
         resolve(artifacts, `failure-${appearance}.png`),
       ]);
+      if (suite === 'browsing')
+        await run(adb, [
+          '-s',
+          serial,
+          'pull',
+          `/sdcard/Android/data/dev.hongguo.tv/files/failure-${appearance}.txt`,
+          resolve(artifacts, `failure-${appearance}-tree.txt`),
+        ]);
       throw new Error(`${appearance} business acceptance failed`);
     }
     for (const screen of suite === 'player'
@@ -132,6 +140,9 @@ try {
           'recent-populated',
           'recent-error',
           'recent-empty',
+          'discovery',
+          'discovery-return',
+          'discovery-keyword',
           'history',
         ])
       await run(adb, [

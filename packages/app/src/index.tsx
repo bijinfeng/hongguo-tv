@@ -79,6 +79,7 @@ function Pages(props: { store: Store }) {
           animation={props.store.target === 'tv' || reduceMotion() ? 'none' : 'default'}
         >
           <View
+            testID={`navigation-page-${props.store.nav.routes().indexOf(route)}`}
             class="flex-1 bg-background"
             style={{ visibility: props.store.nav.routes().at(-1) === route ? 'visible' : 'hidden' }}
             accessibilityElementsHidden={props.store.nav.routes().at(-1) !== route}

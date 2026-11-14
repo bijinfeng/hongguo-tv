@@ -4,11 +4,14 @@ import { resolve } from 'node:path';
 import { root } from './process.mjs';
 
 /** Acceptance-only HTTP fixture; never imported or started by a product entry. */
-export async function browsingFixture() {
+export async function browsingFixture({ discovery = 'populated' } = {}) {
+  if (!['populated', 'failure-then-empty'].includes(discovery))
+    throw new Error('Unknown discovery fixture scenario');
   const requests = [];
   const continuations = new Map();
   let keywords = ['重生', '古装'];
   let clearAttempts = 0;
+  let discoveryReads = 0;
   let origin;
   const episodes = Array.from({ length: 75 }, (_, i) => ({
     index: i + 1,
@@ -44,6 +47,39 @@ export async function browsingFixture() {
         .writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
         .end(JSON.stringify(status === 200 ? { ok: true, data } : { ok: false, error: data }));
     };
+    if (url.pathname === '/api/v1/search/discovery') {
+      if (url.search || req.method !== 'GET') return reply('Discovery rejects inputs', 400);
+      discoveryReads++;
+      if (discovery === 'failure-then-empty') {
+        if (discoveryReads % 2 === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1400));
+          return reply('合成发现失败', 503);
+        }
+        return reply({ guesses: [], boards: [] });
+      }
+      return reply({
+        guesses: [`推荐词${discoveryReads}`, '山海归来'].map((query) => ({
+          series_id: '',
+          title: query,
+          query,
+          cover: '',
+          intro: '',
+        })),
+        boards: [
+          {
+            id: 'short',
+            items: Array.from({ length: 6 }, (_, i) => ({ ...drama(i + 40), content_type: '1' })),
+          },
+          {
+            id: 'comic',
+            items: Array.from({ length: 6 }, (_, i) => ({
+              ...drama(i + 46),
+              content_type: '1004',
+            })),
+          },
+        ],
+      });
+    }
     if (url.pathname === '/api/v1/search/history') {
       if (req.method === 'POST') {
         let body = '';

@@ -1,6 +1,34 @@
 import { expect, open, test } from 'nsh/test';
 import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 
+/** Uses the explicit failure-then-empty local HTTP fixture. */
+export function registerDiscoveryUnavailableHostTests(entry: string, artifacts: string) {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test(`discovery unavailable ${colorScheme}: loading, retry, empty and manual search`, async () => {
+      const app = await open(entry, {
+        width: 1180,
+        height: 780,
+        colorScheme,
+        reducedMotion: true,
+        network: 'live',
+      });
+      await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+      await app.press('id:nav-search');
+      await app.waitFor('正在加载…');
+      await app.screenshot(`${artifacts}/discovery-loading-${colorScheme}.png`);
+      await app.waitFor('热门内容未能加载');
+      await app.screenshot(`${artifacts}/discovery-error-${colorScheme}.png`);
+      await app.press('重试');
+      await app.waitFor('暂时没有推荐内容');
+      expect(app.shows('id:drama-163')).toBe(false);
+      await app.screenshot(`${artifacts}/discovery-empty-${colorScheme}.png`);
+      await app.type('id:search-input', '手动查询');
+      await app.submit('id:search-input');
+      await app.waitFor('id:drama-123');
+    });
+  }
+}
+
 /** Only invoked by the explicit graphical-host acceptance script. HTTP data is a local fixture. */
 export function registerBrowsingHostTests(entry: string, artifacts: string, host: 'macos' | 'web') {
   registerFocusedRemovalTests('../FocusedRemovalStatePreview.tsx', artifacts);
@@ -131,6 +159,49 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
     [1440, 1000],
   ]) {
     for (const colorScheme of ['light', 'dark'] as const) {
+      test(`approved discovery ${width} ${colorScheme}: public cards, source return and keyword search`, async () => {
+        const app = await open(entry, {
+          width,
+          height,
+          colorScheme,
+          reducedMotion: width === 1180,
+          network: 'live',
+        });
+        await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+        await app.press('id:nav-search');
+        await app.waitFor('id:drama-163');
+        const card = width === 1440 ? 'id:drama-174' : 'id:drama-163';
+        if (width === 1440) await app.scroll('id:results', 1600);
+        await app.waitFor(card);
+        await app.wait(300);
+        await app.hover(card);
+        await app.screenshot(`${artifacts}/discovery-${width}-${colorScheme}.png`);
+        const term = app
+          .texts()
+          .find((text) => text.startsWith('推荐词') && app.shows(`id:discovery-query-${text}`));
+        expect(typeof term).toBe('string');
+        await app.press(card);
+        await app.waitFor('id:episode-range-trigger');
+        await app.keyboard.press('escape');
+        await app.waitFor(card);
+        await app.wait(350);
+        await app.screenshot(`${artifacts}/discovery-return-${width}-${colorScheme}.png`);
+        await app.keyboard.press('enter');
+        await app.waitFor('id:episode-range-trigger');
+        expect(app.shows(width === 1440 ? '重生之后 52' : '重生之后 41')).toBe(true);
+        await app.keyboard.press('escape');
+        await app.waitFor(card);
+        const latestTerm = app
+          .texts()
+          .find((text) => text.startsWith('推荐词') && app.shows(`id:discovery-query-${text}`))!;
+        await app.press(`id:discovery-query-${latestTerm}`);
+        await app.waitFor('id:drama-123');
+        expect(app.value('id:search-input')).toBe(latestTerm);
+        await app.press('id:clear-query');
+        await app.waitFor(`id:recent-search-${latestTerm}`);
+        expect(app.shows(`id:discovery-query-${latestTerm}`)).toBe(false);
+        await app.screenshot(`${artifacts}/discovery-keyword-${width}-${colorScheme}.png`);
+      });
       test(`recent searches ${width} ${colorScheme}: reuse, clear retry and input focus`, async () => {
         const app = await open(entry, {
           width,

@@ -13,6 +13,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -71,6 +72,23 @@ final class BrowsingAcceptance {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { EditText found = input(((ViewGroup) view).getChildAt(i)); if (found != null) return found; }
         return null;
     }
+    private void hideKeyboard() {
+        runner.runOnMainSync(() -> {
+            EditText edit = input(activity.getWindow().getDecorView());
+            if (edit != null) ((InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE))
+                .hideSoftInputFromWindow(edit.getWindowToken(), 0);
+        });
+    }
+    private void dump(View view, StringBuilder text, String indent) {
+        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        text.append(indent).append(view.getClass().getSimpleName())
+            .append(" shown=").append(view.isShown()).append(" enabled=").append(view.isEnabled())
+            .append(" alpha=").append(view.getAlpha()).append(" important=").append(view.getImportantForAccessibility())
+            .append(" focused=").append(view.isFocused()).append(" id=").append(node.getViewIdResourceName())
+            .append(" label=").append(node.getContentDescription()).append(" text=").append(node.getText()).append('\n');
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+            dump(((ViewGroup) view).getChildAt(i), text, indent + "  ");
+    }
     private void screenshot(String name) throws Exception {
         // Local fixture images arrive independently of result text and fade in for 100ms.
         SystemClock.sleep(800);
@@ -95,11 +113,7 @@ final class BrowsingAcceptance {
             runner.sendStringSync("story");
             check("ordinary native input", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.getText().toString().equals("story"); });
             // Isolate synthetic composition from asynchronous suggestions of the installed IME.
-            runner.runOnMainSync(() -> {
-                EditText edit = input(activity.getWindow().getDecorView());
-                ((android.view.inputmethod.InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE))
-                        .hideSoftInputFromWindow(edit.getWindowToken(), 0);
-            });
+            hideKeyboard();
             SystemClock.sleep(400);
             runner.runOnMainSync(() -> {
                 EditText edit = input(activity.getWindow().getDecorView());
@@ -173,6 +187,8 @@ final class BrowsingAcceptance {
             screenshot("recent-populated");
             key(KeyEvent.KEYCODE_DPAD_DOWN);
             for (int i = 0; i < 12 && !focused("story重生"); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
+            // A sparse recent row can lie left of the input's centre; return up from the shelf.
+            for (int i = 0; i < 3 && !focused("story重生"); i++) key(KeyEvent.KEYCODE_DPAD_UP);
             check("remote reaches saved keyword", () -> focused("story重生"));
             confirm();
             check("remote keyword executes a real search", () -> has("重生之后") && has("加载更多"));
@@ -184,6 +200,32 @@ final class BrowsingAcceptance {
             click("重试清空");
             check("explicit retry clears keywords", () -> has("暂无搜索记录") && !has("story重生"));
             screenshot("recent-empty");
+            check("anonymous discovery retains approved story shelf", () -> has("试试这些故事") && has("山海归来") && has("重生之后 41"));
+            hideKeyboard();
+            screenshot("discovery");
+            for (int i = 0; i < 6 && !focused("重生之后 41"); i++) key(KeyEvent.KEYCODE_DPAD_DOWN);
+            for (int i = 0; i < 6 && !focused("重生之后 41"); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
+            check("remote focuses first discovery source", () -> focused("重生之后 41"));
+            confirm();
+            check("discovery exact card opens detail", () -> has("重生之后 41") && has("开始观看"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("discovery return restores first source", () -> focused("重生之后 41"));
+            key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("returned source yields to new remote focus", () -> focused("重生之后 42"));
+            SystemClock.sleep(500);
+            check("late discovery does not steal moved focus", () -> focused("重生之后 42"));
+            key(KeyEvent.KEYCODE_DPAD_LEFT);
+            for (int i = 0; i < 11; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("remote reaches last discovery identity", () -> focused("重生之后 52") && identified("重生之后 52", "drama-174"));
+            confirm();
+            check("last discovery identity opens its detail", () -> has("重生之后 52") && has("开始观看"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("last discovery return restores source", () -> focused("重生之后 52"));
+            screenshot("discovery-return");
+            click("山海归来");
+            check("discovery keyword executes ordinary search", () -> has("重生之后") && has("加载更多"));
+            check("discovery keyword preserves input identity", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.getText().toString().equals("山海归来"); });
+            screenshot("discovery-keyword");
             click("我的");
             check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 15 秒"));
             screenshot("history");
@@ -191,6 +233,14 @@ final class BrowsingAcceptance {
             runner.finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             try { screenshot("failure"); } catch (Exception ignored) { /* Preserve the assertion. */ }
+            try {
+                StringBuilder tree = new StringBuilder();
+                runner.runOnMainSync(() -> dump(activity.getWindow().getDecorView(), tree, ""));
+                File file = new File(runner.getTargetContext().getExternalFilesDir(null), "failure-" + appearance + ".txt");
+                try (FileOutputStream out = new FileOutputStream(file)) {
+                    out.write(tree.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+            } catch (Exception ignored) { /* Preserve the assertion. */ }
             result.putString("stream", "FAIL " + error + " after " + checks + " checks\n");
             runner.finish(Activity.RESULT_CANCELED, result);
         }

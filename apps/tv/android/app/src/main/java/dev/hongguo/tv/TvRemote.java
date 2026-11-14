@@ -28,18 +28,23 @@ final class TvRemote extends View {
     private final float radius;
     private View current;
     private String currentIdentity;
+    private int currentPageDepth = -1;
     private final List<SavedFocus> coveredFocus = new ArrayList<>();
     private final List<SavedFocus> recentFocus = new ArrayList<>();
     private static final class SavedFocus {
         final View view;
         final String identity;
-        SavedFocus(View view, String identity) { this.view = view; this.identity = identity; }
+        final int depth;
+        SavedFocus(View view, String identity, int depth) { this.view = view; this.identity = identity; this.depth = depth; }
     }
     private int previousIndex;
     private boolean selecting;
     private long focusPlaybackUntil;
     private View currentScope;
     private boolean focusSelection;
+    private int pageDepth = -1;
+    private int observedPageDepth = -1;
+    private boolean restoringPage;
 
     TvRemote(Context context, NshView root) {
         super(context);
@@ -61,7 +66,7 @@ final class TvRemote extends View {
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if (current == null || !current.isAttachedToWindow() || !current.isShown()
+            if (restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
@@ -83,7 +88,13 @@ final class TvRemote extends View {
             focusSelection = modal != null && "android.widget.ListView".equals(
                     String.valueOf(modal.createAccessibilityNodeInfo().getClassName()));
         }
+        observedPageDepth = -1;
         collect(modal == null ? root : modal, targets);
+        if (observedPageDepth >= 0) {
+            if (pageDepth >= 0 && observedPageDepth != pageDepth)
+                restoringPage = observedPageDepth < pageDepth;
+            pageDepth = observedPageDepth;
+        }
         return targets;
     }
 
@@ -129,6 +140,9 @@ final class TvRemote extends View {
         Rect visible = new Rect();
         if (!view.getGlobalVisibleRect(visible)) return;
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        String id = node == null ? null : node.getViewIdResourceName();
+        if (id != null && id.matches("navigation-page-[0-9]{1,3}"))
+            observedPageDepth = Integer.parseInt(id.substring("navigation-page-".length()));
         boolean actionable = node != null && node.isEnabled()
                 && (node.isClickable() || adjustable(node) || view instanceof EditText);
         if (view instanceof EditText) {
@@ -151,11 +165,12 @@ final class TvRemote extends View {
         if (current != view) {
             if (current != null) {
                 recentFocus.removeIf(saved -> saved.view == current);
-                recentFocus.add(new SavedFocus(current, currentIdentity));
+                recentFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth));
                 if (recentFocus.size() > 32) recentFocus.remove(0);
             }
             current = view;
             currentIdentity = identity(view);
+            currentPageDepth = pageDepth;
             previousIndex = Math.max(0, targets.indexOf(view));
             if (view != null) {
                 selecting = true;
@@ -175,7 +190,7 @@ final class TvRemote extends View {
         if (current != null && !targets.contains(current)) {
             // Android press-target refs do not restore native focus; retain the covered source identity.
             coveredFocus.removeIf(saved -> saved.view == current);
-            coveredFocus.add(new SavedFocus(current, currentIdentity));
+            coveredFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth));
             if (coveredFocus.size() > 32) coveredFocus.remove(0);
         }
         if (focusSelection) {
@@ -203,14 +218,13 @@ final class TvRemote extends View {
         View source = null;
         for (int i = coveredFocus.size() - 1; i >= 0; i--) {
             SavedFocus saved = coveredFocus.get(i);
-            if (targets.contains(saved.view) && java.util.Objects.equals(saved.identity, identity(saved.view))) {
-                source = saved.view;
-                break;
-            }
+            source = resurfaced(saved, targets);
+            if (source != null) break;
         }
         if (source != null) {
             // One resurfaced layer restores once; older sources in that layer must not steal it later.
-            coveredFocus.removeIf(saved -> targets.contains(saved.view));
+            coveredFocus.removeIf(saved -> resurfaced(saved, targets) != null);
+            restoringPage = false;
             select(source, targets);
         }
         else if (!targets.contains(current)) {
@@ -227,7 +241,17 @@ final class TvRemote extends View {
             select(targets.contains(focused) ? focused : selected != null ? selected
                     : targets.isEmpty() ? null : targets.get(Math.min(previousIndex, targets.size() - 1)), targets);
         } else if (targets.contains(focused) && focused != current) select(focused, targets);
-        else invalidate();
+        // Pre-draw owns geometry invalidation. An unresolved source must not schedule a render loop.
+    }
+
+    private View resurfaced(SavedFocus saved, List<View> targets) {
+        if (targets.contains(saved.view) && java.util.Objects.equals(saved.identity, identity(saved.view)))
+            return saved.view;
+        // A refetched virtual row may have a new native View. Only a stable public ID can reconnect it.
+        if (restoringPage && saved.depth == pageDepth && saved.identity != null && saved.identity.startsWith("id:"))
+            for (View target : targets)
+                if (saved.identity.equals(identity(target))) return target;
+        return null;
     }
 
     private String identity(View view) {
@@ -248,6 +272,7 @@ final class TvRemote extends View {
     }
 
     boolean dispatch(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) cancelPageRestoration();
         int key = event.getKeyCode();
         // Caret and composing text remain the IME's. Only plain vertical navigation exits editing.
         boolean exitingInput = false;
@@ -300,6 +325,7 @@ final class TvRemote extends View {
             return true;
         }
         List<View> targets = targets();
+        cancelPageRestoration(); // This collection may be the first to observe the return.
         if (targets.isEmpty()) return false;
         if (focusSelection) restore();
         focusSelection = false; // A user's movement takes precedence over late-mounted selected rows.
@@ -327,6 +353,11 @@ final class TvRemote extends View {
         if (scrollAtEdge(key, from, best)) return true;
         if (best != null) select(best, targets);
         return true;
+    }
+
+    private void cancelPageRestoration() {
+        if (restoringPage) coveredFocus.removeIf(saved -> saved.depth == pageDepth);
+        restoringPage = false;
     }
 
     private String playerStage(View view) {

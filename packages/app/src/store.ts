@@ -1,4 +1,4 @@
-import { cleanup, resource, signal, type InputRef, type ViewRef } from 'nsh';
+import { batch, cleanup, effect, resource, signal, type InputRef, type ViewRef } from 'nsh';
 import type { ProductTarget } from '@hongguo/ui';
 import { createNavStack } from 'nsh/base';
 import {
@@ -10,6 +10,7 @@ import {
   type HistoryChange,
   type Library,
   type SearchResult,
+  type SearchDiscovery,
 } from '@hongguo/core-client';
 import { createRecentSearches } from './recent-searches';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
@@ -132,11 +133,23 @@ export function createStore(
       .slice()
       .sort((a, b) => b.last_played_at! - a.last_played_at!);
   const navigate = (next: Section) => {
-    nav.popToRoot();
-    section.set(next);
+    batch(() => {
+      nav.popToRoot();
+      section.set(next);
+    });
     sources.clear();
     if (next === 'history') library.refetch();
   };
+  const discoverySnapshot = signal<SearchDiscovery | undefined>(undefined);
+  const discovery = resource(
+    () => (activePage('search') && !query() ? 'public' : undefined),
+    (_, { signal }) => request<SearchDiscovery>('/api/v1/search/discovery', signal),
+  );
+  effect(() => {
+    const data = discovery();
+    if (data) discoverySnapshot.set(data);
+  });
+  const discoveryData = () => discovery() ?? discoverySnapshot();
   const recent = createRecentSearches(request, () => activePage('search') && !query());
   const warning = signal('');
   let writes = Promise.resolve();
@@ -174,6 +187,8 @@ export function createStore(
       };
     },
     searchSelection,
+    discovery,
+    discoveryData,
     recent,
     clearQuery() {
       resetContinuation();
@@ -226,10 +241,12 @@ export function createStore(
     submit() {
       const q = draft().trim().replace(/\s+/g, ' ');
       if (!q) return;
-      navigate('search');
-      searchSelection.set('');
-      if (q === query()) results.refetch();
-      else query.set(q);
+      batch(() => {
+        navigate('search');
+        searchSelection.set('');
+        if (q === query()) results.refetch();
+        else query.set(q);
+      });
       void recent.add(q);
     },
     open(drama: Drama, origin?: () => void) {

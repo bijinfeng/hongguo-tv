@@ -19,6 +19,8 @@ import {
 import { Button as BaseButton, Input as BaseInput, Toolbar, Select } from 'nsh/base';
 import { entrance } from './motion';
 import { SelectFocus } from './select-focus';
+import { CardRoot } from './card-controls';
+export { CardControls } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 
 /** Product target, deliberately independent of the host operating system. */
@@ -316,12 +318,12 @@ export function PosterCard(props: {
   buttonRef?: (ref: ViewRef) => void;
 }) {
   return (
-    <BaseButton
+    <CardRoot
       ref={props.buttonRef}
       testID={props.testID}
       onPress={props.onPress}
-      accessibilityLabel={props.title}
       selected={props.selected}
+      accessibilityLabel={props.title}
       style={Product() === 'tv' ? { borderRadius: tvUnit(12) } : undefined}
       class="flex-1 gap-3 rounded-(--radius) border-2 border-transparent hover:bg-muted focus-visible:border-ring active:opacity-70 selected:bg-accent"
     >
@@ -355,7 +357,7 @@ export function PosterCard(props: {
           {props.caption}
         </Text>
       </If>
-    </BaseButton>
+    </CardRoot>
   );
 }
 

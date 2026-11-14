@@ -17,6 +17,7 @@ const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
 function fixture(request: StubRequest): StubResponse {
   const url = new URL(request.url);
   if (url.pathname === '/api/v1/search/history') return ok({ items: [] });
+  if (url.pathname === '/api/v1/search/discovery') return ok({ guesses: [], boards: [] });
   if (url.pathname === '/api/v1/library') return ok({ entries: [], owner_id: '' });
   if (url.pathname === '/api/v1/account') return ok({ logged_in: false, qr_login_available: true });
   if (url.pathname === '/api/v1/search') return ok({ items: [drama], has_more: false });
@@ -34,8 +35,170 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  test('card controls preserve one Tab stop, arrow/home/end movement, exact ref focus and disposal', async () => {
+    const app = await open('./CardControlsStatePreview.tsx', {
+      platform: 'macos',
+      width: 1180,
+      height: 780,
+      network: {},
+    });
+    await app.keyboard.press('tab');
+    await app.keyboard.press('tab');
+    await app.keyboard.press('right');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:events:2');
+    await app.keyboard.press('end');
+    await app.keyboard.press('space');
+    await app.waitFor('text:events:2,3');
+    await app.keyboard.press('home');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:events:2,3,1');
+    await app.keyboard.press('left');
+    await app.keyboard.press('tab');
+    await app.keyboard.press('home');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:events:2,3,1,after');
+    await app.press('聚焦第二张');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:events:2,3,1,after,2');
+    await app.press('移除第二张');
+    await app.press('聚焦第三张');
+    await app.keyboard.press('right');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:events:2,3,1,after,2,1');
+    await app.press('移除卡片组');
+    await app.keyboard.press('right');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:events:2,3,1,after,2,1,after');
+  });
   registerFocusedRemovalTests('./FocusedRemovalStatePreview.tsx');
   registerSearchFocusTests('./SearchFocusStatePreview.tsx');
+  test('discovery cancels inactive and disposed reads, ignores stale completion and retries honest empty/errors', async () => {
+    const app = await open('./DiscoveryStatePreview.tsx');
+    expect(app.texts().some((text) => text.includes('read-'))).toBe(false);
+    await app.press('进入发现');
+    await app.waitFor('read-1');
+    await app.press('离开发现');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('abort-1')));
+    await app.press('完成旧发现');
+    expect(app.shows('text:data:建议1')).toBe(false);
+    await app.press('进入发现');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('read-2')));
+    await app.press('完成最新发现');
+    await app.waitFor('text:data:建议2');
+    await app.press('刷新发现');
+    await app.waitFor('text:state:refreshing');
+    expect(app.shows('text:data:建议2')).toBe(true);
+    await app.press('失败发现');
+    await app.waitFor('discovery-error');
+    expect(app.shows('text:data:建议2')).toBe(true);
+    await app.press('刷新发现');
+    await app.press('空发现');
+    await app.waitFor('text:state:ready');
+    await app.waitFor('text:data:');
+    await app.waitFor('no-discovery-error');
+    await app.press('刷新发现');
+    await app.press('提交关键词');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('abort-5')));
+    await app.press('完成最新发现');
+    expect(app.shows('text:data:建议5')).toBe(false);
+    await app.press('清除关键词');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('read-6')));
+    await app.press('移除发现');
+    await app.waitUntil(() => app.texts().some((text) => text.includes('abort-6')));
+    await app.press('完成最新发现');
+    expect(app.shows('id:discovery-owner')).toBe(false);
+  });
+
+  test('public discovery retries failures, keeps keyword identities nonplayable and returns to exact cards', async () => {
+    let attempt = 0;
+    const keywords: string[] = [];
+    const discoveryRequest = (request: StubRequest): StubResponse => {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/v1/search/discovery') {
+        expect(url.search).toBe('');
+        expect(request.method).toBe('GET');
+        if (++attempt === 1)
+          return { status: 503, body: { ok: false, error: '合成发现失败' }, delay: 80 };
+        return {
+          ...ok({
+            guesses: [
+              { series_id: '', title: '都市逆袭', query: '都市逆袭', cover: '', intro: '' },
+              { ...drama, title: '都市逆袭' },
+              { ...drama, series_id: '125', title: '都市逆袭' },
+            ],
+            boards: [
+              { id: 'short', items: [drama] },
+              {
+                id: 'comic',
+                items: [
+                  { ...drama, content_type: '1004' },
+                  { ...drama, series_id: '124', content_type: '1' },
+                ],
+              },
+            ],
+          }),
+          delay: attempt >= 4 ? 200 : 0,
+        };
+      }
+      if (url.pathname === '/api/v1/search/history') {
+        if (request.method === 'POST') {
+          const body = JSON.parse(request.body || '{}') as { action?: string; query?: string };
+          if (body.query) keywords.unshift(body.query);
+        }
+        return ok({ items: keywords });
+      }
+      if (url.pathname === '/api/v1/search')
+        return ok({ items: [{ ...drama, content_type: '1004' }], has_more: false });
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': discoveryRequest, 'POST *': discoveryRequest },
+    });
+    await app.press('id:nav-search');
+    await app.waitFor('热门内容未能加载');
+    await app.press('重试');
+    await app.waitFor('id:drama-123');
+    expect(app.count('id:drama-123')).toBe(1);
+    expect(app.count('id:discovery-query-都市逆袭')).toBe(1);
+    expect(app.shows('漫剧 · 3 集')).toBe(true);
+    expect(app.shows('id:drama-')).toBe(false);
+    await app.press('id:discovery-query-都市逆袭');
+    await app.waitUntil(() => app.requests().some((r) => r.url.includes('/search?q=')));
+    expect(app.value('id:search-input')).toBe('都市逆袭');
+    await app.waitFor('id:clear-query');
+    await app.waitFor('id:drama-123');
+    expect(app.shows('漫剧 · 3 集')).toBe(false);
+    await app.press('id:clear-query');
+    await app.waitFor('id:recent-search-都市逆袭');
+    await app.waitFor('id:drama-123');
+    await app.keyboard.press('tab');
+    await app.press('id:drama-123');
+    await app.waitFor('id:episode-range-trigger');
+    await app.back();
+    await app.waitFor('id:drama-123');
+    await app.clock!.runFor(70);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:episode-range-trigger');
+    expect(
+      app.requests().filter((r) => r.method === 'POST' && !r.url.includes('/search/history'))
+        .length,
+    ).toBe(0);
+  });
+  test('empty public discovery retains manual search and recent-search controls', async () => {
+    const app = await open(entry, { network: { '*': fixture } });
+    await app.press('id:nav-search');
+    await app.waitFor('暂时没有推荐内容');
+    expect(app.shows('id:drama-123')).toBe(false);
+    await app.type('id:search-input', '手动查询');
+    await app.submit('id:search-input');
+    await app.waitFor('id:drama-123');
+    expect(app.shows('暂时没有推荐内容')).toBe(false);
+  });
+
   test('recent keyword loads cannot overwrite a committed mutation and failed clear retries its exact intent', async () => {
     const app = await open('./RecentSearchStatePreview.tsx');
     await app.press('进入发现');

@@ -9,7 +9,7 @@ import {
   type ListRef,
   type ViewRef,
 } from 'nsh';
-import { Button, Controls, Notice, PosterCard, tvUnit } from '@hongguo/ui';
+import { Button, Controls, CardControls, Notice, PosterCard, tvUnit } from '@hongguo/ui';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
 
@@ -17,7 +17,37 @@ export function Search(props: { store: Store }) {
   const width = signal(0);
   const listHeight = signal(0);
   const columns = () => (props.store.target === 'tv' ? 1 : 4);
-  const items = () => (props.store.query() ? (props.store.catalog()?.items ?? []) : []);
+  const discoveries = () => {
+    const seen = new Set<string>();
+    return (props.store.discoveryData()?.boards ?? [])
+      .flatMap((board) => board.items)
+      .filter((item) => {
+        if (!item.series_id || seen.has(item.series_id)) return false;
+        seen.add(item.series_id);
+        return true;
+      });
+  };
+  const discoveryFamily = (id: string) =>
+    (props.store.discoveryData()?.boards ?? []).find((board) =>
+      board.items.some((item) => item.series_id === id),
+    )?.id;
+  const suggestions = () => {
+    const seen = new Set(props.store.recent.items());
+    return (props.store.discoveryData()?.guesses ?? []).filter((item) => {
+      const query = item.query || item.title;
+      if (!query || seen.has(query)) return false;
+      seen.add(query);
+      return true;
+    });
+  };
+  const items = () => (props.store.query() ? (props.store.catalog()?.items ?? []) : discoveries());
+  const discoveryTitle = () => {
+    if (props.store.target === 'tv') return '试试这些故事';
+    if (!discoveries().length) return '试试这些';
+    const short = discoveries().some((item) => discoveryFamily(item.series_id) === 'short');
+    const comic = discoveries().some((item) => discoveryFamily(item.series_id) === 'comic');
+    return short && comic ? '热门短剧与漫剧' : comic ? '热门漫剧' : '热门短剧';
+  };
   let list: ListRef | undefined;
   let anchor: { id: string; offset: number } | undefined;
   let frame = 0;
@@ -67,7 +97,7 @@ export function Search(props: { store: Store }) {
   });
   return (
     <View
-      class={`flex-1 gap-7 ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
+      class={`flex-1 ${props.store.query() ? 'gap-7' : 'gap-4'} ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
       style={props.store.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
     >
       <If when={props.store.target !== 'tv'}>
@@ -178,6 +208,58 @@ export function Search(props: { store: Store }) {
       <If when={props.store.query() && props.store.results.state() === 'ready' && !items().length}>
         <Notice message="没有找到，试试其他关键词。" />
       </If>
+      <If when={!props.store.query()}>
+        <If when={suggestions().length || discoveries().length}>
+          <Text
+            class="font-semibold text-foreground"
+            style={{ fontSize: props.store.target === 'tv' ? tvUnit(30) : 20 }}
+          >
+            {discoveryTitle()}
+          </Text>
+        </If>
+        <If when={suggestions().length}>
+          <Controls label="搜索建议">
+            <Each of={suggestions()} key={(item) => item.query || item.title}>
+              {(item) => (
+                <Button
+                  testID={`discovery-query-${item().query || item().title}`}
+                  label={item().query || item().title}
+                  compact
+                  displayLabel={
+                    Array.from(item().query || item().title)
+                      .slice(0, 18)
+                      .join('') + (Array.from(item().query || item().title).length > 18 ? '…' : '')
+                  }
+                  onPress={() => {
+                    props.store.draft.set(item().query || item().title);
+                    props.store.submit();
+                  }}
+                />
+              )}
+            </Each>
+          </Controls>
+        </If>
+        <If when={props.store.discovery.loading() && !props.store.discoveryData()}>
+          <Text class="text-base text-muted-foreground">正在加载…</Text>
+        </If>
+        <If when={props.store.discovery.error()}>
+          <Notice error message="热门内容未能加载" retry={props.store.discovery.refetch} />
+        </If>
+        <If
+          when={
+            props.store.discovery.state() === 'ready' &&
+            !discoveries().length &&
+            !suggestions().length
+          }
+        >
+          <Text
+            class="text-base text-muted-foreground"
+            style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+          >
+            暂时没有推荐内容
+          </Text>
+        </If>
+      </If>
       <List
         ref={(ref) => {
           list = ref;
@@ -211,7 +293,10 @@ export function Search(props: { store: Store }) {
       >
         {(row) => (
           <View style={props.store.target === 'tv' ? { width: tvUnit(260) } : undefined}>
-            <Controls label="搜索结果" class="w-full gap-7">
+            <CardControls
+              label={props.store.query() ? '搜索结果' : discoveryTitle()}
+              class="w-full gap-7"
+            >
               <Each of={Array.from({ length: columns() }, (_, i) => i)}>
                 {(slot) => (
                   <View class="flex-1">
@@ -221,7 +306,9 @@ export function Search(props: { store: Store }) {
                         effect(() => {
                           const id = drama().series_id;
                           if (ref) refs.set(id, ref);
-                          cleanup(() => refs.delete(id));
+                          cleanup(() => {
+                            if (refs.get(id) === ref) refs.delete(id);
+                          });
                         });
                         return (
                           <PosterCard
@@ -235,16 +322,24 @@ export function Search(props: { store: Store }) {
                             title={drama().title}
                             cover={drama().cover_fallback || drama().cover}
                             caption={
-                              drama().episode_count ? `${drama().episode_count} 集` : undefined
+                              [
+                                !props.store.query() &&
+                                discoveryFamily(drama().series_id) === 'comic'
+                                  ? '漫剧'
+                                  : '',
+                                drama().episode_count ? `${drama().episode_count} 集` : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' · ') || undefined
                             }
                             onPress={() => {
                               props.store.searchSelection.set(drama().series_id);
                               const id = drama().series_id;
                               props.store.open(drama(), () => {
                                 restore();
-                                frame = requestAnimationFrame(() =>
-                                  (refs.get(id) ?? refs.values().next().value)?.focus(),
-                                );
+                                frame = requestAnimationFrame(() => {
+                                  refs.get(id)?.focus();
+                                });
                               });
                             }}
                             selected={props.store.searchSelection() === drama().series_id}
@@ -255,7 +350,7 @@ export function Search(props: { store: Store }) {
                   </View>
                 )}
               </Each>
-            </Controls>
+            </CardControls>
           </View>
         )}
       </List>
