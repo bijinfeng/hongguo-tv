@@ -14,6 +14,31 @@ use hongguo_core::catalog::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+/// Successful real anonymous channel page, independent of search and category pagination.
+#[derive(Serialize, ToSchema)]
+pub struct FeedResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Channel summaries with exact continuation context and aggregate diagnostics.
+    pub data: hongguo_core::catalog::FeedResult,
+}
+#[utoipa::path(get, path = "/api/v1/lists/recommend", params(hongguo_core::catalog::FeedParams),
+    responses((status = 200, body = FeedResponse), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn feed(
+    State(client): State<CatalogClient>,
+    params: Result<Query<hongguo_core::catalog::FeedParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<FeedResponse>, Response> {
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = hongguo_core::catalog::FeedQuery::new(params).map_err(catalog_failure)?;
+    let data = client.feed(&query).await.map_err(catalog_failure)?;
+    Ok(Json(FeedResponse { ok: true, data }))
+}
+
 /// Successful anonymous category page with faithful cursor and optional selectors.
 #[derive(Serialize, ToSchema)]
 pub struct CategoryResponse {

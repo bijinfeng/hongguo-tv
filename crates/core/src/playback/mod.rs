@@ -3,6 +3,7 @@ mod identity;
 mod model;
 mod protocol;
 mod provider;
+mod public_catalog;
 mod public_category;
 mod public_plan;
 mod public_sign;

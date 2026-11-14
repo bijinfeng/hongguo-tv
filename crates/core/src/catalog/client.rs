@@ -14,7 +14,7 @@ const DETAIL_LIMIT: usize = 12 * 1024 * 1024;
 pub struct CatalogClient {
     http: Client,
     discovery: super::discovery::Discovery,
-    category: crate::playback::PlaybackClient,
+    public_catalog: crate::playback::PlaybackClient,
     origin: Url,
     attempt_timeout: Duration,
     total_timeout: Duration,
@@ -64,7 +64,7 @@ impl CatalogClient {
         Ok(Self {
             http,
             discovery,
-            category: match origin.scheme() {
+            public_catalog: match origin.scheme() {
                 "http" => crate::playback::PlaybackClient::for_loopback_tests(origin.as_str()),
                 _ => crate::playback::PlaybackClient::new(),
             }
@@ -81,12 +81,17 @@ impl CatalogClient {
         self.discovery.get().await
     }
 
+    /// Read a real anonymous channel page; dropping the future cancels reads and retries.
+    pub async fn feed(&self, query: &super::FeedQuery) -> Result<super::FeedResult, CatalogError> {
+        self.public_catalog.public_feed(query).await
+    }
+
     /// Read one anonymous category page. Dropping this future stops reads and retries.
     pub async fn category(
         &self,
         query: &super::CategoryQuery,
     ) -> Result<super::CategoryResult, CatalogError> {
-        self.category.public_category(query).await
+        self.public_catalog.public_category(query).await
     }
 
     /// Anonymous current-term suggestions. Dropping the future cancels reads and retries.

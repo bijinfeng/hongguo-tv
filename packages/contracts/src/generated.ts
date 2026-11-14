@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lists/recommend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/play/info": {
         parameters: {
             query?: never;
@@ -413,6 +429,63 @@ export interface components {
             title?: string;
             /** @description Exact upstream video identifier, never a floating-point number. */
             video_id: string;
+        };
+        /**
+         * @description The migrated anonymous channels; followed content remains account-owned.
+         * @enum {string}
+         */
+        FeedChannel: "16" | "36" | "39";
+        /** @description Aggregate parse counts only; never contain titles, identity or account data. */
+        FeedDiagnostics: {
+            /**
+             * Format: int32
+             * @description Total visited cells, including nonvideo cells.
+             */
+            cells_seen: number;
+            /**
+             * Format: int32
+             * @description Disabled, malformed or unsupported records.
+             */
+            filtered: number;
+            /**
+             * Format: int32
+             * @description Valid playable records before identity deduplication.
+             */
+            parsed: number;
+            /**
+             * Format: int32
+             * @description Direct and nested video records considered.
+             */
+            records_seen: number;
+        };
+        /** @description Successful real anonymous channel page, independent of search and category pagination. */
+        FeedResponse: {
+            /** @description Channel summaries with exact continuation context and aggregate diagnostics. */
+            data: components["schemas"]["FeedResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description One anonymous feed page; offset0 with a cell/plan pair is valid after a tab first page. */
+        FeedResult: {
+            /** @description Requested anonymous channel. */
+            channel: components["schemas"]["FeedChannel"];
+            /** @description Aggregate diagnostics, independent of cursor advancement. */
+            diagnostics: components["schemas"]["FeedDiagnostics"];
+            /** @description Exact cell identity; empty only for a terminal tab without a cell. */
+            feed_cell: string;
+            /** @description Exact plan identity; empty only for a terminal tab without a plan. */
+            feed_plan: string;
+            /** @description Whether a valid next phase/page exists. */
+            has_more: boolean;
+            /** @description Unique ordered summaries without episode details. */
+            items: components["schemas"]["Drama"][];
+            /**
+             * Format: int32
+             * @description Exact upstream cell offset; zero on a tab→cell transition.
+             */
+            next_offset: number;
+            /** @description Opaque continuation session. */
+            session_id: string;
         };
         /** @description Strict, explicit history mutations; favorites and likes remain unavailable. */
         HistoryChange: {
@@ -902,6 +975,70 @@ export interface operations {
                 };
             };
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    feed: {
+        parameters: {
+            query?: {
+                /** @description Anonymous channel16 (default),36 or39. Channel45 requires a separate account service. */
+                channel?: string;
+                /** @description Consumed upstream cell offset, 0–100000; not a drama count. */
+                offset?: number;
+                /** @description Paired exact nonzero decimal cell identity, at most30 digits. */
+                feed_cell?: string;
+                /** @description Paired exact nonzero decimal plan identity, at most30 digits. */
+                feed_plan?: string;
+                /** @description Upstream opaque session, at most1024 control-free bytes. */
+                session_id?: string;
+                /** @description At most128 comma-separated exact decimal series IDs. */
+                shown?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

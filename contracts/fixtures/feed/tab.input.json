@@ -1,0 +1,44 @@
+{
+  "code": 0,
+  "data": {
+    "tab_item": [
+      { "tab_type": 36, "cell_data": [] },
+      {
+        "tab_type": 39,
+        "bookstore_id": 7650476689721409598,
+        "bottom_unlimited": true,
+        "session_id": "tab-session",
+        "cell_data": [
+          {
+            "cell_id_str": "7650476176527343678",
+            "cell_data": [
+              {
+                "video_data": [
+                  {
+                    "series_id": "999",
+                    "video_detail": {
+                      "series_id": 7690163276214176792,
+                      "series_title": "频道首屏",
+                      "episode_cnt": 209,
+                      "first_vid": 7690223053078268953
+                    }
+                  },
+                  {
+                    "disable_play": true,
+                    "video_detail": {
+                      "series_id": "2",
+                      "series_title": "不可播放",
+                      "episode_cnt": 9
+                    }
+                  },
+                  { "video_detail": { "series_id": "3", "episode_cnt": 0 } },
+                  { "video_detail": { "series_id": "4", "content_type": "1003", "episode_cnt": 2 } }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

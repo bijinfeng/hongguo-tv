@@ -1,5 +1,7 @@
 use super::*;
 use crate::catalog::CategoryParams;
+use crate::playback::protocol;
+use reqwest::Url;
 use std::{
     collections::HashSet,
     sync::{
@@ -7,6 +9,7 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
 };
+use tokio::time::timeout;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,

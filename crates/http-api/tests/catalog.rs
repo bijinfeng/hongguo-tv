@@ -243,3 +243,36 @@ fn category_schema_keeps_optional_explicit_all_inputs_and_strict_result_types() 
     assert!(path["responses"]["400"].is_object());
     assert!(path["responses"]["504"].is_object());
 }
+
+#[test]
+fn feed_schema_declares_strict_anonymous_channels_context_and_failures() {
+    let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
+    let path = &schema["paths"]["/api/v1/lists/recommend"]["get"];
+    let params = path["parameters"].as_array().unwrap();
+    assert_eq!(params.len(), 6);
+    for name in [
+        "channel",
+        "offset",
+        "feed_cell",
+        "feed_plan",
+        "session_id",
+        "shown",
+    ] {
+        assert!(params.iter().any(|p| p["name"] == name));
+    }
+    for status in ["200", "400", "405", "502", "504"] {
+        assert!(path["responses"][status].is_object());
+    }
+    for name in [
+        "FeedResult",
+        "FeedResponse",
+        "FeedDiagnostics",
+        "FeedChannel",
+    ] {
+        assert!(schema["components"]["schemas"][name].is_object());
+    }
+    assert_eq!(
+        schema["components"]["schemas"]["FeedChannel"]["enum"],
+        serde_json::json!(["16", "36", "39"])
+    );
+}

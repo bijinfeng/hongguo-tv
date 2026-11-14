@@ -1,0 +1,44 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": true,
+    "next_offset": 6,
+    "cell_view": {
+      "cell_data": [
+        {
+          "video_detail": {
+            "series_id": "7690163276214176792",
+            "series_title": "第一部",
+            "episode_cnt": 209
+          }
+        },
+        {
+          "cell_data": [
+            {
+              "video_data": [
+                {
+                  "video_detail": {
+                    "series_id": "7690163276214176792",
+                    "series_title": "重复",
+                    "episode_cnt": 209
+                  }
+                },
+                {
+                  "video_detail": {
+                    "series_id": 7690163276214176794,
+                    "series_title": "第二部",
+                    "episode_cnt": 12,
+                    "content_type": "1004"
+                  }
+                },
+                { "disable_play": true, "video_detail": { "series_id": "5", "episode_cnt": 3 } },
+                {}
+              ]
+            }
+          ]
+        },
+        { "cell_name": "非视频单元" }
+      ]
+    }
+  }
+}

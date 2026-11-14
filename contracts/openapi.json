@@ -416,6 +416,119 @@
         }
       }
     },
+    "/api/v1/lists/recommend": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "feed",
+        "parameters": [
+          {
+            "name": "channel",
+            "in": "query",
+            "description": "Anonymous channel16 (default),36 or39. Channel45 requires a separate account service.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Consumed upstream cell offset, 0–100000; not a drama count.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "feed_cell",
+            "in": "query",
+            "description": "Paired exact nonzero decimal cell identity, at most30 digits.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "feed_plan",
+            "in": "query",
+            "description": "Paired exact nonzero decimal plan identity, at most30 digits.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "description": "Upstream opaque session, at most1024 control-free bytes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shown",
+            "in": "query",
+            "description": "At most128 comma-separated exact decimal series IDs.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/play/info": {
       "get": {
         "tags": [
@@ -1665,6 +1778,122 @@
           "video_id": {
             "type": "string",
             "description": "Exact upstream video identifier, never a floating-point number."
+          }
+        }
+      },
+      "FeedChannel": {
+        "type": "string",
+        "description": "The migrated anonymous channels; followed content remains account-owned.",
+        "enum": [
+          "16",
+          "36",
+          "39"
+        ]
+      },
+      "FeedDiagnostics": {
+        "type": "object",
+        "description": "Aggregate parse counts only; never contain titles, identity or account data.",
+        "required": [
+          "cells_seen",
+          "records_seen",
+          "parsed",
+          "filtered"
+        ],
+        "properties": {
+          "cells_seen": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total visited cells, including nonvideo cells.",
+            "minimum": 0
+          },
+          "filtered": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Disabled, malformed or unsupported records.",
+            "minimum": 0
+          },
+          "parsed": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Valid playable records before identity deduplication.",
+            "minimum": 0
+          },
+          "records_seen": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Direct and nested video records considered.",
+            "minimum": 0
+          }
+        }
+      },
+      "FeedResponse": {
+        "type": "object",
+        "description": "Successful real anonymous channel page, independent of search and category pagination.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FeedResult",
+            "description": "Channel summaries with exact continuation context and aggregate diagnostics."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "FeedResult": {
+        "type": "object",
+        "description": "One anonymous feed page; offset0 with a cell/plan pair is valid after a tab first page.",
+        "required": [
+          "channel",
+          "items",
+          "has_more",
+          "next_offset",
+          "session_id",
+          "feed_cell",
+          "feed_plan",
+          "diagnostics"
+        ],
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/FeedChannel",
+            "description": "Requested anonymous channel."
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/FeedDiagnostics",
+            "description": "Aggregate diagnostics, independent of cursor advancement."
+          },
+          "feed_cell": {
+            "type": "string",
+            "description": "Exact cell identity; empty only for a terminal tab without a cell."
+          },
+          "feed_plan": {
+            "type": "string",
+            "description": "Exact plan identity; empty only for a terminal tab without a plan."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether a valid next phase/page exists."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Drama"
+            },
+            "description": "Unique ordered summaries without episode details."
+          },
+          "next_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Exact upstream cell offset; zero on a tab→cell transition.",
+            "minimum": 0
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Opaque continuation session."
           }
         }
       },

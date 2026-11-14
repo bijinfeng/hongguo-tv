@@ -441,3 +441,14 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 历史失败均保留：fixture变量重名与早期测试Text不当prop／超出视口；测试按旧Select合成label定位；ACTION_CLICK未持焦而误期待trigger/card恢复；建议未打开就 Back 导致已返回分类；输入草稿错用 texts/shows 而非 value；隐藏IME结束组合；按旧导航多按Down离开新自动聚焦输入；root原生焦点恢复曾重开输入建议；首屏 clear 事务竞态；主导航非当前停靠 ref.focus no-op及动态来源风险。另有 Web／Mac 并行改同一 runtime 导致连接失败、单次 Chrome SIGBUS 启动失败，均与产品断言分列。旧失败与中间通过不得替代最终源码门禁；独立审查报告位于同目录 function-review.md／ui-review.md。
 - 两份独立终审已核对最终源码、加强后的禁用／重排焦点测试、各宿主矩阵与原 APK 恢复，均无剩余实质功能／视觉问题。报告保留实际已观察范围和下列未验项，不据 fixture 扩大完成范围。
 - 本批无 Rust DTO／数据库／依赖／Go／upstream 变化，不重跑 security、不解除已有安全阻塞。在线分类完整筛选／续页／播放、人工 IME 候选、VoiceOver／TalkBack、逐帧动效、物理 TV／遥控／硬解／长播、Windows／Linux、C3.2 macOS 独立官网观看与字体／全屏、其余 D/E/F/G、安全及正式发行继续开放。仅提交本切片并保留并行品牌／设计修改，不推送、归档或发布；完整 MVP 未完成。
+
+### D6 · 匿名推荐频道核心（2026-11-14）
+
+- `migrate-anonymous-feed` 将固定参考客户端的推荐16、漫剧36、真人剧39迁至 Rust catalog；GET `/api/v1/lists/recommend` 为同一严格HTTP/native只读契约。关注45明确拒绝并保留到E账号批次；本批没有前端消费者、刷剧页面或自动播放，不把分类／热榜当推荐来源，不以核心通过关闭完整刷剧、D或MVP。
+- 16固定cell／plan；36／39先匹配真实tab，再带准确cell／plan／session从offset0切入cell。cell续页使用服务offset，非视频行和被过滤内容不改变游标，空但推进的页仍可继续；停滞、错类型、超限和不配对上下文拒绝，不伪造终页。摘要仅取已知video_detail／video_data／cell_data，精确decimal ID、正集数、可播和已支持内容族、去重保序、无episodes，聚合diagnostics不含标题或身份。
+- 输入限制offset100000、session1024无控制字符、shown128个合法ID、cell／plan成对非零decimal且最多30位；未知／重复参数、坏字段与方法在网络前失败。响应4MiB、每数组128、深度8和总cells／records1024，超过整页失败不截断。显式非法disable_play保守过滤；terminal tab允许上下文同时空，有任一则必须成对有效，bookstore_id显式坏类型不能折叠为空。
+- 分类与推荐复用提取后的匿名签名传输：category仍是原固定endpoint／body-bound POST，feed是固定GET tab/v或cell/change/v；每尝试新临时ID、不注册、不读保存身份／账号／历史、不发cookie／token，不改数据库。12秒总时限／5秒尝试，只有已确认空200最多3次，非空坏JSON／业务失败／403／重定向／500不追加重试；取消关闭读，媒体监听不开放业务route。
+- 离线向量源与可复现探针见 `contracts/fixtures/feed/README.md`；向量为固定Go行为合成，无凭据／live原包。Rust定向 `core-feed-final.log` 7／7、`parity-final.log` 3／3、`schema-second.log` 1／1；共享category原签名／隐私／retry／deadline／drop用例仍由完整门禁执行。HTTP/native parity包含严格输入、body／方法、no-store、脱敏错误、39阶段0→6、取消／close无pending／无history；既有真实媒体监听用例断言recommend404。生成OpenAPI与generated.ts及独立codegen:check一致。
+- 历史失败保留在 `artifacts/feed-core/`：直接cargo调用因shell PATH未含rustup失败，后续用仓库已解析的工具绝对路径；最初“缺失offset”测试实际未删原字段，纠正夹具后通过；新增schema测试漏宏命名空间导致编译失败，已修；审查新增terminal配对用例暴露一次未命中的文本替换，已按实际源码修复并直接回归。独立审查提出的非法禁播标记和终页context两项均已收紧，不删除旧失败冒充全程通过。
+- 最终 `pnpm verify`（verify-first.log）实际exit0：Rust159／159、tooling21／21、Web49／49、Desktop47／47、TV48／48，零失败／跳过，三端check／build及格式／lint／边界／codegen／release通过；`cargo clippy --locked --workspace --all-targets -- -D warnings`、文档后的fmt:check及独立codegen:check均实际exit0。最新显式匿名 `live-accepted.log` 实际exit0：16首屏5／续页4，cursor6→12；36与39各首屏3／续页6，tab→cell0→6，全部无episodes。数量只代表本次时点，不能推定完整目录或持续可用。独立功能复审与UI边界审查均无剩余问题，保留未接前端及平台边界。
+- 最终完整门禁、显式匿名探针及独立审查数量在本批 `artifacts/feed-core/gates-result.json` 和后续记录中列明。本批仅核心变化，未新增真实宿主截图或重装TV；上一分类矩阵不能计作推荐UI验收。后续共享UI按定稿接频道／播放／下一部／返回和失败恢复，再做实际Web／Mac／TV观察与独立UI／功能审查。人工IME／辅助技术／逐帧动效、物理TV／解码／长播、Windows／Linux、C3.2、安全、其余E/F/G与正式发行继续开放；无依赖变化不重跑security、不解除已有安全阻塞。仅本地提交，不推送、归档或发布。

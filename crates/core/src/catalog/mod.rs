@@ -3,6 +3,7 @@ mod actor_works;
 mod category;
 mod client;
 mod discovery;
+mod feed;
 mod parse;
 mod suggestions;
 pub use discovery::{
@@ -18,6 +19,7 @@ pub use category::{
     parse_category,
 };
 pub use client::CatalogClient;
+pub use feed::{FeedChannel, FeedDiagnostics, FeedParams, FeedQuery, FeedResult, parse_feed};
 
 pub use parse::{parse_detail, parse_search};
 use serde::{Deserialize, Serialize};

@@ -2,8 +2,8 @@ use axum::{extract::Query, http::Uri};
 use hongguo_core::{
     CoreStatus,
     catalog::{
-        ActorQuery, CatalogClient, CatalogError, CategoryParams, CategoryQuery, SearchQuery,
-        SuggestionQuery,
+        ActorQuery, CatalogClient, CatalogError, CategoryParams, CategoryQuery, FeedParams,
+        FeedQuery, SearchQuery, SuggestionQuery,
     },
     library::{HistoryChange, LibraryError, LibraryStore, SearchHistoryChange, SearchHistoryError},
     playback::{PlaybackError, PlaybackRequest, PlaybackService},
@@ -103,6 +103,7 @@ pub(crate) enum Request {
     Suggestions(SuggestionQuery),
     ActorWorks(ActorQuery),
     Category(CategoryQuery),
+    Feed(FeedQuery),
     Detail(String, Option<String>),
     Play(PlaybackRequest),
     Library,
@@ -136,6 +137,11 @@ impl Request {
             return Err(Reply::failure(400, "CORE_REQUEST_INVALID", "请求地址无效"));
         }
         match (uri.path(), body) {
+            ("/api/v1/lists/recommend", None) => {
+                let params: FeedParams =
+                    query(&uri).map_err(|_| catalog_error(CatalogError::InvalidInput))?;
+                Ok(Self::Feed(FeedQuery::new(params).map_err(catalog_error)?))
+            }
             ("/api/v1/category", None) => {
                 let params: CategoryParams =
                     query(&uri).map_err(|_| catalog_error(CatalogError::InvalidInput))?;
@@ -245,6 +251,7 @@ impl Request {
                 | "/api/v1/search/discovery"
                 | "/api/v1/search/suggestions"
                 | "/api/v1/actors/works"
+                | "/api/v1/lists/recommend"
                 | "/api/v1/category"
                 | "/api/v1/series/detail"
                 | "/api/v1/play/info"
@@ -261,6 +268,12 @@ impl Request {
     }
     pub async fn execute(self, services: &Services) -> Reply {
         let result = match self {
+            Self::Feed(query) => services
+                .catalog
+                .feed(&query)
+                .await
+                .map(Reply::success)
+                .map_err(catalog_error),
             Self::Category(query) => services
                 .catalog
                 .category(&query)
