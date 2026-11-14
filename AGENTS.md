@@ -13,5 +13,6 @@
 - 修改 Rust DTO 后 `pnpm codegen`，提交 OpenAPI 和 generated.ts，再 `pnpm codegen:check`。兼容 DTO 尚未生成，不能宣称所有旧接口已类型对齐。
 - 不修改 upstream/hongguo/，不放宽私有接口检查。不把评论/选集完整详情写入历史，不读取旧客户端数据。
 - Git hooks 只读，不自动 stash、stage、fix/reset；保留不相关修改，不擅自提交或推送。测试部分暂存的保护行为。
+- 交付源码在当前主项目工作区修改、验收和提交，不在临时目录另起实现。旧临时 worktree 仅作只读迁移参考；按功能选择性迁回，保留主仓现有修复与并行改动。临时目录只放构建缓存、可再生验收产物，不把草稿或缓存计作已交付。
 - UI 可见变化还要在真实宿主观察。headless TV 入口通过不等于真机、遥控、解码或独立安装包通过。
 - 不提交 .local/、artifacts/、target/、.nsh/、runtime.generated.json 或凭据；记录未验证项，不把骨架、预览包和正式发行混淆。
