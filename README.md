@@ -61,6 +61,8 @@ pnpm release:verify-record --record release.json --artifact-dir <下载目录>
 
 `Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成签名更新清单，并把安装包、清单、签名和验收记录全部上传到同一个 GitHub Release。桌面使用固定资产名 `latest.json` / `latest.json.sig`，由 NSH GitHub updater 直接读取；TV 使用 `tv-latest.json` / `tv-latest.json.sig`，由后续 TV 原生 adapter 显式读取。桌面与 TV 发行 workflow 显式选择 native，不读取电脑 API 地址；签名或发布前仍需通过独立安装与安全门禁。GitHub Pages 不参与正式更新链路。
 
+TV 清单由 `tooling/src/update-manifest.mjs tv` 在核对最终 APK 字节和签名身份后生成；`verify` 子命令在候选下载、草稿回验和匿名下载三个阶段校验两端签名、包摘要、大小与更新身份，匿名回验通过后才晋级 latest。正式桌面更新包名使用 NSH 识别的 `macos-aarch64.tar.gz` 后缀。详见 [发行清单验证记录](docs/release-metadata-validation.md)。
+
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 
 游客历史说明见 [crates/core/src/library/README.md](crates/core/src/library/README.md)。Web／HTTP preview 开发自动传入独立数据目录 `.local/data/rust`；native 使用宿主私有 app data，不读该目录。所有模式均不读取旧客户端文件；直接启动 Rust binary 必须提供 `--data-dir <目录>`。数据库不兼容或损坏时启动失败并保留原文件，请先检查版本与备份，不要删除数据绕过错误。

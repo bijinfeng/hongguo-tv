@@ -13,7 +13,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-publish
@@ -54,6 +54,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           test "$RELEASE_TAG" = "v$version"
+          pnpm release:check
       - name: Build desktop archive
         env:
           HONGGUO_RUNTIME_MODE: native
@@ -62,7 +63,7 @@ jobs:
           pnpm package:desktop
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           release_dir="$RUNNER_TEMP/desktop-release"
-          archive="$release_dir/hongguo-desktop-${version}-macos-arm64.tar.gz"
+          archive="$release_dir/hongguo-desktop-${version}-macos-aarch64.tar.gz"
           mkdir -p "$release_dir"
           tar -C apps/desktop/.nsh/out -czf "$archive" 红果.app
           printf '%s\n' "$archive"
@@ -73,11 +74,12 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$DESKTOP_UPDATE_MANIFEST_KEY"
+          umask 077
           key="$RUNNER_TEMP/desktop-update.secret"
           printf '%s' "$DESKTOP_UPDATE_MANIFEST_KEY" > "$key"
           chmod 600 "$key"
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
-          archive="$RUNNER_TEMP/desktop-release/hongguo-desktop-${version}-macos-arm64.tar.gz"
+          archive="$RUNNER_TEMP/desktop-release/hongguo-desktop-${version}-macos-aarch64.tar.gz"
           nsh update-manifest \
             --entry apps/desktop \
             --key "$key" \
@@ -93,7 +95,7 @@ jobs:
             artifacts: [{
               target: 'desktop-macos-arm64',
               path: artifact,
-              url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/${tag}/hongguo-desktop-${version}-macos-arm64.tar.gz`,
+              url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/${tag}/hongguo-desktop-${version}-macos-aarch64.tar.gz`,
               kind: 'installer',
             }],
           }, null, 2));
@@ -104,6 +106,10 @@ jobs:
             --source-sha "$sha" \
             --out "$RUNNER_TEMP/desktop-release/desktop-release.json" \
             --checksums "$RUNNER_TEMP/desktop-release/desktop-SHA256SUMS"
+      - name: Remove desktop signing material
+        if: always()
+        run: |
+          node -e "require('node:fs').rmSync(process.env.RUNNER_TEMP + '/desktop-update.secret', { force: true })"
       - name: Upload desktop release evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -135,6 +141,18 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - run: pnpm setup
+      - name: Validate release identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          test "$RELEASE_TAG" = "v$version"
+          pnpm release:check
       - name: Materialize signing materials
         env:
           TV_RELEASE_KEYSTORE_BASE64: ${{ secrets.TV_RELEASE_KEYSTORE_BASE64 }}
@@ -143,6 +161,7 @@ jobs:
           set -euo pipefail
           test -n "$TV_RELEASE_KEYSTORE_BASE64"
           test -n "$TV_UPDATE_MANIFEST_KEY"
+          umask 077
           keystore="$RUNNER_TEMP/tv-release.jks"
           printf '%s' "$TV_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$keystore"
           chmod 600 "$keystore"
@@ -155,6 +174,7 @@ jobs:
         env:
           HONGGUO_RUNTIME_MODE: native
           HONGGUO_TV_BUILD_TYPE: release
+          RELEASE_TAG: ${{ inputs.tag }}
           TV_RELEASE_STORE_PASSWORD: ${{ secrets.TV_RELEASE_STORE_PASSWORD }}
           TV_RELEASE_KEY_ALIAS: ${{ secrets.TV_RELEASE_KEY_ALIAS }}
           TV_RELEASE_KEY_PASSWORD: ${{ secrets.TV_RELEASE_KEY_PASSWORD }}
@@ -169,33 +189,12 @@ jobs:
           cp apps/tv/.nsh/out/红果.apk "$artifact"
           build_tools="$ANDROID_HOME/build-tools/$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('tooling/tv-toolchain.json')).android.buildTools)")"
           "$build_tools/apksigner" verify --verbose "$artifact"
+          "$build_tools/aapt2" dump badging "$artifact" > "$RUNNER_TEMP/tv-badging.txt"
+          "$build_tools/apksigner" verify --print-certs "$artifact" > "$RUNNER_TEMP/tv-certificates.txt"
           "$build_tools/aapt2" dump badging "$artifact" | grep -F "package: name='dev.hongguo.tv' versionCode='$build' versionName='$version'"
           cert=$("$build_tools/apksigner" verify --print-certs "$artifact" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }')
           test -n "$cert"
-          release_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ inputs.tag }}/hongguo-tv-${version}-android-arm64.apk"
-          manifest_entry="$RUNNER_TEMP/tv-manifest-entry"
-          mkdir -p "$manifest_entry"
-          node - "$manifest_entry/nsh.json" "$version" <<'NODE'
-          const fs = require('node:fs');
-          const [output, version] = process.argv.slice(2);
-          fs.writeFileSync(output, JSON.stringify({
-            name: '红果',
-            id: 'dev.hongguo.tv',
-            version,
-            build: Number(JSON.parse(fs.readFileSync('product-version.json')).build),
-            updater: {
-              url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/latest/download/tv-latest.json`,
-              publicKey: '9tKXZFc8ZH7qRImmlwDtTHT5OseMmNeON+LM8tl0h6c=',
-            },
-          }, null, 2));
-          NODE
-          nsh update-manifest \
-            --entry "$manifest_entry" \
-            --key "$TV_UPDATE_MANIFEST_KEY_FILE" \
-            --link "android=$release_url" \
-            --out "$release_dir"
-          mv "$release_dir/latest.json" "$release_dir/tv-latest.json"
-          mv "$release_dir/latest.json.sig" "$release_dir/tv-latest.json.sig"
+          release_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/hongguo-tv-${version}-android-arm64.apk"
           sha=$(git rev-parse HEAD)
           node - "$artifact" "$release_dir/candidate.json" "$release_url" "$cert" <<'NODE'
           const fs = require('node:fs');
@@ -217,6 +216,22 @@ jobs:
             --source-sha "$sha" \
             --out "$release_dir/tv-release.json" \
             --checksums "$release_dir/tv-SHA256SUMS"
+          node tooling/src/update-manifest.mjs tv \
+            --dir "$release_dir" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$sha" \
+            --badging "$RUNNER_TEMP/tv-badging.txt" \
+            --certificates "$RUNNER_TEMP/tv-certificates.txt" \
+            --key "$TV_UPDATE_MANIFEST_KEY_FILE"
+      - name: Remove TV signing materials
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          for (const name of ['tv-release.jks', 'tv-update.secret']) {
+            fs.rmSync(`${process.env.RUNNER_TEMP}/${name}`, { force: true });
+          }
+          NODE
       - name: Upload TV release evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -228,6 +243,8 @@ jobs:
   publish:
     name: Publish GitHub Release and update metadata
     needs: [desktop, tv]
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -235,6 +252,10 @@ jobs:
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: ${{ runner.temp }}/release
@@ -244,22 +265,18 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           test "$RELEASE_TAG" = "v$version"
-          for file in \
-            "$RUNNER_TEMP/release/desktop-release/hongguo-desktop-${version}-macos-arm64.tar.gz" \
-            "$RUNNER_TEMP/release/tv-release/hongguo-tv-${version}-android-arm64.apk" \
-            "$RUNNER_TEMP/release/desktop-release/latest.json" \
-            "$RUNNER_TEMP/release/desktop-release/latest.json.sig" \
-            "$RUNNER_TEMP/release/tv-release/tv-latest.json" \
-            "$RUNNER_TEMP/release/tv-release/tv-latest.json.sig"; do
-            test -s "$file"
-          done
-          grep -F '"sourceSha": "'"$SOURCE_SHA"'"' "$RUNNER_TEMP/release/desktop-release/desktop-release.json"
-          grep -F '"sourceSha": "'"$SOURCE_SHA"'"' "$RUNNER_TEMP/release/tv-release/tv-release.json"
+          node tooling/src/update-manifest.mjs verify \
+            --desktop-dir "$RUNNER_TEMP/release/desktop-release" \
+            --tv-dir "$RUNNER_TEMP/release/tv-release" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$SOURCE_SHA"
       - name: Publish immutable release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
@@ -268,13 +285,13 @@ jobs:
           tv="$RUNNER_TEMP/release/tv-release"
           gh release create "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --target "${{ inputs.source_sha }}" \
+            --target "$SOURCE_SHA" \
             --draft \
             --title "Hongguo TV $version" \
             --notes "Signed desktop and Android TV artifacts for $RELEASE_TAG."
           gh release upload "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            "$desktop/hongguo-desktop-${version}-macos-arm64.tar.gz" \
+            "$desktop/hongguo-desktop-${version}-macos-aarch64.tar.gz" \
             "$tv/hongguo-tv-${version}-android-arm64.apk" \
             "$desktop/latest.json" \
             "$desktop/latest.json.sig" \
@@ -284,4 +301,37 @@ jobs:
             "$desktop/desktop-SHA256SUMS#desktop-SHA256SUMS" \
             "$tv/tv-release.json#tv-release.json" \
             "$tv/tv-SHA256SUMS#tv-SHA256SUMS"
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          readback="$RUNNER_TEMP/release-readback"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$readback"
+          node tooling/src/update-manifest.mjs verify \
+            --desktop-dir "$readback" \
+            --tv-dir "$readback" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$SOURCE_SHA"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
+      - name: Verify anonymous Release downloads
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          downloaded="$RUNNER_TEMP/release-anonymous"
+          mkdir -p "$downloaded"
+          for file in "$RUNNER_TEMP/release-readback/"*; do
+            asset=$(basename "$file")
+            curl --fail --silent --show-error --location \
+              --proto '=https' --proto-redir '=https' --retry 3 --max-time 120 \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${asset}" \
+              --output "$downloaded/$asset"
+            cmp "$file" "$downloaded/$asset"
+          done
+          node tooling/src/update-manifest.mjs verify \
+            --desktop-dir "$downloaded" \
+            --tv-dir "$downloaded" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$SOURCE_SHA"
+      - name: Promote verified Release to latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --latest

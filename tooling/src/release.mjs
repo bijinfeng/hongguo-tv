@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { output, root } from './process.mjs';
@@ -80,10 +81,9 @@ export async function syncReleaseVersion({
 }
 
 export async function sha256File(file) {
-  const digest = createHash('sha256')
-    .update(await readFile(file))
-    .digest('hex');
-  return digest;
+  const digest = createHash('sha256');
+  for await (const chunk of createReadStream(file)) digest.update(chunk);
+  return digest.digest('hex');
 }
 
 export async function createArtifactMetadata({
