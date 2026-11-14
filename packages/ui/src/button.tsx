@@ -43,13 +43,29 @@ export function Button(props: ButtonProps) {
   const variant = () => props.variant ?? (props.primary ? 'primary' : 'default');
   const blocked = () => !!props.disabled || !!props.pending;
   const tone = () =>
-    variant() === 'primary'
-      ? 'primary-foreground'
-      : variant() === 'destructive'
-        ? 'destructive'
-        : props.selected
-          ? 'accent-foreground'
-          : 'foreground';
+    blocked()
+      ? 'muted-foreground'
+      : props.selected
+        ? 'accent-foreground'
+        : variant() === 'primary'
+          ? 'primary-foreground'
+          : variant() === 'destructive'
+            ? 'destructive'
+            : 'foreground';
+  const appearance = () =>
+    blocked()
+      ? 'bg-muted border-transparent'
+      : props.selected
+        ? 'bg-accent border-transparent'
+        : variant() === 'primary'
+          ? 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80'
+          : variant() === 'destructive'
+            ? 'bg-transparent border-destructive hover:bg-accent active:bg-accent'
+            : variant() === 'quiet' || variant() === 'navigation'
+              ? 'bg-transparent border-transparent hover:bg-muted active:bg-muted'
+              : props.episode
+                ? 'bg-muted border-transparent hover:bg-accent active:bg-accent'
+                : 'bg-card border-border hover:bg-muted active:bg-muted';
   return (
     <Root
       ref={(ref) => props.buttonRef?.(ref)}
@@ -80,13 +96,13 @@ export function Button(props: ButtonProps) {
       selected={props.selected}
       expanded={props.expanded}
       accessibilityDescription={props.accessibilityDescription}
-      class={`flex-row items-center ${variant() === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() ? '' : 'transition-colors duration-100'} ${blocked() ? 'bg-muted border-transparent' : `${variant() === 'primary' ? 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80' : variant() === 'destructive' ? 'bg-transparent border-destructive hover:bg-accent active:bg-accent' : variant() === 'quiet' || variant() === 'navigation' ? 'bg-transparent border-transparent hover:bg-muted active:bg-muted' : props.episode ? 'bg-muted border-transparent hover:bg-accent active:bg-accent' : 'bg-card border-border hover:bg-muted active:bg-muted'} selected:bg-accent`}`}
+      class={`flex-row items-center ${variant() === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()}`}
     >
       <SelectFocus open={props.selectOpen} gap={size().gap}>
-        <If when={props.icon}>
+        <If when={props.icon || (props.iconOnly && props.pending)}>
           <Icon
-            name={props.icon!}
-            color={token(blocked() ? 'muted-foreground' : tone())}
+            name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
+            color={token(tone())}
             size={props.size ?? (props.compact ? 'sm' : 'md')}
           />
         </If>
@@ -96,9 +112,9 @@ export function Button(props: ButtonProps) {
               fontSize:
                 variant() === 'navigation' && Product() === 'tv' ? tvUnit(24) : size().fontSize,
             }}
-            class={`${variant() === 'primary' || props.selected ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : props.selected ? 'text-accent-foreground' : 'text-foreground'}`}
+            class={`${variant() === 'primary' || props.selected ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : props.selected ? 'text-accent-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : 'text-foreground'}`}
           >
-            {props.displayLabel ?? props.label}
+            {props.displayLabel ?? (props.pending ? '处理中…' : props.label)}
           </Text>
         </If>
       </SelectFocus>

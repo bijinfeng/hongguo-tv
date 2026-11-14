@@ -3,6 +3,9 @@ import { registerFeedTests } from './feed';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 import { registerCategoryTests } from './category';
+import { CoreError } from '@hongguo/core-client';
+import { playbackTime } from '../src/format';
+import { errorMessage } from '../src/error-messages';
 
 const drama = {
   series_id: '123',
@@ -587,7 +590,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.waitFor('id:recent-search-古装');
     expect(app.shows('id:drama-123')).toBe(false);
     await app.press('id:clear-recent-searches');
-    await app.waitFor('搜索记录未清空：合成清空失败');
+    await app.waitFor('搜索记录未清空：服务暂时不可用，请稍后重试');
     expect(app.shows('id:recent-search-古装')).toBe(true);
     await app.press('重试清空');
     await app.waitFor('暂无搜索记录');
@@ -631,7 +634,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.press('搜索');
     await app.waitFor('id:drama-123');
     await app.press('id:search-more');
-    await app.waitFor('加载失败：合成分页失败');
+    await app.waitFor('加载失败：服务暂时不可用，请稍后重试');
     expect(app.shows('id:drama-123')).toBe(true);
     await app.press('重试');
     await app.waitFor('id:drama-124');
@@ -669,11 +672,11 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.press('搜索');
     await app.waitFor('id:search-more');
     await app.press('id:search-more');
-    await app.waitFor('加载失败：搜索分页数据无效，请重试。');
+    await app.waitFor('加载失败：搜索分页数据无效，请重试');
     expect(app.shows('id:drama-123')).toBe(true);
     expect(pages).toBe(1);
     await app.press('重试');
-    await app.waitFor('加载失败：搜索分页数据无效，请重试。');
+    await app.waitFor('加载失败：搜索分页数据无效，请重试');
     expect(pages).toBe(2);
   });
 
@@ -810,13 +813,15 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
         },
       },
     });
-    await app.waitFor(target === 'tv' ? '选集与详情' : '重生之后 · 第 3 集 · 60 秒');
+    await app.waitFor(target === 'tv' ? '选集与详情' : '重生之后 · 第 3 集 · 本集已看完');
     await app.press('id:nav-history');
-    await app.waitFor('较早的故事 · 第 1 集 · 9 秒');
+    await app.waitFor('较早的故事 · 第 1 集 · 00:09');
     const texts = app.texts();
     expect(texts.indexOf('重生之后') >= 0).toBe(true);
     expect(texts.indexOf('重生之后') < texts.indexOf('较早的故事')).toBe(true);
-    expect(app.shows('第 3 集 · 看到 60 秒')).toBe(true);
+    expect(app.shows('第 3 集 · 看到 01:00')).toBe(true);
+    expect(app.shows('role:header[继续观看]')).toBe(true);
+    expect(app.shows('role:header[首页]')).toBe(false);
     expect(app.shows('本集已看完')).toBe(true);
     await app.press('id:history-123');
     await app.waitFor('原观看集已不可用，可选择其他已开放集数从头观看。');
@@ -855,7 +860,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
         },
       },
     });
-    await app.waitFor(target === 'tv' ? '选集与详情' : '重生之后 · 第 2 集 · 15 秒');
+    await app.waitFor(target === 'tv' ? '选集与详情' : '重生之后 · 第 2 集 · 00:15');
     if (target === 'tv') await app.press('id:nav-search');
     await app.type('id:search-input', '   ');
     expect(app.enabled('搜索')).toBe(false);
@@ -872,12 +877,12 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     ).toBe(true);
     failSearch = true;
     await app.press('搜索');
-    await app.waitFor('搜索失败：Error: 目录离线');
+    await app.waitFor('搜索失败：服务暂时不可用，请稍后重试');
     expect(app.shows('id:drama-123')).toBe(true);
     failLibrary = true;
     await app.press('id:nav-history');
-    await app.waitFor('记录加载失败：Error: 记录离线');
-    expect(app.shows('重生之后 · 第 2 集 · 15 秒')).toBe(true);
+    await app.waitFor('记录加载失败：服务暂时不可用，请稍后重试');
+    expect(app.shows('重生之后 · 第 2 集 · 00:15')).toBe(true);
     expect(app.shows('看过的短剧会保存在这里。')).toBe(false);
     await app.press('id:nav-search');
     expect(app.value('id:search-input')).toBe(' 重生 ');
@@ -918,7 +923,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       },
     });
     await app.press('id:nav-history');
-    await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+    await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.press('id:history-123');
     await app.waitFor('继续第 59 集');
     expect(app.shows('id:episode-1058')).toBe(true);
@@ -938,7 +943,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.back();
     unavailable = true;
     await app.press('id:nav-history');
-    await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+    await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.press('id:history-123');
     await app.waitFor('原观看集已不可用，可选择其他已开放集数从头观看。');
     expect(app.enabled('从第 1 集开始')).toBe(true);
@@ -982,6 +987,41 @@ export function registerApplicationTests(
   target: 'desktop' | 'tv' = 'desktop',
   entry = './App.tsx',
 ) {
+  test('playback time preserves minute/hour boundaries and distinguishes unknown from zero', () => {
+    expect([0, 59, 60, 756.9, 3599, 3600, 3661].map(playbackTime)).toEqual([
+      '00:00',
+      '00:59',
+      '01:00',
+      '12:36',
+      '59:59',
+      '1:00:00',
+      '1:01:01',
+    ]);
+    expect([undefined, NaN, Infinity, -1].map(playbackTime)).toEqual([
+      '--:--',
+      '--:--',
+      '--:--',
+      '--:--',
+    ]);
+  });
+  test('request copy uses error categories, keeps raw details for diagnostics and ignores cancellation', () => {
+    const timeout = new CoreError('raw transport details', 'UPSTREAM_TIMEOUT', 504);
+    expect(errorMessage(timeout, '搜索失败')).toBe('搜索失败：内容服务连接超时，请重试');
+    expect(timeout.message).toBe('raw transport details');
+    expect(errorMessage(new CoreError('raw', 'UNKNOWN', 401), '账号操作未完成')).toBe(
+      '账号操作未完成：登录状态已失效，请重新登录',
+    );
+    expect(errorMessage(new CoreError('raw', 'UNKNOWN', 429), '搜索失败')).toBe(
+      '搜索失败：请求过于频繁，请稍后再试',
+    );
+    expect(errorMessage(new CoreError('raw', 'UNKNOWN', 503), '详情加载失败')).toBe(
+      '详情加载失败：服务暂时不可用，请稍后重试',
+    );
+    expect(errorMessage(new Error('raw stack or server message'), '记录加载失败')).toBe(
+      '记录加载失败，请重试',
+    );
+    expect(errorMessage({ name: 'AbortError' }, '搜索失败')).toBe('');
+  });
   if (target === 'desktop')
     test('public window fullscreen preserves playback and Escape restores its source', async () => {
       const app = await open(entry, {
@@ -1134,7 +1174,7 @@ export function registerApplicationTests(
     if (target === 'tv' && !app.shows('id:search-input')) await app.press('id:nav-search');
     await app.type('id:search-input', '重生');
     await app.press('搜索');
-    await app.waitFor('搜索失败：Error: 暂时不可用');
+    await app.waitFor('搜索失败：服务暂时不可用，请稍后重试');
     await app.press('重试');
     await app.waitFor('重生之后');
     await app.clear('id:search-input');
@@ -1171,7 +1211,7 @@ export function registerApplicationTests(
     });
     await app.waitFor('测试账号');
     await app.press('id:nav-history');
-    await app.waitFor('重生之后 · 第 2 集 · 15 秒');
+    await app.waitFor('重生之后 · 第 2 集 · 00:15');
     await app.press('id:history-123');
     await app.waitFor('继续第 2 集');
     await app.press('继续第 2 集');

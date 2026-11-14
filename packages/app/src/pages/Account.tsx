@@ -2,10 +2,16 @@ import { Image, Text, View, signal, cleanup, type ViewRef } from 'nsh';
 import { request, type Account as AccountStatus } from '@hongguo/core-client';
 import { Button, Notice, Surface } from '@hongguo/ui';
 import type { Store } from '../store';
+import { errorMessage } from '../error-messages';
 export function Account(props: { store: Store; openUpdates?: (restore: () => void) => void }) {
   let updatesRef: ViewRef | undefined;
   const busy = signal(false);
-  const error = signal('');
+  const error = signal<unknown>(undefined);
+  const failure = () =>
+    errorMessage(
+      error() || props.store.account.error() || props.store.account()?.error,
+      '账号操作未完成',
+    );
   let controller: AbortController | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let qrId: string | undefined;
@@ -27,12 +33,12 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
         void poll();
       }, 1800);
     } catch (err) {
-      if (!closed) error.set(String(err));
+      if (!closed) error.set(err);
     }
   };
   const start = async () => {
     busy.set(true);
-    error.set('');
+    error.set(undefined);
     clearTimeout(timer);
     controller?.abort();
     controller = new AbortController();
@@ -50,7 +56,7 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
           void poll();
         }, 1800);
     } catch (err) {
-      if (!closed) error.set(String(err));
+      if (!closed) error.set(err);
     } finally {
       if (!closed) busy.set(false);
     }
@@ -64,7 +70,9 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
   });
   return (
     <View class="flex-1 gap-5 p-5 md:p-8">
-      <Text class="text-2xl font-semibold text-foreground">账号</Text>
+      <Text role="header" accessibilityLevel={1} class="text-2xl font-semibold text-foreground">
+        账号
+      </Text>
       <If when={props.openUpdates}>
         <Button
           label="应用更新"
@@ -108,12 +116,8 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
           </If>
         </If>
       </Surface>
-      <If when={error() || props.store.account.error() || props.store.account()?.error}>
-        <Notice
-          error
-          message={error() || String(props.store.account.error() || props.store.account()?.error)}
-          retry={props.store.account.refetch}
-        />
+      <If when={failure()}>
+        <Notice error message={failure()} retry={props.store.account.refetch} />
       </If>
     </View>
   );

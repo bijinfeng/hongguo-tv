@@ -16,15 +16,19 @@ import { Product, controlMetrics, tvUnit } from './foundation';
 import { Button } from './button';
 import { CardRoot } from './card-controls';
 import { Progress } from './display';
+import { textSize } from './typography';
 
-/** Image failure never removes a card's readable title or action. No per-cell entrance animation. */
-export function Cover(props: {
+export interface CoverProps {
   src?: string;
   title: string;
   class?: string;
   height?: number;
-  variant?: 'feature';
-}) {
+  /** Standalone poster, flush continuation image, or cinema image. */
+  variant?: 'poster' | 'inline' | 'feature';
+}
+
+/** Image failure never removes a card's readable title or action. No per-cell entrance animation. */
+export function Cover(props: CoverProps) {
   const failed = signal(false);
   effect(() => {
     void props.src;
@@ -35,9 +39,12 @@ export function Cover(props: {
       accessibilityLabel={`${props.title}封面`}
       style={{
         ...(props.height ? { height: props.height } : {}),
-        ...(Product() === 'tv'
-          ? { borderRadius: props.variant === 'feature' ? 0 : tvUnit(12) }
-          : {}),
+        borderRadius:
+          props.variant === 'feature' || props.variant === 'inline'
+            ? 0
+            : Product() === 'tv'
+              ? tvUnit(12)
+              : 12,
       }}
       class={`overflow-hidden rounded-(--radius) ${props.variant === 'feature' ? 'bg-cinema-control' : 'bg-muted'} justify-center items-center ${props.class ?? ''}`}
     >
@@ -47,7 +54,7 @@ export function Cover(props: {
           <Text
             class={`${props.variant === 'feature' ? 'text-cinema-muted' : 'text-muted-foreground'} text-center`}
             style={{
-              fontSize: Product() === 'tv' ? tvUnit(20) : 14,
+              fontSize: textSize('meta'),
               padding: Product() === 'tv' ? tvUnit(16) : 16,
             }}
           >
@@ -62,9 +69,9 @@ export function Cover(props: {
           style={
             props.variant === 'feature'
               ? { objectPosition: 'center 28%' }
-              : Product() === 'tv'
+              : Product() === 'tv' || props.variant === 'inline'
                 ? { objectPosition: 'top' }
-                : undefined
+                : { objectPosition: 'center 30%' }
           }
           class="w-full h-full object-cover"
         />
@@ -116,16 +123,13 @@ export function PosterCard(props: {
       />
       <View class="gap-1">
         <Text
-          style={{ fontSize: Product() === 'tv' ? tvUnit(24) : 18 }}
+          style={{ fontSize: textSize('content-title') }}
           class="text-foreground font-semibold line-clamp-2"
         >
           {props.title}
         </Text>
         <If when={props.caption}>
-          <Text
-            style={{ fontSize: Product() === 'tv' ? tvUnit(20) : 14 }}
-            class="text-muted-foreground"
-          >
+          <Text style={{ fontSize: textSize('meta') }} class="text-muted-foreground">
             {props.caption}
           </Text>
         </If>
@@ -199,7 +203,7 @@ export function ContinueCard(props: {
       }}
     >
       <View style={{ width: Product() === 'tv' ? tvUnit(160) : 108 }} class="shrink-0">
-        <Cover src={props.image} title={props.title} class="w-full h-full rounded-none" />
+        <Cover src={props.image} title={props.title} variant="inline" class="w-full h-full" />
       </View>
       <View
         class="flex-1 min-w-0 gap-1 justify-center"
@@ -207,14 +211,11 @@ export function ContinueCard(props: {
       >
         <Text
           class="font-semibold text-foreground line-clamp-2"
-          style={{ fontSize: Product() === 'tv' ? tvUnit(24) : 18 }}
+          style={{ fontSize: textSize('content-title') }}
         >
           {props.title}
         </Text>
-        <Text
-          class="text-muted-foreground"
-          style={{ fontSize: Product() === 'tv' ? tvUnit(20) : 14 }}
-        >
+        <Text class="text-muted-foreground" style={{ fontSize: textSize('meta') }}>
           {props.subtitle}
         </Text>
         <View style={{ paddingTop: Product() === 'tv' ? tvUnit(12) : 12 }}>
@@ -222,7 +223,6 @@ export function ContinueCard(props: {
         </View>
         <View class="items-start" style={{ paddingTop: Product() === 'tv' ? tvUnit(12) : 12 }}>
           <Button
-            primary
             icon="forward"
             label={props.label}
             onPress={props.onPress}

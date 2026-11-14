@@ -13,9 +13,8 @@ import { Avatar as BaseAvatar, Progress as BaseProgress } from 'nsh/base';
 import { Button } from './button';
 import { Product, controlMetrics, tvUnit } from './foundation';
 import { Icon, type IconName } from './icon';
-
-/** The approved shared typography roles; numeric text keeps tabular figures. */
-export type TextRole = 'page' | 'section' | 'title' | 'body' | 'meta' | 'numeric';
+import { textSize, type TextRole } from './typography';
+export type { TextRole } from './typography';
 /** Semantic foregrounds; consumers cannot supply fonts or colors. */
 export type TextTone = 'default' | 'muted' | 'error' | 'selected' | 'cinema';
 /** Shared text owns typography; callers own its content and surrounding layout. */
@@ -29,10 +28,6 @@ export interface UiTextProps {
   testID?: string;
 }
 
-const textSizes = {
-  desktop: { page: 32, section: 24, title: 20, body: 16, meta: 14, numeric: 16 },
-  tv: { page: 48, section: 32, title: 24, body: 22, meta: 20, numeric: 22 },
-};
 const textColor = (tone?: TextTone, role?: TextRole) =>
   tone === 'error'
     ? 'text-destructive'
@@ -43,8 +38,6 @@ const textColor = (tone?: TextTone, role?: TextRole) =>
         : tone === 'muted' || (!tone && role === 'meta')
           ? 'text-muted-foreground'
           : 'text-foreground';
-const textSize = (role: TextRole = 'body') =>
-  Product() === 'tv' ? tvUnit(textSizes.tv[role]) : textSizes.desktop[role];
 const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 /** Renders one shared text role, retaining system font scaling and native selection. */
@@ -69,7 +62,7 @@ export function UiText(props: UiTextProps) {
           numberOfLines: props.lines ?? 0,
           textAlign: props.align ?? 'start',
         }}
-        class={`${textColor(props.tone, props.role)} ${['page', 'section', 'title'].includes(props.role ?? '') ? 'font-semibold' : ''} ${props.role === 'numeric' ? 'tabular-nums' : ''} selection:bg-accent`}
+        class={`${textColor(props.tone, props.role)} ${['page', 'section', 'title', 'content-title'].includes(props.role ?? '') ? 'font-semibold' : ''} ${props.role === 'numeric' ? 'tabular-nums' : ''} selection:bg-accent`}
       >
         {props.children}
       </Text>

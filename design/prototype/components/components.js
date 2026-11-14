@@ -113,6 +113,10 @@ function controls() {
           `<div class="samples">${sample('选中', button('已收藏', { variant: 'selected', glyph: 'check', action: 'favorite', extra: 'aria-pressed="true"' }))}${sample('选中 + 焦点', button('已收藏', { variant: 'selected force-focus', glyph: 'check', action: 'favorite', extra: 'aria-pressed="true"' }))}${sample('不可用', button('下一集', { disabled: true, glyph: 'skip-forward' }))}${sample('等待确认', `<button class="ui-button" disabled aria-busy="true">${icon('loader-circle', 'spin')}保存中</button>`)}</div>`,
         ) +
         row(
+          '状态组合',
+          `<div class="samples">${sample('主要 + 选中', button('已选择观看', { variant: 'primary selected force-focus', glyph: 'check', extra: 'aria-pressed="true"' }))}${sample('主要 + 选中 + 禁用', button('已选择观看', { variant: 'primary selected', glyph: 'check', disabled: true, extra: 'aria-pressed="true"' }))}${sample('危险 + 选中', button('已选择移除', { variant: 'destructive selected', extra: 'aria-pressed="true"' }))}</div>`,
+        ) +
+        row(
           '尺寸与图标',
           `<div class="samples">${sample('标准', button('搜索', { glyph: 'search', action: 'notice' }))}${state.platform === 'desktop' ? sample('紧凑 · 次要操作', button('更多', { variant: 'compact', action: 'notice' })) : ''}${sample('图标操作', `<div class="inline">${button('搜索', { glyph: 'search', iconOnly: true, action: 'notice' })}${button('关闭', { glyph: 'x', iconOnly: true, action: 'notice' })}${button('设置', { glyph: 'settings', iconOnly: true, action: 'notice' })}</div>`)}<span class="size-rule">${state.platform === 'tv' ? '60 高 · 图标 26 · 内距 24' : '44 高 · 图标 20 · 内距 16'}</span></div>`,
         ),
@@ -284,8 +288,8 @@ function render() {
         'input:not([type=range]):not([type=checkbox]):not([data-permanent-readonly]):not(:disabled)',
       )
       .forEach((el) => (el.readOnly = true));
-  const mixed = document.querySelector('#mixed-check');
-  if (mixed) mixed.indeterminate = true;
+  for (const mixed of document.querySelectorAll('input[type="checkbox"][aria-checked="mixed"]'))
+    mixed.indeterminate = true;
   collectionAfterRender(context());
   frequentAfterRender(context());
   history.replaceState(

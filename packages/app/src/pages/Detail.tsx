@@ -1,6 +1,7 @@
 import { Scroll, Text, View, effect, resource, signal, type ViewRef } from 'nsh';
 import { detail, type Drama, type Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
+import { errorMessage } from '../error-messages';
 import { Button, Cover, EpisodeRange, Notice, StoryFeature, tvUnit } from '@hongguo/ui';
 
 export function Detail(props: { drama: Drama; store: Store }) {
@@ -109,10 +110,10 @@ export function Detail(props: { drama: Drama; store: Store }) {
         <If when={result.loading()}>
           <Text class="text-base text-muted-foreground">正在加载选集…</Text>
         </If>
-        <If when={result.error()}>
+        <If when={errorMessage(result.error(), '详情加载失败')}>
           <Notice
             error
-            message={`详情加载失败：${String(result.error())}`}
+            message={errorMessage(result.error(), '详情加载失败')}
             retry={result.refetch}
           />
         </If>
@@ -126,6 +127,8 @@ export function Detail(props: { drama: Drama; store: Store }) {
           }}
         >
           <Text
+            role="header"
+            accessibilityLevel={2}
             style={props.store.target === 'tv' ? { fontSize: tvUnit(28) } : undefined}
             class={`${props.store.target === 'tv' ? 'text-2xl' : 'text-xl'} font-semibold text-foreground`}
           >

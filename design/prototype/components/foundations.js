@@ -27,7 +27,8 @@ export function foundationSheet(ctx) {
         `<div class="type-scale">
           <div><span class="type-page">找一部想看的</span><small>页面标题 · ${tv ? '48' : '32'}</small></div>
           <div><span class="type-section">继续观看</span><small>栏目标题 · ${tv ? '32' : '24'}</small></div>
-          <div><span class="type-title">重返1998</span><small>内容标题 · ${tv ? '24' : '20'}</small></div>
+          <div><span class="type-title">选集</span><small>面板标题 · ${tv ? '24' : '20'}</small></div>
+          <div><span class="type-content-title">重返1998</span><small>卡片剧名 · ${tv ? '24' : '18'}</small></div>
           <div><span class="type-body">从上次看到的地方继续。</span><small>正文与操作 · ${tv ? '22' : '16'}</small></div>
           <div><span class="type-meta">都市 · 已完结</span><small>元信息 · ${tv ? '20' : '14'}</small></div>
         </div>`,
@@ -45,7 +46,7 @@ export function foundationSheet(ctx) {
       ) +
         row(
           '表面关系',
-          `<div class="surface-spec"><div class="surface-page"><span>页面</span><div class="surface-content"><strong>内容表面</strong><span>留白划分内容，边界用于控件和必要分组。</span><div class="surface-muted">中性区域</div></div></div><div class="surface-cinema"><strong>影院表面</strong><span>00:36 / 02:00</span>${icon('play')}</div></div>`,
+          `<div class="surface-spec"><div class="surface-content"><strong>内容对象</strong><span>共 72 集 · 已完结</span></div><div class="surface-muted"><strong>次级状态</strong><span>暂无观看记录</span></div><div class="surface-page"><strong>边界分组</strong><span>自动播放下一集</span></div><div class="surface-cinema"><strong>影院内容</strong><span>00:36 / 02:00</span>${icon('play')}</div></div>`,
         ) +
         row(
           '边界与焦点',

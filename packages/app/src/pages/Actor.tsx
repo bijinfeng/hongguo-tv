@@ -38,6 +38,8 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
         </If>
         <View class="flex-1 gap-2">
           <Text
+            role="header"
+            accessibilityLevel={1}
             class="text-3xl font-semibold text-foreground"
             style={props.store.target === 'tv' ? { fontSize: tvUnit(36) } : undefined}
           >

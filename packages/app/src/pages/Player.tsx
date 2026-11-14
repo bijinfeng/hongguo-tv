@@ -17,6 +17,7 @@ import { currentWindow, isAvailable, type WindowMode } from 'nsh/desktop';
 import { CoreError, play, type Drama, type Episode } from '@hongguo/core-client';
 import { type Store } from '../store';
 import { playbackLease, progressSession } from '../playback';
+import { playbackTime as timeLabel } from '../format';
 import {
   Button,
   Notice,
@@ -37,10 +38,6 @@ import {
 type Media = Awaited<ReturnType<typeof play>>;
 type Representation = { info: Media; revision: number };
 type TvLayer = 'hidden' | 'controls' | 'seek-preview' | 'episode-panel';
-const timeLabel = (value: number) => {
-  const seconds = Math.max(0, Math.floor(value || 0));
-  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-};
 
 function Episodes(props: {
   drama: Drama;
@@ -657,7 +654,8 @@ export function Player(props: {
                   />
                   <If when={tv}>
                     <CinemaText>
-                      {timeLabel(preview() ?? position())} / {timeLabel(duration())}
+                      {timeLabel(preview() ?? position())} /{' '}
+                      {timeLabel(duration() > 0 ? duration() : undefined)}
                     </CinemaText>
                   </If>
                 </View>
@@ -695,7 +693,8 @@ export function Player(props: {
                   />
                   <If when={!tv}>
                     <CinemaText>
-                      {timeLabel(preview() ?? position())} / {timeLabel(duration())}
+                      {timeLabel(preview() ?? position())} /{' '}
+                      {timeLabel(duration() > 0 ? duration() : undefined)}
                     </CinemaText>
                   </If>
                   <View class="flex-1" />

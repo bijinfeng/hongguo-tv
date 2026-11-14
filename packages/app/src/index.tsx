@@ -82,19 +82,39 @@ function Browse(props: { store: Store }) {
   // Keep page-local lists, anchors and refs alive; hidden sections have no input targets.
   return (
     <View testID={`browse-section-${props.store.section()}`} class="flex-1">
-      <View class={props.store.section() === 'home' ? 'flex-1' : 'hidden'}>
+      <View
+        class={props.store.section() === 'home' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'home'}
+        disabled={props.store.section() !== 'home'}
+      >
         <Home store={props.store} />
       </View>
-      <View class={props.store.section() === 'search' ? 'flex-1' : 'hidden'}>
+      <View
+        class={props.store.section() === 'search' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'search'}
+        disabled={props.store.section() !== 'search'}
+      >
         <Search store={props.store} />
       </View>
-      <View class={props.store.section() === 'discover' ? 'flex-1' : 'hidden'}>
+      <View
+        class={props.store.section() === 'discover' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'discover'}
+        disabled={props.store.section() !== 'discover'}
+      >
         <Discover store={props.store} />
       </View>
-      <View class={props.store.section() === 'history' ? 'flex-1' : 'hidden'}>
+      <View
+        class={props.store.section() === 'history' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'history'}
+        disabled={props.store.section() !== 'history'}
+      >
         <History store={props.store} />
       </View>
-      <View class={props.store.section() === 'feed' ? 'flex-1' : 'hidden'}>
+      <View
+        class={props.store.section() === 'feed' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'feed'}
+        disabled={props.store.section() !== 'feed'}
+      >
         <Feed store={props.store} />
       </View>
     </View>

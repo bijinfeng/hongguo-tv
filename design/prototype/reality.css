@@ -1,0 +1,243 @@
+@layer prototype-layout {
+  /* Reality-aligned catalog states; uses the existing prototype tokens. */
+  .reality-controls {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .reality-controls .chips {
+    margin: 0;
+  }
+  .reality-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .reality-filter > span {
+    color: var(--secondary);
+  }
+  .reality-filter .chips {
+    margin: 0;
+  }
+  .reality-tail {
+    padding-top: 24px;
+  }
+  .reality-search-discovery {
+    margin-bottom: 36px;
+  }
+  .reality-search-discovery .section-head {
+    margin-top: 24px;
+  }
+  .reality-search-discovery .section-head:first-child {
+    margin-top: 0;
+  }
+  .reality-hot-search {
+    padding-left: 24px;
+    margin: 12px 0;
+  }
+  .reality-hot-search li {
+    padding-left: 8px;
+  }
+  .reality-hot-search .btn {
+    text-align: left;
+    padding: 8px 0;
+  }
+  .reality-discover-filters {
+    padding: 24px 0;
+    border-block: 1px solid var(--border);
+  }
+  .reality-filter-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+  .reality-discover-filters > .small {
+    margin-bottom: 0;
+  }
+  .reality-discover-filters [hidden] {
+    display: none;
+  }
+  .reality-pagination {
+    margin-top: 28px;
+  }
+  [data-mode='tv'] .reality-discover-filters .tv-filter {
+    margin-block: 20px;
+  }
+  [data-mode='tv'] .reality-discover-filters label {
+    display: grid;
+    gap: 10px;
+  }
+  .reality-avatar {
+    width: 88px;
+    height: 112px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    background: var(--muted);
+    border-radius: var(--radius);
+  }
+  .reality-avatar .icon {
+    width: 32px;
+    height: 32px;
+  }
+  .reality-table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    border-bottom: 1px solid var(--border);
+    scrollbar-color: var(--input) transparent;
+  }
+  .reality-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  .reality-table th,
+  .reality-table td {
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .reality-table thead th {
+    color: var(--secondary);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .reality-table th[scope='row'] {
+    min-width: 144px;
+  }
+  .reality-table th[scope='row'] button {
+    padding: 8px 0;
+    font-weight: 600;
+    text-align: left;
+  }
+  .reality-table tbody tr:hover {
+    background: var(--muted);
+  }
+  .reality-review {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--secondary);
+    font-size: 14px;
+  }
+  .reality-review summary {
+    cursor: pointer;
+    min-height: 44px;
+  }
+  .reality-announcement-cover {
+    flex: none;
+  }
+  .reality-calendar > h3,
+  .reality-calendar > section + h3 {
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+  .search-form {
+    position: relative;
+  }
+  .reality-suggestions {
+    position: absolute;
+    inset: calc(100% + 8px) 0 auto;
+    z-index: 60;
+    max-height: min(520px, 65vh);
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    padding: 8px;
+  }
+  .search-form .reality-suggestion {
+    width: 100%;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    color: var(--foreground);
+    border-radius: var(--radius);
+    text-align: left;
+    white-space: normal;
+    background: transparent;
+  }
+  .search-form .reality-suggestion:hover,
+  .search-form .reality-suggestion[aria-selected='true'] {
+    background: var(--muted);
+  }
+  .reality-suggestion > span:last-child {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+    overflow-wrap: anywhere;
+  }
+  .reality-suggestion small,
+  #search-suggestion-status {
+    color: var(--secondary);
+    font-size: 14px;
+  }
+  .reality-suggestion-cover,
+  .reality-suggestion-icon {
+    width: 36px;
+    height: 48px;
+    flex: none;
+    overflow: hidden;
+    border-radius: var(--radius);
+    display: grid;
+    place-items: center;
+  }
+  .reality-suggestion-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  #search-suggestion-status {
+    padding: 0 8px;
+  }
+  #search-suggestion-status p {
+    margin-block: 8px;
+  }
+  .search-form #search-suggestion-status button {
+    color: var(--foreground);
+    margin-block: 4px;
+  }
+  .reality-calendar > .poster-grid + .media-row,
+  .reality-calendar > .tv-poster-row + .media-row {
+    margin-top: 28px;
+  }
+  [data-mode='tv'] .reality-controls {
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  [data-mode='tv'] .reality-table {
+    font-size: 20px;
+  }
+  [data-mode='tv'] .reality-table thead th,
+  [data-mode='tv'] .reality-review {
+    font-size: 18px;
+  }
+  [data-mode='tv'] .reality-ranking .media-row {
+    gap: 24px;
+    padding: 24px 0;
+  }
+  [data-mode='tv'] .reality-ranking .media-row h2,
+  [data-mode='tv'] .reality-calendar .media-row h2 {
+    font-size: 26px;
+  }
+  [data-mode='tv'] .reality-ranking .media-row .btn,
+  [data-mode='tv'] .reality-calendar .media-row .btn {
+    min-height: 64px;
+    font-size: 22px;
+  }
+  @media (max-width: 760px) {
+    .reality-calendar .media-row {
+      flex-wrap: wrap;
+    }
+    .reality-calendar .media-row .row-body {
+      min-width: 160px;
+    }
+  }
+}

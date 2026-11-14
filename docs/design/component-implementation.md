@@ -90,6 +90,8 @@ TV 入口将 Provider 的值改为 `tv`，页面仍消费相同 API。props 和�
 
 ## 还原度检查与修正
 
+2026-11-15 后续收敛：Button 的 disabled／pending、selected、variant 使用明确优先级，选中背景与文字／图标成对切换；移除选中时残留的主按钮描边和 hover 覆盖。ContinueCard 的重复动作降为普通按钮，StoryFeature 验收配方使用 primary 主动作＋已有 CinemaButton 辅助动作。原型全局搜索降为普通按钮，TV 推荐区复用共享影院配对。公共 API、尺寸、图标和行为适配不变；本批证据与根门禁限制见 VALIDATION 的“动作层级与状态组合”。
+
 还原比较设计契约和实际渲染的颜色、字级、几何、图标、边界、对齐、状态与动效；不按浏览器和原生字体渲染的像素差异计算主观分数。
 
 | 检查项         | 已执行与发现                                                                                                                                              | 当前证据边界                                                                    |
@@ -142,3 +144,15 @@ Android TV／物理电视、真实遥控、系统输入法、读屏、系统大�
 提交边界：本次包含独立组件板、浏览器共享资源、NSH UI 包、验收工具与相关规范。产品原型整页接入及先前的产品设计纠正保留在工作区，另行提交；本文的原型 28 项／合计 30 项定向结果属于完整工作区，不能冒充本次提交已包含产品原型适配。组件 39 项、macOS 26 项与产品 NSH 回归对应的 UI 源码均纳入本次范围。
 
 提交前在已有独立 Rust 构建目录 `/tmp/hongguo-discovery-target` 重新运行契约生成检查通过（`codegen-commit-check.log`），不修改 Rust 或生成契约；默认缓存此前产生的漂移失败作为历史证据保留。Android 与安全等其他限制不因此关闭。仅本地提交，不推送。
+
+## 内容语言收敛 · 2026-11-15
+
+UiText 增加 `content-title`，与内容卡共用内部字号来源；不把卡片字号自动映射为 heading。Cover 使用命名 CoverProps 与 poster／inline／feature 有限变体，续播贴边图由外框统一裁切。基础样板并列四种 Surface，内容样板补长剧名，规则与用途见根 DESIGN。
+
+本轮三端 check＋build、42 项 headless、28 项 macOS 宿主及 28 项原型回归通过，抽看 8 张原生浅深／双密度截图。完整 verify 仍停在现有 OpenAPI 漂移，未改契约。证据、构建 warning 与图片／Android TV 等未验项详见根 VALIDATION 的“字级、封面与表面规则”。
+
+## 无障碍、状态与文案修复 · 2026-11-15
+
+初审六项均已实施：字段说明与 TV 输入入口语义、可见 pending、禁用选择配对、页面标题及隐藏分区、请求错误映射和共享播放时间。UI 维护契约与外观，app 维护业务格式；不改主题、DTO、依赖或已有焦点适配。完整状态与证据集中见[专项审查](design-system-accessibility-state-copy-audit.md#修复实施与证据)。
+
+本批三端 check＋build、组件 headless 45／45、macOS 双密度 30／30、产品 167／167、原型 28／28、lint／格式／diff 检查通过；抽看 12 张原生浅深状态截图。根 verify 仍因既有 OpenAPI drift 失败。warning、测试夹具纠正、读屏／Android TV／真实媒体等限制见根 VALIDATION 的同日修复记录；未提交、未推送。

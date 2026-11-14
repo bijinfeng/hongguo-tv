@@ -1,0 +1,122 @@
+@layer prototype-layout {
+  .account-demo-note {
+    max-width: 64ch;
+    margin: 0 0 24px;
+  }
+  .account-demo-states {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .account-demo-states summary {
+    width: fit-content;
+    color: var(--secondary);
+    cursor: pointer;
+  }
+  .account-demo-states > .actions {
+    margin-top: 16px;
+  }
+  .account-centered-actions,
+  .account-input-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .account-centered-actions {
+    justify-content: center;
+  }
+  .account-input-tools {
+    margin: -4px 0 24px;
+  }
+  .account-wide-action {
+    width: 100%;
+  }
+  .account-return-note {
+    margin-top: 24px;
+  }
+  .account-country-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 24px 0;
+  }
+  .account-country-list .btn {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .account-keypad-value {
+    display: block;
+    min-height: 56px;
+    padding: 12px 16px;
+    margin: 20px 0 16px;
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    background: var(--card);
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .account-number-pad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .account-number-pad .btn {
+    min-height: 56px;
+    font-size: 20px;
+  }
+  .account-mfa-details {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 24px;
+    row-gap: 16px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .account-mfa-details dt {
+    color: var(--secondary);
+  }
+  .account-mfa-details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .account-settings-reality .setting-row > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .account-settings-reality .setting-row > label {
+    flex: 0 0 auto;
+  }
+  .account-settings-reality .setting-row select {
+    max-width: 220px;
+  }
+  [data-mode='tv'] dialog:has(.account-reality-dialog) {
+    width: min(1000px, calc(100vw - 192px));
+  }
+  [data-mode='tv'] .account-reality-dialog {
+    font-size: 22px;
+  }
+  [data-mode='tv'] .account-reality-dialog .small,
+  [data-mode='tv'] .account-demo-note {
+    font-size: 20px;
+  }
+  [data-mode='tv'] .account-reality-dialog h3 {
+    font-size: 28px;
+  }
+  [data-mode='tv'] .account-reality-dialog .btn,
+  [data-mode='tv'] .account-reality-dialog .field-input {
+    min-height: 60px;
+    font-size: 22px;
+  }
+  [data-mode='tv'] .account-reality-dialog .qr-sample {
+    width: 240px;
+    height: 200px;
+  }
+  [data-mode='tv'] .account-number-pad {
+    gap: 16px;
+  }
+  [data-mode='tv'] .account-keypad-value {
+    font-size: 28px;
+  }
+}

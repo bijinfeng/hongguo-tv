@@ -1,5 +1,6 @@
 import { batch, cleanup, effect, lifecycle, signal } from 'nsh';
 import type { captureRequest, CategoryResult, CategoryFilterRow } from '@hongguo/core-client';
+import { errorMessage } from './error-messages';
 
 type Selection = { genre: string; category_dim_theme: string; sort: string };
 export type CategoryChoice = { value: string; title: string };
@@ -123,8 +124,10 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
         data.set({ ...next, items: [...(prior?.items ?? []), ...added] });
       });
     } catch (failure) {
-      if (owns())
-        error.set(`加载失败：${failure instanceof Error ? failure.message : String(failure)}`);
+      if (owns()) {
+        console.warn('分类加载失败', failure);
+        error.set(errorMessage(failure, '加载失败'));
+      }
     } finally {
       if (owns()) {
         abort = undefined;

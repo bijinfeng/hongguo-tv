@@ -171,6 +171,7 @@ export function SearchForm(props: { store: Store }) {
           onCompositionChange={({ composing }) => suggestions.composition(composing)}
           expanded={suggestions.open()}
           invalid={!!props.store.searchError()}
+          description={props.store.searchError() || undefined}
         />
         <Button
           testID="search-submit"
@@ -185,6 +186,7 @@ export function SearchForm(props: { store: Store }) {
       <If when={props.store.searchError()}>
         <Text
           testID="search-validation"
+          role="alert"
           class="text-sm text-destructive"
           style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
         >

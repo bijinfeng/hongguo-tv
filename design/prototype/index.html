@@ -1,14 +1,29 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light" data-mode="desktop">
+<html lang="zh-CN" data-theme="light" data-mode="desktop" data-platform="desktop">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>红果 · 可点击设计原型</title>
+    <link rel="stylesheet" href="components/assets/theme.css" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="desktop.css" />
     <link rel="stylesheet" href="tv.css" />
     <link rel="stylesheet" href="updates.css" />
+    <link rel="stylesheet" href="account-reality.css" />
+    <link rel="stylesheet" href="design-audit.css" />
+    <link rel="stylesheet" href="reality.css" />
+    <link rel="stylesheet" href="shared/content.css" />
+    <link rel="stylesheet" href="shared/feedback.css" />
+    <link rel="stylesheet" href="shared/discovery-extras.css" />
+    <link rel="stylesheet" href="shared/frequent-extras.css" />
+    <link rel="stylesheet" href="shared/foundations.css" />
+    <link rel="stylesheet" href="shared/form-extras.css" />
+    <link rel="stylesheet" href="shared/account-extras.css" />
+    <link rel="stylesheet" href="shared/collection-extras.css" />
+    <link rel="stylesheet" href="shared/controls.css" />
+    <script src="shared/icons.js" defer></script>
+    <script src="shared/controls.js" defer></script>
     <script src="desktop.js" defer></script>
     <script src="tv.js" defer></script>
     <script src="updates.js" defer></script>
@@ -48,39 +63,48 @@
       <div class="workspace">
         <header class="app-header">
           <button
-            class="icon-button mobile-menu"
+            class="ui-button quiet icon-only icon-button mobile-menu"
             data-action="menu"
             aria-label="打开导航"
             aria-expanded="false"
           ></button>
           <form class="search-form" id="search-form" role="search">
-            <span id="search-icon" aria-hidden="true"></span>
-            <input
-              id="search"
-              name="q"
-              type="search"
-              placeholder="搜索短剧、演员"
-              aria-label="搜索短剧、演员"
-              autocomplete="off"
-              list="search-suggestions"
-            />
-            <datalist id="search-suggestions">
-              <option value="重返1998"></option>
-              <option value="春山不负"></option>
-              <option value="长夜有声"></option>
-              <option value="晚风知我意"></option>
-            </datalist>
-            <button type="submit">搜索</button>
+            <div class="input-with-icon">
+              <span id="search-icon" aria-hidden="true"></span>
+              <input
+                id="search"
+                class="ui-input"
+                name="q"
+                type="search"
+                placeholder="搜索短剧、演员"
+                aria-label="搜索短剧、演员"
+                autocomplete="off"
+                maxlength="100"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="search-suggestions"
+                aria-expanded="false"
+              />
+            </div>
+            <div id="search-suggestion-panel" class="reality-suggestions" hidden>
+              <div id="search-suggestions" role="listbox" aria-label="搜索建议"></div>
+              <div id="search-suggestion-status" role="status" aria-live="polite"></div>
+            </div>
+            <button type="submit" class="ui-button">搜索</button>
           </form>
           <div class="header-actions">
             <button
-              class="icon-button"
+              class="ui-button quiet icon-only icon-button"
               data-route="history"
               aria-label="观看记录"
               title="观看记录"
               id="history-icon"
             ></button
-            ><button class="account-button" data-action="account" id="account-button"></button>
+            ><button
+              class="ui-button quiet account-button"
+              data-action="account"
+              id="account-button"
+            ></button>
           </div>
         </header>
         <main id="content" tabindex="-1"></main>

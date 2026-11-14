@@ -12,7 +12,7 @@ export function registerDiscoveryUnavailableHostTests(entry: string, artifacts: 
         reducedMotion: true,
         network: 'live',
       });
-      await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+      await app.waitFor('重生之后 · 第 59 集 · 00:15');
       await app.press('id:nav-search');
       await app.waitFor('正在加载…');
       await app.screenshot(`${artifacts}/discovery-loading-${colorScheme}.png`);
@@ -41,7 +41,7 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
       reducedMotion: false,
       network: 'live',
     });
-    await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+    await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.wait(500);
     await app.screenshot(`${artifacts}/home-light.png`);
     await app.type('id:search-input', '重生');
@@ -76,7 +76,7 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
     await app.wait(300);
     await app.screenshot(`${artifacts}/search-dark.png`);
     await app.press('id:nav-history');
-    await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+    await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.screenshot(`${artifacts}/history-dark.png`);
     await app.press('id:nav-home');
     await app.screenshot(`${artifacts}/home-dark.png`);
@@ -89,7 +89,7 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
       reducedMotion: true,
       network: 'live',
     });
-    await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+    await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.screenshot(`${artifacts}/home-1180-reduced-motion.png`);
   });
   test('shared controls in both appearances', async () => {
@@ -118,12 +118,12 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
         network: 'live',
       });
       const term = `未选中末页-${moved}`;
-      await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+      await app.waitFor('重生之后 · 第 59 集 · 00:15');
       await app.type('id:search-input', term);
       await app.submit('id:search-input');
       await app.waitFor('id:search-more');
       await app.press('id:search-more');
-      await app.waitFor('加载失败：合成分页失败');
+      await app.waitFor('加载失败：服务暂时不可用，请稍后重试');
       await app.keyboard.press('enter');
       await app.waitFor('正在加载…');
       await app.waitFor('加载更多');
@@ -167,7 +167,7 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
           reducedMotion: width === 1180,
           network: 'live',
         });
-        await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+        await app.waitFor('重生之后 · 第 59 集 · 00:15');
         await app.press('id:nav-search');
         await app.waitFor('id:drama-163');
         const card = width === 1440 ? 'id:drama-174' : 'id:drama-163';
@@ -211,7 +211,7 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
           network: 'live',
         });
         const term = `春风越过山海归来的故事-${width}-${colorScheme}`;
-        await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+        await app.waitFor('重生之后 · 第 59 集 · 00:15');
         await app.type('id:search-input', term);
         await app.submit('id:search-input');
         await app.waitFor('id:drama-123');
@@ -228,7 +228,7 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
         await app.press('id:clear-query');
         await app.waitFor('id:clear-recent-searches');
         await app.press('id:clear-recent-searches');
-        await app.waitFor('搜索记录未清空：合成清空失败');
+        await app.waitFor('搜索记录未清空：服务暂时不可用，请稍后重试');
         expect(app.shows(`id:recent-search-${term}`)).toBe(true);
         await app.wait(240);
         await app.screenshot(`${artifacts}/recent-error-${width}-${colorScheme}.png`);
@@ -248,19 +248,19 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
           reducedMotion: width === 1180,
           network: 'live',
         });
-        await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+        await app.waitFor('重生之后 · 第 59 集 · 00:15');
         await app.type('id:search-input', `续页-${width}-${colorScheme}`);
         await app.submit('id:search-input');
         await app.waitFor('id:search-more');
         await app.press('id:search-more');
         await app.waitFor('正在加载…');
         await app.screenshot(`${artifacts}/pagination-pending-${width}-${colorScheme}.png`);
-        await app.waitFor('加载失败：合成分页失败');
+        await app.waitFor('加载失败：服务暂时不可用，请稍后重试');
         await app.screenshot(`${artifacts}/pagination-error-${width}-${colorScheme}.png`);
         await app.keyboard.press('enter');
         await app.waitFor('正在加载…');
         await app.waitFor('加载更多');
-        expect(app.shows('加载失败：合成分页失败')).toBe(false);
+        expect(app.shows('加载失败：服务暂时不可用，请稍后重试')).toBe(false);
         await app.scroll('id:results', 6000);
         await app.waitFor('id:drama-186');
         await app.screenshot(`${artifacts}/pagination-append-${width}-${colorScheme}.png`);

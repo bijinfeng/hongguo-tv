@@ -91,7 +91,7 @@ export function registerFeedHostTests(entry: string, artifacts: string, host: 'w
         await app.waitFor('重生之后 3');
         expect(app.enabled('id:feed-next')).toBe(false);
         await app.press('id:feed-channel-39');
-        await app.waitFor('加载失败：推荐暂时不可用');
+        await app.waitFor('加载失败：服务暂时不可用，请稍后重试');
         await capture('channel-error');
         await app.press('重试');
         await app.waitFor('本页暂无内容，可以继续浏览');

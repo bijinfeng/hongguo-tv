@@ -116,14 +116,23 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
       testID={
         target === 'tv' && !props.readonly && props.testID ? `${props.testID}-activate` : undefined
       }
-      role={target === 'tv' && !props.readonly ? 'button' : undefined}
+      role={target === 'tv' && !props.readonly && !editing() ? 'button' : undefined}
       accessibilityLabel={
-        target === 'tv' && !props.readonly
+        target === 'tv' && !props.readonly && !editing()
           ? `${props.label}：${props.value || props.placeholder || '未输入'}`
           : undefined
       }
+      accessibilityDescription={
+        target === 'tv' && !props.readonly && !editing() ? props.description : undefined
+      }
+      accessibilityState={
+        target === 'tv' && !props.readonly && !editing()
+          ? { disabled: !!props.disabled, invalid: !!props.invalid }
+          : undefined
+      }
+      disabled={props.disabled}
       focusable={target === 'tv' && !editing() && !props.disabled && !props.readonly}
-      onPress={target === 'tv' && !props.readonly ? startEditing : undefined}
+      onPress={target === 'tv' && !props.readonly && !editing() ? startEditing : undefined}
       onFocus={() => {
         if (target === 'tv') focused.set(true);
       }}
@@ -318,42 +327,46 @@ export interface SearchFieldProps extends TextInputProps {
 /** One input border, with input, clear and submit at the same size tier. */
 export function SearchField(props: SearchFieldProps) {
   return (
-    <Field label={props.label} description={props.description} error={props.error}>
-      <View class="flex-row items-start min-w-0" style={{ gap: controlMetrics().gap }}>
-        <View class="flex-1 min-w-0">
-          <InputFrame
-            label={props.label}
-            value={props.value}
-            onChange={props.onChange}
-            onSubmit={() => {
+    <View accessibilityState={{ busy: !!props.pending }}>
+      <Field label={props.label} description={props.description} error={props.error}>
+        <View class="flex-row items-start min-w-0" style={{ gap: controlMetrics().gap }}>
+          <View class="flex-1 min-w-0">
+            <InputFrame
+              label={props.label}
+              value={props.value}
+              onChange={props.onChange}
+              onSubmit={() => {
+                if (!props.pending) props.onSubmit?.();
+              }}
+              placeholder={props.placeholder}
+              readonly={props.readonly}
+              disabled={props.disabled}
+              invalid={!!props.error || props.invalid}
+              description={props.error || props.description}
+              keyboardType={props.keyboardType}
+              maxLength={props.maxLength}
+              autoComplete={props.autoComplete}
+              onCompositionChange={props.onCompositionChange}
+              testID={props.testID}
+              inputRef={props.inputRef}
+              search
+              onClear={() => (props.onClear ? props.onClear() : props.onChange({ value: '' }))}
+            />
+          </View>
+          <Button
+            label="搜索"
+            displayLabel={props.pending ? '搜索中…' : undefined}
+            primary
+            disabled={props.disabled}
+            pending={props.pending}
+            testID={props.testID ? `${props.testID}-submit` : undefined}
+            onPress={() => {
               if (!props.pending) props.onSubmit?.();
             }}
-            placeholder={props.placeholder}
-            readonly={props.readonly}
-            disabled={props.disabled}
-            invalid={!!props.error || props.invalid}
-            description={props.error || props.description}
-            keyboardType={props.keyboardType}
-            maxLength={props.maxLength}
-            autoComplete={props.autoComplete}
-            onCompositionChange={props.onCompositionChange}
-            testID={props.testID}
-            inputRef={props.inputRef}
-            search
-            onClear={() => (props.onClear ? props.onClear() : props.onChange({ value: '' }))}
           />
         </View>
-        <Button
-          label="搜索"
-          primary
-          disabled={props.disabled || props.pending}
-          testID={props.testID ? `${props.testID}-submit` : undefined}
-          onPress={() => {
-            if (!props.pending) props.onSubmit?.();
-          }}
-        />
-      </View>
-    </Field>
+      </Field>
+    </View>
   );
 }
 
@@ -464,7 +477,7 @@ export function Checkbox(props: CheckboxProps) {
       onChange={props.onChange}
       class="flex-row items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:text-muted-foreground"
       style={{ minHeight: controlMetrics().height }}
-      indicatorClass="items-center justify-center rounded border border-input checked:bg-primary checked:border-primary indeterminate:bg-primary indeterminate:border-primary disabled:bg-muted"
+      indicatorClass="items-center justify-center rounded border border-input checked:bg-primary checked:border-primary indeterminate:bg-primary indeterminate:border-primary disabled:bg-muted disabled:border-input"
       indicatorStyle={{
         width: Product() === 'tv' ? tvUnit(28) : 22,
         height: Product() === 'tv' ? tvUnit(28) : 22,
@@ -473,7 +486,7 @@ export function Checkbox(props: CheckboxProps) {
         <If when={props.checked || props.indeterminate}>
           <Icon
             name={props.indeterminate ? 'minus' : 'check'}
-            color={token('primary-foreground')}
+            color={token(props.disabled ? 'muted-foreground' : 'primary-foreground')}
           />
         </If>
       }
@@ -509,7 +522,7 @@ export function Switch(props: SwitchProps) {
         height: Product() === 'tv' ? tvUnit(36) : 28,
         padding: Product() === 'tv' ? tvUnit(4) : 3,
       }}
-      thumbClass={`rounded-full ${props.checked ? 'bg-primary-foreground' : 'bg-card'} ${reduceMotion() ? '' : 'transition-transform duration-100'}`}
+      thumbClass={`rounded-full ${props.disabled ? 'bg-muted-foreground' : props.checked ? 'bg-primary-foreground' : 'bg-card'} ${reduceMotion() ? '' : 'transition-transform duration-100'}`}
       thumbStyle={{
         width: Product() === 'tv' ? tvUnit(28) : 22,
         height: Product() === 'tv' ? tvUnit(28) : 22,

@@ -93,7 +93,76 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
       code: 'ERR_NSH_TEST_DISABLED',
     });
     expect(app.shows('text:不应触发')).toBe(false);
+    expect(app.shows('text:处理中…')).toBe(true);
     app.dispose();
+  });
+  test('search pending preserves drafts, blocks submission and recovers; disabled selections cannot change', async () => {
+    const app = await open(entry, settings());
+    await app.press('id:gallery-sheet-forms');
+    if (options.target === 'tv') await app.press('id:gallery-query-activate');
+    await app.type('id:gallery-query', '原搜索');
+    await app.submit('id:gallery-query');
+    await app.waitFor('text:搜索：原搜索');
+    if (options.target === 'tv') await app.keyboard.press('escape');
+    await app.press('id:gallery-query-pending');
+    if (options.target === 'tv') await app.press('id:gallery-query-activate');
+    await app.clear('id:gallery-query');
+    await app.type('id:gallery-query', '保留草稿');
+    await app.submit('id:gallery-query');
+    if (options.target === 'tv') await app.keyboard.press('escape');
+    expect(app.shows('text:搜索：原搜索')).toBe(true);
+    expect(app.shows('text:搜索：保留草稿')).toBe(false);
+    expect(app.shows('text:搜索中…')).toBe(true);
+    expect(app.enabled('id:gallery-query-submit')).toBe(false);
+    for (const id of [
+      'gallery-disabled-unchecked',
+      'gallery-disabled-checked',
+      'gallery-disabled-mixed',
+      'gallery-disabled-switch',
+    ]) {
+      expect(app.enabled(`id:${id}`)).toBe(false);
+      await expect(app.press(`id:${id}`)).rejects.toMatchObject({ code: 'ERR_NSH_TEST_DISABLED' });
+    }
+    expect(app.shows('text:不应触发')).toBe(false);
+    if (options.target === 'tv') {
+      expect(app.enabled('id:gallery-input-disabled-activate')).toBe(false);
+      expect(app.shows('role:button[短剧名称错误示例：未输入]')).toBe(true);
+    }
+    if (options.host && options.artifacts)
+      await app.screenshot(`${options.artifacts}/search-pending-and-disabled.png`);
+    await app.press('id:gallery-query-pending');
+    await app.press('id:gallery-query-submit');
+    await app.waitFor('text:搜索：保留草稿');
+    app.dispose();
+  });
+  test('primary selection keeps readable text through hover, pending and recovery', async () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const app = await open(entry, settings(theme));
+      await app.press('id:gallery-sheet-controls');
+      const color = (label = '已选择观看') =>
+        app.spanStyle(`id:gallery-primary-selected >> text:${label}`).color;
+      const selectedColor = theme === 'light' ? '#9f202aff' : '#ffb5b9ff';
+      expect(color()).toBe(selectedColor);
+      if (options.host !== 'android') {
+        await app.hover('id:gallery-primary-selected');
+        expect(color()).toBe(selectedColor);
+      }
+      if (options.host && options.artifacts)
+        await app.screenshot(`${options.artifacts}/primary-selected-${theme}.png`);
+      await app.press('id:gallery-primary-selected');
+      expect(color('选择观看')).toBe(theme === 'light' ? '#ffffffff' : '#311216ff');
+      await app.press('id:gallery-primary-selected');
+      await app.press('id:gallery-toggle-pending');
+      expect(app.enabled('id:gallery-primary-selected')).toBe(false);
+      expect(color('处理中…')).toBe(theme === 'light' ? '#686a64ff' : '#a6ada0ff');
+      await expect(app.press('id:gallery-primary-selected')).rejects.toMatchObject({
+        code: 'ERR_NSH_TEST_DISABLED',
+      });
+      await app.press('id:gallery-toggle-pending');
+      expect(app.enabled('id:gallery-primary-selected')).toBe(true);
+      expect(color()).toBe(selectedColor);
+      app.dispose();
+    }
   });
   test('confirmation starts with the safe action and escape restores its source', async () => {
     const app = await open(entry, settings());

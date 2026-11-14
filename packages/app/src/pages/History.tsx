@@ -2,10 +2,12 @@ import { List, Text, View, effect, cleanup, type ListRef, type ViewRef } from 'n
 import { Button, Cover, Notice, Progress, ResultCard, tvUnit } from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../store';
+import { playbackTime } from '../format';
+import { errorMessage } from '../error-messages';
 
 type Entry = Library['entries'][number];
 export const historyLabel = (entry: Entry) =>
-  `${entry.drama.title} · 第 ${entry.episode ?? 1} 集 · ${Math.floor(entry.position ?? 0)} 秒`;
+  `${entry.drama.title} · 第 ${entry.episode ?? 1} 集 · ${entry.completed ? '本集已看完' : playbackTime(entry.position)}`;
 export function HistoryItem(props: {
   entry: Entry;
   store: Store;
@@ -57,7 +59,7 @@ export function HistoryItem(props: {
         <Text
           style={props.store.target === 'tv' ? { fontSize: tvUnit(20) } : undefined}
           class="text-sm text-muted-foreground"
-        >{`第 ${props.entry.episode ?? 1} 集 · 看到 ${Math.floor(props.entry.position ?? 0)} 秒`}</Text>
+        >{`第 ${props.entry.episode ?? 1} 集 · 看到 ${playbackTime(props.entry.position)}`}</Text>
         <If when={props.entry.duration && props.entry.duration > 0}>
           <View class="max-w-[220px]">
             <Progress position={props.entry.position ?? 0} duration={props.entry.duration} />
@@ -88,10 +90,10 @@ export function LibraryStatus(props: { store: Store }) {
         <If when={props.store.library.loading()}>
           <Text class="text-base text-muted-foreground">正在读取观看记录…</Text>
         </If>
-        <If when={props.store.library.error()}>
+        <If when={errorMessage(props.store.library.error(), '记录加载失败')}>
           <Notice
             error
-            message={`记录加载失败：${String(props.store.library.error())}`}
+            message={errorMessage(props.store.library.error(), '记录加载失败')}
             retry={props.store.library.refetch}
           />
         </If>
@@ -130,6 +132,8 @@ export function History(props: { store: Store }) {
       style={props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : undefined}
     >
       <Text
+        role="header"
+        accessibilityLevel={1}
         style={props.store.target === 'tv' ? { fontSize: tvUnit(44) } : { fontSize: 32 }}
         class={`${props.store.target === 'tv' ? 'text-4xl' : 'text-3xl'} font-semibold text-foreground`}
       >

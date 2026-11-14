@@ -28,6 +28,11 @@
   font-size: 20px;
   font-weight: 600;
 }
+.type-content-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .type-body {
   font-size: var(--body);
 }
@@ -79,53 +84,38 @@
 }
 .surface-spec {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
   max-width: 1000px;
 }
-.surface-page {
-  padding: 24px;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.surface-page > span {
-  display: block;
-  margin-bottom: 16px;
-  font-size: var(--meta);
-  color: var(--muted-foreground);
-}
-.surface-content {
-  display: grid;
-  gap: 12px;
-  padding: 24px;
-  background: var(--card);
-  border-radius: var(--radius);
-}
-.surface-content > span {
-  color: var(--muted-foreground);
-  font-size: var(--meta);
-}
-.surface-muted {
-  padding: 12px 16px;
-  background: var(--muted);
-  border-radius: 8px;
-  font-size: var(--meta);
-}
-.surface-cinema {
+.surface-spec > div {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
-  gap: 24px;
-  padding: 32px;
+  gap: 12px;
+  padding: 24px;
   border-radius: var(--radius);
+}
+.surface-spec > div > span {
+  color: var(--muted-foreground);
+  font-size: var(--meta);
+}
+.surface-page {
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+.surface-content {
+  background: var(--card);
+}
+.surface-muted {
+  background: var(--muted);
+}
+.surface-cinema {
   background: var(--cinema);
   color: var(--cinema-foreground);
 }
-.surface-cinema > span {
+.surface-spec > .surface-cinema > span {
   color: var(--cinema-muted);
-  font-size: var(--meta);
   font-variant-numeric: tabular-nums;
 }
 .boundary-sample {
@@ -302,7 +292,8 @@
   flex-wrap: wrap;
   gap: 24px;
 }
-:root[data-platform='tv'] .type-title {
+:root[data-platform='tv'] .type-title,
+:root[data-platform='tv'] .type-content-title {
   font-size: 24px;
 }
 :root[data-platform='tv'] .type-scale {

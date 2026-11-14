@@ -53,11 +53,17 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 控件只接受有意义的有限变体和布局契约，不接受任意颜色、圆角、内距、字体覆盖。旧 `primary`／`compact` 保留为同实现兼容选项，新代码使用 `variant`／`size`。不要删除已验证的焦点适配来换取表面一致。
 
+动作层级与状态优先级见 [DESIGN.md](../../DESIGN.md#动作层级与状态组合)：Button 的 disabled／pending 外观覆盖 selected，再覆盖 variant；文字与图标跟随同一配对，focus 独立。重复 ContinueCard 使用普通动作，StoryFeature 内的主动作使用 Button primary，辅助动作复用 CinemaButton。无需新增端型组件或页面自定义颜色。
+
+文字角色由内部 `typography.ts` 统一供 UiText 与内容组合消费；`content-title` 是卡片剧名（桌面 18／TV 24），不自动增加标题层级。Cover 的默认 poster、inline、feature 分别负责独立海报、贴边续播与影院取景；页面只提供来源、身份和布局，不复制裁切。Surface 的四种变体、间距关系和图片安全区见根 DESIGN；普通栏目先用留白，四种表面作为同层选择，不层层套卡。影院表面显式搭配影院文字和控件。
+
 普通布局用 `View` 的配方，不给每个原语建立改名包装。日期条、账号验证、榜单和媒体状态仍是 app 组合与业务，不因设计样板存在就进入基础包。
+
+字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
 
 ## 资源与演进
 
-主题唯一源是 `theme.json`。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
+主题唯一源是 `theme.json`。必要控件边界使用 `input`，在浅深色的 background／card／muted／popover 上至少 3:1；装饰分隔使用 `border`。修改主题后运行 `node design/prototype/components/sync-theme.mjs`，同步浏览器共用主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
 
 浏览器产品原型与组件板复用 `design/prototype/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 

@@ -110,6 +110,7 @@ function Section(props: { title: string; children?: JSX.Element }) {
 export function ComponentGallery(props: ComponentGalleryProps) {
   const sheet = signal<GallerySheet>(props.sheet ?? 'foundation');
   const query = signal('');
+  const searchPending = signal(false);
   const title = signal('春山不负');
   const result = signal('');
   const checked = signal(false);
@@ -133,6 +134,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   const confirmError = signal<string | undefined>(undefined);
   const toasts = signal<ToastMessage[]>([]);
   const playing = signal(false);
+  const selectedAction = signal(true);
+  const pendingAction = signal(false);
   const rate = signal('1');
   const range = signal(0);
   let dialogSource: ViewRef | undefined;
@@ -178,6 +181,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 <UiText role="page">春山不负</UiText>
                 <UiText role="section">继续观看</UiText>
                 <UiText role="title">第 12 集</UiText>
+                <UiText role="content-title">春山不负</UiText>
                 <UiText>安安静静，看完一个好故事。</UiText>
                 <UiText role="meta">共 80 集 · 已完结</UiText>
                 <UiText role="numeric">12:36 / 24:00</UiText>
@@ -186,7 +190,13 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     <UiText>内容表面</UiText>
                   </Surface>
                   <Surface variant="muted">
-                    <UiText>次级表面</UiText>
+                    <UiText>次级状态</UiText>
+                  </Surface>
+                  <Surface variant="page">
+                    <UiText>边界分组</UiText>
+                  </Surface>
+                  <Surface variant="cinema">
+                    <UiText tone="cinema">影院内容</UiText>
                   </Surface>
                 </View>
                 <Separator />
@@ -228,12 +238,30 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     onPress={() => result.set('不应触发')}
                   />
                   <Button
-                    label="保存中"
+                    label="保存"
                     pending
                     testID="gallery-pending"
                     onPress={() => result.set('不应触发')}
                   />
                   <Button label="小按钮" size="sm" onPress={() => result.set('小按钮已触发')} />
+                </View>
+                <View class="flex-row flex-wrap items-center gap-3">
+                  <Button
+                    label={selectedAction() ? '已选择观看' : '选择观看'}
+                    variant="primary"
+                    icon={selectedAction() ? 'check' : 'play'}
+                    selected={selectedAction()}
+                    pending={pendingAction()}
+                    testID="gallery-primary-selected"
+                    onPress={() => selectedAction.set(!selectedAction())}
+                  />
+                  <Button
+                    label="切换等待"
+                    variant="quiet"
+                    testID="gallery-toggle-pending"
+                    onPress={() => pendingAction.set(!pendingAction())}
+                  />
+                  <Button label="已选择移除" variant="destructive" selected onPress={() => {}} />
                 </View>
                 <ActionBar label="记录操作">
                   <ActionBarGroup label="选择">
@@ -259,6 +287,13 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   onSubmit={submit}
                   onClear={() => query.set('')}
                   testID="gallery-query"
+                  pending={searchPending()}
+                />
+                <Button
+                  label="切换搜索等待"
+                  testID="gallery-query-pending"
+                  variant="quiet"
+                  onPress={() => searchPending.set(!searchPending())}
                 />
                 <FieldGroup label="输入状态">
                   <TextInput
@@ -268,9 +303,22 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     testID="gallery-title"
                   />
                   <TextInput label="只读信息" value="共 80 集" readonly onChange={() => {}} />
-                  <TextInput label="不可编辑" value="暂不可用" disabled onChange={() => {}} />
-                  <Field label="错误状态" error="请输入短剧名称">
-                    <TextInput label="短剧名称错误示例" value="" invalid onChange={() => {}} />
+                  <TextInput
+                    label="不可编辑"
+                    value="暂不可用"
+                    disabled
+                    onChange={() => {}}
+                    testID="gallery-input-disabled"
+                  />
+                  <Field label="短剧名称错误示例" error="请输入短剧名称">
+                    <TextInput
+                      label="短剧名称错误示例"
+                      value=""
+                      invalid
+                      description="请输入短剧名称"
+                      onChange={() => {}}
+                      testID="gallery-input-invalid"
+                    />
                   </Field>
                 </FieldGroup>
               </Section>
@@ -300,7 +348,35 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     indeterminate={mixed()}
                     onChange={() => mixed.set(false)}
                   />
-                  <Checkbox label="不可选择" checked={false} disabled onChange={() => {}} />
+                  <Checkbox
+                    label="不可选择"
+                    checked={false}
+                    disabled
+                    onChange={() => {}}
+                    testID="gallery-disabled-unchecked"
+                  />
+                  <Checkbox
+                    label="已选且禁用"
+                    checked
+                    disabled
+                    onChange={() => result.set('不应触发')}
+                    testID="gallery-disabled-checked"
+                  />
+                  <Checkbox
+                    label="部分选中且禁用"
+                    checked={false}
+                    indeterminate
+                    disabled
+                    onChange={() => result.set('不应触发')}
+                    testID="gallery-disabled-mixed"
+                  />
+                  <Switch
+                    label="开启且禁用"
+                    checked
+                    disabled
+                    onChange={() => result.set('不应触发')}
+                    testID="gallery-disabled-switch"
+                  />
                   <Switch
                     label="自动连播"
                     checked={enabled()}
@@ -474,7 +550,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   </View>
                   <View style={{ width: unit(180, 260) }}>
                     <PosterCard
-                      title="重返 1998"
+                      title="重返 1998：再一次走过漫长的人生"
                       caption="共 60 集"
                       width={180}
                       selected

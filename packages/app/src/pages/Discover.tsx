@@ -29,6 +29,8 @@ export function Discover(props: { store: Store }) {
     >
       <View class="flex-row items-center justify-between">
         <Text
+          role="header"
+          accessibilityLevel={1}
           class="text-3xl font-semibold text-foreground"
           style={props.store.target === 'tv' ? { fontSize: tvUnit(38) } : undefined}
         >

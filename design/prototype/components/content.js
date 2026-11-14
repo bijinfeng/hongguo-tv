@@ -15,7 +15,7 @@ function posterCard(item, { focus = false, missing = false } = {}) {
 }
 function continueCard(ctx, item, { unknownDuration = false } = {}) {
   const { button } = ctx;
-  return `<article class="content-continue"><button class="content-continue-cover" ${actionAttrs(`detail:${item.id}`, `查看${item.title}详情`)}>${cover(item)}</button><div class="content-continue-body"><h3>${item.title}</h3><p>第 12 集 · 看到 00:36</p>${unknownDuration ? '' : '<div class="content-watch-progress" role="progressbar" aria-label="本集观看进度" aria-valuemin="0" aria-valuemax="120" aria-valuenow="36" aria-valuetext="看到 00:36，共 02:00"><span style="width:30%"></span></div>'}${button('继续第 12 集', { variant: 'primary', glyph: 'play', action: 'content-demo', extra: `data-value="resume:${item.id}"` })}</div></article>`;
+  return `<article class="content-continue"><button class="content-continue-cover" ${actionAttrs(`detail:${item.id}`, `查看${item.title}详情`)}>${cover(item)}</button><div class="content-continue-body"><h3>${item.title}</h3><p>第 12 集 · 看到 00:36</p>${unknownDuration ? '' : '<div class="content-watch-progress" role="progressbar" aria-label="本集观看进度" aria-valuemin="0" aria-valuemax="120" aria-valuenow="36" aria-valuetext="看到 00:36，共 02:00"><span style="width:30%"></span></div>'}${button('继续第 12 集', { glyph: 'play', action: 'content-demo', extra: `data-value="resume:${item.id}"` })}</div></article>`;
 }
 function resultRow(ctx, item, { manage = false, selected = false, disabled = false } = {}) {
   const { button } = ctx;

@@ -3,6 +3,7 @@ import { Button, Controls, Notice, tvUnit } from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
+import { errorMessage } from '../error-messages';
 
 export function Search(props: { store: Store }) {
   const discoveries = () => {
@@ -73,7 +74,9 @@ export function Search(props: { store: Store }) {
       </If>
       <If when={props.store.target !== 'tv'}>
         <View class="flex-row items-center justify-between">
-          <Text class="text-3xl font-semibold text-foreground">找剧</Text>
+          <Text role="header" accessibilityLevel={1} class="text-3xl font-semibold text-foreground">
+            找剧
+          </Text>
           <If when={props.store.query()}>
             <Button
               testID="clear-query"
@@ -104,6 +107,8 @@ export function Search(props: { store: Store }) {
         <View class="gap-4" style={props.store.target === 'tv' ? { gap: tvUnit(20) } : undefined}>
           <View class="flex-row items-center justify-between">
             <Text
+              role="header"
+              accessibilityLevel={2}
               class="font-semibold text-foreground"
               style={{ fontSize: props.store.target === 'tv' ? tvUnit(30) : 20 }}
             >
@@ -169,10 +174,10 @@ export function Search(props: { store: Store }) {
       <If when={props.store.query() && props.store.results.loading()}>
         <Text class="text-base text-muted-foreground">正在找剧…</Text>
       </If>
-      <If when={props.store.query() && props.store.results.error()}>
+      <If when={props.store.query() && errorMessage(props.store.results.error(), '搜索失败')}>
         <Notice
           error
-          message={`搜索失败：${String(props.store.results.error())}`}
+          message={errorMessage(props.store.results.error(), '搜索失败')}
           retry={props.store.results.refetch}
         />
       </If>

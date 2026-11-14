@@ -12,6 +12,7 @@ import type { ProductTarget } from '@hongguo/ui';
 import { createNavStack } from 'nsh/base';
 import {
   libraryDrama,
+  CoreError,
   captureRequest,
   type Account,
   type Drama,
@@ -25,6 +26,7 @@ import { createRecentSearches } from './recent-searches';
 import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
+import { errorMessage } from './error-messages';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
@@ -139,7 +141,7 @@ export function createStore(
         next.next_offset <= offset ||
         next.next_offset > 100001
       )
-        throw new Error('搜索分页数据无效，请重试。');
+        throw new CoreError('搜索分页数据无效，请重试。', 'SEARCH_PAGE_INVALID', 502);
       const seen = new Set(current.items.map((item) => item.series_id));
       const added = next.items.filter((item) => {
         if (seen.has(item.series_id)) return false;
@@ -148,8 +150,10 @@ export function createStore(
       });
       continued.set({ ...next, items: [...current.items, ...added] });
     } catch (error) {
-      if (owns())
-        moreError.set(`加载失败：${error instanceof Error ? error.message : String(error)}`);
+      if (owns()) {
+        console.warn('搜索追加失败', error);
+        moreError.set(errorMessage(error, '加载失败'));
+      }
     } finally {
       if (owns()) {
         loadingMore.set(false);
@@ -403,7 +407,8 @@ export function createStore(
           warning.set('');
         } catch (error) {
           failedProgress.set(key, change);
-          warning.set(`观看进度未保存：${String(error)}`);
+          console.warn('观看进度写入失败', error);
+          warning.set(errorMessage(error, '观看进度未保存'));
         }
       });
       return writes;

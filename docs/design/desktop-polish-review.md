@@ -1,8 +1,10 @@
 disposition: ship
 
+> 2026-11-14 范围更新：本文保留历史研究／验收记录；当前设计以 [真实性审查](reality-audit.md)、[页面地图](ui-map.md) 为准。评论、回复、弹幕、剧评、点赞已由用户排除；离线任务与任意缓存容量未获证据支持，不能从本文恢复为当前要求。
+
 > 历史记录：后续独立 Agent 复审发现 4 项交互缺陷；本页的 ship 仅描述当时的打磨结果，不能作为当前完整验收结论。修复与验证边界见 [desktop-review-fixes.md](desktop-review-fixes.md)。
 
-范围仅为本轮桌面浏览器原型细节。同一助手按 impeccable finish-reviewer 切换视角复核，未使用独立评审 Agent。用户最新要求“只做桌面端，不用管移动端，窄窗口的样式”覆盖此前的多视口打磨计划。未修改生产 NSH／Rust。
+范围仅为本轮桌面浏览器原型细节。同一助手按 impeccable finish-reviewer 切换视角复核，未使用独立评审 Agent。文中“窄窗口”是当时原型打磨的历史范围；当前产品不支持窄窗形态，不以本页为当前设计、实现或验收依据。未修改生产 NSH／Rust。
 
 ## persistence
 

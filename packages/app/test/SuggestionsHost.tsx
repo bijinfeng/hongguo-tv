@@ -23,7 +23,7 @@ export function registerSuggestionsHostTests(
           await app.waitUntil(() => app.window('main').state()?.focused === true, {
             timeout: 60000,
           });
-        await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+        await app.waitFor('重生之后 · 第 59 集 · 00:15');
         await app.press('id:nav-search');
         await app.type('id:search-input', '林');
         await app.waitFor('id:suggestion-actor:9007199254740993');

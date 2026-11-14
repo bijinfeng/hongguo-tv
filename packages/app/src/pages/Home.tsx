@@ -3,9 +3,7 @@ import { Button, ContinueCard, StoryFeature, tvUnit } from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { historyLabel, LibraryStatus } from './History';
-
-const time = (seconds: number) =>
-  `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+import { playbackTime } from '../format';
 function Continuation(props: { entry: Library['entries'][number]; store: Store }) {
   let source: ViewRef | undefined;
   const entry = () => props.entry;
@@ -13,7 +11,7 @@ function Continuation(props: { entry: Library['entries'][number]; store: Store }
     <ContinueCard
       title={entry().drama.title}
       image={entry().drama.cover_fallback || entry().drama.cover}
-      subtitle={`第 ${entry().episode ?? 1} 集 · ${entry().completed ? '本集已看完' : `看到 ${time(entry().position ?? 0)}`}`}
+      subtitle={`第 ${entry().episode ?? 1} 集 · ${entry().completed ? '本集已看完' : `看到 ${playbackTime(entry().position)}`}`}
       position={entry().position ?? 0}
       duration={entry().duration}
       label="选集与详情"
@@ -41,7 +39,13 @@ export function Home(props: { store: Store }) {
     >
       <View class="gap-7">
         <If when={props.store.target === 'desktop'}>
-          <Text class="text-[32px] font-semibold text-foreground">首页</Text>
+          <Text
+            role="header"
+            accessibilityLevel={1}
+            class="text-[32px] font-semibold text-foreground"
+          >
+            首页
+          </Text>
         </If>
         <LibraryStatus store={props.store} />
         <If when={props.store.entries().length}>
@@ -50,7 +54,13 @@ export function Home(props: { store: Store }) {
             else={
               <View class="gap-6">
                 <View class="flex-row items-center justify-between">
-                  <Text class="text-xl font-semibold text-foreground">继续观看</Text>
+                  <Text
+                    role="header"
+                    accessibilityLevel={2}
+                    class="text-xl font-semibold text-foreground"
+                  >
+                    继续观看
+                  </Text>
                   <Button
                     label="全部记录"
                     icon="forward"
@@ -86,7 +96,7 @@ export function Home(props: { store: Store }) {
                 image={current()?.drama.cover_fallback || current()?.drama.cover}
                 meta={`${current()?.drama.episode_count ?? 0} 集`}
                 description={current()?.drama.intro}
-                footer={`第 ${current()?.episode ?? 1} 集 · ${current()?.completed ? '本集已看完' : `看到 ${time(current()?.position ?? 0)}`}`}
+                footer={`第 ${current()?.episode ?? 1} 集 · ${current()?.completed ? '本集已看完' : `看到 ${playbackTime(current()?.position)}`}`}
               >
                 <Button
                   primary

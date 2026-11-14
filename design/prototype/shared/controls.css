@@ -82,7 +82,7 @@ button:disabled {
   color: var(--primary-foreground);
 }
 
-.ui-button.primary:hover {
+.ui-button.primary:not(:disabled):not(.selected):not([aria-pressed='true']):hover {
   filter: brightness(0.94);
 }
 
@@ -100,6 +100,7 @@ button:disabled {
   background: var(--accent);
   color: var(--accent-foreground);
   border-color: transparent;
+  transition: none;
 }
 
 .ui-button:disabled {
@@ -107,6 +108,7 @@ button:disabled {
   color: var(--muted-foreground);
   border-color: transparent;
   filter: none;
+  transition: none;
 }
 
 .ui-button.compact {
@@ -568,6 +570,34 @@ input[type='checkbox']:checked::after {
   border-left: 2px solid var(--primary-foreground);
   border-bottom: 2px solid var(--primary-foreground);
   transform: translateY(-2px) rotate(-45deg);
+}
+input[type='checkbox']:disabled {
+  background: var(--muted);
+  border-color: var(--input);
+}
+input[type='checkbox']:disabled::after {
+  border-color: var(--muted-foreground);
+}
+.selection-indicator {
+  display: inline-grid;
+  place-items: center;
+}
+.selection-indicator > input,
+.selection-indicator > .icon {
+  grid-area: 1 / 1;
+}
+.selection-indicator > input::after {
+  display: none;
+}
+.selection-indicator > .icon {
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.switch-hit:disabled .switch {
+  background: var(--muted);
+}
+.switch-hit:disabled .switch span {
+  background: var(--muted-foreground);
 }
 :root[data-platform='tv'] input[type='checkbox'] {
   width: 28px;

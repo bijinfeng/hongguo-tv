@@ -1,5 +1,6 @@
 import { signal, effect, cleanup } from 'nsh';
 import { captureRequest, type SearchHistory, type SearchHistoryChange } from '@hongguo/core-client';
+import { errorMessage } from './error-messages';
 
 /** One mounted installation's keyword reads and ordered committed writes. */
 export function createRecentSearches(
@@ -37,8 +38,10 @@ export function createRecentSearches(
         if (!failed()) error.set('');
       }
     } catch (cause) {
-      if (owns())
-        error.set(`搜索记录未能加载：${cause instanceof Error ? cause.message : String(cause)}`);
+      if (owns()) {
+        console.warn('搜索记录加载失败', cause);
+        error.set(errorMessage(cause, '搜索记录未能加载'));
+      }
     } finally {
       if (owns()) loading.set(false);
     }
@@ -60,8 +63,9 @@ export function createRecentSearches(
       } catch (cause) {
         if (!disposed && owned === revision) {
           failed.set(action);
+          console.warn('搜索记录写入失败', cause);
           error.set(
-            `${action.action === 'clear' ? '搜索记录未清空' : '搜索记录未保存'}：${cause instanceof Error ? cause.message : String(cause)}`,
+            errorMessage(cause, action.action === 'clear' ? '搜索记录未清空' : '搜索记录未保存'),
           );
         }
       } finally {

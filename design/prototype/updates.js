@@ -156,7 +156,7 @@ globalThis.updatePage = function updatePage() {
     actions = updateAction('重新安装', 'install', true) + updateAction('手动更新', 'manual');
   if (stage === 'manual')
     actions =
-      '<a class="btn primary" data-update-primary data-tv-initial href="https://github.com/bijinfeng/hongguo-tv/releases" target="_blank" rel="noopener noreferrer">前往发行页</a>';
+      '<a class="ui-button btn primary" data-update-primary data-tv-initial href="https://github.com/bijinfeng/hongguo-tv/releases" target="_blank" rel="noopener noreferrer">前往发行页</a>';
   if (stage === 'success') actions = updateAction('继续找剧', 'done', true);
   if (tv && stage === 'downloading') actions += updateAction('取消下载', 'cancel');
   if (!['success', 'idle', 'latest'].includes(stage))
@@ -165,7 +165,7 @@ globalThis.updatePage = function updatePage() {
     stage,
   );
   return `<div class="update-page ${tv ? 'update-tv' : ''}">
-    <div class="update-heading"><button class="btn quiet update-back" data-action="update-back">${icon('back')}返回设置</button><h1>应用更新</h1></div>
+    <div class="update-heading"><button class="ui-button btn quiet update-back" data-action="update-back">${icon('back')}返回设置</button><h1>应用更新</h1></div>
     <div class="update-layout">
       <section class="update-main" aria-label="更新操作">
         <p class="update-current">当前版本 ${model.version}${tv ? ' · Android TV' : ' · 桌面端'}</p>

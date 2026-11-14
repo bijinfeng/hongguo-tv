@@ -1,5 +1,6 @@
 import { batch, cleanup, effect, lifecycle, signal, untracked } from 'nsh';
 import type { captureRequest, FeedResult } from '@hongguo/core-client';
+import { errorMessage } from './error-messages';
 
 export type FeedChannel = FeedResult['channel'] | '45';
 type Session = { page?: FeedResult; index: number; error: string };
@@ -90,11 +91,13 @@ export function createFeed(request: ReturnType<typeof captureRequest>, active: (
         error: '',
       });
     } catch (failure) {
-      if (owns())
+      if (owns()) {
+        console.warn('推荐加载失败', failure);
         write(ownerChannel, {
           ...prior,
-          error: `加载失败：${failure instanceof Error ? failure.message : String(failure)}`,
+          error: errorMessage(failure, '加载失败'),
         });
+      }
     } finally {
       if (owns()) {
         abort = undefined;

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
+const shared = readFileSync(new URL('./shared/controls.js', import.meta.url), 'utf8');
 const source = readFileSync(new URL('./app.js', import.meta.url), 'utf8');
 const desktop = readFileSync(new URL('./desktop.js', import.meta.url), 'utf8');
 const updates = readFileSync(new URL('./updates.js', import.meta.url), 'utf8');
@@ -24,19 +25,20 @@ function prototype() {
       querySelector: () => node,
       addEventListener: (name, listener) => (listeners[name] = listener),
     },
+    matchMedia: () => ({ matches: false }),
     setTimeout,
     clearTimeout,
   });
   // Skip browser bootstrap; exercise the actual model, rendering and event handlers.
   vm.runInContext(
-    desktop + tv + updates + source.slice(0, source.lastIndexOf("$('#search-icon')")),
+    shared + desktop + tv + updates + source.slice(0, source.lastIndexOf("$('#search-icon')")),
     context,
   );
-  vm.runInContext('render = () => {}; commentsPanel = () => {}; toast = () => {};', context);
+  vm.runInContext('render = () => {}; toast = () => {};', context);
   return {
     run: (code) => vm.runInContext(code, context),
     json: (code) => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, context)),
-    input(value, id = 'comment-draft') {
+    input(value, id = 'code') {
       listeners.input({ target: { id, value } });
     },
     change(value, dataset) {
@@ -70,28 +72,29 @@ test('sorting is repeatable, restores the default and leaves other pages unchang
   const app = prototype();
   const initial = app.run('desktopHome()');
   const ranking = app.run('rankingPage()');
-  const order = () =>
-    [...app.run('discoverPage()').matchAll(/data-detail="([^"]+)"/g)].map((m) => m[1]);
+  const order = () => app.json('discoverItems(state).map(d => d.id)');
   const tvOrder = () =>
     [...app.run('tvDiscover()').matchAll(/data-detail="([^"]+)"/g)].map((m) => m[1]);
   const baseline = order();
   app.run("handleAction('sort', '最新')");
   assert.deepEqual(order(), baseline.toReversed());
-  assert.deepEqual(tvOrder(), order());
+  assert.deepEqual(tvOrder(), order().slice(0, 2));
   app.run("handleAction('sort', '最新')");
   assert.deepEqual(order(), baseline.toReversed());
-  assert.deepEqual(tvOrder(), order());
+  assert.deepEqual(tvOrder(), order().slice(0, 2));
   app.run("handleAction('sort', '热度')");
-  assert.deepEqual(order(), ['return', 'spring', 'home', 'night']);
-  assert.deepEqual(tvOrder(), order());
+  assert.deepEqual(order(), ['night', 'return', 'home', 'spring']);
+  assert.deepEqual(tvOrder(), order().slice(0, 2));
+  app.run("handleAction('sort', '收藏')");
+  assert.deepEqual(order(), ['spring', 'night', 'return', 'home']);
   app.run("handleAction('sort', '综合')");
   assert.deepEqual(order(), baseline);
-  assert.deepEqual(tvOrder(), order());
+  assert.deepEqual(tvOrder(), order().slice(0, 2));
   assert.equal(app.run('desktopHome()'), initial);
   assert.equal(app.run('rankingPage()'), ranking);
 });
 
-test('TV filter controls share search, genre and sorting behavior with desktop', () => {
+test('TV and desktop share browse filters while keyword results ignore browse selection', () => {
   const app = prototype();
   app.change('热度', { discoverFilter: 'sort' });
   assert.equal(app.run('state.sort'), '热度');
@@ -100,9 +103,15 @@ test('TV filter controls share search, genre and sorting behavior with desktop',
   assert.deepEqual(app.json('discoverItems(state).map(d => d.id)'), ['night']);
   assert.match(app.run('tvDiscover()'), /长夜有声/);
   assert.match(app.run('discoverPage()'), /长夜有声/);
+  assert.doesNotMatch(app.run('tvDiscover()'), /data-discover-filter/);
+  assert.doesNotMatch(app.run('discoverPage()'), /data-action="sort"|data-action="kind"/);
   app.change('漫剧', { discoverFilter: 'kind' });
-  assert.match(app.run('tvDiscover()'), /没有找到相关短剧/);
-  assert.match(app.run('discoverPage()'), /没有找到相关短剧/);
+  assert.deepEqual(app.json('discoverItems(state).map(d => d.id)'), ['night']);
+  app.run("state.query = ''");
+  assert.deepEqual(app.json('discoverItems(state).map(d => d.id)'), ['home']);
+  app.change('真人剧', { discoverFilter: 'kind' });
+  app.change('已完结', { discoverFilter: 'discover-status' });
+  assert.deepEqual(app.json('discoverItems(state).map(d => d.id)'), ['return']);
 });
 
 for (const mode of ['desktop', 'tv']) {
@@ -201,7 +210,7 @@ test('TV text inputs leave vertically, preserve caret keys and defer to active I
   const textarea = {
     ...input,
     tagName: 'TEXTAREA',
-    value: '一段评论',
+    value: '一段文字',
     selectionStart: 2,
     selectionEnd: 2,
   };
@@ -215,73 +224,12 @@ test('TV text inputs leave vertically, preserve caret keys and defer to active I
   assert.match(app.run('loginBody'), /type="tel"[^>]*readonly[^>]*tabindex="-1"/);
 });
 
-test('TV comment updates preserve reading position and focus; changing context resets scroll', () => {
-  const app = prototype();
-  app.run(`state.mode = 'tv'; overlay.open = true; overlay.dataset = { context: 'return:评论' };
-    const dialogBody = { scrollTop: 480 };
-    const buttonNode = { focus() {} };
-    overlay.querySelector = selector => selector === '.dialog-body' ? dialogBody : buttonNode;
-    bindTabPanels = () => {};
-    let restored;
-    focusKey = () => ({ key: 'action', value: 'comment-like', secondary: '1' });
-    restoreFocus = key => { restored = key; return !!key; };
-    showDialog('评论', commentsBody());`);
-  assert.equal(app.run('dialogBody.scrollTop'), 480);
-  assert.equal(app.run('restored.value'), 'comment-like');
-  app.run("state.id = 'night'; showDialog('评论', commentsBody());");
-  assert.equal(app.run('dialogBody.scrollTop'), 0);
-  app.run("dialogBody.scrollTop = 480; showDialog('选集', 'episodes');");
-  assert.equal(app.run('dialogBody.scrollTop'), 0);
-});
-
-test('drafts, replies and comment actions belong to their drama', () => {
-  const app = prototype();
-  app.run("state.id = 'night'");
-  app.input('长夜有声的草稿');
-  app.run("handleAction('reply', '1')");
-  app.run("handleAction('comment-like', '1')");
-  app.run("state.id = 'return'");
-  assert.equal(app.run('commentThread().draft'), '');
-  assert.equal(app.run('commentThread().replyTo'), '');
-  assert.equal(app.run('commentThread().comments[0].likes'), 12);
-  assert.match(app.run('commentsBody()'), /修车铺/);
-  assert.doesNotMatch(app.run('commentForm()'), /长夜有声的草稿/);
-  app.input('重返1998的草稿');
-  app.run("state.id = 'night'");
-  assert.equal(app.run('commentThread().draft'), '长夜有声的草稿');
-  assert.equal(app.run('commentThread().replyTo'), '小满');
-  assert.equal(app.run('commentThread().comments[0].likes'), 13);
-  assert.doesNotMatch(app.run('commentsBody()'), /修车铺/);
-  app.run("state.id = 'return'");
-  assert.equal(app.run('commentThread().draft'), '重返1998的草稿');
-});
-
-test('failed submissions preserve the draft; publish and delete affect only the current drama', () => {
-  const app = prototype();
-  app.run("state.id = 'night'; state.loggedIn = true; state.scenario = 'error'");
-  app.submit('只属于长夜有声的评论');
-  assert.equal(app.run('commentThread().draft'), '只属于长夜有声的评论');
-  assert.equal(app.run('commentThread().comments.length'), 2);
-  app.run("state.scenario = 'normal'");
-  app.submit('只属于长夜有声的评论');
-  assert.equal(app.run('commentThread().comments.length'), 3);
-  assert.equal(app.run('commentThread().draft'), '');
-  app.run("state.id = 'return'");
-  assert.equal(app.run('commentThread().comments.length'), 2);
-  assert.doesNotMatch(app.run('commentsBody()'), /只属于长夜有声/);
-  app.run("state.id = 'night'; confirmDialog = (_title, _body, _action, callback) => callback();");
-  const id = app.run('commentThread().comments[0].id');
-  app.run(`handleAction('delete-comment', '${id}')`);
-  assert.equal(app.run('commentThread().comments.length'), 2);
-  assert.equal(app.json('commentThread().comments.map(c => c.id)').includes(id), false);
-});
-
 test('focus restoration finds the field in the active dialog', () => {
   const app = prototype();
   app.run(`
     let focused = false;
     const field = {
-      id: 'comment-draft',
+      id: 'code',
       getClientRects: () => [{}],
       focus: () => { focused = true; },
     };
@@ -290,7 +238,7 @@ test('focus restoration finds the field in the active dialog', () => {
     overlay.querySelectorAll = () => [field];
     document.getElementById = () => { throw new Error('Must not select a field behind the dialog'); };
   `);
-  assert.equal(app.run("restoreFocus({ id: 'comment-draft' })"), true);
+  assert.equal(app.run("restoreFocus({ id: 'code' })"), true);
   assert.equal(app.run('focused'), true);
 });
 
@@ -333,4 +281,110 @@ test('opening the installer never reports update success before version confirma
   app.run('pendingUpdates[0]();');
   assert.equal(app.run('updateModel().stage'), 'success');
   assert.equal(app.run('updateModel().version'), '0.2.0');
+});
+
+test('quiet viewing exposes no social or offline task controls on either design', () => {
+  const app = prototype();
+  for (const mode of ['desktop', 'tv']) {
+    app.run(`state.mode = '${mode}'; state.route = 'player'`);
+    for (const surface of [
+      'desktopDetail()',
+      'desktopPlayer()',
+      'desktopHome()',
+      'favoritesPage()',
+      'settingsSections().播放',
+      'tvDetail()',
+      'tvPlayer()',
+      "tvLibrary('favorites')",
+    ]) {
+      const html = app.run(surface);
+      assert.doesNotMatch(
+        html,
+        /data-action="(?:comments|like|comment-like|download|tv-danmaku|tv-send-danmaku)"|danmaku-form|comment-form/,
+      );
+    }
+  }
+  assert.doesNotMatch(app.run('mapPage()'), /评论|弹幕|点赞|下载任务/);
+});
+
+test('series design keeps independent identities and never plays an upcoming season', () => {
+  const app = prototype();
+  app.run("state.id = 'home'");
+  assert.equal(app.run('seasonPicker()'), '');
+  app.run("state.id = 'spring'; state.season = 2");
+  assert.equal(app.run('selectedSeason().id'), 'spring-second');
+  assert.match(app.run('episodePicker()'), /播放第 12 集/);
+  assert.doesNotMatch(app.run('episodePicker()'), /播放第 13 集/);
+  app.run("navigate = (route) => { state.route = route; }; startPlayback('spring-second', 3)");
+  assert.equal(app.run('state.season'), 2);
+  assert.equal(app.run('current().id'), 'spring-second');
+  app.run('state.season = 3');
+  assert.equal(app.run('isUpcomingSeason()'), true);
+  assert.doesNotMatch(app.run('episodePicker()'), /data-episode=/);
+});
+
+test('reading notifications and clearing history do not discard independent records', () => {
+  const app = prototype();
+  app.run(
+    "state.loggedIn = true; state.followingTab = '更新提醒'; handleAction('read-notifications')",
+  );
+  assert.match(app.run('followingPage()'), /已读.*新更新 8 集/);
+  app.run(
+    "confirmDialog = (_title, _copy, _label, apply) => apply(); handleAction('clear-history')",
+  );
+  assert.equal(app.run('state.history.length'), 0);
+  assert.equal(app.run('state.statisticsReset'), undefined);
+  app.run("handleAction('reset-statistics')");
+  assert.equal(app.run('state.statisticsReset'), true);
+  assert.equal(app.run('state.favorites.size'), 1);
+});
+
+test('reservation entry points stay pending and reject repeated requests', () => {
+  const app = prototype();
+  app.run(
+    "state.loggedIn = true; state.id = 'spring'; state.season = 3; let reservationRenders = 0; render = () => { reservationRenders++; }; handleAction('reserve', 'spring-third'); handleAction('reserve', 'spring-third')",
+  );
+  assert.equal(app.run('state.reservationPending.size'), 1);
+  assert.equal(app.run('state.reservations.size'), 0);
+  assert.equal(app.run('reservationRenders'), 1);
+  for (const surface of [
+    'desktopHome()',
+    'desktopDetail()',
+    'episodePicker()',
+    'tvFeature(current(), true)',
+  ]) {
+    const controls = [
+      ...app.run(surface).matchAll(/<button[^>]*data-action="reserve"[^>]*>[\s\S]*?<\/button>/g),
+    ];
+    assert.ok(controls.length, surface);
+    for (const [control] of controls) {
+      assert.match(control, /data-value="spring-third"/);
+      assert.match(control, /\bdisabled\b/);
+      assert.match(control, /已提交 · 待确认/);
+    }
+  }
+});
+
+test('detail extras use explicit sample relationships and hide missing sections', () => {
+  const app = prototype();
+  assert.equal(app.run("detailExtras({ id: 'no-details' })"), '');
+  assert.deepEqual(
+    [...app.run("detailExtras(dramaById('return'))").matchAll(/data-detail="([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+    ['night'],
+  );
+  assert.doesNotMatch(
+    app.run("detailExtras(dramaById('home'))"),
+    /<h2>相关作品<\/h2>|暂无演员信息/,
+  );
+});
+
+test('TV settings fall back when a removed category remains selected', () => {
+  const app = prototype();
+  app.run("state.mode = 'tv'; state.settingTab = '弹幕'");
+  const html = app.run('tvSettings()');
+  assert.match(html, /data-value="通用" aria-current="page"/);
+  assert.match(html, /<h2>通用<\/h2>/);
+  assert.doesNotMatch(html, /undefined|<h2>弹幕<\/h2>/);
 });

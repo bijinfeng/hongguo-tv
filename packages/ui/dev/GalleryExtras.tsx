@@ -332,11 +332,20 @@ export function GalleryBusinessRecipes() {
           meta="共 80 集 · 演示信息"
           description="安安静静，看完一个好故事。"
         >
-          <CinemaButton
-            label="开始观看"
-            icon="play"
-            onPress={() => current.set('开始观看春山不负')}
-          />
+          <Row>
+            <Button
+              label="开始观看"
+              variant="primary"
+              icon="play"
+              onPress={() => current.set('开始观看春山不负')}
+            />
+            <CinemaButton
+              label="选集与详情"
+              icon="list"
+              onPress={() => current.set('查看春山不负详情')}
+              testID="gallery-feature-details"
+            />
+          </Row>
         </StoryFeature>
         <ResultCard
           label="春山不负"

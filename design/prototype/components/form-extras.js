@@ -47,7 +47,7 @@ export function formExtras(ctx) {
     ) +
     row(
       '选择状态',
-      `<div class="samples">${sample('未选', '<label class="check-label"><input type="checkbox" />选择这条记录</label>')}${sample('部分选中', '<label class="check-label"><input id="mixed-check" type="checkbox" aria-checked="mixed" />部分记录已选</label>')}${sample('禁用', '<label class="check-label"><input type="checkbox" checked disabled />暂不可选择</label>')}${sample('不可用偏好', '<button class="switch-hit" role="switch" aria-label="自动连播暂不可用" aria-checked="false" disabled><span class="switch" aria-hidden="true"><span></span></span></button>')}</div>`,
+      `<div class="samples">${sample('未选', '<label class="check-label"><input type="checkbox" />选择这条记录</label>')}${sample('部分选中', '<label class="check-label"><input id="mixed-check" type="checkbox" aria-checked="mixed" />部分记录已选</label>')}${sample('已选禁用', `<label class="check-label"><span class="selection-indicator"><input type="checkbox" checked disabled />${icon('check')}</span>已选且禁用</label>`)}${sample('部分选中禁用', `<label class="check-label"><span class="selection-indicator"><input type="checkbox" aria-checked="mixed" disabled />${icon('minus')}</span>部分选中且禁用</label>`)}${sample('不可用偏好', '<button class="switch-hit" role="switch" aria-label="自动连播暂不可用" aria-checked="true" disabled><span class="switch" aria-hidden="true" aria-checked="true"><span></span></span></button>')}</div>`,
     )
   );
 }

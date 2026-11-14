@@ -11,7 +11,7 @@ export { Icon, type IconName, type IconProps } from './icon';
 export { Logo } from './branding';
 export { Button, IconButton, type ButtonProps, type ButtonVariant } from './button';
 export { ContentArrival, Controls } from './layout';
-export { SearchInput } from './search-input';
+export { SearchInput, type SearchInputProps } from './search-input';
 export { CardControls } from './card-controls';
 export { SearchPicker, SearchSuggestionRow } from './search-picker';
 export { FilterChoices } from './filter-choices';
@@ -20,7 +20,15 @@ export * from './form';
 export * from './display';
 export * from './overlay';
 export * from './frequent';
-export { Cover, PosterCard, EpisodeRange, ContinueCard, StoryFeature, ResultCard } from './content';
+export {
+  Cover,
+  type CoverProps,
+  PosterCard,
+  EpisodeRange,
+  ContinueCard,
+  StoryFeature,
+  ResultCard,
+} from './content';
 export {
   CinemaButton,
   CinemaSlider,

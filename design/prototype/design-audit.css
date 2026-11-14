@@ -1,0 +1,31 @@
+@layer prototype-layout {
+  /* Quiet viewing keeps the existing spacing and semantic colors. */
+  .player-rail > h2 {
+    flex: none;
+    margin: 0;
+    padding: 20px 20px 0;
+    font-size: 18px;
+  }
+  .watch-statistics {
+    margin-top: 40px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .statistics-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    margin: 24px 0;
+  }
+  .statistics-totals dt {
+    color: var(--secondary);
+  }
+  .statistics-totals dd {
+    margin: 8px 0 0;
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  [data-mode='tv'] .statistics-totals dd {
+    font-size: 30px;
+  }
+}

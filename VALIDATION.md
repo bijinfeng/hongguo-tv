@@ -138,26 +138,26 @@ SDK 安装完成后，`pnpm package:tv` 已通过预检并生成技术验证 APK
 
 ## 已验证
 
-| 范围         | 证据与结论                                                                                                                                            |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NSH 模板基线 | 使用官方 CLI `init --template ts`，先完成模板 check/test，再扩展                                                                                      |
-| 工程初始化   | `.nsh-version` 固定 CLI；`doctor`、`setup`、`verify` 全部通过；临时干净目录中重建 NSH 类型、配置和 Go 二进制，再次 setup 保留自定义连接配置与数据哨兵 |
-| 工程脚本     | 工具诊断测试覆盖无效 NSH 路径、错误版本、缺失 Go；与网关测试共 2 项通过；`npm run dev` 自动选择 macOS 并收到原生宿主连接，验证后停止服务              |
-| 共享 UI      | 最终 `npm run check`、`npm run build` 通过，无 bundler 警告                                                                                           |
-| 网关         | 1 个 Node 集成测试：拒绝错误 Origin、Host、跨站来源及非 JSON 写入；仅允许所需路由；正确转发 Range/206                                                 |
-| NSH 业务     | 5 个测试：搜索→详情→播放→切集→返回；失败重试/过时结果；模拟账号恢复/历史续播；大详情记录裁剪；实际播放前不写进度、完成状态不被退出覆盖                |
-| Go 核心      | `go test ./core/cmd/hongguotv` 全部通过                                                                                                               |
-| 上游一致性   | `npm run upstream:sync` 验证 235 个文件，未改写核心                                                                                                   |
-| 真实 Web     | 搜索“重生”返回真实结果；打开 73 集详情；实际播放视频，暂停、自动连播进入第 2 集；本地核心返回实际集数/播放秒数；刷新后能读取历史并恢复到相应选集      |
-| 真实 macOS   | 原生窗口、NSH `.app` 前端包均能启动；真实搜索、详情和视频画面已观察；另用 NSH 原生驱动验证播放与暂停并保存截图                                        |
-| 前端打包     | Web 静态资源、macOS `.app` 打包通过；都仍依赖外部启动的本地核心/网关                                                                                  |
-| 界面检查     | macOS 1180×780 浅色/深色、460×780 窄窗口已生成截图；统一圆角、字号、间距、对齐与主题色；修正主按钮 hover 的文字对比度，固定焦点边界宽度               |
+| 范围         | 证据与结论                                                                                                                                                        |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NSH 模板基线 | 使用官方 CLI `init --template ts`，先完成模板 check/test，再扩展                                                                                                  |
+| 工程初始化   | `.nsh-version` 固定 CLI；`doctor`、`setup`、`verify` 全部通过；临时干净目录中重建 NSH 类型、配置和 Go 二进制，再次 setup 保留自定义连接配置与数据哨兵             |
+| 工程脚本     | 工具诊断测试覆盖无效 NSH 路径、错误版本、缺失 Go；与网关测试共 2 项通过；`npm run dev` 自动选择 macOS 并收到原生宿主连接，验证后停止服务                          |
+| 共享 UI      | 最终 `npm run check`、`npm run build` 通过，无 bundler 警告                                                                                                       |
+| 网关         | 1 个 Node 集成测试：拒绝错误 Origin、Host、跨站来源及非 JSON 写入；仅允许所需路由；正确转发 Range/206                                                             |
+| NSH 业务     | 5 个测试：搜索→详情→播放→切集→返回；失败重试/过时结果；模拟账号恢复/历史续播；大详情记录裁剪；实际播放前不写进度、完成状态不被退出覆盖                            |
+| Go 核心      | `go test ./core/cmd/hongguotv` 全部通过                                                                                                                           |
+| 上游一致性   | `npm run upstream:sync` 验证 235 个文件，未改写核心                                                                                                               |
+| 真实 Web     | 搜索“重生”返回真实结果；打开 73 集详情；实际播放视频，暂停、自动连播进入第 2 集；本地核心返回实际集数/播放秒数；刷新后能读取历史并恢复到相应选集                  |
+| 真实 macOS   | 原生窗口、NSH `.app` 前端包均能启动；真实搜索、详情和视频画面已观察；另用 NSH 原生驱动验证播放与暂停并保存截图                                                    |
+| 前端打包     | Web 静态资源、macOS `.app` 打包通过；都仍依赖外部启动的本地核心/网关                                                                                              |
+| 界面检查     | macOS 1180×780 浅色/深色已生成截图；统一圆角、字号、间距、对齐与主题色；修正主按钮 hover 的文字对比度，固定焦点边界宽度。历史窄窗截图不属于当前产品形态或验收依据 |
 
 真实内容的标题、封面和集数随上游变化；不作为固定测试断言。封面异步加载，截图中的灰色块可能是尚未下载完成的占位。
 
 测试时发现并修复：完整详情包含大量附加字段，超过核心 32 KiB 的历史请求上限。持久记录改为必要字段，简介限制 1000 字符，标签最多 8 项；保留播放器完整选集不变。进度写入串行执行，失败显示提示并提供重试。
 
-截图位于忽略进 Git 的 `artifacts/`：[浅色](artifacts/macos-search-light.png)、[深色](artifacts/macos-search-dark.png)、[窄窗口](artifacts/macos-search-narrow.png)、[实际播放](artifacts/macos-playback.png)。
+截图位于忽略进 Git 的 `artifacts/`：[浅色](artifacts/macos-search-light.png)、[深色](artifacts/macos-search-dark.png)、[实际播放](artifacts/macos-playback.png)。历史窄窗截图仍可能存在于本地 artifacts，但不属于当前产品证据。
 
 ## 未完成的验收与交付
 
@@ -526,6 +526,15 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 
 - 随后并行发行任务2611c0b提交tag检查与依赖feature裁剪，本批重放到该父提交，保留其完整源码和记录。本批上述全量门禁精确对应a0f3ea2加三个核心的快照，不冒充2611c0b之后的全树复验；新父提交的验证证据属于其独立发行任务。
 
+### 设计真实性与安静观看审查（2026-11-14）
+
+- 产品实施按用户要求暂停，仅修订 `design/prototype` 与产品／设计文档；未改 `apps/`、`packages/`、`crates/` 或固定上游。本轮不继续 `/tmp/hongguo-discovery-ui` 中冻结的实施半成品，不提交或推送。
+- 以 `upstream.lock.json` 的 `de9712bf358dcbdf8a188e26cba711e3e5354e8a` 核对真实能力。按用户要求排除评论／回复／弹幕／剧评／点赞；移除无依据五轴、离线任务和任意缓存容量。设计修订与来源见 [真实性审查](docs/design/reality-audit.md)。
+- `node --test design/prototype/prototype.test.mjs design/prototype/reality.test.mjs`：24／24通过，涵盖搜索分类隔离、分型建议／演员身份、分页保留与重试、预约待确认、系列身份、独立统计、TV输入／返回、安静观看以及既有更新演示隔离。VM 替身不等于真实浏览器／服务通过。
+- `app.js`、`desktop.js`、`tv.js` 的 `node --check` 通过；27份所改原型／设计文档定向 Oxfmt 检查通过；`git diff --check` 通过。无依赖变更，未运行生产 check/build/verify/security。此前完整工程结果与阻塞仍按各自历史记录，不被本轮原型检查覆盖。
+- IAB 浏览器实际观察：桌面／TV安静播放器、榜单快照、待上线第三季不可播放、默认1×、演员搜索联想通过方向键与确认打开作品、Esc恢复输入焦点、双端找剧筛选优先。截图保存并重新读取检查于 `artifacts/design-reality-audit/`；原型全部使用明确样例，没有真实视频、登录、短信、扫码或预约请求。
+- 未验：官方App逐像素比对、真实NSH宿主、物理TV／遥控／输入法、读屏／字体放大、真实账号／数据／媒体、更新安装和正式发行。仅浏览器原型与固定源码对照，不标记生产功能完成。
+
 ### 基础组件单包还原与原型共源（2026-11-15）
 
 - 已授权范围为 `@hongguo/ui` 基础组件、包工程规范、原生验收页与浏览器原型基础样式共源。使用单包和根 `Product.Provider`，共享 API／受控值／主题／官方 Lucide 来源；集中 44／60 端型尺寸，只在文本编辑、Slider 确认取消、返回与焦点等真实边界适配。没有把所有产品页面迁移或业务样例算作已接通。
@@ -536,3 +545,72 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - Android组件尝试在armeabi-v7a的libnsh.so构建阶段失败，未进入UI；随后磁盘不足仅清理可重建的Rust incremental缓存，不能断言Android失败唯一源于磁盘。物理TV／真实遥控／IME／读屏／系统大字／正常动效逐帧／媒体解码／独立发行未通过本批确认。完整度矩阵、用法及后续迁移门槛见 `docs/design/component-implementation.md`。未提交、未推送，保留并行修改。
 
 - 本次基础组件提交仅纳入独立组件板、共享资源、NSH UI、验收工具与规范；产品原型整页适配和更早产品设计修订保留工作区。原型28项及合计30项结果来自完整工作区，不冒充该提交包含所有原型改动。提交前用已有独立 `CARGO_TARGET_DIR=/tmp/hongguo-discovery-target` 实际运行契约检查通过（`codegen-commit-check.log`），未修改Rust或生成契约；默认缓存的早前漂移失败保留。安全、Android和辅助技术边界继续开放。
+
+### 现行设计规范整理与输入边界 · 2026-11-15
+
+- 按用户选择整理规范并修正输入边界。根 `DESIGN.md` 只保留现行公共规则，明确颜色／尺寸／API／验证的所有者；整理前完整文档（含旧 YAML、A–D 批次及动效）保留在 `docs/design/design-system-history-2026-11-15.md`，相对链接随位置修正。组件方案的旧盘点明确为历史，示例改为真实 Input 对象事件；设计交接、覆盖清单、演进记录及 UI 包说明同步。补充 TV 设备／屏幕／分辨率／density／逻辑视口／字号／实际距离记录要求，不凭换算承诺可读性。
+- 运行时仅改变 `theme.json` 的 `input`：浅色 `#85877e`，深色 `#7d8775`；装饰 `border` 保持不变。运行已有 `components/sync-theme.mjs` 再生浏览器主题，并删除产品样式里两条旧 input 覆盖。生成器同时补入源主题已有的 popover 配对，不手改生成 CSS；未改控件行为、API、业务、Rust DTO 或依赖。
+- 静态配对计算：浅色 input 对 background／card／muted／popover 分别 3.43／3.64／3.16／3.64:1，深色分别 4.76／4.23／3.73／4.23:1，8 组均达到 3:1。生成主题同步及所改文档的本地链接检查通过。数值是 token 配对计算，不等于读屏或全部控件状态验收。
+- `pnpm ui:check` 实际 exit 0，三端 NSH check **和**组件入口 build 通过；`pnpm ui:test` 实际 exit 0，各端13／13，共39项；`pnpm ui:host` 实际 exit 0，macOS桌面／TV密度各13／13，共26项。headless mixed runner及macOS TV宿主仍报告各自的一条未展开构建警告，不称零警告。日志：`artifacts/ui-components/design-rules-{check,test,host}.log`。
+- 浏览器原型／真实性／共源及UI包工程回归30／30通过；定向Oxfmt与diff检查通过。IAB实际观察组件板桌面／TV浅深色表单，并读取输入边界的计算样式；产品原型浅深色均继承新 input，深色搜索外壳实际内描边为 rgb(125,135,117)。临时4180服务和浏览器标签已关闭。浏览器默认视口约924宽，仅作为内部组件板与主题继承观察，不是新增窄窗产品验收。
+- 本轮重新读取macOS宿主四张浅深色／双密度表单截图，默认输入与复选边界比装饰分隔更清楚，输入／搜索／错误／禁用布局没有观察到新增遮挡；独立保存于 `artifacts/ui-components/design-rules-screenshots/`。截图不能证明所有状态叠加、逐帧动效或物理TV距离。
+- 根 `pnpm verify` 实际 exit 1：doctor、格式及包边界通过，`contracts/openapi.json` 生成漂移阻止后续阶段；日志 `artifacts/ui-components/design-rules-verify.log`。未重生成无关契约或放宽门禁，不能称完整verify通过。无依赖变更，本轮未重跑security，既有许可证／未维护问题未关闭。
+- 未验：Android组件宿主／物理TV及实际观看距离、真实遥控／IME、读屏、系统大字、全状态焦点裁切与动效、真实媒体／账号及独立发行。本批不提交、不推送，保留工作区其他设计与产品修改。
+
+### 动作层级与状态组合 · 2026-11-15
+
+- 按推荐的优先级与范围实施“状态／动作层级＋规范和共享组件修正”。DESIGN 固定 primary 的使用条件、重复卡片与全局搜索的次级层级、影院辅助动作，以及 disabled／pending → selected → variant 的外观优先级；focus 独立。同步 UI 包说明、交接、覆盖与演进记录，不增加公共 API、依赖或业务状态机。
+- Button 修正 primary＋selected 的前景配对，背景／文字／图标与描边同步；selected 和 blocked 不被 hover／pressed 覆盖。等待结束后保留调用方的原选择。ContinueCard 去掉重复 primary；浏览器全局搜索和续播卡降为普通动作，TV feature 在浅深页面均复用影院语义。生产桌面 SearchForm 原已使用 quiet，本批不改其行为；独立 TV 搜索提交仍为 primary。
+- `pnpm ui:check` 实际 exit 0，三端 check **和** build 通过（`artifacts/ui-components/action-hierarchy-check.log`）。`pnpm ui:test` 实际 exit 0，14×3＝42／42（`action-hierarchy-test.log`）；新增回归读取真实引擎解析的浅深文字颜色，覆盖 primary＋selected、hover、切回 primary、pending 不可激活与恢复后保留选择。`pnpm ui:host` 实际 exit 0，macOS 桌面／TV 密度各 14，共 28／28（`action-hierarchy-host.log`），同一回归及现有焦点／返回／弹层／输入路径通过。mixed headless 与 TV 密度 macOS host 仍报告各自既有的 1 个未展开构建 warning，不宣称无警告。
+- 原型三文件回归实际 28／28；定向格式与 `git diff --check` 通过。CUA 实看桌面 1440×1000 首页浅深、TV 1920×1080 详情浅深、桌面组件样板浅深；读取浏览器 primary＋selected／disabled 的计算样式与 token 配对一致。真实 macOS 组件截图检查浅深文字、图标、圆角、尺寸、间距、对齐、选中与禁用，以及内容组普通续播和影院主次动作。证据副本在 `artifacts/ui-components/action-hierarchy-screenshots/`；源截图在 `macos/{web,tv}/`。临时浏览器和原型服务已关闭。
+- `pnpm verify` 实际 exit 1，doctor／格式／包边界通过后停在既有 `Contract drift: contracts/openapi.json; run pnpm codegen`（`action-hierarchy-verify.log`）。本批不涉及 Rust DTO，不重生成或覆盖并行契约；不宣称根门禁通过。无依赖变化，未重跑 security，既有安全发行阻塞继续保留。
+- 未验：物理电视与真实观看距离、Android 本批组件宿主、系统大字／读屏、完整产品媒体与账号、逐帧 pressed／动效和全状态焦点裁切。本批未提交、未推送，保留此前及并行工作区修改。
+
+## 字级、封面与表面规则 · 2026-11-15
+
+本轮沿用“日常片库”视觉方向；补齐 `content-title`（桌面 18／TV 24），由内部 typography 同时供 UiText、PosterCard、ContinueCard 消费，保持既有卡片原生行高与两行限高。Cover 收敛 poster／inline／feature：桌面海报 center 30%、TV top，续播 top 且内圆角 0，影院 center 28%。修正 TV 续播内圆角覆盖外框的问题。根 DESIGN 补间距使用条件、四种 Surface 选择和图片安全区；浏览器基础样板移除套卡，原生增加四表面与长剧名。
+
+| 验证                   | 结果与证据                                                                                                                                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 三端 NSH check＋build  | 通过，`artifacts/ui-components/content-language-check.log`                                                                                                                                                                                            |
+| 三端 headless 组件回归 | 每端 14／14，共 42／42；`content-language-test.log`                                                                                                                                                                                                   |
+| macOS 真实开发宿主     | 桌面密度、TV 密度各 14／14，共 28／28；`content-language-host.log`。TV 为 macOS 密度观察，不是 Android TV                                                                                                                                             |
+| 原型契约／模型回归     | 28／28，`content-language-prototype.log`                                                                                                                                                                                                              |
+| 完整 pnpm verify       | doctor、格式、包边界通过，随后因现有 `contracts/openapi.json` 契约漂移失败；`content-language-verify.log`。未修改 DTO 或放宽门禁，后续未运行阶段不计通过                                                                                              |
+| 视觉抽查               | 实看原生基础／内容组 × 两密度 × 浅深主题共 8 张：字级、表面配对、间距、对齐、长剧名两行、元信息、占位与齐边续播通过；快照保存在 `artifacts/ui-components/content-language-screenshots/`                                                               |
+| 浏览器实看             | 1440×1000 桌面浅色、1180×780 桌面深色基础，1920×1080 TV 浅色基础；1180×780 桌面浅色、1920×1080 TV 深色内容。桌面剧名 18px、TV 24px；表面内距 24、gap 12；浏览器本地样例封面成功加载，裁切按桌面 center 30%／续播 top／TV top；1180 内容无横向页面溢出 |
+
+本轮不新增动作状态机或动画；既有 hover／pressed／focus／pending 与弹层回归通过。图片淡入仍为 100ms／减少动态效果 0，本轮未作逐帧正常动效验收。mixed headless 与 TV macOS host 各有未展开构建 warning，不称零警告。原生截图使用无图占位，只证明失败／缺失呈现与几何，不证明原生成功图片加载或来源切换。真实图片网络、系统大字、读屏、输入法、物理电视与观看距离、遥控器、媒体解码及发行包仍未验证。未提交、未推送；并发改动保留。
+
+## 无障碍、组件状态与文案专项 · 2026-11-15
+
+- 对照公共导出家族与实际 app 调用补审无障碍职责、状态交集、术语与数据格式；报告见 [专项审查](docs/design/design-system-accessibility-state-copy-audit.md)。记录 6 项当前实现差异（P1 × 1、P2 × 5），根 DESIGN 补现行要求，UI README 与覆盖清单指向同一矩阵；本批未修生产 TSX、主题、DTO 或业务行为，不将文档更新计为实现通过。
+- 临时合成夹具经真实 macOS 开发宿主运行，desktop 端型、1440×1000、减少动态效果、浅深主题各 1 项，最终 **2／2 通过**。每主题检查 11 个 disabled 动作目标不可激活、只读值保持，以及 pending SearchField 经输入提交不调用业务回调；截图另外观察禁用 Slider，未操作它。浅深截图确认 disabled Checkbox 的勾选／部分选中标记偏弱，行为 guard 正确。
+- 证据在 ignored `artifacts/design-system-audit/`：夹具副本、源码 SHA256 清单、`state-combinations.log` 和 `states-{light,dark}.png`。首次测试错误调用 Input 的 press，修正夹具后重跑通过；该次错误不计产品缺陷。本次两个 `.nsh` 临时入口归档后移除，未改已有组件测试。
+- 本轮只修改文档，不重跑三端 check／build、完整组件回归或根 verify；前批根 verify 在 OpenAPI drift 失败的记录仍保留。无依赖变化，未重跑 security；5 份相关文档的 Oxfmt、90 个本地链接路径与 `git diff --check` 均通过。
+- 未验：完整可访问树与 VoiceOver／TalkBack 输出、系统大字、Web／Android TV 本批组合、真实遥控／IME、物理距离、正常逐帧动效及完整账号／媒体／发行包。源码缺项不等于已复现某项读屏故障，macOS 截图不替代 TV 验收。未提交、未推送，保留并行修改。
+
+## 无障碍、状态与文案修复 · 2026-11-15
+
+承接上节初审，已实施 F1–F6。字段说明关联至 SearchInput 与 TV 编辑入口，编辑时只保留输入语义；Button／SearchField 有可见等待，禁用选择保留标记；实际页面添加标题层级，隐藏浏览分区退出可访问遍历与输入；app 统一请求错误映射和播放时间。原始错误仍保留于资源／状态／诊断，取消不显示失败，媒体与宿主专用错误不在本次统一迁移范围。无主题、DTO 或依赖变化。
+
+证据根目录为 ignored `artifacts/design-system-fixes/`：
+
+| 验证             | 结果                                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| pnpm ui:check    | exit 0，Web／Desktop／TV check 与 BaseComponentsPreview build 均通过；ui-check.log                                       |
+| pnpm build       | exit 0，Rust workspace 与三端 App build 通过；build.log                                                                  |
+| 三端 App 回归    | Web 54／54、Desktop 56／56、TV 57／57，共 167／167；app-test.log                                                         |
+| pnpm ui:test     | exit 0，三端各 15／15，共 45／45；ui-test.log                                                                            |
+| pnpm ui:host     | exit 0，真实 macOS 桌面／TV 密度各 15／15，共 30／30；ui-host.log                                                        |
+| 原型三文件回归   | 28／28，浏览器样板修复后重跑；prototype.log                                                                              |
+| lint／格式／diff | lint、定向 Oxfmt 与 git diff --check 通过；lint.log、format.log、docs-format.log                                         |
+| pnpm verify      | exit 1，doctor／格式／包边界通过后因现有 contracts/openapi.json 漂移停止；verify.log。未重生成无关契约，不计后续阶段通过 |
+
+新增组件回归覆盖 pending 开始、修改草稿、输入／按钮重复提交被阻止、解除等待后提交，以及禁用未选／已选／mixed Checkbox、开启 Switch 拒绝激活、TV 禁用入口与错误目标；既有输入／Slider／弹层／焦点恢复等全部重跑。应用回归包含时间边界、错误映射、取消、标题及隐藏首页标题；不代表完整平台辅助技术验收。
+
+真实宿主浅深两密度表单／按钮截图、TV 表单滚动后与等待状态共抽看 12 张，副本 screenshots/。浏览器组件板桌面浅深另检查禁用勾选／mixed／开关，发现并修正图标包装导致的叠放错误；临时浏览器页和服务已关闭。未把长画廊当作产品页面布局。
+
+首次宿主新增用例在输入仍编辑时重复按进入编辑入口；修正为先返回再进入，保留正确的单入口语义，完整重跑通过（首次日志 ui-host-first.log）。此前 App 回归旧完成态／秒数断言已同步新契约并重跑通过。mixed headless 与 TV macOS 宿主仍报告未展开构建 warning，不称零警告。
+
+未验：VoiceOver／TalkBack 完整输出、系统大字、Android TV 本批组件宿主、真实遥控／IME、物理观看距离、逐帧正常动效及全状态焦点裁切、真实账号／媒体／解码、独立安装包和正式发行。无依赖变化，未重跑 security，既有安全阻塞保留。未提交、未推送，保留其他任务改动。六项范围与状态见[专项审查](docs/design/design-system-accessibility-state-copy-audit.md#修复实施与证据)。
