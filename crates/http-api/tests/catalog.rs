@@ -208,3 +208,38 @@ fn actor_openapi_defines_exact_query_summaries_and_failures() {
         assert!(schema["components"]["schemas"].get(name).is_some());
     }
 }
+
+#[test]
+fn category_schema_keeps_optional_explicit_all_inputs_and_strict_result_types() {
+    let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
+    let path = &schema["paths"]["/api/v1/category"]["get"];
+    let params = path["parameters"].as_array().unwrap();
+    assert_eq!(params.len(), 13);
+    for name in [
+        "path",
+        "offset",
+        "session_id",
+        "shown",
+        "selectors",
+        "genre",
+        "category_dim_theme",
+        "category_dim_role",
+        "category_dim_epoch",
+        "sort",
+        "gender",
+        "online_time",
+        "creation_status",
+    ] {
+        assert!(params.iter().any(|p| p["name"] == name));
+    }
+    for name in [
+        "CategoryResult",
+        "CategoryResponse",
+        "CategoryFilterRow",
+        "CategoryFilterOption",
+    ] {
+        assert!(schema["components"]["schemas"].get(name).is_some());
+    }
+    assert!(path["responses"]["400"].is_object());
+    assert!(path["responses"]["504"].is_object());
+}

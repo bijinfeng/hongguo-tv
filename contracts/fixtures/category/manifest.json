@@ -1,0 +1,11 @@
+{
+  "reference": "de9712bf358dcbdf8a188e26cba711e3e5354e8a",
+  "synthetic": true,
+  "reference_files": {
+    "hongguo_client.go": "68ca0e4f686ad79b5be85934ac8c460e23776d33e39e8c01fa7ff5c140853fec",
+    "hongguo_client_test.go": "3ed18587a5c1ea2e16f21f134a4faf1e74d52567168bd1b4c7d77e32d66c518d",
+    "passport_client.go": "7bcbecee27d870e28325f8be9027d9090795341f6397edff92ac2b6647aa0fe4",
+    "passport_sign.go": "af999dec55d7717c19ff3d06473d3865185c7d6a5ba1c2ab7224862d417dc97e",
+    "minireel.go": "23b8b823c4af5a06b7c04b2d9eaeb6d45b43863067bb00ad9f2aa4414f648b21"
+  }
+}

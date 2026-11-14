@@ -306,7 +306,8 @@ async fn fetch_timeout_is_cached_but_cancelled_registration_can_retry() {
         let server =
             server_with_registration(200, plan().to_string(), true, pause_registration).await;
         let mut d = Discovery::new(Some(&server.origin)).unwrap();
-        d.deadline = Duration::from_millis(40);
+        // Allow signing/registration CPU work under parallel suites; the server gate forces expiry.
+        d.deadline = Duration::from_secs(2);
         d.empty_ttl = Duration::from_millis(40);
         assert_eq!(d.get().await, Err(CatalogError::Timeout));
         assert_eq!(d.get().await, Err(CatalogError::Timeout));

@@ -1,5 +1,6 @@
 //! Anonymous website catalog with bounded, cancellable requests and stable wire DTOs.
 mod actor_works;
+mod category;
 mod client;
 mod discovery;
 mod parse;
@@ -12,6 +13,10 @@ pub use suggestions::{
 };
 
 pub use actor_works::{ActorQuery, ActorSummary, ActorWorksResult, parse_actor_works};
+pub use category::{
+    CategoryFilterOption, CategoryFilterRow, CategoryParams, CategoryQuery, CategoryResult,
+    parse_category,
+};
 pub use client::CatalogClient;
 
 pub use parse::{parse_detail, parse_search};

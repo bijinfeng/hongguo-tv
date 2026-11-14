@@ -1,0 +1,48 @@
+{
+  "items": [
+    {
+      "series_id": "99999999999999999999",
+      "title": "分类样例",
+      "cover": "https://p3.byteimg.com/sample.jpg",
+      "intro": "简介",
+      "episode_count": 77,
+      "tags": ["悬疑"]
+    },
+    {
+      "series_id": "3",
+      "title": "另一部",
+      "cover": "",
+      "intro": "",
+      "content_type": "1004"
+    }
+  ],
+  "has_more": true,
+  "next_offset": 30,
+  "session_id": "session-2",
+  "filters": [
+    {
+      "type": "category_dim_theme",
+      "label": "主题",
+      "options": [
+        {
+          "id": "cate_165",
+          "label": "悬疑"
+        }
+      ]
+    },
+    {
+      "type": "creation_status",
+      "label": "状态",
+      "options": [
+        {
+          "id": "creation_status_0",
+          "label": "已完结"
+        },
+        {
+          "id": "creation_status_1",
+          "label": "连载中"
+        }
+      ]
+    }
+  ]
+}

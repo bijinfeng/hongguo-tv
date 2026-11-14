@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["category"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library": {
         parameters: {
             query?: never;
@@ -244,6 +260,45 @@ export interface components {
             playback: boolean;
             /** @description Real content search is available. */
             search: boolean;
+        };
+        /** @description Validated upstream selector option; an empty selection is represented by the caller's All action. */
+        CategoryFilterOption: {
+            /** @description Exact allowlisted protocol value. */
+            id: string;
+            /** @description Bounded public display name. */
+            label: string;
+        };
+        /** @description One supported selector dimension in upstream order, with reference status normalization. */
+        CategoryFilterRow: {
+            /** @description Stable reference-client Chinese label. */
+            label: string;
+            /** @description Ordered unique nonempty supported options. */
+            options: components["schemas"]["CategoryFilterOption"][];
+            /** @description One of the eight supported protocol filter kinds. */
+            type: string;
+        };
+        /** @description Successful anonymous category page with faithful cursor and optional selectors. */
+        CategoryResponse: {
+            /** @description Bounded supported summaries and upstream continuation context. */
+            data: components["schemas"]["CategoryResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description One bounded category page; its cursor is independent of website search pagination. */
+        CategoryResult: {
+            /** @description Selector rows only when requested. */
+            filters?: components["schemas"]["CategoryFilterRow"][];
+            /** @description Whether another advancing upstream page exists. */
+            has_more: boolean;
+            /** @description Unique supported summaries, never episode details. */
+            items: components["schemas"]["Drama"][];
+            /**
+             * Format: int32
+             * @description Upstream offset, with the fixed reference fallback only when absent/zero.
+             */
+            next_offset: number;
+            /** @description Opaque continuation context; empty when not supplied. */
+            session_id: string;
         };
         /** @description Runtime readiness is separate from content migration progress. */
         CoreStatus: {
@@ -601,6 +656,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActorWorksResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    category: {
+        parameters: {
+            query?: {
+                /** @description Supported /category/ path; defaults to /category/real-drama. */
+                path?: string;
+                /** @description Upstream consumed-item offset, 0–100000. */
+                offset?: number;
+                /** @description Opaque upstream session, at most 1024 bytes without controls. */
+                session_id?: string;
+                /** @description Up to 128 comma-separated exact decimal series IDs. */
+                shown?: string;
+                /** @description Include selector rows: absent/0 or 1. */
+                selectors?: string;
+                /** @description short_play, comic_series, ai_series, or explicit empty for all. */
+                genre?: string;
+                /** @description cate_ followed by one to eight ASCII digits, or empty. */
+                category_dim_theme?: string;
+                /** @description cate_ followed by one to eight ASCII digits, or empty. */
+                category_dim_role?: string;
+                /** @description cate_ followed by one to eight ASCII digits, or empty. */
+                category_dim_epoch?: string;
+                /** @description hot_score, online_time, hot_collect, or empty. */
+                sort?: string;
+                /** @description 0, 1, or empty. */
+                gender?: string;
+                /** @description days_7, days_14, days_30, days_90, or empty. */
+                online_time?: string;
+                /** @description creation_status_0, creation_status_1, or empty. */
+                creation_status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryResponse"];
                 };
             };
             400: {

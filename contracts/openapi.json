@@ -75,6 +75,182 @@
         }
       }
     },
+    "/api/v1/category": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "category",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "description": "Supported /category/ path; defaults to /category/real-drama.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Upstream consumed-item offset, 0–100000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "description": "Opaque upstream session, at most 1024 bytes without controls.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shown",
+            "in": "query",
+            "description": "Up to 128 comma-separated exact decimal series IDs.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "selectors",
+            "in": "query",
+            "description": "Include selector rows: absent/0 or 1.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "description": "short_play, comic_series, ai_series, or explicit empty for all.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category_dim_theme",
+            "in": "query",
+            "description": "cate_ followed by one to eight ASCII digits, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category_dim_role",
+            "in": "query",
+            "description": "cate_ followed by one to eight ASCII digits, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category_dim_epoch",
+            "in": "query",
+            "description": "cate_ followed by one to eight ASCII digits, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "hot_score, online_time, hot_collect, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "description": "0, 1, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "online_time",
+            "in": "query",
+            "description": "days_7, days_14, days_30, days_90, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creation_status",
+            "in": "query",
+            "description": "creation_status_0, creation_status_1, or empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library": {
       "get": {
         "tags": [
@@ -1144,6 +1320,108 @@
           "search": {
             "type": "boolean",
             "description": "Real content search is available."
+          }
+        }
+      },
+      "CategoryFilterOption": {
+        "type": "object",
+        "description": "Validated upstream selector option; an empty selection is represented by the caller's All action.",
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Exact allowlisted protocol value."
+          },
+          "label": {
+            "type": "string",
+            "description": "Bounded public display name."
+          }
+        }
+      },
+      "CategoryFilterRow": {
+        "type": "object",
+        "description": "One supported selector dimension in upstream order, with reference status normalization.",
+        "required": [
+          "type",
+          "label",
+          "options"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Stable reference-client Chinese label."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryFilterOption"
+            },
+            "description": "Ordered unique nonempty supported options."
+          },
+          "type": {
+            "type": "string",
+            "description": "One of the eight supported protocol filter kinds."
+          }
+        }
+      },
+      "CategoryResponse": {
+        "type": "object",
+        "description": "Successful anonymous category page with faithful cursor and optional selectors.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CategoryResult",
+            "description": "Bounded supported summaries and upstream continuation context."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "CategoryResult": {
+        "type": "object",
+        "description": "One bounded category page; its cursor is independent of website search pagination.",
+        "required": [
+          "items",
+          "has_more",
+          "next_offset",
+          "session_id"
+        ],
+        "properties": {
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryFilterRow"
+            },
+            "description": "Selector rows only when requested."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether another advancing upstream page exists."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Drama"
+            },
+            "description": "Unique supported summaries, never episode details."
+          },
+          "next_offset": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Upstream offset, with the fixed reference fallback only when absent/zero.",
+            "minimum": 0
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Opaque continuation context; empty when not supplied."
           }
         }
       },

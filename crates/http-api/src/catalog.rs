@@ -7,11 +7,37 @@ use axum::{
     response::Response,
 };
 use hongguo_core::catalog::{
-    ActorQuery, ActorWorksResult, CatalogClient, CatalogError, Drama, SearchDiscovery, SearchQuery,
-    SearchResult, SearchSuggestions, SuggestionQuery,
+    ActorQuery, ActorWorksResult, CatalogClient, CatalogError, CategoryParams, CategoryQuery,
+    CategoryResult, Drama, SearchDiscovery, SearchQuery, SearchResult, SearchSuggestions,
+    SuggestionQuery,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+/// Successful anonymous category page with faithful cursor and optional selectors.
+#[derive(Serialize, ToSchema)]
+pub struct CategoryResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Bounded supported summaries and upstream continuation context.
+    pub data: CategoryResult,
+}
+#[utoipa::path(get, path = "/api/v1/category", params(CategoryParams),
+    responses((status = 200, body = CategoryResponse), (status = 400, body = ApiError),
+        (status = 405, body = ApiError), (status = 502, body = ApiError), (status = 504, body = ApiError)))]
+pub(crate) async fn category(
+    State(client): State<CatalogClient>,
+    params: Result<Query<CategoryParams>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<CategoryResponse>, Response> {
+    if !body.is_empty() {
+        return Err(catalog_failure(CatalogError::InvalidInput));
+    }
+    let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
+    let query = CategoryQuery::new(params).map_err(catalog_failure)?;
+    let data = client.category(&query).await.map_err(catalog_failure)?;
+    Ok(Json(CategoryResponse { ok: true, data }))
+}
 
 /// Successful website search page.
 #[derive(Serialize, ToSchema)]

@@ -1,0 +1,66 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": true,
+    "next_offset": 30,
+    "session_id": "session-2",
+    "video_data": [
+      {
+        "series_id": 99999999999999999999,
+        "title": "分类样例",
+        "episode_cnt": 77,
+        "cover": "https://p3.byteimg.com/sample.jpg",
+        "video_desc": "简介",
+        "tags": ["悬疑"]
+      },
+      {
+        "series_id": "99999999999999999999",
+        "title": "重复"
+      },
+      {
+        "series_id": "2",
+        "content_type": "1003",
+        "title": "专辑"
+      },
+      {
+        "video_data": {
+          "series_id_str": "3",
+          "series_name": "另一部",
+          "content_type": 1004
+        }
+      }
+    ],
+    "selector_rows": [
+      {
+        "type": "category_dim_theme",
+        "items": [
+          {
+            "selector_item_id": "cate_165",
+            "show_name": "悬疑"
+          },
+          {
+            "selector_item_id": "cate_165",
+            "show_name": "重复"
+          },
+          {
+            "selector_item_id": "not-a-tag",
+            "show_name": "坏值"
+          }
+        ]
+      },
+      {
+        "type": "creation_status",
+        "items": [
+          {
+            "selector_item_id": "creation_status_0",
+            "show_name": "已完结"
+          }
+        ]
+      },
+      {
+        "type": "unknown",
+        "items": []
+      }
+    ]
+  }
+}

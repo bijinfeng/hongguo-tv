@@ -29,6 +29,7 @@ struct Upstream {
     discovery_status: Arc<AtomicUsize>,
     suggestions_reply: Arc<Mutex<(StatusCode, &'static str)>>,
     actor_reply: Arc<Mutex<(StatusCode, &'static str)>>,
+    category_reply: Arc<Mutex<(StatusCode, &'static str)>>,
 }
 async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Response {
     state.calls.fetch_add(1, Ordering::SeqCst);
@@ -46,6 +47,10 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
         state.gate.acquire().await.unwrap().forget();
     }
     match path {
+        "/reading/distribution/category/landpage/v/" => {
+            let reply = *state.category_reply.lock().unwrap();
+            reply.into_response()
+        }
         _ if path.starts_with("/character/") => {
             let reply = *state.actor_reply.lock().unwrap();
             reply.into_response()
@@ -140,6 +145,10 @@ impl Fixture {
             stalled,
             calls: Arc::new(AtomicUsize::new(0)),
             discovery_status: Arc::new(AtomicUsize::new(200)),
+            category_reply: Arc::new(Mutex::new((
+                StatusCode::OK,
+                include_str!("../../../contracts/fixtures/category/page.input.json"),
+            ))),
             actor_reply: Arc::new(Mutex::new((
                 StatusCode::OK,
                 include_str!("../../../contracts/fixtures/catalog/actor-works.input.html"),
@@ -1220,6 +1229,266 @@ async fn actor_native_cancellation_and_session_close_leave_no_pending_work_or_hi
             assert_eq!(
                 fixture
                     .call("/api/v1/actors/works?actor_id=99999999999999999999", None)
+                    .await
+                    .status,
+                200
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn category_shares_strict_http_native_inputs_results_and_sanitized_failures() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    let invalid: Vec<String> = [
+        "/api/v1/category?path=/evil",
+        "/api/v1/category?path=",
+        "/api/v1/category?offset=-1",
+        "/api/v1/category?offset=100001",
+        "/api/v1/category?offset=4294967296",
+        "/api/v1/category?genre=x",
+        "/api/v1/category?genre=short_play&genre=",
+        "/api/v1/category?gender=2",
+        "/api/v1/category?sort=unknown",
+        "/api/v1/category?selectors=true",
+        "/api/v1/category?selectors=1&selectors=0",
+        "/api/v1/category?shown=1,,2",
+        "/api/v1/category?shown=0",
+        "/api/v1/category?session_id=a%00b",
+        "/api/v1/category?category_dim_role=cate_%EF%BC%91",
+        "/api/v1/category?online_time=days_1",
+        "/api/v1/category?creation_status=x",
+        "/api/v1/category?url=https://evil.invalid",
+        "/api/v1/category?history=private",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .chain([
+        format!("/api/v1/category?session_id={}", "x".repeat(1025)),
+        format!("/api/v1/category?shown={}", vec!["1"; 129].join(",")),
+    ])
+    .collect();
+    for (path, body, method, expected) in invalid
+        .iter()
+        .map(|path| (path.as_str(), None, Method::GET, 400))
+        .chain([
+            (
+                "/api/v1/category?selectors=1&offset=15",
+                Some("{}"),
+                Method::POST,
+                405,
+            ),
+            (
+                "/api/v1/category?selectors=1&offset=15",
+                Some(""),
+                Method::POST,
+                405,
+            ),
+        ])
+    {
+        let native = fixture.call(path, body).await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .method(method)
+                    .uri(path)
+                    .header("host", "127.0.0.1:8080")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.unwrap_or("").to_owned()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(native.status, expected, "{path}");
+        assert_eq!(response.status().as_u16(), expected, "{path}");
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+    }
+    for (method, body, status) in [
+        (Method::GET, "{}", 400),
+        (Method::GET, " ", 400),
+        (Method::DELETE, "", 405),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .method(method)
+                    .uri("/api/v1/category?selectors=1&offset=15")
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status().as_u16(), status);
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+    for (status, body, code, expected_calls) in [
+        (
+            StatusCode::OK,
+            include_str!("../../../contracts/fixtures/category/page.input.json"),
+            None,
+            2,
+        ),
+        (
+            StatusCode::OK,
+            "secret malformed",
+            Some("UPSTREAM_INVALID_DATA"),
+            2,
+        ),
+        (
+            StatusCode::FORBIDDEN,
+            r#"{"code":"search_verification_required","secret":"hidden"}"#,
+            Some("SEARCH_VERIFICATION_REQUIRED"),
+            2,
+        ),
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "secret",
+            Some("UPSTREAM_HTTP_ERROR"),
+            2,
+        ),
+    ] {
+        *fixture.upstream.category_reply.lock().unwrap() = (status, body);
+        fixture.upstream.calls.store(0, Ordering::SeqCst);
+        let native = fixture
+            .call("/api/v1/category?selectors=1&offset=15", None)
+            .await;
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/v1/category?selectors=1&offset=15")
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        assert_eq!(native.status, if code.is_some() { 502 } else { 200 });
+        assert_eq!(response.status().as_u16(), native.status);
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+        if let Some(code) = code {
+            assert_eq!(native.body["code"], code);
+            assert!(!native.body.to_string().contains("secret"));
+            assert!(!native.body.to_string().contains("hidden"));
+        } else {
+            let expected: Value = serde_json::from_str(include_str!(
+                "../../../contracts/fixtures/category/page.expected.json"
+            ))
+            .unwrap();
+            assert_eq!(native.body["data"], expected);
+        }
+        assert_eq!(
+            fixture.upstream.calls.load(Ordering::SeqCst),
+            expected_calls
+        );
+    }
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .snapshot()
+            .await
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .search_history()
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+}
+
+#[tokio::test]
+async fn category_native_cancellation_and_session_close_leave_no_pending_work_or_history() {
+    for close in [false, true] {
+        let fixture = Fixture::new(true).await;
+        let call = fixture
+            .session
+            .start("/api/v1/category?selectors=1&offset=15", None);
+        timeout(Duration::from_secs(2), fixture.upstream.started.acquire())
+            .await
+            .unwrap()
+            .unwrap()
+            .forget();
+        if close {
+            fixture.session.close();
+        } else {
+            call.cancel();
+        }
+        let reply = timeout(Duration::from_secs(1), call.inner.result())
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 499);
+        assert_eq!(reply.body["code"], "CORE_CANCELLED");
+        assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+        fixture.upstream.gate.add_permits(1);
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 1);
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .snapshot()
+                .await
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .search_history()
+                .await
+                .unwrap()
+                .items
+                .is_empty()
+        );
+        if close {
+            assert_eq!(
+                fixture
+                    .call("/api/v1/category?selectors=1&offset=15", None)
+                    .await
+                    .status,
+                410
+            );
+        } else {
+            fixture.upstream.gate.add_permits(1);
+            assert_eq!(
+                fixture
+                    .call("/api/v1/category?selectors=1&offset=15", None)
                     .await
                     .status,
                 200

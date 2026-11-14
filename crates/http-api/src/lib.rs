@@ -251,6 +251,7 @@ pub fn router_with_playback(
         .route("/api/v1/search/discovery", get(catalog::discovery))
         .route("/api/v1/search/suggestions", get(catalog::suggestions))
         .route("/api/v1/actors/works", get(catalog::actor_works))
+        .route("/api/v1/category", get(catalog::category))
         .route(
             "/api/v1/search/history",
             get(search_history::get).post(search_history::change),
@@ -296,6 +297,7 @@ pub fn router_with_playback(
         catalog::discovery,
         catalog::suggestions,
         catalog::actor_works,
+        catalog::category,
         catalog::detail,
         library::get,
         library::change,
@@ -315,6 +317,10 @@ pub fn router_with_playback(
         catalog::DiscoveryResponse,
         catalog::SuggestionsResponse,
         catalog::ActorWorksResponse,
+        catalog::CategoryResponse,
+        hongguo_core::catalog::CategoryResult,
+        hongguo_core::catalog::CategoryFilterRow,
+        hongguo_core::catalog::CategoryFilterOption,
         hongguo_core::catalog::ActorSummary,
         hongguo_core::catalog::ActorWorksResult,
         hongguo_core::catalog::SearchSuggestions,

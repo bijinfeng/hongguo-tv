@@ -32,8 +32,9 @@ impl PlaybackClient {
         ] {
             q.insert(k.into(), v.into());
         }
-        let (raw, headers) = public_sign::sign(q, timestamp().map_err(map_error)?, &id.device_id)
-            .map_err(map_error)?;
+        let (raw, headers) =
+            public_sign::sign(q, b"", timestamp().map_err(map_error)?, &id.device_id)
+                .map_err(map_error)?;
         let mut url = Url::parse(ENDPOINT).map_err(|_| CatalogError::Configuration)?;
         if let Some(origin) = &self.fixture {
             url = origin

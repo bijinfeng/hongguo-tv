@@ -95,7 +95,7 @@ fn count(row: &Value) -> Option<u32> {
             .filter(|n| *n > 0)
     })
 }
-fn summary(row: &Value) -> Option<Drama> {
+pub(super) fn summary(row: &Value) -> Option<Drama> {
     let row = row.get("video_data").unwrap_or(row);
     let id = ["series_id_str", "series_id", "seriesId", "book_id", "id"]
         .iter()

@@ -1,4 +1,4 @@
-//! Fixed public-plan Medusa profile; no account input and no playback profile changes.
+//! Fixed anonymous Passport Medusa profile; no account input or playback profile changes.
 use super::{
     PlaybackError,
     identity::encode_query,
@@ -384,9 +384,10 @@ fn medusa(
     header.extend_from_slice(&enc);
     Ok(general_purpose::STANDARD.encode(header))
 }
-/// Public-plan only. All randomness and signing stay in process.
+/// Anonymous read-only protocols only. Sign the exact transferred body bytes.
 pub(super) fn sign(
     mut query: BTreeMap<String, String>,
+    body: &[u8],
     stamp: u64,
     device_id: &str,
 ) -> Result<(String, HeaderMap), PlaybackError> {
@@ -400,7 +401,7 @@ pub(super) fn sign(
                 .to_string(),
         );
         let raw = encode_query(&query);
-        let (iv, q, m) = branch(&raw, b"", ts);
+        let (iv, q, m) = branch(&raw, body, ts);
         if (iv & 15) % 3 != 2 {
             continue;
         }
@@ -415,11 +416,21 @@ pub(super) fn sign(
                 "x-medusa",
                 medusa(&raw, ts, [nonce, hash_rand, xm_rand], device_id, iv, &q, &m)?,
             ),
-            ("x-gorgon", registration_gorgon(&raw, b"", ts, nonce as u16)),
+            (
+                "x-gorgon",
+                registration_gorgon(&raw, body, ts, nonce as u16),
+            ),
         ] {
             headers.insert(
                 name,
                 HeaderValue::from_str(&value).map_err(|_| PlaybackError::Configuration)?,
+            );
+        }
+        if !body.is_empty() {
+            headers.insert(
+                "x-ss-stub",
+                HeaderValue::from_str(&super::protocol::hex(&m).to_ascii_uppercase())
+                    .map_err(|_| PlaybackError::Configuration)?,
             );
         }
         return Ok((raw, headers));
