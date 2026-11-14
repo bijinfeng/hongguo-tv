@@ -2,6 +2,7 @@
 mod catalog;
 mod library;
 mod playback;
+mod search_history;
 
 use axum::{
     Json, Router,
@@ -247,6 +248,10 @@ pub fn router_with_playback(
         .route("/healthz", get(health))
         .route("/api/v1/status", get(status))
         .route("/api/v1/search", get(catalog::search))
+        .route(
+            "/api/v1/search/history",
+            get(search_history::get).post(search_history::change),
+        )
         .route("/api/v1/series/detail", get(catalog::detail))
         .route("/api/v1/play/info", get(playback::info))
         .route(
@@ -288,6 +293,8 @@ pub fn router_with_playback(
         catalog::detail,
         library::get,
         library::change,
+        search_history::get,
+        search_history::change,
         playback::info,
         playback::release,
         playback::media,
@@ -304,6 +311,9 @@ pub fn router_with_playback(
         hongguo_core::catalog::Episode,
         hongguo_core::catalog::SearchResult,
         library::LibraryResponse,
+        search_history::SearchHistoryResponse,
+        hongguo_core::library::SearchHistory,
+        hongguo_core::library::SearchHistoryChange,
         playback::PlayResponse,
         playback::ReleaseRequest,
         playback::ReleaseResponse,

@@ -58,7 +58,7 @@ impl LibraryStore {
             Ok(result)
         }).await
     }
-    async fn run<T: Send + 'static>(
+    pub(super) async fn run<T: Send + 'static>(
         &self,
         operation: impl FnOnce(&mut Connection) -> Result<T, LibraryError> + Send + 'static,
     ) -> Result<T, LibraryError> {
@@ -117,15 +117,22 @@ fn initialize(path: PathBuf) -> Result<Connection, LibraryError> {
              PRAGMA application_id=1212634198;
              PRAGMA user_version=1;",
         )?;
-    } else if id != APPLICATION_ID || version != 1 {
+    } else if id != APPLICATION_ID || !(1..=2).contains(&version) {
         return Err(LibraryError::InvalidDatabase);
     }
     snapshot(&tx)?;
-    tx.commit()?;
-    let integrity: String = conn.query_row("PRAGMA quick_check(1)", [], |r| r.get(0))?;
+    if version <= 1 {
+        tx.execute_batch(
+            "CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL CHECK(rank >= 0 AND rank < 10),
+             query TEXT UNIQUE NOT NULL); PRAGMA user_version=2;",
+        )?;
+    }
+    super::search::snapshot(&tx)?;
+    let integrity: String = tx.query_row("PRAGMA quick_check(1)", [], |r| r.get(0))?;
     if integrity != "ok" {
         return Err(LibraryError::InvalidDatabase);
     }
+    tx.commit()?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "synchronous", "FULL")?;
     Ok(conn)

@@ -23,6 +23,7 @@ export function SearchForm(props: { store: Store }) {
         embedded={props.store.target === 'desktop'}
         inputRef={(ref) => {
           input = ref;
+          props.store.searchInputRef(ref);
         }}
         value={props.store.draft()}
         onChange={props.store.draft.set}

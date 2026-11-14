@@ -335,3 +335,14 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 官网 smoke `website-smoke.log` 独立调用 Rust：offset0／1 各10项，第二页8个新增身份，游标推进0→1→2；第一项166集详情可读。只证明当时匿名官网目录分页与详情，不证明账号或实时内容始终可用。探针与样本说明同步，未运行 Go。
 - 亲看 Web 两尺寸浅深与 TV 浅深／大字的 pending、错误、追加、返回、终页焦点：圆角、文字层级、间距、对齐、颜色与选中／焦点沿用定稿；Web hover／键盘与 TV DPAD 有对应证据，TV 无 hover 要求；追加不重播整表动画，减少动态保持直接反馈。独立功能／UI 报告为 `function-review.md`、`ui-review.md`，均为局部 ship；UI 复核亲看33张分页图，1440两张错误图处于入场中间帧，不能作为稳定态对比度通过证据。OpenSpec strict、独立 codegen:check 均通过。早期失败原始日志保留，未用新增自动重试隐藏断言失败。
 - macOS 实际分页、VoiceOver／TalkBack、物理遥控／电视／解码与正式发行仍未验证；此前 C3.2、安全门禁及 D/E/F/G 其余 MVP 功能继续开放。本批未推送、归档或发布；并行品牌文档保留。
+
+## 2026-11-14 D2 · 本机最近搜索
+
+- Rust 在同一游客 SQLite 所有者中保存最多10条关键词，重复置顶，拒绝控制字符、超过80字符／100 UTF-16单位的输入；v1→v2迁移先校验观看历史与完整性再提交，失败不推进版本、不留下新表。读取、添加和清空均使用严格生成契约，HTTP／native错误一致，媒体监听不开放业务路由；不导入旧数据、不发送本机记录给上游。
+- 共享找剧页沿用定稿最近搜索与清空操作，结果页“清除搜索”只返回发现态。提交搜索不等待关键词保存，失败保留最后成功快照与准确重试动作；写队列串行、shutdown排空，取消／revision／dispose阻挡迟到读取。独立功能审查发现的迁移提交顺序、A成功B失败丢快照均已修复并新增直接回归。
+- Web 最终 `host-web-fourth.log` 为11/11，1180×780与1440×1000浅深验证关键词复用、长词截断、清空失败／重试、输入焦点和不抢焦、分页／详情返回；最近词通过真实Tab→Enter复用，1180使用减少动态效果。macOS `host-macos-first.log` 为10/11：D2四组全部通过，D1末页1440深色的Shift+Tab→Enter未打开详情，保留原失败及截图，不记整套Mac通过或关闭该焦点缺口。
+- TV 最终 `host-tv-fourth.log` 浏览36×3=108、播放器24×3=72通过，覆盖浅深和字号1.3。关键词复用使用DPAD并执行真实搜索，清除查询／清空／重试使用原生Accessibility ACTION_CLICK；不声称后者已全部DPAD到达或直接证明清空后的输入持焦。早期三轮失败保留：两次旧焦点路径／旧编译夹具，一次清空跨主题保留后空列表路径不同；修正真实路径后仍保留原结果与焦点断言。
+- 原native安装包恢复后重新从设备拉取并比对，SHA256为`140304dd98b1b37dc8f7a706278b9ecf7efdc73d00c5acd884aaa0df893a8327`；设备恢复night=yes、font_scale=1.0、reverse为空。`tv-restoration-verified.json`为实际字节与状态核对，非仅备份声明；运行配置恢复，未修改持久观看数据。
+- 圆角、字号、间距、对齐、颜色与状态复用现有ui；Web／Mac各16张最近搜索图、TV9张图分别复核。hover／pressed／focus／disabled与reduceMotion沿用Button，清空前保留内容、成功后自然重排，无逐词入退场或异步抢焦；截图不能证明逐帧动画、辅助技术或物理输入。功能／UI独立审查位于`artifacts/recent-searches/{function-review,ui-review}.md`。
+- 最终 `artifacts/recent-searches/verify-final.log` 完整通过：106 Rust（0跳过）、21工程测试、Web33／Desktop31／TV32，含新增A成功B失败后保留快照专项、三端check／build、格式／lint／生成契约与发行基础检查；`codegen-final.log`、OpenSpec strict及最终diff检查通过。未新增依赖，不把verify当作既有安全阻塞已解除。
+- 本批验收为本地夹具宿主与隔离Rust持久化测试，未进行真实Mac mixed独立官网观看／重启续播、VoiceOver／TalkBack、物理电视／遥控／解码或正式发行。D1 Mac焦点、C3.2及其余D/E/F/G、安全门禁（既有2项停止维护与6项许可证阻塞）继续开放；未推送、归档或发布，并行品牌文档保留。

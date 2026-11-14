@@ -60,7 +60,9 @@ async fn call(
         .await
         .unwrap();
     let status = response.status();
-    if status == StatusCode::OK && path.starts_with("/api/v1/library") {
+    if status == StatusCode::OK
+        && (path.starts_with("/api/v1/library") || path.starts_with("/api/v1/search/history"))
+    {
         assert_eq!(response.headers()["cache-control"], "no-store");
     }
     let bytes = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
@@ -252,4 +254,103 @@ fn schema_contains_generated_history_and_strict_mutations() {
             "#/components/schemas/LibraryResponse"
         );
     }
+}
+
+#[tokio::test]
+async fn keyword_routes_are_local_strict_and_preserve_viewing_history() {
+    let f = Fixture::new().await;
+    let (_, viewing) = call(
+        &f.app,
+        "POST",
+        "/api/v1/library",
+        JSON,
+        &progress().to_string(),
+    )
+    .await;
+    let (status, empty) = call(&f.app, "GET", "/api/v1/search/history", &[], "").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(empty["data"]["items"], json!([]));
+    let (status, saved) = call(
+        &f.app,
+        "POST",
+        "/api/v1/search/history",
+        JSON,
+        r#"{"action":"add","query":"  古装  重生  "}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(saved["data"]["items"], json!(["古装 重生"]));
+    for (method, path, body) in [
+        ("GET", "/api/v1/search/history?owner_id=x", ""),
+        (
+            "POST",
+            "/api/v1/search/history?q=x",
+            r#"{"action":"clear"}"#,
+        ),
+        (
+            "POST",
+            "/api/v1/search/history",
+            r#"{"action":"add","query":" "}"#,
+        ),
+        (
+            "POST",
+            "/api/v1/search/history",
+            r#"{"action":"clear","query":"not allowed"}"#,
+        ),
+        (
+            "POST",
+            "/api/v1/search/history",
+            r#"{"action":"add","query":"x","extra":true}"#,
+        ),
+    ] {
+        let (status, error) = call(&f.app, method, path, JSON, body).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{path} {body}");
+        assert_eq!(error["code"], "SEARCH_HISTORY_REQUEST_INVALID");
+    }
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/search/history", &[], "")
+            .await
+            .1,
+        saved
+    );
+    assert_eq!(
+        call(
+            &f.app,
+            "POST",
+            "/api/v1/search/history",
+            &[],
+            r#"{"action":"clear"}"#
+        )
+        .await
+        .0,
+        StatusCode::UNSUPPORTED_MEDIA_TYPE
+    );
+    let (status, _) = call(
+        &f.app,
+        "POST",
+        "/api/v1/search/history",
+        &[
+            ("content-type", "application/json"),
+            ("origin", "https://foreign.invalid"),
+        ],
+        r#"{"action":"clear"}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        call(
+            &f.app,
+            "POST",
+            "/api/v1/search/history",
+            JSON,
+            r#"{"action":"clear"}"#
+        )
+        .await
+        .1,
+        empty
+    );
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/library", &[], "").await.1,
+        viewing
+    );
 }

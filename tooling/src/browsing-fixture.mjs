@@ -7,6 +7,8 @@ import { root } from './process.mjs';
 export async function browsingFixture() {
   const requests = [];
   const continuations = new Map();
+  let keywords = ['重生', '古装'];
+  let clearAttempts = 0;
   let origin;
   const episodes = Array.from({ length: 75 }, (_, i) => ({
     index: i + 1,
@@ -22,7 +24,8 @@ export async function browsingFixture() {
     episodes,
   });
   const server = createServer(async (req, res) => {
-    requests.push({ method: req.method, url: req.url });
+    const record = { method: req.method, url: req.url };
+    requests.push(record);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') {
@@ -41,6 +44,33 @@ export async function browsingFixture() {
         .writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
         .end(JSON.stringify(status === 200 ? { ok: true, data } : { ok: false, error: data }));
     };
+    if (url.pathname === '/api/v1/search/history') {
+      if (req.method === 'POST') {
+        let body = '';
+        for await (const chunk of req) {
+          body += chunk;
+          if (body.length > 4096) return reply('Fixture keyword request too large', 413);
+        }
+        let action;
+        try {
+          action = JSON.parse(body);
+        } catch {
+          return reply('Invalid fixture JSON', 400);
+        }
+        record.body = action;
+        if (action.action === 'clear') {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          if (++clearAttempts % 2) return reply('合成清空失败', 503);
+          keywords = [];
+        } else if (action.action === 'add' && typeof action.query === 'string') {
+          keywords = [action.query, ...keywords.filter((term) => term !== action.query)].slice(
+            0,
+            10,
+          );
+        } else return reply('Invalid fixture keyword action', 400);
+      }
+      return reply({ items: keywords });
+    }
     if (req.method === 'POST') {
       reply('Acceptance fixture rejects writes', 409);
       return;

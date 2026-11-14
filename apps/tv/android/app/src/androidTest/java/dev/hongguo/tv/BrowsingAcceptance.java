@@ -115,7 +115,10 @@ final class BrowsingAcceptance {
             });
             key(KeyEvent.KEYCODE_DPAD_DOWN);
             check("plain down exits editing", () -> !(activity.getCurrentFocus() instanceof EditText));
-            confirm();
+            // Empty discovery exits to the adjacent Search button; populated discovery exits to a chip below.
+            key(has("暂无搜索记录") ? KeyEvent.KEYCODE_DPAD_LEFT : KeyEvent.KEYCODE_DPAD_UP);
+            check("remote returns from discovery to query input", () -> activity.getCurrentFocus() instanceof EditText);
+            key(KeyEvent.KEYCODE_ENTER);
             check("real HTTP search results", () -> has("重生之后"));
             screenshot("search");
             key(KeyEvent.KEYCODE_DPAD_DOWN);
@@ -165,6 +168,22 @@ final class BrowsingAcceptance {
             key(KeyEvent.KEYCODE_DPAD_LEFT);
             check("remote returns to the selected source", () -> focused("重生之后 64"));
             screenshot("pagination-terminal");
+            click("清除搜索");
+            check("clear query returns to saved keywords", () -> has("最近搜索") && has("story重生"));
+            screenshot("recent-populated");
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            for (int i = 0; i < 12 && !focused("story重生"); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
+            check("remote reaches saved keyword", () -> focused("story重生"));
+            confirm();
+            check("remote keyword executes a real search", () -> has("重生之后") && has("加载更多"));
+            click("清除搜索");
+            check("keyword remains after query clearing", () -> has("story重生") && has("清空记录"));
+            click("清空记录");
+            check("failed clear retains committed keyword", () -> has("搜索记录未清空：合成清空失败") && has("story重生") && has("重试清空"));
+            screenshot("recent-error");
+            click("重试清空");
+            check("explicit retry clears keywords", () -> has("暂无搜索记录") && !has("story重生"));
+            screenshot("recent-empty");
             click("我的");
             check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 15 秒"));
             screenshot("history");

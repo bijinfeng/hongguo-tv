@@ -1,4 +1,4 @@
-import { cleanup, resource, signal, type ViewRef } from 'nsh';
+import { cleanup, resource, signal, type InputRef, type ViewRef } from 'nsh';
 import type { ProductTarget } from '@hongguo/ui';
 import { createNavStack } from 'nsh/base';
 import {
@@ -11,6 +11,7 @@ import {
   type Library,
   type SearchResult,
 } from '@hongguo/core-client';
+import { createRecentSearches } from './recent-searches';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
 export type Section = 'home' | 'search' | 'history';
@@ -33,6 +34,7 @@ export function createStore(
   const sources = new Map<number, () => void>();
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
+  let searchInput: InputRef | undefined;
   let playerCheckpoint: (() => void) | undefined;
   let playerBack: (() => void) | undefined;
   let playerCommand: ((command: PlaybackCommand) => void) | undefined;
@@ -135,6 +137,7 @@ export function createStore(
     sources.clear();
     if (next === 'history') library.refetch();
   };
+  const recent = createRecentSearches(request, () => activePage('search') && !query());
   const warning = signal('');
   let writes = Promise.resolve();
   return {
@@ -156,7 +159,7 @@ export function createStore(
     },
     shutdown() {
       playerCheckpoint?.();
-      return writes;
+      return Promise.all([writes, recent.drain()]).then(() => {});
     },
     registerPlayerBack(handler: () => void) {
       playerBack = handler;
@@ -171,6 +174,20 @@ export function createStore(
       };
     },
     searchSelection,
+    recent,
+    clearQuery() {
+      resetContinuation();
+      query.set('');
+      draft.set('');
+      searchSelection.set('');
+      searchInput?.focus();
+    },
+    searchInputRef(ref: InputRef) {
+      searchInput = ref;
+    },
+    focusSearchInput() {
+      searchInput?.focus();
+    },
     catalog,
     loadMore,
     loadingMore,
@@ -207,12 +224,13 @@ export function createStore(
     account,
     warning,
     submit() {
-      const q = draft().trim();
+      const q = draft().trim().replace(/\s+/g, ' ');
       if (!q) return;
       navigate('search');
       searchSelection.set('');
       if (q === query()) results.refetch();
       else query.set(q);
+      void recent.add(q);
     },
     open(drama: Drama, origin?: () => void) {
       if (origin) sources.set(nav.routes().length, origin);

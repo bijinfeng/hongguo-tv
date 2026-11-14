@@ -68,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_search_history"];
+        put?: never;
+        post: operations["change_search_history"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/series/detail": {
         parameters: {
             query?: never;
@@ -364,6 +380,28 @@ export interface components {
         ReleaseResult: {
             /** @description Always true after accepting a valid local path. */
             released: boolean;
+        };
+        /** @description Committed recent keywords, newest first and at most ten. */
+        SearchHistory: {
+            /** @description Normalized, unique submitted keywords. */
+            items: string[];
+        };
+        /** @description Explicit device-local keyword mutation. */
+        SearchHistoryChange: {
+            /** @enum {string} */
+            action: "add";
+            /** @description Nonempty keyword within the website and UTF-16 limits. */
+            query: string;
+        } | {
+            /** @enum {string} */
+            action: "clear";
+        };
+        /** @description Committed device-local keyword snapshot. */
+        SearchHistoryResponse: {
+            /** @description Newest keywords first. */
+            data: components["schemas"]["SearchHistory"];
+            /** @description Always true. */
+            ok: boolean;
         };
         /** @description Successful website search page. */
         SearchResponse: {
@@ -775,6 +813,112 @@ export interface operations {
                 };
             };
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_search_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchHistoryResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    change_search_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchHistoryChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchHistoryResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

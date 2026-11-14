@@ -2,7 +2,7 @@ use axum::{extract::Query, http::Uri};
 use hongguo_core::{
     CoreStatus,
     catalog::{CatalogClient, CatalogError, SearchQuery},
-    library::{HistoryChange, LibraryError, LibraryStore},
+    library::{HistoryChange, LibraryError, LibraryStore, SearchHistoryChange, SearchHistoryError},
     playback::{PlaybackError, PlaybackRequest, PlaybackService},
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -76,6 +76,9 @@ struct Library {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct NoParams {}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Release {
     path: String,
 }
@@ -87,6 +90,8 @@ pub(crate) enum Request {
     Play(PlaybackRequest),
     Library,
     Change(HistoryChange),
+    SearchHistory,
+    ChangeSearchHistory(SearchHistoryChange),
     Release(String),
     Unavailable,
 }
@@ -148,6 +153,18 @@ impl Request {
                     )
                     .map_err(playback_error)?,
                 ))
+            }
+            ("/api/v1/search/history", body) => {
+                let _: NoParams = query(&uri)
+                    .map_err(|_| search_history_error(SearchHistoryError::invalid_input()))?;
+                match body {
+                    None => Ok(Self::SearchHistory),
+                    Some(body) => Ok(Self::ChangeSearchHistory(
+                        serde_json::from_str(body).map_err(|_| {
+                            search_history_error(SearchHistoryError::invalid_input())
+                        })?,
+                    )),
+                }
             }
             ("/api/v1/library", None) => {
                 let p: Library =
@@ -214,6 +231,18 @@ impl Request {
                 .await
                 .map(Reply::success)
                 .map_err(catalog_error),
+            Self::SearchHistory => services
+                .library
+                .search_history()
+                .await
+                .map(Reply::success)
+                .map_err(search_history_error),
+            Self::ChangeSearchHistory(change) => services
+                .library
+                .change_search_history(change)
+                .await
+                .map(Reply::success)
+                .map_err(search_history_error),
             Self::Library => services
                 .library
                 .snapshot()
@@ -292,4 +321,12 @@ pub(crate) fn playback_error(error: PlaybackError) -> Reply {
         _ => 502,
     };
     Reply::failure(status, error.code(), &error.to_string())
+}
+
+pub(crate) fn search_history_error(error: SearchHistoryError) -> Reply {
+    Reply::failure(
+        if error.is_invalid_input() { 400 } else { 500 },
+        error.code(),
+        &error.to_string(),
+    )
 }

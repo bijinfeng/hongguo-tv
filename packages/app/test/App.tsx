@@ -15,6 +15,7 @@ const drama = {
 const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
 function fixture(request: StubRequest): StubResponse {
   const url = new URL(request.url);
+  if (url.pathname === '/api/v1/search/history') return ok({ items: [] });
   if (url.pathname === '/api/v1/library') return ok({ entries: [], owner_id: '' });
   if (url.pathname === '/api/v1/account') return ok({ logged_in: false, qr_login_available: true });
   if (url.pathname === '/api/v1/search') return ok({ items: [drama], has_more: false });
@@ -32,6 +33,109 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  test('recent keyword loads cannot overwrite a committed mutation and failed clear retries its exact intent', async () => {
+    const app = await open('./RecentSearchStatePreview.tsx');
+    await app.press('进入发现');
+    await app.waitFor('read');
+    await app.press('替换关键词宿主');
+    await app.press('查询一');
+    await app.waitUntil(() => app.texts().some((s) => s.includes('add-查询一')));
+    await app.press('完成写入');
+    await app.waitFor('text:items:查询一,原关键词');
+    await app.press('完成读取');
+    expect(app.shows('text:items:查询一,原关键词')).toBe(true);
+    await app.press('清空关键词');
+    await app.waitFor('text:pending:true');
+    await app.press('失败写入');
+    await app.waitUntil(() => app.texts().some((s) => s.includes('搜索记录未清空')));
+    expect(app.shows('text:items:查询一,原关键词')).toBe(true);
+    await app.press('重试关键词');
+    await app.waitFor('text:pending:true');
+    await app.press('完成写入');
+    await app.waitFor('text:items:');
+    await app.waitFor('text:pending:false');
+    expect(app.texts().some((s) => s.includes('foreign'))).toBe(false);
+  });
+
+  test('a committed keyword remains visible when a later queued save fails', async () => {
+    const app = await open('./RecentSearchStatePreview.tsx');
+    await app.press('查询一');
+    await app.waitUntil(() => app.texts().some((s) => s.includes('add-查询一')));
+    await app.press('查询二');
+    await app.press('完成写入');
+    await app.waitFor('text:items:查询一,原关键词');
+    await app.waitUntil(() => app.texts().some((s) => s.includes('add-查询二')));
+    await app.press('失败写入');
+    await app.waitFor('text:pending:false');
+    expect(app.shows('text:items:查询一,原关键词')).toBe(true);
+    await app.press('重试关键词');
+    await app.press('完成写入');
+    await app.waitFor('text:items:查询二,查询一,原关键词');
+  });
+
+  test('keyword writes preserve invocation order and shutdown drains committed work after removal', async () => {
+    const app = await open('./RecentSearchStatePreview.tsx');
+    await app.press('查询一');
+    await app.waitUntil(() => app.texts().some((s) => s.includes('add-查询一')));
+    await app.press('查询二');
+    await app.press('清空关键词');
+    expect(app.texts().some((s) => s.includes('add-查询二'))).toBe(false);
+    await app.press('排空关键词');
+    await app.press('移除关键词');
+    await app.press('完成写入');
+    await app.waitUntil(() => app.texts().some((s) => s.includes('add-查询二')));
+    await app.press('完成写入');
+    await app.waitUntil(() => app.texts().some((s) => s.endsWith('|clear')));
+    await app.press('完成写入');
+    await app.waitUntil(() => app.texts().some((s) => s.endsWith('|drained')));
+    expect(app.shows('id:recent-owner')).toBe(false);
+    expect(app.texts().some((s) => s.includes('foreign'))).toBe(false);
+  });
+
+  test('recent keywords execute search, clear-query retains them and failed clearing stays recoverable', async () => {
+    let keywords = ['古装'];
+    let clearAttempts = 0;
+    const keywordRequest = (request: StubRequest): StubResponse => {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/v1/search/history') {
+        if (request.method === 'POST') {
+          const action = JSON.parse(request.body || '{}');
+          if (action.action === 'clear') {
+            if (++clearAttempts === 1)
+              return { status: 503, body: { ok: false, error: '合成清空失败' } };
+            keywords = [];
+          } else
+            keywords = [action.query, ...keywords.filter((s) => s !== action.query)].slice(0, 10);
+        }
+        return ok({ items: keywords });
+      }
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      network: {
+        '*': keywordRequest,
+        'POST *': keywordRequest,
+      },
+    });
+    await app.press('id:nav-search');
+    await app.waitFor('id:recent-search-古装');
+    await app.press('id:recent-search-古装');
+    await app.waitFor('id:drama-123');
+    expect(app.value('id:search-input')).toBe('古装');
+    await app.press('id:clear-query');
+    await app.waitFor('id:recent-search-古装');
+    expect(app.shows('id:drama-123')).toBe(false);
+    await app.press('id:clear-recent-searches');
+    await app.waitFor('搜索记录未清空：合成清空失败');
+    expect(app.shows('id:recent-search-古装')).toBe(true);
+    await app.press('重试清空');
+    await app.waitFor('暂无搜索记录');
+    expect(app.shows('id:clear-recent-searches')).toBe(false);
+    app.dispose();
+  });
+
   test('search continuation retains results on failure, retries the same cursor and deduplicates appended identities', async () => {
     let pages = 0;
     const second = { ...drama, series_id: '124', title: '第二批故事' };
@@ -39,6 +143,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       width: 1180,
       height: 780,
       network: {
+        'POST *': fixture,
         '*': (request) => {
           const url = new URL(request.url);
           if (url.pathname === '/api/v1/search') {
@@ -89,6 +194,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       width: 1180,
       height: 780,
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.includes('/search?')) {
             const more = new URL(request.url).searchParams.has('offset');
@@ -144,6 +250,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       height: 780,
       clock: {},
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.includes('/search?')) return ok({ items, has_more: false });
           if (request.url.includes('/series/detail'))
@@ -188,6 +295,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       height: 780,
       clock: {},
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.endsWith('/library')) return ok({ entries, owner_id: '' });
           if (request.url.includes('/series/detail'))
@@ -222,6 +330,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       width: 1180,
       height: 780,
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.endsWith('/library'))
             return ok({
@@ -270,6 +379,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       width: 1180,
       height: 780,
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.includes('/search?') && failSearch)
             return { status: 502, body: { ok: false, error: '目录离线' } };
@@ -327,6 +437,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       width: 1180,
       height: 780,
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.endsWith('/library'))
             return ok({
@@ -380,7 +491,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       platform: 'android',
       width: 1180,
       height: 780,
-      network: { '*': fixture },
+      network: { '*': fixture, 'POST *': fixture },
     });
     expect(first.shows(`id:app-${target}`)).toBe(true);
     if (target === 'tv') await first.press('id:nav-search');
@@ -393,7 +504,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       platform: 'macos',
       width: 1180,
       height: 780,
-      network: { '*': fixture },
+      network: { '*': fixture, 'POST *': fixture },
     });
     expect(next.shows('开始观看')).toBe(false);
     expect(next.shows(`id:app-${target}`)).toBe(true);
@@ -509,7 +620,7 @@ export function registerApplicationTests(
       width: 1180,
       height: 780,
       platform: 'macos',
-      network: { '*': fixture },
+      network: { '*': fixture, 'POST *': fixture },
     });
     if (target === 'tv') await app.press('id:nav-search');
     expect(app.enabled('搜索')).toBe(false);
@@ -544,6 +655,7 @@ export function registerApplicationTests(
       height: 780,
       platform: 'web',
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.includes('/search?')) {
             if (first) {
@@ -586,6 +698,7 @@ export function registerApplicationTests(
       colorScheme: 'dark',
       reducedMotion: true,
       network: {
+        'POST *': fixture,
         '*': (request) => {
           if (request.url.endsWith('/library'))
             return ok({

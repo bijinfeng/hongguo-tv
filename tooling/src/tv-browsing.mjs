@@ -106,7 +106,7 @@ try {
       !report.includes(
         suite === 'player'
           ? 'TV player acceptance: 24 checks passed'
-          : 'TV browsing acceptance: 29 checks passed',
+          : 'TV browsing acceptance: 36 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {
@@ -129,6 +129,9 @@ try {
           'pagination-append',
           'pagination-return',
           'pagination-terminal',
+          'recent-populated',
+          'recent-error',
+          'recent-empty',
           'history',
         ])
       await run(adb, [
@@ -139,7 +142,12 @@ try {
         resolve(artifacts, `${screen}-${appearance}.png`),
       ]);
   }
-  if (suite === 'browsing' && fixture.requests.some((request) => request.method === 'POST'))
+  if (
+    suite === 'browsing' &&
+    fixture.requests.some(
+      (request) => request.method === 'POST' && request.url !== '/api/v1/search/history',
+    )
+  )
     throw new Error('Browsing submitted progress');
   if (
     suite === 'player' &&

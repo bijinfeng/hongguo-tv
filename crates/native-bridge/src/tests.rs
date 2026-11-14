@@ -527,3 +527,69 @@ async fn initialization_preserves_corrupt_files_and_native_owner_drop_closes_med
     );
     assert_eq!(fixture.call("/api/v1/status", None).await.status, 410);
 }
+
+#[tokio::test]
+async fn native_keywords_match_http_persist_and_do_not_reach_media_listener() {
+    let f = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        f.session.services.catalog.clone(),
+        Some(f.session.services.library.clone()),
+        Some(f.session.services.playback.clone()),
+    );
+    for (path, body) in [
+        ("/api/v1/search/history", None),
+        (
+            "/api/v1/search/history",
+            Some(r#"{"action":"add","query":"  古装   重生 "}"#),
+        ),
+        ("/api/v1/search/history?bad=1", None),
+        (
+            "/api/v1/search/history?bad=1",
+            Some(r#"{"action":"clear"}"#),
+        ),
+        (
+            "/api/v1/search/history",
+            Some(r#"{"action":"add","query":" "}"#),
+        ),
+        (
+            "/api/v1/search/history",
+            Some(r#"{"action":"clear","extra":1}"#),
+        ),
+    ] {
+        let native = f.call(path, body).await;
+        let request = axum::http::Request::builder()
+            .method(if body.is_some() { "POST" } else { "GET" })
+            .uri(path)
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .body(Body::from(body.unwrap_or("").to_owned()))
+            .unwrap();
+        let http = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(native.status, http.status().as_u16());
+        let bytes = axum::body::to_bytes(http.into_body(), 65536).await.unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+    }
+    let saved = f.call("/api/v1/search/history", None).await;
+    assert_eq!(saved.body["data"]["items"], json!(["古装 重生"]));
+    let response = client()
+        .get(format!("{}/api/v1/search/history", f.session.origin))
+        .send()
+        .await
+        .unwrap();
+    assert_ne!(response.status(), 200);
+    f.session.close();
+    let reopened = Session::open(&f.dir)
+        .await
+        .unwrap_or_else(|_| panic!("reopen keyword store"));
+    let call = reopened.start("/api/v1/search/history", None);
+    assert_eq!(call.inner.result().await.body, saved.body);
+    call.accept();
+    let clear = reopened.start("/api/v1/search/history", Some(r#"{"action":"clear"}"#));
+    assert_eq!(clear.inner.result().await.body["data"]["items"], json!([]));
+    clear.accept();
+    reopened.close();
+}

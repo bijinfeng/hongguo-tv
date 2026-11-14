@@ -1,5 +1,7 @@
 //! Versioned guest history. Mutations publish only after a durable transaction commits.
+mod search;
 mod store;
+pub use search::{SearchHistory, SearchHistoryChange, SearchHistoryError, normalize_keyword};
 pub use store::LibraryStore;
 
 use crate::catalog::Drama;

@@ -24,7 +24,11 @@ try {
     cwd: resolve(root, 'apps/web'),
     env: rustEnvironment(),
   });
-  if (fixture.requests.some((request) => request.method === 'POST'))
+  if (
+    fixture.requests.some(
+      (request) => request.method === 'POST' && request.url !== '/api/v1/search/history',
+    )
+  )
     throw new Error('Browsing wrote progress');
 } finally {
   await writeFile(runtime, previous);

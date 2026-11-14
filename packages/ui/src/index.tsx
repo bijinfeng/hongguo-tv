@@ -220,7 +220,12 @@ export function Surface(props: { children?: JSX.Element; class?: string }) {
     </View>
   );
 }
-export function Notice(props: { message: string; error?: boolean; retry?: () => void }) {
+export function Notice(props: {
+  message: string;
+  error?: boolean;
+  retry?: () => void;
+  retryLabel?: string;
+}) {
   return (
     <Surface>
       <Text
@@ -230,7 +235,7 @@ export function Notice(props: { message: string; error?: boolean; retry?: () => 
         {props.message}
       </Text>
       <If when={props.retry}>
-        <Button label="重试" onPress={() => props.retry?.()} />
+        <Button label={props.retryLabel ?? '重试'} onPress={() => props.retry?.()} />
       </If>
     </Surface>
   );

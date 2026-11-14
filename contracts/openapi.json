@@ -508,6 +508,124 @@
         }
       }
     },
+    "/api/v1/search/history": {
+      "get": {
+        "tags": [
+          "search_history"
+        ],
+        "operationId": "get_search_history",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "search_history"
+        ],
+        "operationId": "change_search_history",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchHistoryChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/series/detail": {
       "get": {
         "tags": [
@@ -1264,6 +1382,80 @@
           "released": {
             "type": "boolean",
             "description": "Always true after accepting a valid local path."
+          }
+        }
+      },
+      "SearchHistory": {
+        "type": "object",
+        "description": "Committed recent keywords, newest first and at most ten.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Normalized, unique submitted keywords."
+          }
+        }
+      },
+      "SearchHistoryChange": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Save a submitted keyword, moving an existing keyword to the front.",
+            "required": [
+              "query",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "add"
+                ]
+              },
+              "query": {
+                "type": "string",
+                "description": "Nonempty keyword within the website and UTF-16 limits."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Remove keywords without changing viewing history.",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "clear"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Explicit device-local keyword mutation."
+      },
+      "SearchHistoryResponse": {
+        "type": "object",
+        "description": "Committed device-local keyword snapshot.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SearchHistory",
+            "description": "Newest keywords first."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
           }
         }
       },

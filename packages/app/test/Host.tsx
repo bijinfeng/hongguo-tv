@@ -82,6 +82,44 @@ export function registerBrowsingHostTests(entry: string, artifacts: string) {
     [1440, 1000],
   ]) {
     for (const colorScheme of ['light', 'dark'] as const) {
+      test(`recent searches ${width} ${colorScheme}: reuse, clear retry and input focus`, async () => {
+        const app = await open(entry, {
+          width,
+          height,
+          colorScheme,
+          reducedMotion: width === 1180,
+          network: 'live',
+        });
+        const term = `春风越过山海归来的故事-${width}-${colorScheme}`;
+        await app.waitFor('重生之后 · 第 59 集 · 15 秒');
+        await app.type('id:search-input', term);
+        await app.submit('id:search-input');
+        await app.waitFor('id:drama-123');
+        await app.press('id:clear-query');
+        await app.waitFor(`id:recent-search-${term}`);
+        await app.hover(`id:recent-search-${term}`);
+        await app.wait(240);
+        await app.screenshot(`${artifacts}/recent-populated-${width}-${colorScheme}.png`);
+        for (let i = 0; i < 5; i++) await app.keyboard.press('tab');
+        await app.screenshot(`${artifacts}/recent-keyboard-${width}-${colorScheme}.png`);
+        await app.keyboard.press('enter');
+        await app.waitFor('id:drama-123');
+        expect(app.value('id:search-input')).toBe(term);
+        await app.press('id:clear-query');
+        await app.waitFor('id:clear-recent-searches');
+        await app.press('id:clear-recent-searches');
+        await app.waitFor('搜索记录未清空：合成清空失败');
+        expect(app.shows(`id:recent-search-${term}`)).toBe(true);
+        await app.wait(240);
+        await app.screenshot(`${artifacts}/recent-error-${width}-${colorScheme}.png`);
+        await app.press('重试清空');
+        await app.type('id:search-input', '');
+        await app.waitFor('暂无搜索记录');
+        await app.keyboard.press('x');
+        expect(app.value('id:search-input')).toBe('x');
+        expect(app.shows('id:clear-recent-searches')).toBe(false);
+        await app.screenshot(`${artifacts}/recent-empty-${width}-${colorScheme}.png`);
+      });
       test(`search continuation ${width} ${colorScheme}: retry, appended return and user focus`, async () => {
         const app = await open(entry, {
           width,

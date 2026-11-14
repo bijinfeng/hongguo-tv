@@ -2,6 +2,8 @@ import type { components } from './generated';
 
 export type Episode = components['schemas']['Episode'];
 export type Drama = components['schemas']['Drama'];
+export type SearchHistory = components['schemas']['SearchHistory'];
+export type SearchHistoryChange = components['schemas']['SearchHistoryChange'];
 export type SearchResult = components['schemas']['SearchResult'];
 export type Entry = components['schemas']['Entry'];
 export type Library = components['schemas']['Library'];
