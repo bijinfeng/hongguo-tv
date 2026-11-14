@@ -15,6 +15,7 @@ export function PosterCollection(props: {
   focusGuard: () => () => boolean;
   caption: (drama: Drama) => string | undefined;
   onOpen: (drama: Drama, restore: () => void) => void;
+  onSource?: (restore: () => void) => void;
 }) {
   const width = signal(0);
   const height = signal(0);
@@ -99,6 +100,25 @@ export function PosterCollection(props: {
                           if (refs.get(id) === ref) refs.delete(id);
                         });
                       });
+                      const source = () => {
+                        const id = drama().series_id;
+                        const collection = props.collection;
+                        return () => {
+                          if (disposed || !props.active || props.collection !== collection) return;
+                          restore();
+                          const ownsFocus = props.focusGuard();
+                          frame = requestAnimationFrame(() => {
+                            if (
+                              !disposed &&
+                              ownsFocus() &&
+                              props.active &&
+                              props.collection === collection
+                            ) {
+                              refs.get(id)?.focus();
+                            }
+                          });
+                        };
+                      };
                       return (
                         <PosterCard
                           buttonRef={(node) => {
@@ -112,24 +132,11 @@ export function PosterCollection(props: {
                           cover={drama().cover_fallback || drama().cover}
                           caption={props.caption(drama())}
                           selected={props.selected === drama().series_id}
+                          onFocus={() => props.onSource?.(source())}
                           onPress={() => {
-                            const id = drama().series_id;
-                            const collection = props.collection;
-                            props.onOpen(drama(), () => {
-                              if (disposed || !props.active || props.collection !== collection)
-                                return;
-                              restore();
-                              const ownsFocus = props.focusGuard();
-                              frame = requestAnimationFrame(() => {
-                                if (
-                                  !disposed &&
-                                  ownsFocus() &&
-                                  props.active &&
-                                  props.collection === collection
-                                )
-                                  refs.get(id)?.focus();
-                              });
-                            });
+                            const restore = source();
+                            props.onSource?.(restore);
+                            props.onOpen(drama(), restore);
                           }}
                         />
                       );

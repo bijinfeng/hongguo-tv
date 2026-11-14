@@ -59,6 +59,18 @@ export function Search(props: { store: Store }) {
       class={`flex-1 ${props.store.query() ? 'gap-7' : 'gap-4'} ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
       style={props.store.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
     >
+      <If when={props.store.searchFromCategory()}>
+        <View class="items-start">
+          <Button
+            testID="search-back"
+            label="返回找剧"
+            icon="back"
+            variant="quiet"
+            compact
+            onPress={props.store.back}
+          />
+        </View>
+      </If>
       <If when={props.store.target !== 'tv'}>
         <View class="flex-row items-center justify-between">
           <Text class="text-3xl font-semibold text-foreground">找剧</Text>

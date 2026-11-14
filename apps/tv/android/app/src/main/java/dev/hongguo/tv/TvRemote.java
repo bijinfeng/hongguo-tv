@@ -71,7 +71,7 @@ final class TvRemote extends View {
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if (restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
+            if ((root.isFocused() && !(current instanceof EditText)) || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
@@ -292,6 +292,11 @@ final class TvRemote extends View {
             select(targets.contains(focused) ? focused : selected != null ? selected
                     : targets.isEmpty() ? null : targets.get(Math.min(previousIndex, targets.size() - 1)), targets);
         } else if (targets.contains(focused) && focused != current) select(focused, targets);
+        // A Select may focus the NSH root after restoration; an input can deliberately blur on submit.
+        if (root.isFocused() && !(current instanceof EditText) && targets.contains(current)) {
+            selecting = true;
+            try { current.requestFocus(); } finally { selecting = false; }
+        }
         // Pre-draw owns geometry invalidation. An unresolved source must not schedule a render loop.
     }
 

@@ -1,10 +1,19 @@
 import { cleanup, View, keymap, reduceMotion, type ImageAsset } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
 import { currentWindow, isAvailable } from 'nsh/desktop';
-import { Button, Controls, Logo, Product, tvUnit, type ProductTarget } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  Controls,
+  Logo,
+  Product,
+  tvUnit,
+  type ProductTarget,
+} from '@hongguo/ui';
 import { createStore, type Store, type FocusSource } from './store';
 import { SearchForm } from './SearchForm';
 import { Search } from './pages/Search';
+import { Discover } from './pages/Discover';
 import { Actor } from './pages/Actor';
 import { Detail } from './pages/Detail';
 import { Player } from './pages/Player';
@@ -15,8 +24,9 @@ import type { PlaybackCommandSource } from './playback';
 
 function Navigation(props: { store: Store }) {
   return (
-    <Controls
+    <CardControls
       label="主导航"
+      onNavigate={props.store.noteFocusIntent}
       vertical={props.store.target === 'desktop'}
       class={props.store.target === 'desktop' ? 'gap-1' : ''}
     >
@@ -30,13 +40,13 @@ function Navigation(props: { store: Store }) {
         onPress={() => props.store.navigate('home')}
       />
       <Button
-        testID="nav-search"
-        buttonRef={(ref) => props.store.primaryRef('search', ref)}
+        testID="nav-discover"
+        buttonRef={(ref) => props.store.primaryRef('discover', ref)}
         variant="navigation"
         icon={props.store.target === 'desktop' ? 'search' : undefined}
         label="找剧"
-        selected={props.store.activePage('search')}
-        onPress={() => props.store.navigate('search')}
+        selected={props.store.activePage('discover') || props.store.activePage('search')}
+        onPress={() => props.store.navigate('discover')}
       />
       <Button
         testID="nav-history"
@@ -47,7 +57,7 @@ function Navigation(props: { store: Store }) {
         selected={props.store.activePage('history')}
         onPress={() => props.store.navigate('history')}
       />
-    </Controls>
+    </CardControls>
   );
 }
 function Browse(props: { store: Store }) {
@@ -59,6 +69,9 @@ function Browse(props: { store: Store }) {
       </View>
       <View class={props.store.section() === 'search' ? 'flex-1' : 'hidden'}>
         <Search store={props.store} />
+      </View>
+      <View class={props.store.section() === 'discover' ? 'flex-1' : 'hidden'}>
+        <Discover store={props.store} />
       </View>
       <View class={props.store.section() === 'history' ? 'flex-1' : 'hidden'}>
         <History store={props.store} />
@@ -222,6 +235,15 @@ function TvShell(props: { store: Store; logoMark: ImageAsset }) {
         <View class="flex-1">
           <Navigation store={props.store} />
         </View>
+        <Button
+          testID="nav-search"
+          icon="search"
+          iconOnly
+          variant="quiet"
+          label="搜索短剧"
+          buttonRef={(ref) => props.store.primaryRef('search', ref)}
+          onPress={props.store.openSearch}
+        />
         <Button
           variant="quiet"
           label={props.store.account()?.profile?.name || '账号'}

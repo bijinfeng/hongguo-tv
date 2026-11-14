@@ -12,6 +12,7 @@ export async function browsingFixture({ discovery = 'populated' } = {}) {
   let keywords = ['重生', '古装'];
   let clearAttempts = 0;
   let discoveryReads = 0;
+  const categoryRetries = new Set();
   let origin;
   const episodes = Array.from({ length: 75 }, (_, i) => ({
     index: i + 1,
@@ -47,6 +48,67 @@ export async function browsingFixture({ discovery = 'populated' } = {}) {
         .writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
         .end(JSON.stringify(status === 200 ? { ok: true, data } : { ok: false, error: data }));
     };
+    if (url.pathname === '/api/v1/category') {
+      if (req.method !== 'GET' || url.searchParams.has('q'))
+        return reply('Invalid category input', 400);
+      const genre = url.searchParams.get('genre');
+      const theme = url.searchParams.get('category_dim_theme');
+      const offset = Number(url.searchParams.get('offset') || 0);
+      const selection = `${genre}:${theme}:${url.searchParams.get('sort')}`;
+      if (!offset) categoryRetries.delete(selection);
+      if (offset === 30 && !categoryRetries.has(selection)) {
+        categoryRetries.add(selection);
+        return reply('分类续页暂时不可用', 503);
+      }
+      const family = genre === 'comic_series' ? 100 : 0;
+      const base = theme === 'cate_165' ? 50 : theme === 'cate_2' ? 70 : 0;
+      const filters = [
+        {
+          type: 'genre',
+          label: '体裁',
+          options: [
+            { id: 'short_play', label: '短剧' },
+            { id: 'comic_series', label: '漫剧' },
+          ],
+        },
+        {
+          type: 'category_dim_theme',
+          label: '主题',
+          options: [
+            { id: 'cate_165', label: '悬疑' },
+            { id: 'cate_2', label: '都市' },
+            { id: 'cate_3', label: '家庭' },
+            { id: 'cate_4', label: '古装' },
+            { id: 'cate_5', label: '重生' },
+            { id: 'cate_6', label: '很长的题材选项仍然可以完整阅读' },
+          ],
+        },
+        {
+          type: 'sort',
+          label: '推荐',
+          options: [
+            { id: 'hot_collect', label: '最高收藏' },
+            { id: 'online_time', label: '最新' },
+            { id: 'hot_score', label: '最热门' },
+          ],
+        },
+      ];
+      await new Promise((resolve) => setTimeout(resolve, offset ? 180 : 450));
+      return reply({
+        items:
+          offset === 30 || theme === 'cate_3'
+            ? []
+            : Array.from({ length: offset ? 12 : 18 }, (_, i) => {
+                const summary = drama(family + base + (offset ? 16 : 0) + i);
+                delete summary.episodes;
+                return summary;
+              }),
+        has_more: offset < 45 && theme !== 'cate_3',
+        next_offset: offset ? offset + 15 : 30,
+        session_id: `fixture-${selection}-${offset + 15}`,
+        ...(url.searchParams.get('selectors') === '1' ? { filters } : {}),
+      });
+    }
     if (url.pathname === '/api/v1/search/discovery') {
       if (url.search || req.method !== 'GET') return reply('Discovery rejects inputs', 400);
       discoveryReads++;

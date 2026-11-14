@@ -18,7 +18,9 @@
     "./testing/discovery-state": "./test/DiscoveryState.tsx",
     "./testing/card-controls-state": "./test/CardControlsState.tsx",
     "./testing/suggestions-state": "./test/SuggestionsState.tsx",
-    "./testing/suggestions-host": "./test/SuggestionsHost.tsx"
+    "./testing/suggestions-host": "./test/SuggestionsHost.tsx",
+    "./testing/category-state": "./test/CategoryState.tsx",
+    "./testing/category-host": "./test/CategoryHost.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

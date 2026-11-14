@@ -17,12 +17,13 @@ import {
   type InputHostProps,
   type ViewRef,
 } from 'nsh';
-import { Button as BaseButton, Input as BaseInput, Toolbar, Select } from 'nsh/base';
+import { Input as BaseInput, Toolbar, Select } from 'nsh/base';
 import { entrance } from './motion';
 import { SelectFocus } from './select-focus';
 import { CardRoot } from './card-controls';
 export { SearchPicker, SearchSuggestionRow } from './search-picker';
 export { CardControls } from './card-controls';
+export { FilterChoices } from './filter-choices';
 import { FocusedRemovalRoot } from './focused-removal-root';
 
 /** Product target, deliberately independent of the host operating system. */
@@ -121,8 +122,9 @@ export function Button(props: {
   selectOpen?: boolean;
   /** Only removable standalone actions; never use inside Controls/Toolbar. */
   onFocusedRemoval?: () => void;
+  onFocus?: () => void;
 }) {
-  const Root = props.onFocusedRemoval ? FocusedRemovalRoot : BaseButton;
+  const Root = props.onFocusedRemoval ? FocusedRemovalRoot : CardRoot;
   return (
     <Root
       ref={props.buttonRef}
@@ -152,6 +154,7 @@ export function Button(props: {
       testID={props.testID}
       onPress={props.onPress}
       onFocusedRemoval={props.onFocusedRemoval}
+      onFocus={props.onFocus}
       disabled={props.disabled}
       selected={props.selected}
       accessibilityLabel={props.label}
@@ -325,6 +328,7 @@ export function PosterCard(props: {
   width?: number;
   caption?: string;
   onPress: () => void;
+  onFocus?: () => void;
   selected?: boolean;
   testID: string;
   buttonRef?: (ref: ViewRef) => void;
@@ -334,6 +338,7 @@ export function PosterCard(props: {
       ref={props.buttonRef}
       testID={props.testID}
       onPress={props.onPress}
+      onFocus={props.onFocus}
       selected={props.selected}
       accessibilityLabel={props.title}
       style={Product() === 'tv' ? { borderRadius: tvUnit(12) } : undefined}

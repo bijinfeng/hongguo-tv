@@ -1,5 +1,5 @@
-import { signal, Text, View, type ViewRef } from 'nsh';
-import { Button, CardControls, PosterCard } from '@hongguo/ui';
+import { signal, Text, View, keymap, type ViewRef } from 'nsh';
+import { Button, CardControls, FilterChoices, PosterCard } from '@hongguo/ui';
 
 /** Exercises the shared card group's public focus and disposal contract. */
 export function CardControlsStateFixture() {
@@ -42,6 +42,57 @@ export function CardControlsStateFixture() {
         }}
       />
       <Text>{`events:${events().join(',')}`}</Text>
+    </View>
+  );
+}
+
+/** Source groups must follow rendered order, identities and enabled state. */
+export function SourceControlsStateFixture() {
+  const disabled = signal(false);
+  const event = signal('none');
+  const choices = signal(['a', 'b', 'c']);
+  const value = signal('');
+  let last: ViewRef | undefined;
+  let restore: (() => void) | undefined;
+  const disable = () => {
+    event.set('disabled');
+    disabled.set(true);
+  };
+  keymap.bind('ctrl+d', disable);
+  return (
+    <View class="flex-1 bg-background p-4 gap-4">
+      <CardControls label="来源命令">
+        <Button testID="command-a" label="命令A" onPress={() => event.set('a')} />
+        <Button label="禁用命令B" disabled onPress={() => event.set('b')} />
+        <Button
+          buttonRef={(ref) => {
+            last = ref;
+          }}
+          label="命令C"
+          disabled={disabled()}
+          onPress={() => event.set('c')}
+        />
+      </CardControls>
+      <Button label="聚焦命令C" onPress={() => last?.focus()} />
+      <Button label="禁用当前命令" onPress={disable} />
+      <FilterChoices
+        label="题材"
+        testID="source-topic"
+        active
+        value={value()}
+        items={choices().map((id) => ({ value: id, title: `题材${id}` }))}
+        onChange={(id) => {
+          value.set(id);
+          event.set(id);
+        }}
+        onSource={(source) => {
+          restore = source;
+        }}
+      />
+      <Button label="重排题材" onPress={() => choices.set(['c', 'a', 'b'])} />
+      <Button label="收缩题材" onPress={() => choices.set(['b', 'a'])} />
+      <Button label="恢复题材来源" onPress={() => restore?.()} />
+      <Text>{`event:${event()}`}</Text>
     </View>
   );
 }

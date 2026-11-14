@@ -11,6 +11,8 @@ export function FocusedRemovalRoot(props: {
   accessibilityLabel?: string | null;
   onPress?: () => void;
   onFocusedRemoval?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   children?: JSX.Element;
 }) {
   let focused = false;
@@ -32,9 +34,11 @@ export function FocusedRemovalRoot(props: {
       onPress={props.onPress}
       onFocus={() => {
         focused = true;
+        props.onFocus?.();
       }}
       onBlur={() => {
         focused = false;
+        props.onBlur?.();
       }}
     >
       {props.children}

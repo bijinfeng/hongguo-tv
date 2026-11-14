@@ -125,8 +125,9 @@ final class PlayerAcceptance {
             Activity activity = runner.startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             check("production browse route", () -> has("找剧"));
             key(KeyEvent.KEYCODE_MEDIA_NEXT); // Must be discarded, never queued for the next player.
-            key(KeyEvent.KEYCODE_DPAD_RIGHT); confirm();
-            key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            for (int i = 0; i < 10 && !focused("搜索短剧"); i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            if (!focused("搜索短剧")) throw new AssertionError("remote search tool unreachable");
+            confirm();
             runner.sendStringSync("story");
             key(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
             key(KeyEvent.KEYCODE_DPAD_LEFT);

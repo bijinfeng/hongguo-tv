@@ -155,9 +155,10 @@ final class NativeBusinessAcceptance {
         check("layered Back returns to detail", () -> has("继续第 2 集"));
     }
     private void watch(Intent launch) throws Exception {
-        key(KeyEvent.KEYCODE_DPAD_RIGHT); confirm();
+        for (int i = 0; i < 10 && !focused("搜索短剧"); i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+        if (!focused("搜索短剧")) throw new AssertionError("remote search tool unreachable");
+        confirm();
         check("remote opens search", () -> has("搜索短剧"));
-        key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
         check("remote enters native input", () -> activity.getCurrentFocus() instanceof EditText);
         runner.runOnMainSync(() -> {
             EditText edit = input(activity.getWindow().getDecorView());

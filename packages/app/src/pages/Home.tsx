@@ -56,7 +56,10 @@ export function Home(props: { store: Store }) {
                     icon="forward"
                     variant="quiet"
                     compact
-                    onPress={() => props.store.navigate('history')}
+                    onPress={() => {
+                      props.store.navigate('history');
+                      props.store.restoreFocus();
+                    }}
                   />
                 </View>
                 <View class="flex-row gap-6">

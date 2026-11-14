@@ -24,12 +24,13 @@ import {
 import { createRecentSearches } from './recent-searches';
 import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
+import { createCategory } from './category';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
 
-export type Section = 'home' | 'search' | 'history';
+export type Section = 'home' | 'discover' | 'search' | 'history';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -74,6 +75,10 @@ export function createStore(
     );
   cleanup(() => cancelAnimationFrame(frame));
   const searchSelection = signal('');
+  const category = createCategory(request, () => activePage('discover'));
+  let searchSource: Section = 'home';
+  let categorySource: { restore: () => void; key: string } | undefined;
+  let searchReturn: (() => void) | undefined;
   const draft = signal('');
   const query = signal('');
   const continued = signal<SearchResult | undefined>(undefined);
@@ -160,7 +165,7 @@ export function createStore(
   const navigate = (next: Section) => {
     suggestions.dismiss();
     batch(() => {
-      nav.popToRoot();
+      if (nav.routes().length > 1) nav.popToRoot();
       section.set(next);
     });
     sources.clear();
@@ -189,6 +194,18 @@ export function createStore(
   const searchError = () => (searchFailure()?.raw === draft() ? searchFailure()!.message : '');
   const warning = signal('');
   let writes = Promise.resolve();
+  const restoreFocus = () => {
+    const owned = focusIntent;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (owned !== focusIntent) return;
+        const source = sources.get(nav.routes().length);
+        if (source) source();
+        else if (nav.routes().length === 1) primary.get(section())?.focus();
+      });
+    });
+  };
   return {
     target,
     hostFocus,
@@ -200,7 +217,14 @@ export function createStore(
     back() {
       if (nav.routes().at(-1)?.name === 'player' && playerBack) playerBack();
       else if (nav.routes().length > 1) nav.pop();
-      else navigate('home');
+      else if (section() === 'search' && searchSource === 'discover') {
+        navigate('discover');
+        if (searchReturn) sources.set(1, searchReturn);
+        restoreFocus();
+      } else {
+        navigate('home');
+        restoreFocus();
+      }
     },
     registerPlayerCheckpoint(handler: () => void) {
       playerCheckpoint = handler;
@@ -225,6 +249,22 @@ export function createStore(
       };
     },
     searchSelection,
+    category,
+    searchFromCategory: () => section() === 'search' && searchSource === 'discover',
+    categorySource(restore: () => void) {
+      categorySource = { restore, key: category.key() };
+    },
+    openSearch() {
+      if (section() !== 'search') {
+        searchSource = section();
+        searchReturn =
+          section() === 'discover' && categorySource?.key === category.key()
+            ? categorySource.restore
+            : undefined;
+      }
+      navigate('search');
+      searchInput?.focus();
+    },
     discovery,
     discoveryData,
     recent,
@@ -262,18 +302,7 @@ export function createStore(
       const owned = focusIntent;
       return () => owned === focusIntent;
     },
-    restoreFocus() {
-      const owned = focusIntent;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(() => {
-          if (owned !== focusIntent) return;
-          const source = sources.get(nav.routes().length);
-          if (source) source();
-          else if (nav.routes().length === 1) primary.get(section())?.focus();
-        });
-      });
-    },
+    restoreFocus,
     play(drama: Drama, episode: Episode, origin?: ViewRef) {
       if (origin) sources.set(nav.routes().length, () => origin.focus());
       nav.push({ name: 'player', drama, episode });
@@ -300,6 +329,13 @@ export function createStore(
         return false;
       }
       batch(() => {
+        if (section() !== 'search') {
+          searchSource = section();
+          searchReturn =
+            section() === 'discover' && categorySource?.key === category.key()
+              ? categorySource.restore
+              : undefined;
+        }
         navigate('search');
         searchSelection.set('');
         if (q === query()) results.refetch();

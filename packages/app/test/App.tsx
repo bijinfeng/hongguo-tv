@@ -1,5 +1,6 @@
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
+import { registerCategoryTests } from './category';
 
 const drama = {
   series_id: '123',
@@ -36,6 +37,7 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  registerCategoryTests();
   test('typed suggestions validate Unicode, debounce composition, cancel superseded/dismissed/inactive/disposed reads and retry', async () => {
     const app = await open('./SuggestionsStatePreview.tsx', { clock: {} });
     await app.press('验证输入');
@@ -321,6 +323,42 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.keyboard.press('right');
     await app.keyboard.press('enter');
     await app.waitFor('text:events:2,3,1,after,2,1,after');
+  });
+  test('source controls skip disabled commands and restore reordered or shortened filter identities', async () => {
+    const app = await open('./SourceControlsStatePreview.tsx', {
+      platform: 'macos',
+      width: 1180,
+      height: 780,
+      network: {},
+    });
+    await app.press('聚焦命令C');
+    await app.keyboard.press('left');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:a');
+    await app.press('聚焦命令C');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:c');
+    await app.keyboard.press('ctrl+d');
+    await app.waitFor('text:event:disabled');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:a');
+    await app.press('id:source-topic-b');
+    await app.press('重排题材');
+    await app.press('恢复题材来源');
+    await app.keyboard.press('left');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:a');
+    await app.keyboard.press('home');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:c');
+    await app.keyboard.press('end');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:b');
+    await app.press('收缩题材');
+    await app.press('恢复题材来源');
+    await app.keyboard.press('right');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:event:a');
   });
   registerFocusedRemovalTests('./FocusedRemovalStatePreview.tsx');
   registerSearchFocusTests('./SearchFocusStatePreview.tsx');

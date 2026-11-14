@@ -1,4 +1,5 @@
 import { Button as BaseButton } from 'nsh/base';
+import { FocusedRemovalRoot } from './focused-removal-root';
 import {
   View,
   batch,
@@ -14,13 +15,14 @@ import {
 
 interface CardMember {
   ref?: ViewRef;
+  enabled: () => boolean;
   stop: () => boolean;
   activate: () => void;
   focus: () => void;
   blur: () => void;
 }
 interface Group {
-  register: () => CardMember;
+  register: (enabled: () => boolean) => CardMember;
 }
 const Group = context<Group | undefined>(undefined);
 
@@ -39,20 +41,21 @@ export function CardControls(props: {
   const current = signal<CardMember | undefined>(undefined);
   const focused = signal<CardMember | undefined>(undefined);
   const move = (step: 'next' | 'previous' | 'first' | 'last') => {
-    if (!members.length) return;
+    const available = members.filter((member) => member.enabled());
+    if (!available.length) return;
     props.onNavigate?.();
-    const index = members.indexOf(current()!);
+    const index = available.indexOf(current()!);
     if (step === 'previous' && index === 0 && props.onPreviousFromFirst) {
       props.onPreviousFromFirst();
       return;
     }
     const next =
-      members[
+      available[
         step === 'first'
           ? 0
           : step === 'last'
-            ? members.length - 1
-            : (index + (step === 'next' ? 1 : -1) + members.length) % members.length
+            ? available.length - 1
+            : (index + (step === 'next' ? 1 : -1) + available.length) % available.length
       ];
     batch(() => current.set(next));
     next.ref?.focus();
@@ -70,11 +73,25 @@ export function CardControls(props: {
     );
     cleanup(unbind);
   });
+  effect(() => {
+    const prior = current();
+    if (prior?.enabled()) return;
+    const next = members.find((member) => member.enabled());
+    const hadFocus = prior !== undefined && focused() === prior;
+    batch(() => {
+      current.set(next);
+      if (hadFocus) focused.set(undefined);
+    });
+    if (hadFocus) next?.ref?.focus();
+  });
   const group: Group = {
-    register() {
+    register(enabled) {
       const member: CardMember = {
-        stop: () => current() === member,
-        activate: () => batch(() => current.set(member)),
+        enabled,
+        stop: () => enabled() && current() === member,
+        activate: () => {
+          if (enabled()) batch(() => current.set(member));
+        },
         focus: () => {
           current.set(member);
           focused.set(member);
@@ -84,11 +101,11 @@ export function CardControls(props: {
         },
       };
       members.push(member);
-      if (!current()) current.set(member);
+      if (!current() && enabled()) current.set(member);
       cleanup(() => {
         const index = members.indexOf(member);
         if (index >= 0) members.splice(index, 1);
-        if (current() === member) current.set(members[0]);
+        if (current() === member) current.set(members.find((candidate) => candidate.enabled()));
         if (focused() === member) focused.set(undefined);
       });
       return member;
@@ -110,37 +127,44 @@ export function CardControls(props: {
 /** BaseButton's private Toolbar registration cannot choose an app's source stop. */
 export function CardRoot(props: {
   ref?: (ref: ViewRef) => void;
-  testID: string;
+  testID?: string;
   accessibilityLabel: string;
   selected?: boolean;
+  disabled?: boolean;
   style?: ViewProps['style'];
   class?: string;
-  onPress: () => void;
+  onPress?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
   children?: JSX.Element;
 }) {
-  const member = Group()?.register();
-  if (!member)
+  const member = Group()?.register(() => !props.disabled);
+  if (!member) {
+    const Root = props.onFocus || props.onBlur ? FocusedRemovalRoot : BaseButton;
     return (
-      <BaseButton
+      <Root
         ref={props.ref}
         testID={props.testID}
         accessibilityLabel={props.accessibilityLabel}
         selected={props.selected}
+        disabled={props.disabled}
+        onFocus={props.onFocus}
+        onBlur={props.onBlur}
         onPress={props.onPress}
         style={props.style}
         class={props.class}
       >
         {props.children}
-      </BaseButton>
+      </Root>
     );
+  }
   return (
     <View
       ref={(ref) => {
         member.ref = ref;
         props.ref?.({
           focus() {
+            if (props.disabled) return;
             member.activate();
             ref.focus();
           },
@@ -152,8 +176,9 @@ export function CardRoot(props: {
       testID={props.testID}
       role="button"
       accessibilityLabel={props.accessibilityLabel}
-      accessibilityState={{ selected: !!props.selected }}
-      focusable={member.stop()}
+      accessibilityState={{ selected: !!props.selected, disabled: !!props.disabled }}
+      disabled={props.disabled}
+      focusable={!props.disabled && member.stop()}
       onFocus={() => {
         member.focus();
         props.onFocus?.();
@@ -164,7 +189,7 @@ export function CardRoot(props: {
       }}
       onPress={() => {
         member.activate();
-        props.onPress();
+        props.onPress?.();
       }}
       style={props.style}
       class={props.class}

@@ -1,5 +1,5 @@
 import { View, Text, signal, effect, cleanup, keymap, type InputRef, type ViewRef } from 'nsh';
-import { Button, Icon, SearchInput, SearchPicker, SearchSuggestionRow, tvUnit } from '@hongguo/ui';
+import { Button, SearchInput, SearchPicker, SearchSuggestionRow, tvUnit } from '@hongguo/ui';
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
 import type { Store } from './store';
@@ -137,12 +137,21 @@ export function SearchForm(props: { store: Store }) {
         }}
         class={
           props.store.target === 'desktop'
-            ? 'flex-row items-center gap-2 rounded-(--radius) bg-muted pl-4 pr-1 h-12'
+            ? 'flex-row items-center gap-2 rounded-(--radius) bg-muted px-1 h-12'
             : 'flex-row gap-3'
         }
       >
         <If when={props.store.target === 'desktop'}>
-          <Icon name="search" />
+          <Button
+            testID="nav-search"
+            buttonRef={(ref) => props.store.primaryRef('search', ref)}
+            label="搜索记录"
+            icon="search"
+            iconOnly
+            compact
+            variant="quiet"
+            onPress={props.store.openSearch}
+          />
         </If>
         <SearchInput
           embedded={props.store.target === 'desktop'}

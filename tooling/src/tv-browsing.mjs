@@ -8,8 +8,8 @@ import { tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const suite = process.argv[2] || 'browsing';
-if (!['browsing', 'player', 'suggestions'].includes(suite))
-  throw new Error('Expected browsing|player|suggestions');
+if (!['browsing', 'player', 'suggestions', 'category'].includes(suite))
+  throw new Error('Expected browsing|player|suggestions|category');
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
 const devices = output(adb, ['devices'])
   .split('\n')
@@ -39,11 +39,13 @@ if (
   throw new Error('Requires the pinned TV API 34 emulator.');
 const artifacts = resolve(
   root,
-  suite === 'player'
-    ? 'artifacts/playback/tv-apk'
-    : suite === 'suggestions'
-      ? 'artifacts/typed-search-ui/tv'
-      : 'artifacts/browsing/tv',
+  suite === 'category'
+    ? 'artifacts/category-ui/tv'
+    : suite === 'player'
+      ? 'artifacts/playback/tv-apk'
+      : suite === 'suggestions'
+        ? 'artifacts/typed-search-ui/tv'
+        : 'artifacts/browsing/tv',
 );
 await mkdir(artifacts, { recursive: true });
 const runtime = resolve(root, 'apps/tv/runtime.generated.json');
@@ -109,11 +111,13 @@ try {
     console.log(report);
     if (
       !report.includes(
-        suite === 'player'
-          ? 'TV player acceptance: 24 checks passed'
-          : suite === 'suggestions'
-            ? 'TV suggestions acceptance: 25 checks passed'
-            : 'TV browsing acceptance: 71 checks passed',
+        suite === 'category'
+          ? 'TV category acceptance: 25 checks passed'
+          : suite === 'player'
+            ? 'TV player acceptance: 24 checks passed'
+            : suite === 'suggestions'
+              ? 'TV suggestions acceptance: 25 checks passed'
+              : 'TV browsing acceptance: 71 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {
@@ -134,31 +138,33 @@ try {
         ]);
       throw new Error(`${appearance} business acceptance failed`);
     }
-    for (const screen of suite === 'player'
-      ? ['paused', 'preview', 'settings']
-      : suite === 'suggestions'
-        ? ['typed-suggestions', 'actor', 'actor-return', 'typed-validation', 'typed-dismissed']
-        : [
-            'home',
-            'search',
-            'detail',
-            'pagination-error',
-            'pagination-append',
-            'pagination-return',
-            'pagination-terminal',
-            'recent-populated',
-            'recent-error',
-            'recent-empty',
-            'discovery',
-            'discovery-return',
-            'discovery-keyword',
-            'history',
-            'typed-suggestions',
-            'actor',
-            'actor-return',
-            'typed-validation',
-            'typed-dismissed',
-          ])
+    for (const screen of suite === 'category'
+      ? ['category', 'category-popup', 'category-return', 'category-error', 'category-empty']
+      : suite === 'player'
+        ? ['paused', 'preview', 'settings']
+        : suite === 'suggestions'
+          ? ['typed-suggestions', 'actor', 'actor-return', 'typed-validation', 'typed-dismissed']
+          : [
+              'home',
+              'search',
+              'detail',
+              'pagination-error',
+              'pagination-append',
+              'pagination-return',
+              'pagination-terminal',
+              'recent-populated',
+              'recent-error',
+              'recent-empty',
+              'discovery',
+              'discovery-return',
+              'discovery-keyword',
+              'history',
+              'typed-suggestions',
+              'actor',
+              'actor-return',
+              'typed-validation',
+              'typed-dismissed',
+            ])
       await run(adb, [
         '-s',
         serial,

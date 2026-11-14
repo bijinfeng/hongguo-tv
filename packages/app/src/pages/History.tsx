@@ -97,7 +97,14 @@ export function LibraryStatus(props: { store: Store }) {
         </If>
         <If when={!props.store.entries().length && props.store.library.state() === 'ready'}>
           <Notice message="看过的短剧会保存在这里。" />
-          <Button label="去找剧" primary onPress={() => props.store.navigate('search')} />
+          <Button
+            label="去找剧"
+            primary
+            onPress={() => {
+              props.store.navigate('discover');
+              props.store.restoreFocus();
+            }}
+          />
         </If>
       </View>
     </If>

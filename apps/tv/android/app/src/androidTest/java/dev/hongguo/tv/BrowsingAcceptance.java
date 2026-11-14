@@ -74,6 +74,14 @@ final class BrowsingAcceptance {
     }
     private void key(int code) { runner.sendKeyDownUpSync(code); SystemClock.sleep(220); }
     private void confirm() { key(KeyEvent.KEYCODE_DPAD_CENTER); }
+    private void focusAndConfirm(String id) {
+        AccessibilityNodeInfo node = findId(root(), id);
+        if (node == null || (!node.isFocused() && !node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)))
+            throw new AssertionError("focus " + id);
+        SystemClock.sleep(200);
+        if (!focusedId(id)) throw new AssertionError("keyboard focus " + id);
+        confirm();
+    }
     private void click(String label) {
         AccessibilityNodeInfo node = find(root(), label);
         while (node != null && !node.isClickable()) node = node.getParent();
@@ -116,6 +124,80 @@ final class BrowsingAcceptance {
             if (image == null || !image.compress(Bitmap.CompressFormat.PNG, 100, out)) throw new AssertionError("screenshot");
         }
     }
+    void runCategory() {
+        Bundle result = new Bundle();
+        try {
+            Intent launch = runner.getTargetContext().getPackageManager().getLeanbackLaunchIntentForPackage(runner.getTargetContext().getPackageName());
+            activity = runner.startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+            check("category production entry", () -> has("精选") && has("找剧"));
+            key(KeyEvent.KEYCODE_DPAD_RIGHT); confirm();
+            check("real category summaries and three named selectors", () -> has("重生之后") && has("类型") && has("题材") && has("排序"));
+            screenshot("category");
+            focusAndConfirm("filter-category_dim_theme-trigger");
+            check("topic popup has real choices", () -> has("悬疑") && has("很长的题材选项仍然可以完整阅读"));
+            screenshot("category-popup");
+            key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            check("remote topic selects exact service id", () -> has("重生之后 51") && has("悬疑"));
+            check("topic popup returns trigger focus", () -> focused("悬疑"));
+            focusAndConfirm("filter-sort-trigger");
+            check("sort has honest latest and popularity", () -> has("最新") && has("热度") && !has("最高收藏"));
+            key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            check("latest selection restores trigger", () -> focusedId("filter-sort-trigger") && has("最新") && has("重生之后 51"));
+            focusAndConfirm("filter-sort-trigger"); key(KeyEvent.KEYCODE_BACK);
+            check("remote Back dismisses selector to trigger", () -> focusedId("filter-sort-trigger") && !has("综合"));
+            key(KeyEvent.KEYCODE_DPAD_LEFT); confirm(); key(KeyEvent.KEYCODE_BACK);
+            check("newer remote target survives subsequent popup layout", () -> focusedId("filter-category_dim_theme-trigger"));
+            focusAndConfirm("drama-173");
+            check("category card opens exact detail", () -> has("第 1 集") && has("重生之后 51"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("category detail returns exact source", () -> focusedId("drama-173"));
+            for (int i = 0; i < 14; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("category shelf recycles to later exact card", () -> focusedId("drama-187"));
+            confirm();
+            check("later category identity stays exact", () -> has("第 1 集") && has("重生之后 65"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("later category return restores exact card", () -> focusedId("drama-187"));
+            click("搜索短剧");
+            check("independent search keeps category return", () -> has("返回找剧") && has("搜索短剧、演员"));
+            runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.requestFocus(); edit.setText("完整草稿"); });
+            hideKeyboard();
+            check("category search opens typed suggestions", () -> findId(root(), "search-suggestions") != null);
+            key(KeyEvent.KEYCODE_BACK);
+            check("remote Back closes suggestions before category navigation", () -> has("返回找剧") && findId(root(), "search-suggestions") == null);
+            click("返回找剧");
+            check("search returns retained category and exact focus", () -> focusedId("drama-187") && has("悬疑") && has("最新"));
+            screenshot("category-return");
+            click("加载更多");
+            check("category continuation failure retains cards", () -> has("重试加载更多") && has("重生之后 65"));
+            screenshot("category-error");
+            click("重试加载更多");
+            check("empty advancing page still permits continuation", () -> has("加载更多") && !has("重试加载更多"));
+            click("加载更多");
+            check("terminal page retains ordered cards", () -> !has("加载更多") && !has("正在加载…") && has("悬疑"));
+            click("类型"); click("漫剧");
+            check("type resets topic and pages", () -> has("漫剧") && has("题材") && has("重生之后 101"));
+            click("题材"); click("家庭");
+            check("category empty state remains explicit", () -> has("没有找到相关短剧，试试其他筛选。") && !has("加载更多"));
+            screenshot("category-empty");
+            focusAndConfirm("category-clear");
+            check("clear resets all category dimensions", () -> has("重生之后") && has("全部类型") && has("全部题材") && has("综合排序"));
+            click("搜索短剧");
+            check("clear leaves independent search draft intact", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && "完整草稿".contentEquals(edit.getText()); });
+            result.putString("stream", "TV category acceptance: " + checks + " checks passed\n");
+            runner.finish(Activity.RESULT_OK, result);
+        } catch (Throwable error) {
+            try { screenshot("failure"); } catch (Exception ignored) { /* Keep assertion. */ }
+            try {
+                StringBuilder tree = new StringBuilder();
+                runner.runOnMainSync(() -> dump(activity.getWindow().getDecorView(), tree, ""));
+                try (FileOutputStream out = new FileOutputStream(new File(runner.getTargetContext().getExternalFilesDir(null), "failure-" + appearance + ".txt"))) {
+                    out.write(tree.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+            } catch (Exception ignored) { /* Keep assertion. */ }
+            result.putString("stream", "FAIL " + error + " after " + checks + " checks\n");
+            runner.finish(Activity.RESULT_CANCELED, result);
+        }
+    }
     void run() { run(false); }
     void run(boolean typedOnly) {
         Bundle result = new Bundle();
@@ -126,9 +208,8 @@ final class BrowsingAcceptance {
             check("real library continuation", () -> has("选集与详情") && has("重生之后"));
             screenshot("home");
             if (!typedOnly) {
-            key(KeyEvent.KEYCODE_DPAD_RIGHT); confirm();
+            click("搜索短剧");
             check("remote opens independent search", () -> has("搜索短剧、演员"));
-            key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
             check("remote enters input", () -> activity.getCurrentFocus() instanceof EditText);
             runner.sendStringSync("story");
             check("ordinary native input", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.getText().toString().equals("story"); });
@@ -250,16 +331,19 @@ final class BrowsingAcceptance {
             check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 15 秒"));
             screenshot("history");
             }
-            click("找剧");
+            click("搜索短剧");
             runner.runOnMainSync(() -> {
                 EditText edit = input(activity.getWindow().getDecorView());
                 edit.requestFocus(); edit.setText("");
                 InputConnection connection = edit.onCreateInputConnection(new EditorInfo());
                 connection.setComposingText("lin", 1);
             });
-            hideKeyboard();
             SystemClock.sleep(500);
-            check("typed composition keeps suggestions closed", () -> !has("林初") && activity.getCurrentFocus() instanceof EditText);
+            check("typed composition keeps suggestions closed", () -> {
+                EditText edit = input(activity.getWindow().getDecorView());
+                return edit != null && BaseInputConnection.getComposingSpanStart(edit.getText()) >= 0
+                        && !has("林初") && activity.getCurrentFocus() instanceof EditText;
+            });
             runner.runOnMainSync(() -> {
                 EditText edit = input(activity.getWindow().getDecorView());
                 InputConnection connection = edit.onCreateInputConnection(new EditorInfo());
