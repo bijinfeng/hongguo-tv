@@ -27,12 +27,13 @@ import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
 import { errorMessage } from './error-messages';
+import { createCalendar } from './calendar';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
 
-export type Section = 'home' | 'feed' | 'discover' | 'search' | 'history';
+export type Section = 'home' | 'feed' | 'discover' | 'search' | 'calendar' | 'history';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -69,6 +70,7 @@ export function createStore(
   let searchInput: InputRef | undefined;
   let playerCheckpoint: (() => void) | undefined;
   let playerBack: (() => void) | undefined;
+  let calendarBack: (() => boolean) | undefined;
   let playerCommand: ((command: PlaybackCommand) => void) | undefined;
   // Listen for the app lifetime so a command on a browse page cannot queue for a future player.
   if (subscribePlayerCommands)
@@ -80,6 +82,8 @@ export function createStore(
   cleanup(() => cancelAnimationFrame(frame));
   const searchSelection = signal('');
   const category = createCategory(request, () => activePage('discover'));
+  const calendar = createCalendar(request, () => activePage('calendar'));
+  const handleCalendarBack = () => activePage('calendar') && (calendarBack?.() ?? false);
   let searchSource: Section = 'home';
   let categorySource: { restore: () => void; key: string } | undefined;
   let searchReturn: (() => void) | undefined;
@@ -223,7 +227,9 @@ export function createStore(
     playing,
     request,
     navigate,
+    handleCalendarBack,
     back() {
+      if (handleCalendarBack()) return;
       if (playing() && playerBack) playerBack();
       else if (nav.routes().length > 1) nav.pop();
       else if (section() === 'search' && searchSource === 'discover') {
@@ -264,6 +270,13 @@ export function createStore(
         if (playerBack === handler) playerBack = undefined;
       };
     },
+    /** The mounted calendar owns local dismissal; stale cleanup cannot remove its replacement. */
+    registerCalendarBack(handler: () => boolean) {
+      calendarBack = handler;
+      return () => {
+        if (calendarBack === handler) calendarBack = undefined;
+      };
+    },
     registerPlayerCommand(handler: (command: PlaybackCommand) => void) {
       playerCommand = handler;
       return () => {
@@ -272,6 +285,7 @@ export function createStore(
     },
     searchSelection,
     category,
+    calendar,
     searchFromCategory: () => section() === 'search' && searchSource === 'discover',
     categorySource(restore: () => void) {
       categorySource = { restore, key: category.key() };

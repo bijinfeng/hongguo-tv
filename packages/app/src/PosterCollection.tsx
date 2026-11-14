@@ -79,13 +79,23 @@ export function PosterCollection(props: {
       }))}
       keyExtractor={(row) => row.id}
       horizontal={props.target === 'tv'}
-      estimatedItemSize={props.target === 'tv' ? tvUnit(260) : ((width() - 84) / 4) * 1.35 + 84}
+      estimatedItemSize={props.target === 'tv' ? tvUnit(276) : ((width() - 84) / 4) * 1.35 + 84}
       class="flex-1"
       style={props.target === 'desktop' ? { width: '100%', maxWidth: 1100 } : undefined}
-      contentStyle={{ gap: props.target === 'tv' ? tvUnit(28) : 28 }}
+      contentStyle={{
+        gap: props.target === 'tv' ? tvUnit(12) : 12,
+        paddingHorizontal: props.target === 'tv' ? 0 : 8,
+        paddingVertical: props.target === 'tv' ? tvUnit(8) : 0,
+      }}
     >
       {(row) => (
-        <View style={props.target === 'tv' ? { width: tvUnit(260) } : undefined}>
+        <View
+          style={
+            props.target === 'tv'
+              ? { width: tvUnit(276), paddingHorizontal: tvUnit(8) }
+              : { paddingVertical: 8 }
+          }
+        >
           <CardControls onNavigate={props.onNavigate} label={props.label} class="w-full gap-7">
             <Each of={Array.from({ length: columns() }, (_, i) => i)}>
               {(slot) => (
@@ -126,7 +136,10 @@ export function PosterCollection(props: {
                             refs.set(drama().series_id, node);
                           }}
                           testID={`drama-${drama().series_id}`}
-                          availableHeight={height()}
+                          availableHeight={Math.max(
+                            0,
+                            height() - (props.target === 'tv' ? tvUnit(16) : 32),
+                          )}
                           width={(width() - 84) / 4 - 4}
                           title={drama().title}
                           cover={drama().cover_fallback || drama().cover}

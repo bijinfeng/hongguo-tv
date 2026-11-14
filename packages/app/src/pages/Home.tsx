@@ -1,5 +1,5 @@
 import { Scroll, Text, View, type ViewRef } from 'nsh';
-import { Button, ContinueCard, StoryFeature, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, ContinueCard, StoryFeature, UiText, tvUnit } from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { historyLabel, LibraryStatus } from './History';
@@ -113,6 +113,22 @@ export function Home(props: { store: Store }) {
               </StoryFeature>
             )}
           </If>
+        </If>
+        <If when={props.store.target === 'tv'}>
+          <View style={{ gap: tvUnit(24) }}>
+            <UiText role="section">新剧与热播</UiText>
+            <CardControls label="新剧与热播" onNavigate={props.store.noteFocusIntent}>
+              <Button
+                label="上新日历"
+                icon="calendar-days"
+                testID="home-calendar"
+                onPress={() => {
+                  props.store.navigate('calendar');
+                  props.store.restoreFocus();
+                }}
+              />
+            </CardControls>
+          </View>
         </If>
         <View class="items-start">
           <Button

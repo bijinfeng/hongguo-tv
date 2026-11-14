@@ -1,5 +1,5 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, FilterChoices, Notice, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, FilterChoices, Notice, tvUnit } from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
@@ -137,6 +137,19 @@ export function Discover(props: { store: Store }) {
             onFocusedRemoval={platform.os === 'macos' ? terminalFocus : undefined}
           />
         </View>
+      </If>
+      <If when={props.store.target === 'tv'}>
+        <CardControls label="更多找剧方式" onNavigate={props.store.noteFocusIntent}>
+          <Button
+            label="上新日历"
+            icon="calendar-days"
+            testID="discover-calendar"
+            onPress={() => {
+              props.store.navigate('calendar');
+              props.store.restoreFocus();
+            }}
+          />
+        </CardControls>
       </If>
     </View>
   );

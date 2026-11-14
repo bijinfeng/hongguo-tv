@@ -4,3 +4,5 @@ export { registerPlaybackTests } from './playback';
 export { registerNativeStartupTests } from './native-startup';
 
 export { registerUpdateTests } from './updates';
+export { registerCalendarTests } from './calendar';
+export { registerCalendarBackTests } from './calendar-back';

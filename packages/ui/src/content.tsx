@@ -91,6 +91,7 @@ export function PosterCard(props: {
   testID: string;
   buttonRef?: (ref: ViewRef) => void;
 }) {
+  const textHeight = signal(0);
   return (
     <CardRoot
       ref={(ref) => props.buttonRef?.(ref)}
@@ -99,6 +100,7 @@ export function PosterCard(props: {
       onFocus={props.onFocus}
       selected={props.selected}
       accessibilityLabel={props.title}
+      accessibilityDescription={props.caption}
       style={{
         borderRadius: controlMetrics().radius,
         gap: Product() === 'tv' ? tvUnit(14) : 12,
@@ -118,10 +120,15 @@ export function PosterCard(props: {
                   (props.availableHeight || tvUnit(352)) - tvUnit(112) * fontScale(),
                 ),
               )
-            : (props.width ?? 180) * 1.35
+            : Math.min(
+                (props.width ?? 180) * 1.35,
+                props.availableHeight && props.availableHeight > 0 && textHeight() > 0
+                  ? Math.max(96, props.availableHeight - textHeight() - 12)
+                  : Infinity,
+              )
         }
       />
-      <View class="gap-1">
+      <View class="gap-1" onLayout={({ bounds }) => textHeight.set(bounds.size.height)}>
         <Text
           style={{ fontSize: textSize('content-title') }}
           class="text-foreground font-semibold line-clamp-2"
@@ -129,7 +136,7 @@ export function PosterCard(props: {
           {props.title}
         </Text>
         <If when={props.caption}>
-          <Text style={{ fontSize: textSize('meta') }} class="text-muted-foreground">
+          <Text style={{ fontSize: textSize('meta') }} class="text-muted-foreground line-clamp-2">
             {props.caption}
           </Text>
         </If>

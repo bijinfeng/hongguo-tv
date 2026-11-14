@@ -24,8 +24,7 @@ export function registerCategoryHostTests(entry: string, artifacts: string, host
         await app.waitFor('id:history-list');
         await app.wait(180);
         await app.screenshot(`${artifacts}/history-entry-${width}-${colorScheme}.png`);
-        await app.keyboard.press('up');
-        await app.keyboard.press('enter');
+        await app.press('id:nav-discover');
         await app.waitFor('id:drama-123');
         await app.screenshot(`${artifacts}/category-${width}-${colorScheme}.png`);
         await app.press('id:filter-category_dim_theme-cate_165');

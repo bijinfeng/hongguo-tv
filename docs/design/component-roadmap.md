@@ -27,6 +27,12 @@
 
 Button／IconButton、Field／Input／Search、Select、ChoiceGroup、Tabs、Checkbox、Switch、Slider、Menu／Popover／Tooltip、Dialog／Sheet、Notice／Toast、Empty／Skeleton／Progress、Avatar／Badge／Separator、Cover／Card／ResultRow、Collection／Pagination、日期条、季选择、设置行、账号输入、快照表、预约与提醒、记录管理和影院控件已进入样板。新增需求先查这些组合，不再为名称相近的功能建立第二套。
 
+### DateChoice 已进入公共实现 · 2026-11-15
+
+上新日历的真实日期选择已满足公共提取条件：`DateChoice`／`DateChoiceProps` 从包根导出，桌面与 TV 共用 API 和受控 selected／onPress，使用三层日标签／日期／月份及独立焦点。桌面最小 86×96、TV 164×132 参考单位，继承浅深主题与 reduced motion；只接受合法 Gregorian YYYYMMDD，不生成未知日期，也不成为完整日历／日期范围选择器。
+
+`packages/ui/dev/CalendarChoices.tsx` 提供与业务分离的消费样例，三端 `DateChoicePreview.tsx` 与 `packages/ui/test/date-choice.tsx` 覆盖受控值、合法／非法闰日、方向聚焦与确认激活、主题选中配对。日期条、今天／星期推导、服务端 schema、分页、未上线公告与预约门槛仍属 app；不把示例日期或状态当作产品能力。该独立入口不改变现有 Gallery；运行与证据限制见 UI README。后续可见宿主、大字、读屏和真实 TV 验收仍需逐项记录。
+
 ## 预留候选及触发条件
 
 | 候选                                | 何时进入详细设计                                          | 预先固定的边界                                                                           |

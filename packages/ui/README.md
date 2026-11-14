@@ -61,6 +61,27 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
 
+### DateChoice
+
+包根导出 `DateChoice`／`DateChoiceProps`，用于一个真实 Gregorian 日期的选择目标；不提供日历查询、今天推断、日期补全、预约或日期条控制器。`value` 是完整 YYYYMMDD，`label` 由调用方提供“今天”或星期，`selected` 由调用方控制，`onPress()` 只报告激活；`buttonRef`／`onFocus`／`testID` 用于来源恢复和稳定定位。非法日期不渲染目标，包括非闰年 2 月 29 日、1900 年闰日、月份／天数越界及非 YYYYMMDD；2000 年与 2024 年闰日合法。
+
+```tsx
+<DateChoice
+  value="20240229"
+  label="周四"
+  selected={selected() === '20240229'}
+  onPress={() => selected.set('20240229')}
+/>
+```
+
+桌面与 TV 共用“日标签／大日期／月份”三层，不拆组件。桌面最小 86×96、内距 12；TV 最小 164×132、内距 16，TV 数值均经 `tvUnit()` 换算。默认中性表面、选中 accent 前景配对、焦点独立外轮廓，hover／pressed 不位移；减少动态效果时取消颜色过渡。日期条的横滚、完整日期名称、选中值、今天／星期和离页恢复由 app 组合管理；放入 `CardControls` 后方向键移动焦点、Enter／Space 激活，方向移动不自动提交。
+
+独立验收例为 `dev/CalendarChoices.tsx`，经 `@hongguo/ui/preview/date-choice` 暴露，三端显式入口为 `apps/*/DateChoicePreview.tsx`，产品不导入 testing。对应 `DateChoicePreview.test.tsx` 覆盖外部拒绝／接受选择、合法闰日与非法日期、键盘焦点和一次激活，以及浅深色选中文字配对。该测试独立于 `ui:test` 的 Gallery 测试入口，使用 `cd apps/desktop && nsh test DateChoicePreview.test.tsx`（另对 web／tv 执行）运行；类型与预览构建分别执行 `nsh check` 和 `nsh build DateChoicePreview.tsx`。
+
+### PosterCard 的可用高度
+
+`availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。TV 沿用既有可用高度与字体缩放规则。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。
+
 ## 资源与演进
 
 主题唯一源是 `theme.json`。必要控件边界使用 `input`，在浅深色的 background／card／muted／popover 上至少 3:1；装饰分隔使用 `border`。修改主题后运行 `node design/prototype/components/sync-theme.mjs`，同步浏览器共用主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。

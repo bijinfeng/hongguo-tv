@@ -24,6 +24,7 @@ import { History } from './pages/History';
 import { Account } from './pages/Account';
 import { Home } from './pages/Home';
 import { Feed } from './pages/Feed';
+import { Calendar } from './pages/Calendar';
 import type { PlaybackCommandSource } from './playback';
 
 function Navigation(props: { store: Store }) {
@@ -66,6 +67,17 @@ function Navigation(props: { store: Store }) {
         selected={props.store.activePage('discover') || props.store.activePage('search')}
         onPress={() => props.store.navigate('discover')}
       />
+      <If when={props.store.target === 'desktop'}>
+        <Button
+          testID="nav-calendar"
+          buttonRef={(ref) => props.store.primaryRef('calendar', ref)}
+          variant="navigation"
+          icon="calendar-days"
+          label="上新日历"
+          selected={props.store.activePage('calendar')}
+          onPress={() => props.store.navigate('calendar')}
+        />
+      </If>
       <Button
         testID="nav-history"
         buttonRef={(ref) => props.store.primaryRef('history', ref)}
@@ -109,6 +121,23 @@ function Browse(props: { store: Store }) {
         disabled={props.store.section() !== 'history'}
       >
         <History store={props.store} />
+      </View>
+      <View
+        class={props.store.section() === 'calendar' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'calendar'}
+        disabled={props.store.section() !== 'calendar'}
+      >
+        <Calendar
+          calendar={props.store.calendar}
+          target={props.store.target}
+          active={props.store.activePage('calendar')}
+          onOpen={props.store.open}
+          onSource={props.store.rememberSource}
+          onNavigate={props.store.noteFocusIntent}
+          focusGuard={props.store.focusGuard}
+          onRegisterBack={props.store.registerCalendarBack}
+          onPrimary={(ref) => props.store.primaryRef('calendar', ref)}
+        />
       </View>
       <View
         class={props.store.section() === 'feed' ? 'flex-1' : 'hidden'}
@@ -326,6 +355,7 @@ export function App(props: {
   if (typeof BackHandler?.on === 'function')
     cleanup(
       BackHandler.on('press', () => {
+        if (store.handleCalendarBack()) return true;
         if (!store.activePage('feed')) return false;
         store.back();
         return true;

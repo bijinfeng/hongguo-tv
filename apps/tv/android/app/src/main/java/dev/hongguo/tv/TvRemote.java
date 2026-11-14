@@ -55,6 +55,10 @@ final class TvRemote extends View {
     private String browseSection;
     private View browseSectionRoot;
     private boolean enteringSection;
+    private View observedFocusEntry;
+    private View activeFocusEntry;
+    private View enteringFocusEntry;
+    private long enteringFocusEntryIntent;
 
     TvRemote(Context context, NshView root) {
         super(context);
@@ -71,12 +75,16 @@ final class TvRemote extends View {
         root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
             if (!selecting) {
                 List<View> targets = targets();
+                if (enteringFocusEntry != null && enteringFocusEntryIntent == focusIntent) {
+                    restore();
+                    return;
+                }
                 if (targets.contains(newFocus)) select(newFocus, targets);
                 else if (current != null && !targets.contains(current)) restore();
             }
         });
         root.getViewTreeObserver().addOnPreDrawListener(() -> {
-            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || enteringPageRoot != null || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
+            if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || enteringPageRoot != null || enteringFocusEntry != null || restoringPage || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
             Rect next = current == null ? new Rect() : bounds(current);
@@ -100,7 +108,13 @@ final class TvRemote extends View {
         }
         observedPageDepth = -1;
         observedPageRoot = null;
+        observedFocusEntry = null;
         collect(modal == null ? root : modal, targets);
+        if (activeFocusEntry != observedFocusEntry) {
+            activeFocusEntry = observedFocusEntry;
+            enteringFocusEntry = observedFocusEntry;
+            enteringFocusEntryIntent = focusIntent;
+        }
         if (observedPageDepth >= 0) {
             if (observedPageDepth > pageDepth) {
                 enteringPageRoot = observedPageRoot;
@@ -166,17 +180,21 @@ final class TvRemote extends View {
             observedPageDepth = Integer.parseInt(id.substring("navigation-page-".length()));
             observedPageRoot = view;
         }
+        // Public focus-entry-* IDs opt replacement content into one initial focus handoff.
+        // The latest visible entry receives its first actionable child; it is not a modal scope.
+        if (id != null && id.startsWith("focus-entry-")) observedFocusEntry = view;
         boolean actionable = node != null && node.isEnabled()
                 && (node.isClickable() || adjustable(node) || view instanceof EditText);
+        boolean scrollRegion = namedScrollRegion(view, node);
         if (view instanceof EditText) {
             EditText input = (EditText) view;
             input.setImeOptions(input.getImeOptions() | EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
         }
-        if (actionable) {
+        if (actionable || scrollRegion) {
             view.setFocusable(true);
             view.setFocusableInTouchMode(true);
             targets.add(view);
-            return;
+            if (actionable) return;
         }
         // Public surface IDs opt nonmodal overlays into occlusion, including inter-row gaps.
         if (id != null && id.startsWith("focus-surface-")) {
@@ -249,6 +267,27 @@ final class TvRemote extends View {
             coveredFocus.removeIf(saved -> saved.view == current);
             coveredFocus.add(new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot));
             if (coveredFocus.size() > 32) coveredFocus.remove(0);
+        }
+        if (enteringFocusEntry != null) {
+            if (enteringFocusEntryIntent != focusIntent || enteringFocusEntry != activeFocusEntry)
+                enteringFocusEntry = null;
+            else for (View target : targets) {
+                AccessibilityNodeInfo node = target.createAccessibilityNodeInfo();
+                if (within(target, enteringFocusEntry) && node != null
+                        && (node.isClickable() || adjustable(node) || target instanceof EditText)) {
+                    // A new replacement owns this handoff; only sources still covered may return later.
+                    coveredFocus.removeIf(saved -> resurfaced(saved, targets) != null);
+                    // Android may temporarily clear/recreate descendants during the entry's first layout.
+                    // Keep this initial identity through that layout, until a newer user intent cancels it.
+                    if (current != target) select(target, targets);
+                    else if (!target.isFocused()) {
+                        selecting = true;
+                        try { target.requestFocus(); } finally { selecting = false; }
+                    }
+                    return;
+                }
+            }
+            if (enteringFocusEntry != null) return;
         }
         if (focusSelection) {
             for (View target : targets) {
@@ -456,12 +495,16 @@ final class TvRemote extends View {
                     current.requestFocus();
                     ((android.view.inputmethod.InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
                             .showSoftInput(current, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-                } else current.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null);
+                } else if (!namedScrollRegion(current, currentNode))
+                    current.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null);
             }
             return true;
         }
+        // A named reading region is an explicit stop. Its text scrolls before navigation leaves it.
+        if (namedScrollRegion(current, currentNode) && scrollRegion(current, key)) return true;
         Rect from = bounds(current);
-        View best = nearest(targets, from, key);
+        View best = namedScrollRegion(current, currentNode) ? nearestOutsideRegion(targets, from, key)
+                : nearest(targets, from, key);
         if (best == null && exitingInput && targets.size() > 1) best = targets.get((targets.indexOf(current) + 1) % targets.size());
         if (scrollAtEdge(key, from, best)) return true;
         if (best != null) select(best, targets);
@@ -476,6 +519,8 @@ final class TvRemote extends View {
     void noteFocusIntent() {
         focusIntent++;
         targets();
+        // A user's newer key/pointer intent cancels a still-pending replacement handoff.
+        enteringFocusEntry = null;
         enteringSection = false;
         cancelPageRestoration();
         root.send("focus-intent", "");
@@ -500,6 +545,66 @@ final class TvRemote extends View {
 
     private boolean adjustable(AccessibilityNodeInfo node) {
         return node.getRangeInfo() != null || "android.widget.SeekBar".equals(String.valueOf(node.getClassName()));
+    }
+
+    private boolean namedScrollRegion(View view, AccessibilityNodeInfo node) {
+        if (node == null || !node.isEnabled() || node.isClickable()
+                || node.getContentDescription() == null || node.getContentDescription().length() == 0) return false;
+        return readingRegionOptIn(android.os.Build.VERSION.SDK_INT, node)
+                && (scrollViewport(view, false, -1) != null || scrollViewport(view, false, 1) != null
+                || scrollViewport(view, true, -1) != null || scrollViewport(view, true, 1) != null);
+    }
+
+    static boolean readingRegionOptIn(int api, AccessibilityNodeInfo node) {
+        // Public focus-region-* IDs explicitly opt reading regions in on API26–29, where NSH omits roles.
+        // API30+ requires the exact region role; named/accessible media panels never opt in implicitly.
+        if (api >= 30)
+            return "region".equals(String.valueOf(node.getExtras().getCharSequence("AccessibilityNodeInfo.roleDescription")));
+        String id = node.getViewIdResourceName();
+        return id != null && id.startsWith("focus-region-");
+    }
+
+    private View scrollViewport(View view, boolean horizontal, int direction) {
+        if (!view.isShown() || !view.isEnabled() || view.getAlpha() == 0
+                || view.getImportantForAccessibility() == IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) return null;
+        if (horizontal ? view.canScrollHorizontally(direction) : view.canScrollVertically(direction)) return view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = scrollViewport(group.getChildAt(i), horizontal, direction);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private boolean scrollRegion(View region, int key) {
+        boolean horizontal = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT;
+        int direction = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
+        View viewport = scrollViewport(region, horizontal, direction);
+        if (viewport == null) return false;
+        int action = direction > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
+        return viewport.performAccessibilityAction(action, null);
+    }
+
+    private View nearestOutsideRegion(List<View> targets, Rect from, int key) {
+        View best = null;
+        double score = Double.POSITIVE_INFINITY;
+        boolean horizontal = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT;
+        for (View target : targets) {
+            if (target == current || within(target, current)) continue;
+            Rect to = bounds(target);
+            int major = key == KeyEvent.KEYCODE_DPAD_DOWN ? to.top - from.bottom
+                    : key == KeyEvent.KEYCODE_DPAD_UP ? from.top - to.bottom
+                    : key == KeyEvent.KEYCODE_DPAD_RIGHT ? to.left - from.right : from.left - to.right;
+            if (major < 0) continue;
+            // A wide reading region exits through its nearest edge, not its distant center point.
+            int minor = horizontal ? Math.max(0, Math.max(to.top - from.bottom, from.top - to.bottom))
+                    : Math.max(0, Math.max(to.left - from.right, from.left - to.right));
+            double distance = major * (double) major + 13 * minor * (double) minor;
+            if (distance < score) { best = target; score = distance; }
+        }
+        return best;
     }
 
     private View nearest(List<View> targets, Rect from, int key) {

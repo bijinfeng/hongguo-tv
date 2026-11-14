@@ -13,3 +13,9 @@ registerPlaybackTests();
 registerBrowsingTests();
 
 registerNativeStartupTests();
+
+import { registerCalendarTests } from '@hongguo/app/testing';
+registerCalendarTests();
+
+import { registerCalendarBackTests } from '@hongguo/app/testing';
+registerCalendarBackTests();

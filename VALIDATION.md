@@ -614,3 +614,21 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 首次宿主新增用例在输入仍编辑时重复按进入编辑入口；修正为先返回再进入，保留正确的单入口语义，完整重跑通过（首次日志 ui-host-first.log）。此前 App 回归旧完成态／秒数断言已同步新契约并重跑通过。mixed headless 与 TV macOS 宿主仍报告未展开构建 warning，不称零警告。
 
 未验：VoiceOver／TalkBack 完整输出、系统大字、Android TV 本批组件宿主、真实遥控／IME、物理观看距离、逐帧正常动效及全状态焦点裁切、真实账号／媒体／解码、独立安装包和正式发行。无依赖变化，未重跑 security，既有安全阻塞保留。未提交、未推送，保留其他任务改动。六项范围与状态见[专项审查](docs/design/design-system-accessibility-state-copy-audit.md#修复实施与证据)。
+
+## 新剧／上新日历共享 UI · 2026-11-15
+
+日历切片的交付源码已迁回并继续直接修改主项目目录。共享 controller/page 提供真实日期、新剧独立人群、双游标与独立缓存；已上线进入既有详情，未上线只展示公开安排和诚实的预约门槛，不把预约 ID 用于详情／媒体，也不写历史或模拟预约成功。DateChoice 有独立公共实现、预览入口和三端测试。安排复用列表内容区，隐藏列表退出交互和无障碍树；收起／Escape／native Back 先关闭安排并恢复来源，长文可用键盘／遥控阅读。输入及动效清单、复现命令见[日历浏览交接](docs/calendar-browsing.md)。
+
+独立功能审查指出虚拟列表滚动后过早聚焦，现已改为测量、居中后复测、一次主动重试及布局通知驱动的等待；新输入撤销旧恢复。视觉审查指出 1180 桌面卡片标题和外焦点裁边，现由共享 PosterCard 实测文字高度与虚拟行安全区修正，空间充足时保留原海报比例。最终日历来源／模式缓存八张、分类六张及最新 TV 六张完成独立静图复核，未发现剩余视觉阻塞；此前 TV 日期裁底、公告关闭位置与长文阅读也已实际查看。圆角、字级、间距、对齐、主题配对与可见状态按这些样本检查；静图不证明精确位置相等、hover／pressed 时序、逐帧动效或读屏。
+
+证据位于 ignored `artifacts/calendar-ui/`，日志集中在 `logs/`：
+
+- `hongguo-calendar-main-verify-final.log`：完整 `pnpm verify` 通过，含格式／lint／边界／契约、Rust 197／197、工程 30／30、三端 check 与 build、Web 68／68、Desktop 70／70、TV 71／71 和发行基础检查。各端含独立 DateChoice 3 项及 Calendar Back 4 项；不能将三端入口检查计作三个操作系统实测。
+- `hongguo-calendar-main-{desktop,tv}-headless-final.log`：生产日历组合各 10／10；macOS 全套此前 22／22，最终来源恢复两尺寸浅深专项 4／4（`hongguo-calendar-main-macos-source-matrix.log`）。实际截图在 `macos/desktop/`，包含长公告、日期焦点、空态、失败重试、追加与缓存返回。
+- `hongguo-calendar-main-web-current.log`：真实 Web 常规 22／22；`hongguo-calendar-main-web-source-final.log`：最终来源恢复专项 4／4。`web/http-terminal/results.json`：独立真实 HTTP 延迟终页 8／8，覆盖两尺寸浅深与 owned／newer 两种焦点意图；每例保留精确请求顺序、503 同路径重试、独立双游标、终页次数和只读边界。
+- `android-real-adapter/2026-11-14T20-01-33-792Z/`：项目生产 MainActivity／TvRemote 源码与共享 TSX 的独立 API34 模拟器宿主，浅色 1.0、深色 1.0、深色 1.3 的普通／长文共 6／6，原 102 项行为断言与 4 项兼容识别断言共 106 项通过。包括公告初始 close、收起／Back 精确来源、详情返回、日期确认、阅读区确认无动作／上下滚动／顶部离开。输入源码 SHA 与本轮最终源码一致；`restoration.json` 的 errors 为空，10 项清理通过，独立 host/test 包已卸载，生产 APK 路径／SHA、字号、主题、前台和 reverse 均恢复。
+- `hongguo-calendar-main-category-regression-final.log`：共享 PosterCard／PosterCollection 的真实 macOS 分类回归 4／4，覆盖筛选、分页失败重试、深处卡片详情与搜索返回；截图在 `artifacts/category-ui/macos/`。首次 0／4 是旧用例从历史向上一次就假定到分类，新增日历后实际到达日历；现改为直接激活具名分类目的地，保留分类自身的键盘和返回断言，原失败日志保留。
+
+失败分类：旧 Web 延迟网络 stub 全套为 20／22，日志保留。诊断为固定 NSH 0.5.0 测试 stub 延迟回复没有唤醒空闲引擎；常规 Web 用例明确改为即时终页，延迟竞态由上述生产 Web 真实 HTTP 独立验证，不修改 NSH runtime，也不靠额外等待掩盖失败。标准 Android NSH development host 普通 View 的 ref.focus 无法证明项目遥控焦点；该宿主渲染样本和原失败保留，最终遥控门禁使用项目 TvRemote 的独立安装 ID。桌面初始焦点裁切即使功能测试通过也未记为视觉通过，修复后才关闭阻塞。
+
+边界：均使用合成只读数据；官网全天完整遍历、真实账号预约、媒体解码、生产 native core／独立业务、正式安装包、物理电视／遥控、VoiceOver／TalkBack、桌面系统大字、逐帧正常动效及所有状态仍未在本批验证。API26–29 的显式阅读标记只有合成节点兼容断言，没有旧 runtime 实机运行证据。无依赖或 Rust DTO 变化，未重跑 security，既有许可证／停止维护阻塞仍在。仅本批日历及必要共享修复分批本地提交，保留基础组件规范补审等并行改动；不推送、不归档、不把该切片计作完整 D 或 MVP 完成。

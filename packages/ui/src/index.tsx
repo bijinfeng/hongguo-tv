@@ -20,6 +20,7 @@ export * from './form';
 export * from './display';
 export * from './overlay';
 export * from './frequent';
+export { DateChoice, type DateChoiceProps } from './date-choice';
 export {
   Cover,
   type CoverProps,

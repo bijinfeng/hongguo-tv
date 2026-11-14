@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.tsx",
     "./preview": "./dev/Gallery.tsx",
+    "./preview/date-choice": "./dev/CalendarChoices.tsx",
     "./testing": "./test/index.tsx"
   }
 }

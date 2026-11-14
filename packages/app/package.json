@@ -23,7 +23,11 @@
     "./testing/category-host": "./test/CategoryHost.tsx",
     "./testing/feed-state": "./test/FeedState.tsx",
     "./testing/feed-host": "./test/FeedHost.tsx",
-    "./testing/updates-state": "./test/UpdatesState.tsx"
+    "./testing/updates-state": "./test/UpdatesState.tsx",
+    "./testing/calendar-state": "./test/CalendarState.tsx",
+    "./testing/calendar-host": "./test/CalendarHost.tsx",
+    "./testing/calendar-back-state": "./test/CalendarBackState.tsx",
+    "./testing/calendar-web-terminal": "./test/CalendarWebTerminal.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",
