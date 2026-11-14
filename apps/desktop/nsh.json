@@ -7,7 +7,7 @@
   "theme": "../../packages/ui/theme.json",
   "appearance": "system",
   "updater": {
-    "url": "https://bijinfeng.github.io/hongguo-tv/desktop/stable/latest.json",
+    "github": "bijinfeng/hongguo-tv",
     "publicKey": "8Jh3DGUqKclFPZZM13LTAW92DuZZVFotKx9z60lad88="
   }
 }

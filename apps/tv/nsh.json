@@ -5,9 +5,5 @@
   "build": 1,
   "rust": "native",
   "theme": "../../packages/ui/theme.json",
-  "appearance": "system",
-  "updater": {
-    "url": "https://bijinfeng.github.io/hongguo-tv/tv/stable/latest.json",
-    "publicKey": "9tKXZFc8ZH7qRImmlwDtTHT5OseMmNeON+LM8tl0h6c="
-  }
+  "appearance": "system"
 }

@@ -59,7 +59,7 @@ pnpm release:verify-record --record release.json --artifact-dir <下载目录>
 
 `TV release candidate` workflow 使用 `release-signing` environment，读取 `TV_RELEASE_KEYSTORE_BASE64`、`TV_RELEASE_STORE_PASSWORD`、`TV_RELEASE_KEY_ALIAS` 和 `TV_RELEASE_KEY_PASSWORD`，生成正式签名候选并验证 applicationId、versionCode、证书摘要和 APK 完整性；它只上传候选 artifact，不创建 GitHub Release。正式发布前应在该 environment 增加 required reviewers 和分支/tag 限制。
 
-`Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成各自的 `latest.json`/签名文件，发布 GitHub Release 并部署 Pages 更新目录。桌面与 TV 发行 workflow 显式选择 native，不读取电脑 API 地址；签名或发布前仍需通过独立安装与安全门禁。仓库 Pages 已初始化为 GitHub Actions source。
+`Publish release` workflow 需要手动输入确定的源码 SHA 和对应 `vX.Y.Z` tag，在 `release-signing` environment 中构建 macOS arm64 与 Android TV arm64，使用 `DESKTOP_UPDATE_MANIFEST_KEY`、`TV_UPDATE_MANIFEST_KEY` 生成签名更新清单，并把安装包、清单、签名和验收记录全部上传到同一个 GitHub Release。桌面使用固定资产名 `latest.json` / `latest.json.sig`，由 NSH GitHub updater 直接读取；TV 使用 `tv-latest.json` / `tv-latest.json.sig`，由后续 TV 原生 adapter 显式读取。桌面与 TV 发行 workflow 显式选择 native，不读取电脑 API 地址；签名或发布前仍需通过独立安装与安全门禁。GitHub Pages 不参与正式更新链路。
 
 目录离线样本与显式官网 smoke 见 [contracts/fixtures/catalog/README.md](contracts/fixtures/catalog/README.md)。匿名查询在 `crates/core`，可由未来原生 adapter 复用；默认测试仅使用合成样本和 loopback server，不要求账号或 Go。新增依赖的许可证记录与剩余安全阻塞见 [VALIDATION.md](VALIDATION.md)。
 

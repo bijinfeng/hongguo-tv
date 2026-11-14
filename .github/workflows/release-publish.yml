@@ -14,8 +14,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: release-publish
@@ -65,7 +63,7 @@ jobs:
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           release_dir="$RUNNER_TEMP/desktop-release"
           archive="$release_dir/hongguo-desktop-${version}-macos-arm64.tar.gz"
-          mkdir -p "$release_dir/pages/desktop/stable"
+          mkdir -p "$release_dir"
           tar -C apps/desktop/.nsh/out -czf "$archive" 红果.app
           printf '%s\n' "$archive"
       - name: Sign desktop update manifest
@@ -84,7 +82,7 @@ jobs:
             --entry apps/desktop \
             --key "$key" \
             --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}" \
-            --out "$RUNNER_TEMP/desktop-release/pages/desktop/stable" \
+            --out "$RUNNER_TEMP/desktop-release" \
             "$archive"
           sha=$(git rev-parse HEAD)
           node - "$archive" "$RUNNER_TEMP/desktop-release/candidate.json" "$RELEASE_TAG" "$version" <<'NODE'
@@ -167,7 +165,7 @@ jobs:
           build=$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync('product-version.json')).build))")
           release_dir="$RUNNER_TEMP/tv-release"
           artifact="$release_dir/hongguo-tv-${version}-android-arm64.apk"
-          mkdir -p "$release_dir/pages/tv/stable"
+          mkdir -p "$release_dir"
           cp apps/tv/.nsh/out/红果.apk "$artifact"
           build_tools="$ANDROID_HOME/build-tools/$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('tooling/tv-toolchain.json')).android.buildTools)")"
           "$build_tools/apksigner" verify --verbose "$artifact"
@@ -175,11 +173,29 @@ jobs:
           cert=$("$build_tools/apksigner" verify --print-certs "$artifact" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }')
           test -n "$cert"
           release_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ inputs.tag }}/hongguo-tv-${version}-android-arm64.apk"
+          manifest_entry="$RUNNER_TEMP/tv-manifest-entry"
+          mkdir -p "$manifest_entry"
+          node - "$manifest_entry/nsh.json" "$version" <<'NODE'
+          const fs = require('node:fs');
+          const [output, version] = process.argv.slice(2);
+          fs.writeFileSync(output, JSON.stringify({
+            name: '红果',
+            id: 'dev.hongguo.tv',
+            version,
+            build: Number(JSON.parse(fs.readFileSync('product-version.json')).build),
+            updater: {
+              url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/latest/download/tv-latest.json`,
+              publicKey: '9tKXZFc8ZH7qRImmlwDtTHT5OseMmNeON+LM8tl0h6c=',
+            },
+          }, null, 2));
+          NODE
           nsh update-manifest \
-            --entry apps/tv \
+            --entry "$manifest_entry" \
             --key "$TV_UPDATE_MANIFEST_KEY_FILE" \
             --link "android=$release_url" \
-            --out "$release_dir/pages/tv/stable"
+            --out "$release_dir"
+          mv "$release_dir/latest.json" "$release_dir/tv-latest.json"
+          mv "$release_dir/latest.json.sig" "$release_dir/tv-latest.json.sig"
           sha=$(git rev-parse HEAD)
           node - "$artifact" "$release_dir/candidate.json" "$release_url" "$cert" <<'NODE'
           const fs = require('node:fs');
@@ -210,7 +226,7 @@ jobs:
           retention-days: 14
 
   publish:
-    name: Publish GitHub Release and Pages metadata
+    name: Publish GitHub Release and update metadata
     needs: [desktop, tv]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -233,10 +249,10 @@ jobs:
           for file in \
             "$RUNNER_TEMP/release/desktop-release/hongguo-desktop-${version}-macos-arm64.tar.gz" \
             "$RUNNER_TEMP/release/tv-release/hongguo-tv-${version}-android-arm64.apk" \
-            "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json" \
-            "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json.sig" \
-            "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json" \
-            "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json.sig"; do
+            "$RUNNER_TEMP/release/desktop-release/latest.json" \
+            "$RUNNER_TEMP/release/desktop-release/latest.json.sig" \
+            "$RUNNER_TEMP/release/tv-release/tv-latest.json" \
+            "$RUNNER_TEMP/release/tv-release/tv-latest.json.sig"; do
             test -s "$file"
           done
           grep -F '"sourceSha": "'"$SOURCE_SHA"'"' "$RUNNER_TEMP/release/desktop-release/desktop-release.json"
@@ -260,32 +276,12 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             "$desktop/hongguo-desktop-${version}-macos-arm64.tar.gz" \
             "$tv/hongguo-tv-${version}-android-arm64.apk" \
-            "$desktop/pages/desktop/stable/latest.json#desktop-latest.json" \
-            "$desktop/pages/desktop/stable/latest.json.sig#desktop-latest.json.sig" \
-            "$tv/pages/tv/stable/latest.json#tv-latest.json" \
-            "$tv/pages/tv/stable/latest.json.sig#tv-latest.json.sig" \
+            "$desktop/latest.json" \
+            "$desktop/latest.json.sig" \
+            "$tv/tv-latest.json" \
+            "$tv/tv-latest.json.sig" \
             "$desktop/desktop-release.json#desktop-release.json" \
             "$desktop/desktop-SHA256SUMS#desktop-SHA256SUMS" \
             "$tv/tv-release.json#tv-release.json" \
             "$tv/tv-SHA256SUMS#tv-SHA256SUMS"
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
-      - name: Prepare Pages site
-        run: |
-          set -euo pipefail
-          pages="$RUNNER_TEMP/pages"
-          mkdir -p "$pages/desktop/stable" "$pages/tv/stable"
-          cp "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json" "$pages/desktop/stable/latest.json"
-          cp "$RUNNER_TEMP/release/desktop-release/pages/desktop/stable/latest.json.sig" "$pages/desktop/stable/latest.json.sig"
-          cp "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json" "$pages/tv/stable/latest.json"
-          cp "$RUNNER_TEMP/release/tv-release/pages/tv/stable/latest.json.sig" "$pages/tv/stable/latest.json.sig"
-          cat > "$pages/index.html" <<'HTML'
-          <!doctype html>
-          <meta charset="utf-8">
-          <title>Hongguo updates</title>
-          <p>Hongguo update metadata.</p>
-          HTML
-      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        with:
-          path: ${{ runner.temp }}/pages
-      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
