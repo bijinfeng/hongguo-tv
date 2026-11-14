@@ -499,3 +499,6 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 - 第二轮 security 日志仍为 5 项许可证策略拒绝及 ttf-parser unmaintained，bans／sources 通过；没有放宽策略。两端预览通过工具准备与 setup，正在独立 native 打包；workspace 和下载产物终态保存在 ignored `artifacts/client-updates/github/`，不把运行中状态记为通过。首轮桌面下载包实际启动原生窗口，账号→应用更新直接请求 Releases 的 latest.json，当前无 Release 返回 404；已关闭测试进程，未登录、播放或写入观看记录。
 
 - 第二轮 TV 原生 Rust 编译成功，Gradle 因 verification-metadata 仅有 osx aapt2、缺少同版本 Linux classifier 而失败。直接从 Google Maven 下载固定 8.13.2-14304508 Linux JAR，核对发布者 SHA1 后计算 SHA256 `839609d6d776d6dd60a02aa577d97193ce3e650cf1deaabf062321e23bbd6bf6`，仅补充此制品摘要，不关闭依赖验证、不增加版本。preview 新增 all／desktop／tv 选择，便于精确重跑失败端；正式 publish 行为不变。
+
+- `b05dc83` 经正常 pre-push 全量验证通过（251.04 秒）：Rust 164／164、tooling 28／28、Web 52／52、Desktop 54／54、TV 55／55，三端 check／build 通过。[TV 专项预览 43593567840](https://github.com/bijinfeng/hongguo-tv/actions/runs/43593567840) 实际成功，原始 APK 已下载回验 SHA／版本／大小／签名；真实安装验收与完整最终状态保存在 ignored github 证据目录。
+- 最新 Windows 原先争锁的两项测试均通过；随后 native bridge 的关闭监听器测试在等待 TcpStream::connect 失败时耗尽 2 秒预算。判据改为重新绑定同一端口，直接确认监听资源已释放，保留原有 2 秒测试期限、不修改生产关闭路径。此修正只影响测试；预览运行源码与后续测试提交分别记录，不混称同 SHA 的正式发行候选。

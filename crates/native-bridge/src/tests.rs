@@ -510,7 +510,9 @@ async fn cancellation_capacity_and_close_bound_pending_work_and_stop_the_listene
     let address = fixture.session.origin.trim_start_matches("http://");
     timeout(Duration::from_secs(2), async {
         loop {
-            if tokio::net::TcpStream::connect(address).await.is_err() {
+            // Probe ownership directly: Windows can spend the whole deadline
+            // rejecting a connect even after the listener has been released.
+            if TcpListener::bind(address).await.is_ok() {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
