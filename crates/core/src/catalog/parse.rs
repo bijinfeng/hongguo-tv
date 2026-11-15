@@ -160,7 +160,7 @@ pub(crate) fn series_status(data: &Value) -> Option<super::SeriesStatus> {
         _ => None,
     }
 }
-pub(super) fn cover_fallback(cover: &str) -> Option<String> {
+pub(crate) fn cover_fallback(cover: &str) -> Option<String> {
     let url = reqwest::Url::parse(cover).ok()?;
     let host = url.host_str()?;
     let path = url.path();
@@ -176,7 +176,7 @@ pub(super) fn cover_fallback(cover: &str) -> Option<String> {
     ))
 }
 
-pub(super) fn public_cover(row: &Value) -> String {
+pub(crate) fn public_cover(row: &Value) -> String {
     for key in ["series_cover", "cover", "cover_url"] {
         let Some(text) = row[key].as_str().filter(|s| s.len() <= 2048) else {
             continue;

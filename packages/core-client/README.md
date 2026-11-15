@@ -15,3 +15,9 @@ Node 边界回归：`node --test tooling/test/library-writer.test.mjs tooling/te
 `validFollowSnapshot(value, scope)` 仅接受同 scope 的完整成员表，拒绝重复身份、分页标记、未知字段及含选集的摘要；没有卡片的有效 series 仍是成员。`validFollowMutationResult(value, intent)` 必须匹配原请求且 `acknowledged=true`。`confirmed=true` 还要求完整同 scope 快照观察到目标成员状态；对账失败则保留 unconfirmed 和安全错误码。wrapper 在 await 前捕获原 scope／目标，取消或坏回执不得发布。
 
 追更边界回归：`node --test tooling/test/follow-client.test.mjs`。Rust 路由测试另覆盖本机来源、严格 DTO、游客／错 scope 与取消；没有生产登录态 fixture 注入，因此不能把这些测试当作 authenticated 成功读取、ACK 对账或真实云写验收。
+
+预约使用生成的 `Reservation*` DTO，独立于追更。`readReservations` 读取同 scope 的完整已上线／待上线成员；`setReservation` 发送显式 `enabled` 和 `{kind:'item'|'series',id}`，两种 ID 均保持 canonical 正十进制字符串且不超过 i64::MAX，绝不经 JS number 转换。请求前捕获嵌套目标，响应丢失和取消不自动重发 POST。
+
+`reservationMembership(snapshot,target)` 只比较对应类型的真实身份。匹配为 true；不匹配且任一成员缺少该类型身份为 undefined；全部身份已知且不匹配才为 false。待上线转已上线后缺失旧 item 身份，不能据此确认取消。`validReservationMutationResult` 在精确目标和同 scope 完整快照上执行相同判断，ACK 仍独立于 confirmed。
+
+预约边界回归：`node --test tooling/test/reservations-client.test.mjs`。来源、请求解析、游客／旧 scope、取消和安全错误由 Rust 适配回归覆盖；登录态正向 HTTP／native parity、真实云读写及宿主验收另记。

@@ -6,6 +6,7 @@ mod device;
 mod follow;
 mod phone;
 mod qr;
+mod reservation;
 mod sign;
 
 pub(crate) use phone::PhoneNumber;

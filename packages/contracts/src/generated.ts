@@ -260,6 +260,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["read_reservations"];
+        put?: never;
+        post: operations["set_reservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -1470,6 +1486,116 @@ export interface components {
         ReleaseResult: {
             /** @description Always true after accepting a valid local path. */
             released: boolean;
+        };
+        /** @description One real account-list member; unavailable metadata never removes a valid identity. */
+        ReservationItem: {
+            /** @description Approved public image or empty when unavailable. */
+            cover: string;
+            /** @description Approved JPEG alternative or empty when unavailable. */
+            cover_fallback: string;
+            /** @description Supported released summary only; upcoming trailers do not become playable. */
+            drama?: components["schemas"]["Drama"];
+            /** @description Actual bounded description, empty when absent. */
+            intro: string;
+            /** @description Actual released/upcoming account-list group. */
+            online: boolean;
+            /** @description Actual bounded publication label. */
+            publish_text?: string;
+            /**
+             * Format: int64
+             * @description Upstream publication time in seconds, never inferred from the current date.
+             */
+            publish_time?: number;
+            /** @description Raw item_id when valid; never inferred from series identity. */
+            reservation_id?: string;
+            /** @description Actual subscribe_data series identity when present. */
+            series_id?: string;
+            /** @description Actual bounded tags. */
+            tags: string[];
+            /** @description Actual bounded name, absent when unavailable. */
+            title?: string;
+        };
+        /** @description Explicit online desired state, never a toggle or offline operation. */
+        ReservationMutationRequest: {
+            /** @description True to reserve, false to cancel. */
+            enabled: boolean;
+            /** @description Expected account generation. */
+            owner_epoch: string;
+            /** @description Expected active account UID. */
+            owner_id: string;
+            /** @description Identity selected by its real calendar/list/season source. */
+            target: components["schemas"]["ReservationTarget"];
+        };
+        /** @description Acknowledged reservation intent with optional complete readback. */
+        ReservationMutationResponse: {
+            /** @description Exact acknowledged target and any complete observation. */
+            data: components["schemas"]["ReservationMutationResult"];
+            /** @description Always true; inspect data.confirmed for observed membership. */
+            ok: boolean;
+        };
+        /** @description A valid ACK plus a separate complete-membership observation result. */
+        ReservationMutationResult: {
+            /** @description Always true in this successful ACK result; ambiguous writes return an error. */
+            acknowledged: boolean;
+            /** @description True only when complete, sufficient same-scope identity evidence matches the goal. */
+            confirmed: boolean;
+            /** @description Explicit requested state. */
+            enabled: boolean;
+            /** @description Owning generation. */
+            owner_epoch: string;
+            /** @description Owning account UID. */
+            owner_id: string;
+            /** @description Safe readback/storage failure code only. */
+            reconciliation_error?: string;
+            /** @description Complete observation when available, even if unknown or inconsistent with the goal. */
+            snapshot?: components["schemas"]["ReservationSnapshot"];
+            /** @description Exact requested identity, including its kind. */
+            target: components["schemas"]["ReservationTarget"];
+        };
+        /** @description Both current-owner and current-epoch are required, never an account selector. */
+        ReservationQuery: {
+            /** @description Current opaque account generation. */
+            owner_epoch: string;
+            /** @description Active authenticated account UID. */
+            owner_id: string;
+        };
+        /** @description Complete bounded membership from both online and upcoming account lists. */
+        ReservationSnapshot: {
+            /** @description Complete validated members, without an atomic-remote-snapshot guarantee. */
+            items: components["schemas"]["ReservationItem"][];
+            /**
+             * Format: int32
+             * @description Actual remote count when supplied consistently, not the visible-card count.
+             */
+            online_total?: number;
+            /** @description Generation that owned all page requests. */
+            owner_epoch: string;
+            /** @description Account that owned all page requests. */
+            owner_id: string;
+            /**
+             * Format: int32
+             * @description Actual remote count when supplied consistently, not the visible-card count.
+             */
+            upcoming_total?: number;
+        };
+        /** @description A precise endpoint identity. Identical digits in different kinds are not interchangeable. */
+        ReservationTarget: {
+            /** @description Canonical positive signed-64-bit decimal identity. */
+            id: string;
+            /** @enum {string} */
+            kind: "item";
+        } | {
+            /** @description Canonical positive signed-64-bit decimal identity. */
+            id: string;
+            /** @enum {string} */
+            kind: "series";
+        };
+        /** @description Complete online and upcoming reservations for the current authenticated scope. */
+        ReservationsResponse: {
+            /** @description Complete validated membership. */
+            data: components["schemas"]["ReservationSnapshot"];
+            /** @description Always true. */
+            ok: boolean;
         };
         /** @description Public search-page snapshot; empty arrays are a valid optional result. */
         SearchDiscovery: {
@@ -2903,6 +3029,181 @@ export interface operations {
                 };
             };
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    read_reservations: {
+        parameters: {
+            query: {
+                /** @description Expected authenticated owner */
+                owner_id: string;
+                /** @description Expected current account generation */
+                owner_epoch: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    set_reservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservationMutationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationMutationResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

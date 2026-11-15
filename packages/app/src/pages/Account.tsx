@@ -137,12 +137,21 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
             </View>
           </View>
           <AccountLibrary store={props.store} />
-          <View class="self-start">
+          <View class="flex-row flex-wrap gap-3 self-start">
             <Button
               label="查看追更"
               testID="account-following"
               onPress={() => {
                 props.store.navigate('following');
+                props.store.restoreFocus();
+              }}
+            />
+            <Button
+              label="查看预约"
+              testID="account-reservations"
+              onPress={() => {
+                props.store.noteFocusIntent();
+                props.store.navigate('reservations');
                 props.store.restoreFocus();
               }}
             />

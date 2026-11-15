@@ -302,3 +302,10 @@ Button 新代码使用 `variant`／`size`，`primary`／`compact` 仅兼容旧�
 - pending 保留原标签与成员展示；只有完整读取确认后更新。unknown／unconfirmed 原位提供刷新和原绝对目标的显式重试，不自动重放远端写入，不新增持续成功提示或计数。
 - 详情返回、取消后的邻项和空态回源按 series ID＋offset 揭示，较新输入、离页、后台或账号 epoch 变化取消迟到焦点；沿用公共焦点与减少动态规则，无新布局动画、手势或声音。
 - 仅显示实际更新／完结字段，缺摘要成员仍可取消。详细组合与分端验收边界见[追更](docs/design/following.md)；合成回归不代替真实账号和真实宿主验收。
+
+### 账号预约动效清单
+
+- 账号预约、日历公告和待上线季共用 ReservationAction 与公共 Button／Notice；预约列表沿用内容行、Cover、CardControls、ContentArrival 和虚拟 List。待上线／已上线选择保持可达，TV 不等待接口完成才获得主焦点。
+- pending 保留已观察成员，ACK 后仍需完整读取确认；unknown／unconfirmed 原位提供只读刷新及原目标的显式重试，不自动重发，不新增成功 toast、提醒计数或声音。
+- 行取消／详情返回按精确预约身份＋offset 恢复，模式、owner、后台及新意图使旧恢复失效。日历 item 与季 series 的不同身份只影响业务请求，不复制控件交互。
+- 首次内容沿用 180ms／8pt、减少动态取消位移；刷新保留内容，回收不重播。详细组合及真实宿主检查边界见[预约](docs/design/reservations.md)。

@@ -317,6 +317,10 @@ pub fn router_with_account(
             "/api/v1/follow",
             get(account::read_follow).post(account::set_follow),
         )
+        .route(
+            "/api/v1/reservations",
+            get(account::read_reservations).post(account::set_reservation),
+        )
         .route("/api/v1/account/state", get(account::state))
         .route(
             "/api/v1/account/command",
@@ -354,6 +358,8 @@ pub fn router_with_account(
         account::command,
         account::read_follow,
         account::set_follow,
+        account::read_reservations,
+        account::set_reservation,
         radar::get,
         catalog::search,
         catalog::discovery,
@@ -392,6 +398,14 @@ pub fn router_with_account(
         hongguo_core::account::FollowSnapshot,
         hongguo_core::account::FollowMutationRequest,
         hongguo_core::account::FollowMutationResult,
+        account::ReservationsResponse,
+        account::ReservationMutationResponse,
+        hongguo_core::account::ReservationTarget,
+        hongguo_core::account::ReservationQuery,
+        hongguo_core::account::ReservationItem,
+        hongguo_core::account::ReservationSnapshot,
+        hongguo_core::account::ReservationMutationRequest,
+        hongguo_core::account::ReservationMutationResult,
         hongguo_core::catalog::SeriesStatus,
         hongguo_core::account::Account,
         hongguo_core::account::AccountProfile,

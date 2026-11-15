@@ -5,13 +5,16 @@ use crate::library::LibraryStore;
 use serde_json::json;
 use std::{
     path::PathBuf,
-    sync::atomic::{AtomicU64, AtomicUsize},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+    },
 };
 use tokio::sync::Semaphore;
 
-struct Temp(PathBuf);
+pub(crate) struct Temp(pub(crate) PathBuf);
 impl Temp {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
             "hongguo-follow-{}-{}",
@@ -21,7 +24,7 @@ impl Temp {
         std::fs::create_dir(&path).unwrap();
         Self(path)
     }
-    async fn open(&self) -> AccountService {
+    pub(crate) async fn open(&self) -> AccountService {
         AccountService::open(
             &self.0,
             LibraryStore::open(self.0.join("guest.sqlite3"))
@@ -37,7 +40,7 @@ impl Drop for Temp {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
-async fn switch(service: &AccountService, owner: &str) {
+pub(crate) async fn switch(service: &AccountService, owner: &str) {
     let verified = crate::account::passport::verified_fixture(owner);
     let saved = SavedSession {
         profile: AccountProfile {
@@ -79,8 +82,8 @@ fn mutation(query: &FollowQuery, enabled: bool) -> FollowMutationRequest {
         enabled,
     }
 }
-fn attach(service: &AccountService, fixture: &wire::Fixture) {
-    *service.follow.fixture.lock().unwrap() = Some(fixture.origin.clone());
+pub(crate) fn attach(service: &AccountService, fixture: &wire::Fixture) {
+    *service.online.fixture.lock().unwrap() = Some(fixture.origin.clone());
 }
 
 #[tokio::test]
@@ -481,7 +484,7 @@ async fn owner_transitions_and_shutdown_cancel_old_follow_work() {
             Err(AccountError::OwnerChanged)
         );
         gate.add_permits(1);
-        service.follow.drain().await;
+        service.online.drain().await;
         assert_eq!(fixture.requests.lock().unwrap().len(), 1);
         if mode == 0 {
             let current = query(&service).await;
@@ -511,7 +514,7 @@ async fn follow_timeout_has_no_false_snapshot_or_automatic_write_retry() {
     let service = temp.open().await;
     switch(&service, wire::UID).await;
     attach(&service, &fixture);
-    *service.follow.timeout.lock().unwrap() = Duration::from_millis(20);
+    *service.online.timeout.lock().unwrap() = Duration::from_millis(20);
     let owner = query(&service).await;
     assert_eq!(
         service.follow_snapshot(owner).await,

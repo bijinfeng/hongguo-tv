@@ -22,6 +22,7 @@ import { Detail } from './pages/Detail';
 import { Player } from './pages/Player';
 import { History } from './pages/History';
 import { Following } from './pages/Following';
+import { Reservations } from './pages/Reservations';
 import { Account } from './pages/Account';
 import { Home } from './pages/Home';
 import { Feed } from './pages/Feed';
@@ -97,7 +98,8 @@ function Navigation(props: { store: Store }) {
         label={props.store.target === 'tv' ? '我的' : '片库'}
         selected={
           props.store.activePage('history') ||
-          (props.store.target === 'tv' && props.store.activePage('following'))
+          (props.store.target === 'tv' &&
+            (props.store.activePage('following') || props.store.activePage('reservations')))
         }
         onPress={() => props.store.navigate('history')}
       />
@@ -155,12 +157,20 @@ function Browse(props: { store: Store }) {
         <Following store={props.store} />
       </View>
       <View
+        class={props.store.section() === 'reservations' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'reservations'}
+        disabled={props.store.section() !== 'reservations'}
+      >
+        <Reservations store={props.store} />
+      </View>
+      <View
         class={props.store.section() === 'calendar' ? 'flex-1' : 'hidden'}
         accessibilityElementsHidden={props.store.section() !== 'calendar'}
         disabled={props.store.section() !== 'calendar'}
       >
         <Calendar
           calendar={props.store.calendar}
+          reservation={props.store}
           target={props.store.target}
           active={props.store.activePage('calendar')}
           onOpen={props.store.open}

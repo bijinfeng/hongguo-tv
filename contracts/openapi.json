@@ -1762,6 +1762,216 @@
         }
       }
     },
+    "/api/v1/reservations": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "read_reservations",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "description": "Expected authenticated owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_epoch",
+            "in": "query",
+            "description": "Expected current account generation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "set_reservation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/search": {
       "get": {
         "tags": [
@@ -5103,6 +5313,281 @@
           "released": {
             "type": "boolean",
             "description": "Always true after accepting a valid local path."
+          }
+        }
+      },
+      "ReservationItem": {
+        "type": "object",
+        "description": "One real account-list member; unavailable metadata never removes a valid identity.",
+        "required": [
+          "online",
+          "cover",
+          "cover_fallback",
+          "intro",
+          "tags"
+        ],
+        "properties": {
+          "cover": {
+            "type": "string",
+            "description": "Approved public image or empty when unavailable."
+          },
+          "cover_fallback": {
+            "type": "string",
+            "description": "Approved JPEG alternative or empty when unavailable."
+          },
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Supported released summary only; upcoming trailers do not become playable."
+          },
+          "intro": {
+            "type": "string",
+            "description": "Actual bounded description, empty when absent."
+          },
+          "online": {
+            "type": "boolean",
+            "description": "Actual released/upcoming account-list group."
+          },
+          "publish_text": {
+            "type": "string",
+            "description": "Actual bounded publication label."
+          },
+          "publish_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Upstream publication time in seconds, never inferred from the current date.",
+            "minimum": 0
+          },
+          "reservation_id": {
+            "type": "string",
+            "description": "Raw item_id when valid; never inferred from series identity."
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Actual subscribe_data series identity when present."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Actual bounded tags."
+          },
+          "title": {
+            "type": "string",
+            "description": "Actual bounded name, absent when unavailable."
+          }
+        }
+      },
+      "ReservationMutationRequest": {
+        "type": "object",
+        "description": "Explicit online desired state, never a toggle or offline operation.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "target",
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "True to reserve, false to cancel."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Expected account generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Expected active account UID."
+          },
+          "target": {
+            "$ref": "#/components/schemas/ReservationTarget",
+            "description": "Identity selected by its real calendar/list/season source."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReservationMutationResponse": {
+        "type": "object",
+        "description": "Acknowledged reservation intent with optional complete readback.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReservationMutationResult",
+            "description": "Exact acknowledged target and any complete observation."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true; inspect data.confirmed for observed membership."
+          }
+        }
+      },
+      "ReservationMutationResult": {
+        "type": "object",
+        "description": "A valid ACK plus a separate complete-membership observation result.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "target",
+          "enabled",
+          "acknowledged",
+          "confirmed"
+        ],
+        "properties": {
+          "acknowledged": {
+            "type": "boolean",
+            "description": "Always true in this successful ACK result; ambiguous writes return an error."
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "True only when complete, sufficient same-scope identity evidence matches the goal."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Explicit requested state."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Owning generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Owning account UID."
+          },
+          "reconciliation_error": {
+            "type": "string",
+            "description": "Safe readback/storage failure code only."
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ReservationSnapshot",
+            "description": "Complete observation when available, even if unknown or inconsistent with the goal."
+          },
+          "target": {
+            "$ref": "#/components/schemas/ReservationTarget",
+            "description": "Exact requested identity, including its kind."
+          }
+        }
+      },
+      "ReservationQuery": {
+        "type": "object",
+        "description": "Both current-owner and current-epoch are required, never an account selector.",
+        "required": [
+          "owner_id",
+          "owner_epoch"
+        ],
+        "properties": {
+          "owner_epoch": {
+            "type": "string",
+            "description": "Current opaque account generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Active authenticated account UID."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReservationSnapshot": {
+        "type": "object",
+        "description": "Complete bounded membership from both online and upcoming account lists.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationItem"
+            },
+            "description": "Complete validated members, without an atomic-remote-snapshot guarantee."
+          },
+          "online_total": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Actual remote count when supplied consistently, not the visible-card count.",
+            "minimum": 0
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Generation that owned all page requests."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Account that owned all page requests."
+          },
+          "upcoming_total": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Actual remote count when supplied consistently, not the visible-card count.",
+            "minimum": 0
+          }
+        }
+      },
+      "ReservationTarget": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Calendar or account-list raw item identity.",
+            "required": [
+              "id",
+              "kind"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Canonical positive signed-64-bit decimal identity."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "item"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Eligible season's series identity, never its nested subscribe_item.item_id.",
+            "required": [
+              "id",
+              "kind"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Canonical positive signed-64-bit decimal identity."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "series"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A precise endpoint identity. Identical digits in different kinds are not interchangeable."
+      },
+      "ReservationsResponse": {
+        "type": "object",
+        "description": "Complete online and upcoming reservations for the current authenticated scope.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReservationSnapshot",
+            "description": "Complete validated membership."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
           }
         }
       },

@@ -18,6 +18,11 @@ const reasons: Record<string, string> = {
   ACCOUNT_FOLLOW_BUSY: '另一项追更操作尚未结束，请稍后刷新状态',
   ACCOUNT_FOLLOW_UNCERTAIN: '追更操作结果尚未确认，请刷新状态',
   ACCOUNT_FOLLOW_RESPONSE_INVALID: '追更响应无法确认，请刷新状态',
+  ACCOUNT_RESERVATION_INCOMPLETE: '预约列表未完整读取，请刷新状态',
+  ACCOUNT_RESERVATION_REJECTED: '预约服务未接受此次操作，请刷新后再试',
+  ACCOUNT_RESERVATION_BUSY: '另一项预约操作尚未结束，请稍后刷新状态',
+  ACCOUNT_RESERVATION_UNCERTAIN: '预约操作结果尚未确认，请刷新状态',
+  ACCOUNT_RESERVATION_RESPONSE_INVALID: '预约响应无法确认，请刷新状态',
 };
 
 /** Maps stable error categories; arbitrary service messages never become product copy. */

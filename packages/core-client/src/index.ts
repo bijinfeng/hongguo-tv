@@ -3,6 +3,13 @@ export type * from '@hongguo/contracts';
 export { createLibraryWriter, LibraryWriteError, validLibrarySnapshot } from './library-writer';
 export type { LibraryWriteRequest, LibraryWriteResult } from './library-writer';
 export { readFollow, setFollow, validFollowSnapshot, validFollowMutationResult } from './follow';
+export {
+  readReservations,
+  setReservation,
+  reservationMembership,
+  validReservationSnapshot,
+  validReservationMutationResult,
+} from './reservations';
 
 /** One host-owned transport; shared pages never import native modules. */
 export interface CoreTransport {

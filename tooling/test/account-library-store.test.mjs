@@ -40,6 +40,9 @@ const clientPort = port(`
   export { createLibraryWriter, LibraryWriteError, validLibrarySnapshot } from '${new URL('../../packages/core-client/src/library-writer.ts', import.meta.url).href}';
   export const readFollow = () => { throw new Error('Unexpected follow read'); };
   export const setFollow = () => { throw new Error('Unexpected follow mutation'); };
+  export const readReservations = () => { throw new Error('Unexpected reservation read'); };
+  export const setReservation = () => { throw new Error('Unexpected reservation mutation'); };
+  export const reservationMembership = () => undefined;
   export class CoreError extends Error {
     constructor(message, code, status) { super(message); this.code = code; this.status = status; }
   }

@@ -22,6 +22,7 @@ pub(crate) enum CloudError {
     Rejected,
     IncompleteHistory,
     IncompleteFollow,
+    IncompleteReservation,
     MetadataIdentity,
 }
 impl CloudError {
@@ -31,6 +32,7 @@ impl CloudError {
             Self::Rejected => "ACCOUNT_CLOUD_REJECTED",
             Self::IncompleteHistory => "ACCOUNT_CLOUD_HISTORY_INCOMPLETE",
             Self::IncompleteFollow => "ACCOUNT_FOLLOW_INCOMPLETE",
+            Self::IncompleteReservation => "ACCOUNT_RESERVATION_INCOMPLETE",
             Self::MetadataIdentity => "ACCOUNT_CLOUD_METADATA_IDENTITY",
         }
     }
@@ -91,6 +93,8 @@ pub(super) enum Endpoint {
     SetFavorite,
     FollowList,
     SetFollow,
+    ReservationList,
+    SetReservation,
 }
 impl Endpoint {
     fn path(self) -> &'static str {
@@ -104,11 +108,15 @@ impl Endpoint {
             Self::SetFavorite => "/reading/bookapi/bookshelf/video/update/v",
             Self::FollowList => "/reading/user/subscribe/list/v1/",
             Self::SetFollow => "/reading/user/subscribe/delete/v",
+            Self::ReservationList => "/reading/user/subscribe/list/v1/",
+            Self::SetReservation => "/reading/bookapi/search/uncover_subscribe/v",
         }
     }
     fn method(self) -> Method {
         match self {
-            Self::History | Self::Favorites | Self::FollowList => Method::GET,
+            Self::History | Self::Favorites | Self::FollowList | Self::ReservationList => {
+                Method::GET
+            }
             _ => Method::POST,
         }
     }
@@ -128,7 +136,7 @@ impl PassportClient {
             .clone()
             .ok_or(PassportError::MissingCredentials)?;
         self.session.validate_for_uid(&uid)?;
-        let body = payload
+        let mut body = payload
             .as_ref()
             .map(serde_json::to_vec)
             .transpose()
@@ -136,6 +144,15 @@ impl PassportClient {
             .unwrap_or_default();
         if body.len() > MAX_BODY {
             return Err(PassportError::InvalidInput.into());
+        }
+        if matches!(endpoint, Endpoint::SetReservation) {
+            use std::io::Write;
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            encoder
+                .write_all(&body)
+                .map_err(|_| PassportError::Configuration)?;
+            body = encoder.finish().map_err(|_| PassportError::Configuration)?;
         }
         let mut query = self.query();
         query.extend(params);
@@ -166,6 +183,16 @@ impl PassportClient {
             headers.insert(
                 "content-type",
                 HeaderValue::from_static("application/json; charset=utf-8"),
+            );
+        }
+        if matches!(endpoint, Endpoint::SetReservation) {
+            headers.insert("content-encoding", HeaderValue::from_static("gzip"));
+            headers.insert("lc", HeaderValue::from_static("101"));
+            let nonce = u32::from_le_bytes(super::crypto::random::<4>()?);
+            headers.insert(
+                "x-reading-request",
+                HeaderValue::from_str(&format!("{}-{nonce}", now_millis()?))
+                    .map_err(|_| PassportError::Configuration)?,
             );
         }
         if !self.session.token.is_empty() {

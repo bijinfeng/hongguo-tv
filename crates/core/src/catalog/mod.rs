@@ -38,7 +38,7 @@ pub use rankings::{
     RankEntry, RankItem, RankOption, RankPanel, RankParams, RankQuery, RankResult, parse_rankings,
 };
 
-pub(crate) use parse::series_status;
+pub(crate) use parse::{cover_fallback, public_cover, series_status};
 pub use parse::{parse_detail, parse_search};
 use serde::{Deserialize, Serialize};
 pub use series_detail::{SeriesActor, SeriesDetail, parse_series_detail};

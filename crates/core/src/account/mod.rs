@@ -7,6 +7,10 @@ pub use service::AccountService;
 pub use service::follow::{
     FollowItem, FollowMutationRequest, FollowMutationResult, FollowQuery, FollowSnapshot,
 };
+pub use service::reservation::{
+    ReservationItem, ReservationMutationRequest, ReservationMutationResult, ReservationQuery,
+    ReservationSnapshot, ReservationTarget,
+};
 
 use crate::library::Library;
 use serde::{Deserialize, Serialize};
@@ -297,6 +301,18 @@ pub enum AccountError {
     FollowUncertain,
     /// Another explicit follow mutation is still admitted.
     FollowBusy,
+    /// Reservation reads and writes require an authenticated account.
+    ReservationLoginRequired,
+    /// Complete reservation membership could not be established.
+    ReservationIncomplete,
+    /// Upstream definitively rejected the reservation operation.
+    ReservationRejected,
+    /// Reservation transport or local persistence is unavailable.
+    ReservationUnavailable,
+    /// A dispatched reservation write has no reliable acknowledgement.
+    ReservationUncertain,
+    /// Another online account mutation is still admitted.
+    ReservationBusy,
 }
 impl AccountError {
     /// Stable code without upstream response data.
@@ -320,6 +336,12 @@ impl AccountError {
             Self::FollowUnavailable => "ACCOUNT_FOLLOW_UNAVAILABLE",
             Self::FollowUncertain => "ACCOUNT_FOLLOW_UNCERTAIN",
             Self::FollowBusy => "ACCOUNT_FOLLOW_BUSY",
+            Self::ReservationLoginRequired => "ACCOUNT_RESERVATION_LOGIN_REQUIRED",
+            Self::ReservationIncomplete => "ACCOUNT_RESERVATION_INCOMPLETE",
+            Self::ReservationRejected => "ACCOUNT_RESERVATION_REJECTED",
+            Self::ReservationUnavailable => "ACCOUNT_RESERVATION_UNAVAILABLE",
+            Self::ReservationUncertain => "ACCOUNT_RESERVATION_UNCERTAIN",
+            Self::ReservationBusy => "ACCOUNT_RESERVATION_BUSY",
         }
     }
 }
@@ -344,6 +366,12 @@ impl fmt::Display for AccountError {
             Self::FollowUnavailable => "追更服务暂不可用，请稍后重试",
             Self::FollowUncertain => "追更结果待确认，请先刷新状态",
             Self::FollowBusy => "追更操作尚未结束，请稍候",
+            Self::ReservationLoginRequired => "登录后查看和操作预约",
+            Self::ReservationIncomplete => "预约列表未能完整读取，请刷新重试",
+            Self::ReservationRejected => "预约操作未被接受，请刷新状态后重试",
+            Self::ReservationUnavailable => "预约服务暂不可用，请稍后重试",
+            Self::ReservationUncertain => "预约结果待确认，请先刷新状态",
+            Self::ReservationBusy => "账号操作尚未结束，请稍候",
         })
     }
 }

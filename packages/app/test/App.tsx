@@ -2,6 +2,7 @@ import { registerFeedUiTests } from './feed-ui';
 import { registerFeedTests } from './feed';
 import { registerLibraryFavoritesTests } from './library-favorites';
 import { registerFollowingTests } from './following';
+import { registerReservationTests } from './reservations';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 import { registerCategoryTests } from './category';
@@ -65,6 +66,7 @@ function fixture(request: StubRequest): StubResponse {
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
   registerLibraryFavoritesTests(target, entry);
   registerFollowingTests(target, entry);
+  registerReservationTests(target, entry);
   registerCategoryTests();
   registerFeedTests();
   registerFeedUiTests(target, entry);

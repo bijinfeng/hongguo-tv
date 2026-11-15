@@ -1,4 +1,4 @@
-import { Scroll, Text, View, effect, lifecycle, signal, type ViewRef } from 'nsh';
+import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { Button, Cover, EpisodeRange, Notice, StoryFeature, UiText, tvUnit } from '@hongguo/ui';
@@ -9,11 +9,23 @@ import { DetailExtras } from '../DetailExtras';
 import { createDetailFavorite } from '../detail-favorite';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { FollowAction, FollowNotice } from '../FollowAction';
+import { ReservationAction, ReservationNotice } from '../ReservationAction';
 
 export function Detail(props: { drama: Drama; store: Store; active?: boolean }) {
   const active = () => props.active !== false;
   const seasons = createSeasons(props.store.request, () => props.drama, active);
   const browse = createSeasonDetail(props.store.request, seasons, active);
+  const reservationOwner = {};
+  effect(() => {
+    props.store.reservationDetailActive(
+      reservationOwner,
+      active() &&
+        lifecycle() === 'active' &&
+        seasons.availability() === 'upcoming' &&
+        !!seasons.selected()?.reservation_id,
+    );
+  });
+  cleanup(() => props.store.reservationDetailActive(reservationOwner, false));
   const current = () => browse.summary() ?? props.drama;
   const favorite = createDetailFavorite(
     props.store,
@@ -228,6 +240,23 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
           />
           <If when={seasons.availability() === 'upcoming'}>
             <Notice message="该季尚未上线，没有可播放的选集。" />
+            <View class="self-start">
+              <ReservationAction
+                store={props.store}
+                target={
+                  seasons.selected()?.reservation_id
+                    ? { kind: 'series', id: seasons.selected()!.reservation_id! }
+                    : undefined
+                }
+                active={active() && lifecycle() === 'active'}
+                testID="detail-reservation"
+              />
+            </View>
+            <ReservationNotice
+              store={props.store}
+              active={active() && lifecycle() === 'active'}
+              testID="detail-reservation-state"
+            />
           </If>
           <If when={seasons.availability() === 'unavailable'}>
             <Notice message="这一季暂时无法观看。" />

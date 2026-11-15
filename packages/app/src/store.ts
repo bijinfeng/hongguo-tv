@@ -27,6 +27,7 @@ import {
 import { createRecentSearches } from './recent-searches';
 import { createLibraryState } from './library-state';
 import { createFollowState } from './follow-state';
+import { createReservationState } from './reservation-state';
 import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
@@ -47,7 +48,8 @@ export type Section =
   | 'calendar'
   | 'rankings'
   | 'history'
-  | 'following';
+  | 'following'
+  | 'reservations';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -215,6 +217,17 @@ export function createStore(
     () =>
       lifecycle() === 'active' &&
       (activePage('following') || nav.routes().at(-1)?.name === 'detail'),
+  );
+  const reservationDetailActive = signal(false);
+  const reservationDetails = new Set<object>();
+  const reservations = createReservationState(
+    request,
+    account,
+    () =>
+      lifecycle() === 'active' &&
+      (activePage('reservations') ||
+        activePage('calendar') ||
+        (nav.routes().at(-1)?.name === 'detail' && reservationDetailActive())),
   );
   let accountTail = Promise.resolve();
   const cancelledAccountCommand = () => new CoreError('账号操作已取消。', 'CORE_CANCELLED', 499);
@@ -398,6 +411,12 @@ export function createStore(
     favoritesManagement: history.favoritesManagement,
     favoriteOperation: history.favoriteOperation,
     follow,
+    reservations,
+    reservationDetailActive(owner: object, value: boolean) {
+      if (value) reservationDetails.add(owner);
+      else reservationDetails.delete(owner);
+      reservationDetailActive.set(reservationDetails.size > 0);
+    },
     retryFavorite: history.retryFavorite,
     hostFocus,
     hostOwnsFocus: !!subscribeFocus,
@@ -434,6 +453,7 @@ export function createStore(
     },
     async shutdown() {
       follow.dispose();
+      reservations.dispose();
       const finish = history.beginShutdown(() => playerCheckpoint?.());
       try {
         await recent.drain();
@@ -558,8 +578,9 @@ export function createStore(
       sources.set(nav.routes().length, restore);
       nav.push({ name: 'updates' });
     },
-    accountPage() {
+    accountPage(restore?: () => void) {
       account.refetch();
+      if (restore) sources.set(nav.routes().length, restore);
       nav.push({ name: 'account' });
     },
     draft,

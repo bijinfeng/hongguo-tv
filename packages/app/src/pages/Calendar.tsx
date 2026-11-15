@@ -6,6 +6,7 @@ import {
   effect,
   cleanup,
   fontScale,
+  lifecycle,
   platform,
   keymap,
   type ListRef,
@@ -32,6 +33,7 @@ import {
   calendarPublishLabel,
   type ReleaseCalendar,
 } from '../calendar';
+import { ReservationAction, ReservationNotice, type ReservationStore } from '../ReservationAction';
 
 /** Approved shared release browsing. The parent owns navigation and the controller lifetime. */
 export function Calendar(props: {
@@ -44,6 +46,7 @@ export function Calendar(props: {
   focusGuard: () => () => boolean;
   onPrimary?: (ref: ViewRef) => void;
   onRegisterBack: (handler: () => boolean) => () => void;
+  reservation?: ReservationStore;
 }) {
   const calendar = props.calendar;
   const width = signal(0);
@@ -430,7 +433,29 @@ export function Calendar(props: {
                     <If when={intro(item())}>
                       <UiText role="meta">{intro(item())}</UiText>
                     </If>
-                    <UiText role="meta">预约提醒暂未开放</UiText>
+                    <If when={props.reservation}>
+                      {(store) => (
+                        <View class="gap-3">
+                          <View class="self-start">
+                            <ReservationAction
+                              store={store()}
+                              target={
+                                item().reservation_id
+                                  ? { kind: 'item', id: item().reservation_id! }
+                                  : undefined
+                              }
+                              active={props.active && lifecycle() === 'active'}
+                              testID="calendar-reservation"
+                            />
+                          </View>
+                          <ReservationNotice
+                            store={store()}
+                            active={props.active && lifecycle() === 'active'}
+                            testID="calendar-reservation-state"
+                          />
+                        </View>
+                      )}
+                    </If>
                   </View>
                 </View>
               </Scroll>

@@ -46,7 +46,9 @@
     "./testing/detail-extras-state": "./test/DetailExtrasState.tsx",
     "./testing/detail-extras-state-tests": "./test/detail-extras-state.tsx",
     "./testing/history-management-state": "./test/HistoryManagementState.tsx",
-    "./testing/history-management": "./test/history-management.tsx"
+    "./testing/history-management": "./test/history-management.tsx",
+    "./testing/reservations-state": "./test/ReservationState.tsx",
+    "./testing/reservations-state-tests": "./test/reservations-state.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

@@ -170,7 +170,7 @@ impl AccountService {
     /// Already-admitted SQLite work can finish; cancellation never claims a rollback.
     pub fn stop_sync(&self) {
         self.sync.stop();
-        self.follow.stop();
+        self.online.stop();
     }
 
     /// Run once per service lifetime, explicitly spawned and awaited by the owning host.
@@ -266,7 +266,7 @@ impl AccountService {
         }
         self.stop_sync();
         // A graceful host shutdown drains admitted work before the worker reports completion.
-        self.follow.drain().await;
+        self.online.drain().await;
         self.state.lock().await.syncing = false;
         Ok(())
     }

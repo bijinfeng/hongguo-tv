@@ -3,6 +3,7 @@ use hongguo_core::{
     CoreStatus,
     account::{
         AccountCommandRequest, AccountError, AccountService, FollowMutationRequest, FollowQuery,
+        ReservationMutationRequest, ReservationQuery,
     },
     catalog::{
         ActorQuery, CatalogClient, CatalogError, CategoryParams, CategoryQuery, FeedParams,
@@ -127,6 +128,8 @@ pub(crate) enum Request {
     AccountCommand(AccountCommandRequest),
     Follow(FollowQuery),
     SetFollow(FollowMutationRequest),
+    Reservations(ReservationQuery),
+    SetReservation(ReservationMutationRequest),
     Change(HistoryChange),
     LibraryWriteSession(LibraryWriteSessionRequest),
     LibraryOperation(LibraryOperationIdentity, HistoryChange),
@@ -307,6 +310,17 @@ impl Request {
                     token(&p.path)
                         .ok_or_else(|| playback_error(PlaybackError::InvalidInput))?
                         .to_owned(),
+                ))
+            }
+            ("/api/v1/reservations", None) => Ok(Self::Reservations(
+                query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?,
+            )),
+            ("/api/v1/reservations", Some(body)) => {
+                let _: NoParams =
+                    query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?;
+                Ok(Self::SetReservation(
+                    serde_json::from_str(body)
+                        .map_err(|_| account_error(AccountError::InvalidInput))?,
                 ))
             }
             ("/api/v1/follow", None) => Ok(Self::Follow(
@@ -520,6 +534,30 @@ impl Request {
                     "此功能尚未开放",
                 )),
             },
+            Self::Reservations(query) => match &services.account {
+                Some(account) => account
+                    .reservation_snapshot(query)
+                    .await
+                    .map(Reply::success)
+                    .map_err(account_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
+            Self::SetReservation(request) => match &services.account {
+                Some(account) => account
+                    .set_reservation(request)
+                    .await
+                    .map(Reply::success)
+                    .map_err(account_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
             Self::Follow(query) => match &services.account {
                 Some(account) => account
                     .follow_snapshot(query)
@@ -662,8 +700,9 @@ pub(crate) fn account_error(error: AccountError) -> Reply {
         | AccountError::Busy
         | AccountError::OwnerChanged
         | AccountError::LibrarySyncQueueFull
-        | AccountError::FollowBusy => 409,
-        AccountError::FollowLoginRequired => 401,
+        | AccountError::FollowBusy
+        | AccountError::ReservationBusy => 409,
+        AccountError::FollowLoginRequired | AccountError::ReservationLoginRequired => 401,
         AccountError::Limited => 429,
         AccountError::Storage | AccountError::InvalidSession | AccountError::Library => 500,
         AccountError::Upstream
@@ -671,7 +710,11 @@ pub(crate) fn account_error(error: AccountError) -> Reply {
         | AccountError::FollowIncomplete
         | AccountError::FollowRejected
         | AccountError::FollowUnavailable
-        | AccountError::FollowUncertain => 502,
+        | AccountError::FollowUncertain
+        | AccountError::ReservationIncomplete
+        | AccountError::ReservationRejected
+        | AccountError::ReservationUnavailable
+        | AccountError::ReservationUncertain => 502,
     };
     Reply::failure(status, error.code(), &error.to_string())
 }

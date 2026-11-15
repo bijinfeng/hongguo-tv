@@ -24,6 +24,8 @@ pub(crate) struct Request {
     pub(crate) query: BTreeMap<String, String>,
     pub(crate) body: Value,
     pub(crate) token: Option<String>,
+    pub(crate) headers: BTreeMap<String, String>,
+    pub(crate) wire_body: Vec<u8>,
 }
 pub(crate) struct Response {
     pub(crate) body: Value,
@@ -110,6 +112,24 @@ impl Fixture {
                         }
                         bytes.extend_from_slice(&buffer[..n]);
                     }
+                    let headers = head
+                        .lines()
+                        .filter_map(|line| line.split_once(':'))
+                        .map(|(name, value)| (name.to_ascii_lowercase(), value.trim().to_owned()))
+                        .collect::<BTreeMap<_, _>>();
+                    let wire_body = bytes[end..end + length].to_vec();
+                    let decoded = if headers.get("content-encoding").is_some_and(|v| v == "gzip") {
+                        use std::io::Read;
+                        let mut decoded = Vec::new();
+                        flate2::read::GzDecoder::new(wire_body.as_slice())
+                            .take(512 * 1024 + 1)
+                            .read_to_end(&mut decoded)
+                            .unwrap();
+                        assert!(decoded.len() <= 512 * 1024);
+                        decoded
+                    } else {
+                        wire_body.clone()
+                    };
                     let request = Request {
                         method,
                         path: url.path().into(),
@@ -117,8 +137,9 @@ impl Fixture {
                             .query_pairs()
                             .map(|(k, v)| (k.into_owned(), v.into_owned()))
                             .collect(),
-                        body: serde_json::from_slice(&bytes[end..end + length])
-                            .unwrap_or(Value::Null),
+                        body: serde_json::from_slice(&decoded).unwrap_or(Value::Null),
+                        headers,
+                        wire_body,
                         token: head
                             .lines()
                             .filter_map(|line| line.split_once(':'))

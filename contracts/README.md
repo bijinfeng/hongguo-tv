@@ -15,3 +15,7 @@ Rust Range 测试的首批固定输入与预期来自 `upstream.lock.json` 固�
 追更 GET／POST `/api/v1/follow` 共用 Rust 账号用例和生成 DTO。GET 的 `FollowQuery` 必须携带当前 `owner_id/owner_epoch`，仅返回完整 `FollowSnapshot`；POST 的 `FollowMutationRequest` 加上精确十进制 `series_id` 与显式 `enabled`。未知字段、POST query 参数、非 JSON 和超大载荷沿用既有拒绝规则，来源策略不变。`FollowItem` 缺摘要仍保留成员身份，可选完结状态为 `ongoing/ended`，缺失不推算。没有分页游标、上游地址或签名参数对外入口。
 
 成功 `FollowMutationResult` 一定 `acknowledged=true`；只有完整同 scope 快照观察到目标状态才 `confirmed=true`。ACK 后读失败／成员暂不一致保留未确认，未知网络结果走安全 error envelope，客户端先 GET 恢复，不自动重发 POST。游客401、错 owner／epoch或并发写409、参数400、完整性／拒绝／不可用／未知502；真实云往返与正式宿主验收单独记录，不由生成或合成测试代证。
+
+预约 GET／POST `/api/v1/reservations` 共用 Rust `Reservation*` DTO 和账号用例，沿用同一来源、载荷、scope、错误与取消边界。快照完整覆盖已上线／待上线两组；预约 `target` 为 `{kind:'item'|'series',id:string}`，ID 是不超过 i64::MAX 的 canonical 正十进制字符串，不是 JS number，raw item 身份不补成 series 身份。
+
+`ReservationMutationResult` 的 ACK 与确认分别表达。只在精确目标类型的真实身份可判定时确认期望结果；无匹配但存在缺少该类型身份的成员，不能证明取消。未确认后只读恢复，绝不自动重发 POST；可选总数只来自远端，不能由本机列表推算。生成契约及合成适配测试不证明真实账号或宿主通过。
