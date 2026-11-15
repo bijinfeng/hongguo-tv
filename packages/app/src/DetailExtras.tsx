@@ -101,7 +101,11 @@ function ExtrasContent(props: DetailExtrasProps) {
       const ref = refs.get(`${intent.kind}:${intent.id}`);
       if (!ref) return;
       waiting = undefined;
-      ref.reveal({ vertical: 'nearest', horizontal: 'nearest', animated: false });
+      ref.reveal({
+        vertical: intent.kind === 'related' ? 'center' : 'nearest',
+        horizontal: 'nearest',
+        animated: false,
+      });
       ref.focus();
     });
   };

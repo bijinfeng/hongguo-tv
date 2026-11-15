@@ -70,9 +70,17 @@ try {
   };
   const term = '重生';
   const search = await get(`/api/v1/search?q=${encodeURIComponent(term)}&source=web`, 'search');
-  const candidates = search.items.slice(0, 4);
+  const candidates = search.items.slice(0, 1);
   if (!candidates.length)
     throw new Error('Real search returned no items; no fabricated replacement');
+  const seasonsById = {};
+  for (const candidate of candidates) {
+    const seasons = await get(
+      `/api/v1/series/seasons?series_id=${candidate.series_id}`,
+      `seasons-${candidate.series_id}`,
+    );
+    seasonsById[candidate.series_id] = seasons.items;
+  }
   Object.assign(evidence, {
     term,
     candidates: candidates.map(({ series_id, title }) => ({ series_id, title })),
@@ -85,10 +93,11 @@ try {
     `import {expect,open,test} from 'nsh/test';
 const artifacts=${JSON.stringify(artifacts)};
 const candidates=${JSON.stringify(candidates.map(({ series_id, title }) => ({ series_id, title })))};
+const seasonsById:Record<string,{drama:{series_id:string;title:string};playable:boolean;upcoming:boolean}[]>=${JSON.stringify(seasonsById)};
 for(const colorScheme of ['light','dark'] as const) test('real anonymous search detail related return '+colorScheme,async()=>{
  const app=await open('../App.tsx',{width:1440,height:1000,colorScheme,network:'live'});
  const capture=async(name:string)=>{await app.wait(600);await app.screenshot(artifacts+'/'+name+'-'+colorScheme+'.png');};
- let accepted:{seriesId:string;title:string;relatedId:string;relatedTitle:string;actorSection:boolean}|undefined;
+ let accepted:{seriesId:string;title:string;relatedId:string;relatedTitle:string;actorSection:boolean;seasonId:string}|undefined;
  try {
   await app.waitUntil(()=>app.window('main').state()?.focused===true,{timeout:60000});
   await app.type('id:search-input',${JSON.stringify(term)});
@@ -104,8 +113,24 @@ for(const colorScheme of ['light','dark'] as const) test('real anonymous search 
    if(app.count('id:detail-related')){source=candidate;break;}
    await app.back();
   }
-  if(!source) throw new Error('No real related works in the first four current results; no fabricated replacement');
+  if(!source) throw new Error('No real related works in the current first result; no fabricated replacement');
   const actorSection=app.count('id:detail-actors')>0;
+  const season=seasonsById[source.series_id].find(row=>row.playable&&!row.upcoming&&row.drama.series_id!==source.series_id);
+  if(!season) throw new Error('No other real playable season in the actual selected source; no fabricated replacement');
+  const seasonId=season.drama.series_id;
+  await app.waitFor('id:season-'+seasonId,{timeout:35000});
+  const beforeSeason=app.requests().length;
+  await app.press('id:season-'+seasonId);
+  await app.waitUntil(()=>app.requests().slice(beforeSeason).some(r=>{
+   const url=new URL(r.url);return url.pathname==='/api/v1/series/detail'&&url.searchParams.get('series_id')===seasonId;
+  }),{timeout:35000});
+  await app.waitUntil(()=>app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading'),{timeout:35000});
+  expect(app.shows('id:navigation-page-1 >> text:'+season.drama.title)).toBe(true);
+  await capture('season-detail');
+  await app.press(app.count('id:season-'+source.series_id)?'id:season-'+source.series_id:'id:season-source');
+  await app.waitUntil(()=>app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading'),{timeout:35000});
+  expect(app.shows('id:navigation-page-1 >> text:'+source.title)).toBe(true);
+  await capture('season-return');
   await app.waitFor('id:detail-related',{timeout:35000});
   await app.waitUntil(()=>!app.shows('id:detail-episodes-loading'),{timeout:35000});
   for(let step=0;step<12 && !app.shows('相关作品');step++) await app.scroll('id:detail-scroll',250);
@@ -124,12 +149,15 @@ for(const colorScheme of ['light','dark'] as const) test('real anonymous search 
   const relatedId=detailRequest&&new URL(detailRequest.url).searchParams.get('series_id');
   if(!relatedId||relatedId===source.series_id) throw new Error('Related navigation did not request a distinct exact identity');
   expect(app.shows('id:navigation-page-2 >> text:'+relatedTitle)).toBe(true);
-  accepted={seriesId:source.series_id,title:source.title,relatedId,relatedTitle,actorSection};
+  accepted={seriesId:source.series_id,title:source.title,relatedId,relatedTitle,actorSection,seasonId};
   await capture('related-detail');
   await app.back();
   await app.waitFor('id:navigation-page-1');
   await app.waitFor('id:drama-'+relatedId);
   await capture('related-return');
+  await app.setViewport(780,780);
+  await app.waitFor('id:drama-'+relatedId);
+  await capture('narrow-related-return');
   const beforeEnter=app.requests().length;
   await app.keyboard.press('enter');
   await app.waitFor('id:navigation-page-2',{timeout:35000});
@@ -140,6 +168,9 @@ for(const colorScheme of ['light','dark'] as const) test('real anonymous search 
   expect(app.shows('id:navigation-page-2 >> text:'+relatedTitle)).toBe(true);
   await app.back();
   await app.waitFor('id:navigation-page-1');
+  await app.setViewport(1440,1000);
+  await app.waitFor('id:drama-'+relatedId);
+  await capture('wide-related-return');
   await app.back();
   await app.waitFor('id:navigation-page-0');
   await app.waitFor('id:drama-'+source.series_id);
