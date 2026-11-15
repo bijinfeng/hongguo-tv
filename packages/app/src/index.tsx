@@ -327,9 +327,8 @@ function Pages(props: { store: Store; updates?: Updates }) {
                       }
                     : undefined
                 }
-                openNotifications={(restore) => {
+                openNotifications={() => {
                   props.store.navigate('notifications');
-                  props.store.rememberSource(restore);
                   props.store.restoreFocus();
                 }}
               />
