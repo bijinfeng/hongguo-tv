@@ -4,6 +4,7 @@
 2. 每次修改都要兼顾用户体验、开发体验和 AI Agent 的使用体验，三个都要变好，而且不能破坏现有功能。
 
 - 先读 README.md 和 docs/README.md，按任务表读取相关规范、台账行与活跃 OpenSpec；架构／契约读 ARCHITECTURE，工程／安全／验收读 ENGINEERING，UI 读 DESIGN 并使用本项目 NSH skills。功能范围读 PRODUCT，验收读 VALIDATION 对应项；历史与完整运行日志按需查阅，不每次通读全部根文档。区分目标、实际实现与已验证行为。
+- 同一上下文内复用已读且未变的资料；先定位再读范围。按 ENGINEERING「上下文与工具输出」限制长日志、整份 JSON 和会话回读；不得因此省略适用规范、失败信息或真实验收。
 - 目标是 NSH TSX + Rust、pnpm/Cargo 工作区。Go 仅为 legacy 行为参考，不增加 Go 业务、工具链或发行依赖；Rust 对齐后退役旧链路。
 - 首次 `pnpm install --frozen-lockfile --ignore-scripts`、`pnpm setup`、`pnpm setup:tools`；工具诊断 `pnpm doctor`，完整验证 `pnpm verify`，依赖变化 `pnpm security`。工具缺失必须失败，不能静默跳过。
 - NSH 版本唯一来源 `.nsh-version`；API 以各端 `.nsh/types/` 为准，由 `pnpm check` 生成；必须同时 check 和 build。不能加入 React/Vite/npm UI 依赖。
