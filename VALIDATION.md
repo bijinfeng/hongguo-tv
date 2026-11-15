@@ -957,6 +957,8 @@ Rust model／media_prepare 失败输出固定阶段、来源枚举和稳定 code
 
 只补一次显式 `NSH_VERBOSE=1` 的原生日志诊断，证据 `artifacts/live-history/desktop-native-diagnostic-2026-11-15T10-27-56Z/`。同一正式原生入口／真实网络，本次实际播放 0→3 秒、暂停时钟稳定 1.5 秒、恢复增长后再次暂停，并由实际记录完成默认 Enter 取消／来源 Enter 重开／Escape 取消。浅深分别捕获播放／暂停／恢复状态；进程 exit 0、`journeyCompleted=true`，scope 保留 `functionAcceptance=false`，不把一次诊断扩展成完整功能验收。原生 stderr 明确显示 VideoTab 与第一次 RegisteredLegacy 的 model 来源为空，后续来源恢复；它只解释本次恢复过程，没有重现或解释上一轮 409。旧失败、同库跨进程重启、完整管理和稳定性继续开放。
 
+该诊断的播放／暂停／恢复浅深 6 张图另经独立逐张复审：真实画面 00:03→00:04→00:06 与播放控件、季状态一致，选中季／01 选集及两色组件样式未见新增阻断。没有可辨识焦点环，不以这 6 张图证明键盘、焦点或读屏通过。
+
 独立实际复核 Web 23 张与原生错误 2 张共 25 张图：三组播放／暂停／恢复状态、选中季及选集身份、键盘 mixed／默认取消／回源焦点、圆角／字级／间距／对齐未见新增阻断。Web 历史与失败详情封面仍为灰占位，不算封面加载通过；原生错误页焦点仍在搜索框，不证明重试默认焦点。未验证本轮 Web 深色、其他尺寸、TV、hover／pressed、逐帧动效或读屏。
 
 最终产品／测试／runner 源码的 `pnpm verify`（`artifacts/guest-history-state/logs/verify-playback-confirmation-final.log`）exit 0：工具 58／58、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 178／178、Desktop／TV 各 180／180，三端 check／build、格式、lint、codegen:check 与版本检查通过。中间 `verify-playback-state-recheck.log` 也通过，但运行中补了进度确认，不能用它代表最终源码；以上最终日志取代其工程结论。严格 OpenSpec 已通过且规格未变，未新增依赖或重跑 security，既有安全阻塞保留。E1 仍 7／13，真实后台、长列表完整焦点、原生／TV 主链及其他 MVP 能力继续开放；不推送、归档或发行。
