@@ -12,52 +12,36 @@ const APPLICATION_ID: i64 = 0x48475456;
 
 /// One serialized SQLite connection; clones share storage, not a mutable snapshot cache.
 #[derive(Clone)]
-pub struct LibraryStore(Arc<Mutex<Connection>>);
+pub struct LibraryStore(
+    pub(super) Arc<Mutex<Connection>>,
+    pub(super) Arc<super::operations::WriteSessions>,
+);
 impl LibraryStore {
     /// Open an explicit database path on a blocking worker; never imports legacy data.
     pub async fn open(path: impl Into<PathBuf>) -> Result<Self, LibraryError> {
         let path = path.into();
-        let connection = tokio::task::spawn_blocking(move || initialize(path))
-            .await
-            .map_err(|_| LibraryError::Storage)??;
-        Ok(Self(Arc::new(Mutex::new(connection))))
+        let (connection, canonical) = tokio::task::spawn_blocking(move || {
+            let connection = initialize(path.clone())?;
+            let canonical = std::fs::canonicalize(path).map_err(|_| LibraryError::Storage)?;
+            Ok::<_, LibraryError>((connection, canonical))
+        })
+        .await
+        .map_err(|_| LibraryError::Storage)??;
+        let sessions = super::operations::shared_sessions(&canonical)?;
+        Ok(Self(Arc::new(Mutex::new(connection)), sessions))
     }
     /// Return committed history without creating or updating an entry.
     pub async fn snapshot(&self) -> Result<Library, LibraryError> {
+        self.1.wait_registered().await?;
         self.run(|conn| snapshot(conn)).await
     }
     /// Commit an explicit mutation before returning its snapshot.
     /// Once blocking execution starts, dropping this future does not roll back the write.
     pub async fn apply(&self, change: HistoryChange) -> Result<Library, LibraryError> {
         change.validate()?;
-        self.run(move |conn| {
-            let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-            match change {
-                HistoryChange::Progress(progress) => {
-                    let previous: i64 = tx.query_row(
-                        "SELECT COALESCE(MAX(last_played_at), 0) FROM history", [], |r| r.get(0))?;
-                    let now = SystemTime::now().duration_since(UNIX_EPOCH)
-                        .map_err(|_| LibraryError::Storage)?.as_millis();
-                    let stamp = i64::try_from(now).map_err(|_| LibraryError::Storage)?
-                        .max(previous.checked_add(1).ok_or(LibraryError::InvalidDatabase)?);
-                    let entry = progress.into_entry(stamp);
-                    let json = serde_json::to_string(&entry).map_err(|_| LibraryError::InvalidInput)?;
-                    tx.execute(
-                        "INSERT INTO history(series_id, entry_json, last_played_at) VALUES (?1, ?2, ?3)
-                         ON CONFLICT(series_id) DO UPDATE SET entry_json=excluded.entry_json, last_played_at=excluded.last_played_at",
-                        params![entry.drama.series_id, json, stamp],
-                    )?;
-                }
-                HistoryChange::Remove { series_id, .. } => {
-                    tx.execute("DELETE FROM history WHERE series_id=?1", [series_id])?;
-                }
-                HistoryChange::Clear { .. } => { tx.execute("DELETE FROM history", [])?; }
-            }
-            let result = snapshot(&tx)?;
-            tx.commit()?;
-            Ok(result)
-        }).await
+        self.run(move |conn| apply(conn, change)).await
     }
+
     pub(super) async fn run<T: Send + 'static>(
         &self,
         operation: impl FnOnce(&mut Connection) -> Result<T, LibraryError> + Send + 'static,
@@ -71,6 +55,44 @@ impl LibraryStore {
         .map_err(|_| LibraryError::Storage)?
     }
 }
+pub(super) fn apply(conn: &mut Connection, change: HistoryChange) -> Result<Library, LibraryError> {
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    match change {
+        HistoryChange::Progress(progress) => {
+            let previous: i64 = tx.query_row(
+                "SELECT COALESCE(MAX(last_played_at), 0) FROM history",
+                [],
+                |r| r.get(0),
+            )?;
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_err(|_| LibraryError::Storage)?
+                .as_millis();
+            let stamp = i64::try_from(now).map_err(|_| LibraryError::Storage)?.max(
+                previous
+                    .checked_add(1)
+                    .ok_or(LibraryError::InvalidDatabase)?,
+            );
+            let entry = progress.into_entry(stamp);
+            let json = serde_json::to_string(&entry).map_err(|_| LibraryError::InvalidInput)?;
+            tx.execute(
+                "INSERT INTO history(series_id, entry_json, last_played_at) VALUES (?1, ?2, ?3)
+                 ON CONFLICT(series_id) DO UPDATE SET entry_json=excluded.entry_json, last_played_at=excluded.last_played_at",
+                params![entry.drama.series_id, json, stamp],
+            )?;
+        }
+        HistoryChange::Remove { series_id, .. } => {
+            tx.execute("DELETE FROM history WHERE series_id=?1", [series_id])?;
+        }
+        HistoryChange::Clear { .. } => {
+            tx.execute("DELETE FROM history", [])?;
+        }
+    }
+    let result = snapshot(&tx)?;
+    tx.commit()?;
+    Ok(result)
+}
+
 fn initialize(path: PathBuf) -> Result<Connection, LibraryError> {
     if path.file_name().is_none() || path == std::path::Path::new(":memory:") {
         return Err(LibraryError::InvalidInput);

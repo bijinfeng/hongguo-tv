@@ -5,7 +5,10 @@ use hongguo_core::{
         ActorQuery, CatalogClient, CatalogError, CategoryParams, CategoryQuery, FeedParams,
         FeedQuery, SearchQuery, SuggestionQuery,
     },
-    library::{HistoryChange, LibraryError, LibraryStore, SearchHistoryChange, SearchHistoryError},
+    library::{
+        HistoryChange, LibraryError, LibraryOperationIdentity, LibraryStore,
+        LibraryWriteSessionRequest, SearchHistoryChange, SearchHistoryError,
+    },
     playback::{PlaybackError, PlaybackRequest, PlaybackService},
     radar::{RadarError, RadarService},
 };
@@ -116,6 +119,8 @@ pub(crate) enum Request {
     Play(PlaybackRequest),
     Library,
     Change(HistoryChange),
+    LibraryWriteSession(LibraryWriteSessionRequest),
+    LibraryOperation(LibraryOperationIdentity, HistoryChange),
     SearchHistory,
     ChangeSearchHistory(SearchHistoryChange),
     Release(String),
@@ -274,6 +279,21 @@ impl Request {
                 serde_json::from_str(body)
                     .map_err(|_| library_error(LibraryError::InvalidInput))?,
             )),
+            ("/api/v1/library/session", Some(body)) => {
+                let _: NoParams =
+                    query(&uri).map_err(|_| library_error(LibraryError::InvalidInput))?;
+                Ok(Self::LibraryWriteSession(
+                    serde_json::from_str(body)
+                        .map_err(|_| library_error(LibraryError::InvalidInput))?,
+                ))
+            }
+            ("/api/v1/library/operation", Some(body)) => {
+                let identity =
+                    query(&uri).map_err(|_| library_error(LibraryError::InvalidInput))?;
+                let change = serde_json::from_str(body)
+                    .map_err(|_| library_error(LibraryError::InvalidInput))?;
+                Ok(Self::LibraryOperation(identity, change))
+            }
             ("/api/v1/play/release", Some(body)) => {
                 let p: Release = serde_json::from_str(body)
                     .map_err(|_| playback_error(PlaybackError::InvalidInput))?;
@@ -308,6 +328,8 @@ impl Request {
                 | "/api/v1/series/detail"
                 | "/api/v1/play/info"
                 | "/api/v1/play/release"
+                | "/api/v1/library/session"
+                | "/api/v1/library/operation"
                 | "/api/v1/account",
                 _,
             ) => Err(Reply::failure(
@@ -434,6 +456,18 @@ impl Request {
                 .await
                 .map(Reply::success)
                 .map_err(library_error),
+            Self::LibraryWriteSession(request) => services
+                .library
+                .write_session(request)
+                .await
+                .map(Reply::success)
+                .map_err(library_error),
+            Self::LibraryOperation(identity, change) => services
+                .library
+                .apply_operation(identity, change)
+                .await
+                .map(Reply::success)
+                .map_err(library_error),
             Self::Play(request) => services
                 .playback
                 .resolve(&request)
@@ -480,7 +514,11 @@ pub(crate) fn catalog_error(error: CatalogError) -> Reply {
 pub(crate) fn library_error(error: LibraryError) -> Reply {
     let status = match error {
         LibraryError::InvalidInput => 400,
-        LibraryError::OwnerChanged => 409,
+        LibraryError::OwnerChanged
+        | LibraryError::SessionExpired
+        | LibraryError::OperationConflict
+        | LibraryError::OperationSequence
+        | LibraryError::OperationPending => 409,
         _ => 500,
     };
     Reply::failure(status, error.code(), &error.to_string())

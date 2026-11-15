@@ -25,6 +25,11 @@ export type DiscoveryBoardKind = components['schemas']['DiscoveryBoardKind'];
 export type Entry = components['schemas']['Entry'];
 export type Library = components['schemas']['Library'];
 export type HistoryChange = components['schemas']['HistoryChange'];
+export type LibraryWriteSessionRequest = components['schemas']['LibraryWriteSessionRequest'];
+export type LibraryWriteSession = components['schemas']['LibraryWriteSession'];
+export type LibraryOperationIdentity = components['schemas']['LibraryOperationIdentity'];
+export type LibraryOperationOutcome = components['schemas']['LibraryOperationOutcome'];
+export type LibraryOperation = components['schemas']['LibraryOperation'];
 
 export type PlayInfo = components['schemas']['PlayInfo'];
 

@@ -8,7 +8,10 @@ use axum::{
     http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
-use hongguo_core::library::{HistoryChange, Library, LibraryError};
+use hongguo_core::library::{
+    HistoryChange, Library, LibraryError, LibraryOperation, LibraryOperationIdentity,
+    LibraryWriteSession, LibraryWriteSessionRequest,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -20,6 +23,25 @@ pub struct LibraryResponse {
     /// Persisted snapshot.
     pub data: Library,
 }
+/// A local write session issued after prior registered work has terminated.
+#[derive(Serialize, ToSchema)]
+pub struct LibraryWriteSessionResponse {
+    /// Always true.
+    pub ok: bool,
+    /// The opaque session identity.
+    pub data: LibraryWriteSession,
+}
+/// Registered terminal result; execution failure remains an explicit outcome in a successful envelope.
+#[derive(Serialize, ToSchema)]
+pub struct LibraryOperationResponse {
+    /// Always true; inspect data.outcome for the operation result.
+    pub ok: bool,
+    /// Receipt for the exact registered identity.
+    pub data: LibraryOperation,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct NoParams {}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct LibraryParams {
@@ -67,9 +89,63 @@ pub(crate) async fn change(
     .await;
     response(result)
 }
-fn response(result: Result<Option<Library>, LibraryError>) -> Response {
+#[utoipa::path(post, path = "/api/v1/library/session", request_body = LibraryWriteSessionRequest,
+    responses((status = 200, body = LibraryWriteSessionResponse), (status = 400, body = ApiError),
+        (status = 403, body = ApiError), (status = 409, body = ApiError),
+        (status = 413, body = ApiError), (status = 415, body = ApiError),
+        (status = 500, body = ApiError), (status = 501, body = ApiError)))]
+pub(crate) async fn session(
+    State(state): State<ApiState>,
+    params: Result<Query<NoParams>, QueryRejection>,
+    payload: Result<Json<LibraryWriteSessionRequest>, JsonRejection>,
+) -> Response {
+    response(
+        async {
+            params.map_err(|_| LibraryError::InvalidInput)?;
+            let Json(request) = payload.map_err(|_| LibraryError::InvalidInput)?;
+            match state.library {
+                Some(store) => store.write_session(request).await.map(Some),
+                None => Ok(None),
+            }
+        }
+        .await,
+    )
+}
+
+#[utoipa::path(post, path = "/api/v1/library/operation", request_body = HistoryChange,
+    params(("session_id" = String, Query, description = "Server-issued write session"),
+        ("operation_id" = String, Query, description = "Consecutive canonical decimal identity, starting at 1")),
+    responses((status = 200, body = LibraryOperationResponse), (status = 400, body = ApiError),
+        (status = 403, body = ApiError), (status = 409, body = ApiError),
+        (status = 413, body = ApiError), (status = 415, body = ApiError),
+        (status = 500, body = ApiError), (status = 501, body = ApiError)))]
+pub(crate) async fn operation(
+    State(state): State<ApiState>,
+    params: Result<Query<LibraryOperationIdentity>, QueryRejection>,
+    payload: Result<Json<HistoryChange>, JsonRejection>,
+) -> Response {
+    response(
+        async {
+            let Query(identity) = params.map_err(|_| LibraryError::InvalidInput)?;
+            let Json(change) = payload.map_err(|_| LibraryError::InvalidInput)?;
+            match state.library {
+                Some(store) => store.apply_operation(identity, change).await.map(Some),
+                None => Ok(None),
+            }
+        }
+        .await,
+    )
+}
+
+#[derive(Serialize)]
+struct Envelope<T> {
+    ok: bool,
+    data: T,
+}
+
+fn response<T: Serialize>(result: Result<Option<T>, LibraryError>) -> Response {
     let mut response = match result {
-        Ok(Some(data)) => Json(LibraryResponse { ok: true, data }).into_response(),
+        Ok(Some(data)) => Json(Envelope { ok: true, data }).into_response(),
         Ok(None) => failure(
             StatusCode::NOT_IMPLEMENTED,
             "CORE_NOT_IMPLEMENTED",
@@ -78,7 +154,11 @@ fn response(result: Result<Option<Library>, LibraryError>) -> Response {
         Err(error) => {
             let status = match error {
                 LibraryError::InvalidInput => StatusCode::BAD_REQUEST,
-                LibraryError::OwnerChanged => StatusCode::CONFLICT,
+                LibraryError::OwnerChanged
+                | LibraryError::SessionExpired
+                | LibraryError::OperationConflict
+                | LibraryError::OperationSequence
+                | LibraryError::OperationPending => StatusCode::CONFLICT,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             };
             failure(status, error.code(), &error.to_string())

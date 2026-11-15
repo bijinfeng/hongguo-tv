@@ -74,6 +74,244 @@ fn progress() -> Value {
 const JSON: &[(&str, &str)] = &[("content-type", "application/json")];
 
 #[tokio::test]
+async fn library_operation_receipts_replay_once_and_preserve_legacy_payloads() {
+    let mut f = Fixture::new().await;
+    let (status, searches) = call(
+        &f.app,
+        "POST",
+        "/api/v1/search/history",
+        JSON,
+        r#"{"action":"add","query":"重生"}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, session) = call(&f.app, "POST", "/api/v1/library/session", JSON, "{}").await;
+    assert_eq!(status, StatusCode::OK);
+    let session = session["data"]["session_id"].as_str().unwrap();
+    assert_eq!(session.len(), 32);
+    let path = format!("/api/v1/library/operation?session_id={session}&operation_id=1");
+    let body = progress().to_string();
+    let (status, receipt) = call(&f.app, "POST", &path, JSON, &body).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(receipt["data"]["session_id"], session);
+    assert_eq!(receipt["data"]["operation_id"], "1");
+    assert_eq!(receipt["data"]["outcome"]["status"], "committed");
+    assert_eq!(call(&f.app, "POST", &path, JSON, &body).await.1, receipt);
+    let mut changed = progress();
+    changed["position"] = json!(30);
+    let (status, rejected) = call(&f.app, "POST", &path, JSON, &changed.to_string()).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(rejected["code"], "LIBRARY_OPERATION_CONFLICT");
+    assert!(rejected.get("data").is_none());
+    let second_path = format!("/api/v1/library/operation?session_id={session}&operation_id=2");
+    let mut second = progress();
+    second["drama"]["series_id"] = json!("8888888888888888888");
+    assert_eq!(
+        call(&f.app, "POST", &second_path, JSON, &second.to_string())
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let next = format!("/api/v1/library/operation?session_id={session}&operation_id=3");
+    let remove = json!({"action":"remove","kind":"history","series_id":"9999999999999999999"});
+    let mut foreign = remove.clone();
+    foreign["owner_id"] = json!("another");
+    let (status, refused) = call(&f.app, "POST", &next, JSON, &foreign.to_string()).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(refused["code"], "LIBRARY_OWNER_CHANGED");
+    let (status, removed) = call(&f.app, "POST", &next, JSON, &remove.to_string()).await;
+    assert_eq!(status, StatusCode::OK);
+    let retained = &removed["data"]["outcome"]["library"];
+    assert_eq!(retained["entries"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        retained["entries"][0]["drama"]["series_id"],
+        "8888888888888888888"
+    );
+    assert_eq!(
+        call(&f.app, "POST", &next, JSON, &remove.to_string())
+            .await
+            .1,
+        removed
+    );
+    let (status, stale) = call(&f.app, "POST", &path, JSON, &body).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(stale["code"], "LIBRARY_OPERATION_SEQUENCE");
+    // Recreate the HTTP owner and SQLite connection; do not infer persistence from a receipt cache.
+    f.app = Router::new();
+    f.app = router_with_services(
+        DevPolicy::new(8080, None),
+        CatalogClient::new().unwrap(),
+        Some(
+            LibraryStore::open(f.dir.join("guest.sqlite3"))
+                .await
+                .unwrap(),
+        ),
+    );
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/library", &[], "").await.1["data"],
+        *retained
+    );
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/search/history", &[], "")
+            .await
+            .1,
+        searches
+    );
+    let (_, new_session) = call(&f.app, "POST", "/api/v1/library/session", JSON, "{}").await;
+    let (status, expired) = call(&f.app, "POST", &next, JSON, &remove.to_string()).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(expired["code"], "LIBRARY_SESSION_EXPIRED");
+    let mut clear_path = format!(
+        "/api/v1/library/operation?session_id={}&operation_id=1",
+        new_session["data"]["session_id"].as_str().unwrap()
+    );
+    let (status, refused) = call(
+        &f.app,
+        "POST",
+        &clear_path,
+        JSON,
+        r#"{"action":"clear","kind":"history","owner_id":"another"}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(refused["code"], "LIBRARY_OWNER_CHANGED");
+    let connection = rusqlite::Connection::open(f.dir.join("guest.sqlite3")).unwrap();
+    connection.execute_batch("CREATE TRIGGER reject_clear BEFORE DELETE ON history BEGIN SELECT RAISE(ABORT, 'private deletion failure'); END;").unwrap();
+    let clear = r#"{"action":"clear","kind":"history"}"#;
+    let (status, failed) = call(&f.app, "POST", &clear_path, JSON, clear).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(failed["data"]["outcome"]["status"], "failed");
+    assert_eq!(
+        failed["data"]["outcome"]["code"],
+        "LIBRARY_STORAGE_UNAVAILABLE"
+    );
+    assert!(!failed.to_string().contains("private deletion"));
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/library", &[], "").await.1["data"],
+        *retained
+    );
+    connection
+        .execute_batch("DROP TRIGGER reject_clear;")
+        .unwrap();
+    assert_eq!(
+        call(&f.app, "POST", &clear_path, JSON, clear).await.1,
+        failed
+    );
+    clear_path = clear_path.replace("operation_id=1", "operation_id=2");
+    let (status, cleared) = call(&f.app, "POST", &clear_path, JSON, clear).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(cleared["data"]["outcome"]["library"]["entries"], json!([]));
+    f.app = Router::new();
+    f.app = router_with_services(
+        DevPolicy::new(8080, None),
+        CatalogClient::new().unwrap(),
+        Some(
+            LibraryStore::open(f.dir.join("guest.sqlite3"))
+                .await
+                .unwrap(),
+        ),
+    );
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/library", &[], "").await.1["data"]["entries"],
+        json!([])
+    );
+    assert_eq!(
+        call(&f.app, "GET", "/api/v1/search/history", &[], "")
+            .await
+            .1,
+        searches
+    );
+    let status = call(&f.app, "GET", "/api/v1/status", &[], "").await.1;
+    assert_eq!(status["data"]["capabilities"]["account"], false);
+    assert_eq!(status["data"]["capabilities"]["playback"], false);
+}
+
+#[tokio::test]
+async fn library_operation_rejections_do_not_register_or_consume_identity() {
+    let f = Fixture::new().await;
+    let (_, session) = call(&f.app, "POST", "/api/v1/library/session", JSON, "{}").await;
+    let session = session["data"]["session_id"].as_str().unwrap();
+    for path in [
+        format!("/api/v1/library/operation?session_id={session}"),
+        "/api/v1/library/operation?operation_id=1".into(),
+        format!("/api/v1/library/operation?session_id={session}&operation_id=01"),
+        format!("/api/v1/library/operation?session_id={session}&operation_id=1&extra=1"),
+    ] {
+        assert_eq!(
+            call(&f.app, "POST", &path, JSON, &progress().to_string())
+                .await
+                .0,
+            StatusCode::BAD_REQUEST
+        );
+    }
+    let path = format!("/api/v1/library/operation?session_id={session}&operation_id=1");
+    let mut foreign = progress();
+    foreign["owner_id"] = json!("another");
+    let (status, refused) = call(&f.app, "POST", &path, JSON, &foreign.to_string()).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(refused["code"], "LIBRARY_OWNER_CHANGED");
+    assert!(refused.get("data").is_none());
+    assert_eq!(
+        call(&f.app, "POST", &path, JSON, &progress().to_string())
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let (status, refused) = call(
+        &f.app,
+        "POST",
+        "/api/v1/library/session",
+        JSON,
+        r#"{"owner_id":"another"}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(refused["code"], "LIBRARY_OWNER_CHANGED");
+    // A rejected session request cannot seal the valid session or re-execute its last operation.
+    assert_eq!(
+        call(&f.app, "POST", &path, JSON, &progress().to_string())
+            .await
+            .0,
+        StatusCode::OK
+    );
+}
+
+#[tokio::test]
+async fn registered_storage_failure_is_a_terminal_receipt_not_an_ambiguous_transport_error() {
+    let f = Fixture::new().await;
+    let connection = rusqlite::Connection::open(f.dir.join("guest.sqlite3")).unwrap();
+    connection.execute_batch("CREATE TRIGGER reject_progress BEFORE INSERT ON history BEGIN SELECT RAISE(ABORT, 'private SQL diagnostic'); END;").unwrap();
+    let (_, session) = call(&f.app, "POST", "/api/v1/library/session", JSON, "{}").await;
+    let session = session["data"]["session_id"].as_str().unwrap();
+    let path = format!("/api/v1/library/operation?session_id={session}&operation_id=1");
+    let (status, failed) = call(&f.app, "POST", &path, JSON, &progress().to_string()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(failed["ok"], true);
+    assert_eq!(failed["data"]["outcome"]["status"], "failed");
+    assert_eq!(
+        failed["data"]["outcome"]["code"],
+        "LIBRARY_STORAGE_UNAVAILABLE"
+    );
+    assert!(!failed.to_string().contains("private SQL"));
+    connection
+        .execute_batch("DROP TRIGGER reject_progress;")
+        .unwrap();
+    assert_eq!(
+        call(&f.app, "POST", &path, JSON, &progress().to_string())
+            .await
+            .1,
+        failed
+    );
+    let next = format!("/api/v1/library/operation?session_id={session}&operation_id=2");
+    assert_eq!(
+        call(&f.app, "POST", &next, JSON, &progress().to_string())
+            .await
+            .1["data"]["outcome"]["status"],
+        "committed"
+    );
+}
+
+#[tokio::test]
 async fn guest_routes_save_restore_remove_and_clear_without_accounts() {
     let f = Fixture::new().await;
     let (status, empty) = call(&f.app, "GET", "/api/v1/library", &[], "").await;

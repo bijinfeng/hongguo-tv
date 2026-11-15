@@ -52,6 +52,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/operation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["operation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lists/calendar": {
         parameters: {
             query?: never;
@@ -712,10 +744,64 @@ export interface components {
             /** @description Empty for guests; optional for compatibility with existing clients. */
             owner_id?: string;
         };
+        /** @description Only a receipt matching the captured identity proves original execution has terminated. */
+        LibraryOperation: {
+            /** @description Captured exact operation identity. */
+            operation_id: string;
+            /** @description Registered terminal result; transport errors are never converted to this value. */
+            outcome: components["schemas"]["LibraryOperationOutcome"];
+            /** @description Captured server-issued session identity. */
+            session_id: string;
+        };
+        /** @description Both query parameters are required; operation IDs start at 1 and are consecutive. */
+        LibraryOperationIdentity: {
+            /** @description Canonical decimal integer, 1–9007199254740991, represented without number coercion. */
+            operation_id: string;
+            /** @description The server-issued local write session. */
+            session_id: string;
+        };
+        /** @description A registered operation's terminal outcome, independent of its original response delivery. */
+        LibraryOperationOutcome: {
+            /** @description Snapshot returned by that exact transaction, not a later GET. */
+            library: components["schemas"]["Library"];
+            /** @enum {string} */
+            status: "committed";
+        } | {
+            /** @description Stable core failure category. */
+            code: string;
+            /** @description Sanitized recovery message. */
+            error: string;
+            /** @enum {string} */
+            status: "failed";
+        };
+        /** @description Registered terminal result; execution failure remains an explicit outcome in a successful envelope. */
+        LibraryOperationResponse: {
+            /** @description Receipt for the exact registered identity. */
+            data: components["schemas"]["LibraryOperation"];
+            /** @description Always true; inspect data.outcome for the operation result. */
+            ok: boolean;
+        };
         /** @description Committed guest history using the shared envelope. */
         LibraryResponse: {
             /** @description Persisted snapshot. */
             data: components["schemas"]["Library"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Issued only after the previous session is sealed and its registered work has terminated. */
+        LibraryWriteSession: {
+            /** @description Opaque 32-character lowercase hexadecimal token, local to this store lifetime. */
+            session_id: string;
+        };
+        /** @description Open a local guest write session; this is not an account or authentication session. */
+        LibraryWriteSessionRequest: {
+            /** @description Absent or empty for guests. */
+            owner_id?: string | null;
+        };
+        /** @description A local write session issued after prior registered work has terminated. */
+        LibraryWriteSessionResponse: {
+            /** @description The opaque session identity. */
+            data: components["schemas"]["LibraryWriteSession"];
             /** @description Always true. */
             ok: boolean;
         };
@@ -1378,6 +1464,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    operation: {
+        parameters: {
+            query: {
+                /** @description Server-issued write session */
+                session_id: string;
+                /** @description Consecutive canonical decimal identity, starting at 1 */
+                operation_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoryChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryOperationResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryWriteSessionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryWriteSessionResponse"];
                 };
             };
             400: {

@@ -1,6 +1,11 @@
 //! Versioned guest history. Mutations publish only after a durable transaction commits.
+mod operations;
 mod search;
 mod store;
+pub use operations::{
+    LibraryOperation, LibraryOperationIdentity, LibraryOperationOutcome, LibraryWriteSession,
+    LibraryWriteSessionRequest,
+};
 pub use search::{SearchHistory, SearchHistoryChange, SearchHistoryError, normalize_keyword};
 pub use store::LibraryStore;
 
@@ -200,6 +205,14 @@ pub enum LibraryError {
     InvalidDatabase,
     /// Failed I/O, lock, transaction or worker.
     Storage,
+    /// A write session was replaced, or was never issued by this store.
+    SessionExpired,
+    /// An operation identity was reused with a different payload.
+    OperationConflict,
+    /// Operations must use consecutive IDs and cannot replay older IDs.
+    OperationSequence,
+    /// The preceding operation has not reached its terminal result.
+    OperationPending,
 }
 impl LibraryError {
     /// Stable transport-independent error code.
@@ -209,6 +222,10 @@ impl LibraryError {
             Self::OwnerChanged => "LIBRARY_OWNER_CHANGED",
             Self::InvalidDatabase => "LIBRARY_DATABASE_INVALID",
             Self::Storage => "LIBRARY_STORAGE_UNAVAILABLE",
+            Self::SessionExpired => "LIBRARY_SESSION_EXPIRED",
+            Self::OperationConflict => "LIBRARY_OPERATION_CONFLICT",
+            Self::OperationSequence => "LIBRARY_OPERATION_SEQUENCE",
+            Self::OperationPending => "LIBRARY_OPERATION_PENDING",
         }
     }
 }
@@ -219,6 +236,10 @@ impl fmt::Display for LibraryError {
             Self::OwnerChanged => "记录所属账号已变化，请重新加载",
             Self::InvalidDatabase => "记录数据库不兼容或已损坏，请保留数据并检查版本或备份",
             Self::Storage => "观看记录读写失败，请检查磁盘空间与目录权限后重试",
+            Self::SessionExpired => "观看记录写入会话已失效，请重新读取",
+            Self::OperationConflict => "观看记录操作身份与原请求不一致",
+            Self::OperationSequence => "观看记录操作顺序无效，请重新读取",
+            Self::OperationPending => "上一项观看记录操作尚未结束，请先确认结果",
         })
     }
 }

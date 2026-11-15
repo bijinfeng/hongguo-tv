@@ -288,6 +288,14 @@ pub fn router_with_radar(
             get(playback::media).head(playback::head_media),
         )
         .route("/api/v1/library", get(library::get).post(library::change))
+        .route(
+            "/api/v1/library/session",
+            axum::routing::post(library::session),
+        )
+        .route(
+            "/api/v1/library/operation",
+            axum::routing::post(library::operation),
+        )
         .route("/api/v1/account", get(unavailable))
         .route(
             "/api/v1/account/qr/{action}",
@@ -330,6 +338,8 @@ pub fn router_with_radar(
         catalog::detail,
         library::get,
         library::change,
+        library::session,
+        library::operation,
         search_history::get,
         search_history::change,
         playback::info,
@@ -396,6 +406,13 @@ pub fn router_with_radar(
         hongguo_core::catalog::Episode,
         hongguo_core::catalog::SearchResult,
         library::LibraryResponse,
+        library::LibraryWriteSessionResponse,
+        library::LibraryOperationResponse,
+        hongguo_core::library::LibraryWriteSessionRequest,
+        hongguo_core::library::LibraryWriteSession,
+        hongguo_core::library::LibraryOperation,
+        hongguo_core::library::LibraryOperationIdentity,
+        hongguo_core::library::LibraryOperationOutcome,
         search_history::SearchHistoryResponse,
         hongguo_core::library::SearchHistory,
         hongguo_core::library::SearchHistoryChange,

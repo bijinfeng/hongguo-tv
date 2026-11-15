@@ -416,6 +416,210 @@
         }
       }
     },
+    "/api/v1/library/operation": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "operationId": "operation",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "description": "Server-issued write session",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operation_id",
+            "in": "query",
+            "description": "Consecutive canonical decimal identity, starting at 1",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryOperationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/library/session": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "operationId": "session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LibraryWriteSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryWriteSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lists/calendar": {
       "get": {
         "tags": [
@@ -2784,6 +2988,116 @@
           }
         }
       },
+      "LibraryOperation": {
+        "type": "object",
+        "description": "Only a receipt matching the captured identity proves original execution has terminated.",
+        "required": [
+          "session_id",
+          "operation_id",
+          "outcome"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "description": "Captured exact operation identity."
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/LibraryOperationOutcome",
+            "description": "Registered terminal result; transport errors are never converted to this value."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Captured server-issued session identity."
+          }
+        }
+      },
+      "LibraryOperationIdentity": {
+        "type": "object",
+        "description": "Both query parameters are required; operation IDs start at 1 and are consecutive.",
+        "required": [
+          "session_id",
+          "operation_id"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "description": "Canonical decimal integer, 1–9007199254740991, represented without number coercion."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "The server-issued local write session."
+          }
+        },
+        "additionalProperties": false
+      },
+      "LibraryOperationOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "The durable transaction committed before this receipt was produced.",
+            "required": [
+              "library",
+              "status"
+            ],
+            "properties": {
+              "library": {
+                "$ref": "#/components/schemas/Library",
+                "description": "Snapshot returned by that exact transaction, not a later GET."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "committed"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Execution ended with a sanitized failure; business retry must use a new operation ID.",
+            "required": [
+              "code",
+              "error",
+              "status"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Stable core failure category."
+              },
+              "error": {
+                "type": "string",
+                "description": "Sanitized recovery message."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "failed"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A registered operation's terminal outcome, independent of its original response delivery."
+      },
+      "LibraryOperationResponse": {
+        "type": "object",
+        "description": "Registered terminal result; execution failure remains an explicit outcome in a successful envelope.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LibraryOperation",
+            "description": "Receipt for the exact registered identity."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true; inspect data.outcome for the operation result."
+          }
+        }
+      },
       "LibraryResponse": {
         "type": "object",
         "description": "Committed guest history using the shared envelope.",
@@ -2795,6 +3109,51 @@
           "data": {
             "$ref": "#/components/schemas/Library",
             "description": "Persisted snapshot."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "LibraryWriteSession": {
+        "type": "object",
+        "description": "Issued only after the previous session is sealed and its registered work has terminated.",
+        "required": [
+          "session_id"
+        ],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Opaque 32-character lowercase hexadecimal token, local to this store lifetime."
+          }
+        }
+      },
+      "LibraryWriteSessionRequest": {
+        "type": "object",
+        "description": "Open a local guest write session; this is not an account or authentication session.",
+        "properties": {
+          "owner_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absent or empty for guests."
+          }
+        },
+        "additionalProperties": false
+      },
+      "LibraryWriteSessionResponse": {
+        "type": "object",
+        "description": "A local write session issued after prior registered work has terminated.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LibraryWriteSession",
+            "description": "The opaque session identity."
           },
           "ok": {
             "type": "boolean",

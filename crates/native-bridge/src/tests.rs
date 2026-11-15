@@ -20,6 +20,149 @@ use std::{
 use tokio::{net::TcpListener, sync::Semaphore, time::timeout};
 use tower::ServiceExt;
 
+#[tokio::test]
+async fn native_library_operations_share_exact_receipts_with_http_and_reject_stale_sessions() {
+    let mut fixture = Fixture::new(false).await;
+    let searches = fixture
+        .call(
+            "/api/v1/search/history",
+            Some(r#"{"action":"add","query":"重生"}"#),
+        )
+        .await;
+    assert_eq!(searches.status, 200);
+    assert_eq!(
+        fixture.call("/api/v1/library/session", None).await.status,
+        405
+    );
+    let invalid_session = fixture
+        .call("/api/v1/library/session?extra=1", Some("{}"))
+        .await;
+    assert_eq!(invalid_session.status, 400);
+    assert_eq!(invalid_session.body["code"], "LIBRARY_REQUEST_INVALID");
+    let services = &fixture.session.services;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        services.catalog.clone(),
+        Some(services.library.clone()),
+        Some(services.playback.clone()),
+    );
+    let session = fixture.call("/api/v1/library/session", Some("{}")).await;
+    assert_eq!(session.status, 200);
+    let session = session.body["data"]["session_id"].as_str().unwrap();
+    let path = format!("/api/v1/library/operation?session_id={session}&operation_id=1");
+    let progress = r#"{"action":"progress","owner_id":"","drama":{"series_id":"11","title":"Receipt identity","cover":"","intro":""},"episode":1,"video_id":"22","position":12.5,"duration":30}"#;
+    for invalid in [
+        format!("/api/v1/library/operation?session_id={session}"),
+        format!("/api/v1/library/operation?session_id={session}&operation_id=01"),
+        format!("{path}&extra=1"),
+    ] {
+        let reply = fixture.call(&invalid, Some(progress)).await;
+        assert_eq!(reply.status, 400);
+        assert_eq!(reply.body["code"], "LIBRARY_REQUEST_INVALID");
+        assert!(reply.body.get("data").is_none());
+    }
+    let first = fixture.call(&path, Some(progress)).await;
+    assert_eq!(first.status, 200);
+    assert!(first.media.is_none());
+    assert_eq!(first.body["data"]["outcome"]["status"], "committed");
+    let request = axum::http::Request::builder()
+        .method("POST")
+        .uri(&path)
+        .header("host", "127.0.0.1:8080")
+        .header("content-type", "application/json")
+        .body(Body::from(progress))
+        .unwrap();
+    let replay = app.oneshot(request).await.unwrap();
+    assert_eq!(replay.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(replay.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap(), first.body);
+    let conflict = fixture
+        .call(&path, Some(&progress.replace("12.5", "13.5")))
+        .await;
+    assert_eq!(conflict.status, 409);
+    assert_eq!(conflict.body["code"], "LIBRARY_OPERATION_CONFLICT");
+    let second_path = format!("/api/v1/library/operation?session_id={session}&operation_id=2");
+    let second = progress.replace(r#""series_id":"11""#, r#""series_id":"12""#);
+    assert_eq!(fixture.call(&second_path, Some(&second)).await.status, 200);
+    let remove_path = format!("/api/v1/library/operation?session_id={session}&operation_id=3");
+    let foreign = fixture
+        .call(
+            &remove_path,
+            Some(r#"{"action":"remove","kind":"history","series_id":"11","owner_id":"another"}"#),
+        )
+        .await;
+    assert_eq!(foreign.status, 409);
+    assert_eq!(foreign.body["code"], "LIBRARY_OWNER_CHANGED");
+    let remove = r#"{"action":"remove","kind":"history","series_id":"11"}"#;
+    let removed = fixture.call(&remove_path, Some(remove)).await;
+    assert_eq!(removed.status, 200);
+    assert!(removed.media.is_none());
+    let retained = &removed.body["data"]["outcome"]["library"];
+    assert_eq!(retained["entries"].as_array().unwrap().len(), 1);
+    assert_eq!(retained["entries"][0]["drama"]["series_id"], "12");
+    assert_eq!(
+        fixture.call(&remove_path, Some(remove)).await.body,
+        removed.body
+    );
+    assert_eq!(
+        fixture.call(&path, Some(progress)).await.body["code"],
+        "LIBRARY_OPERATION_SEQUENCE"
+    );
+    fixture.session.close();
+    fixture.session = Session::open(&fixture.dir)
+        .await
+        .unwrap_or_else(|_| panic!("reopen operation store"));
+    assert_eq!(
+        fixture.call("/api/v1/library", None).await.body["data"],
+        *retained
+    );
+    assert_eq!(
+        fixture.call("/api/v1/search/history", None).await.body,
+        searches.body
+    );
+    let new_session = fixture.call("/api/v1/library/session", Some("{}")).await;
+    assert_eq!(
+        fixture.call(&remove_path, Some(remove)).await.body["code"],
+        "LIBRARY_SESSION_EXPIRED"
+    );
+    let clear_path = format!(
+        "/api/v1/library/operation?session_id={}&operation_id=1",
+        new_session.body["data"]["session_id"].as_str().unwrap()
+    );
+    let foreign = fixture
+        .call(
+            &clear_path,
+            Some(r#"{"action":"clear","kind":"history","owner_id":"another"}"#),
+        )
+        .await;
+    assert_eq!(foreign.status, 409);
+    assert_eq!(foreign.body["code"], "LIBRARY_OWNER_CHANGED");
+    let cleared = fixture
+        .call(&clear_path, Some(r#"{"action":"clear","kind":"history"}"#))
+        .await;
+    assert_eq!(cleared.status, 200);
+    assert!(cleared.media.is_none());
+    assert_eq!(
+        cleared.body["data"]["outcome"]["library"]["entries"],
+        json!([])
+    );
+    fixture.session.close();
+    fixture.session = Session::open(&fixture.dir)
+        .await
+        .unwrap_or_else(|_| panic!("reopen cleared operation store"));
+    assert_eq!(
+        fixture.call("/api/v1/library", None).await.body["data"]["entries"],
+        json!([])
+    );
+    assert_eq!(
+        fixture.call("/api/v1/search/history", None).await.body,
+        searches.body
+    );
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
 #[derive(Clone)]
 struct Upstream {
     gate: Arc<Semaphore>,
