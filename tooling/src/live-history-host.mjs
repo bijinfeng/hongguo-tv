@@ -5,6 +5,7 @@ import { isAbsolute, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { setTimeout as pause } from 'node:timers/promises';
 import { ready, stop } from './dev.mjs';
+import { stopLiveHost } from './live-host-cleanup.mjs';
 import {
   child,
   executable,
@@ -61,25 +62,30 @@ let api,
   runError,
   themeDeadline,
   interrupted = false;
+let stoppingHost;
+const hostCleanupErrors = [];
 const ensureActive = () => {
   if (interrupted) throw new Error('Live history acceptance interrupted');
   if (themeDeadline !== undefined && Date.now() >= themeDeadline)
     throw new Error('Theme exceeded 300 seconds');
 };
 const stopHost = async () => {
+  if (stoppingHost) return stoppingHost;
   const ownedHost = host;
-  const signalGroup = (signal) => {
-    if (target !== 'web' || !ownedHost?.pid) return;
-    try {
-      process.kill(-ownedHost.pid, signal);
-    } catch (error) {
-      if (error.code !== 'ESRCH') throw error;
+  if (!ownedHost) return;
+  stoppingHost = (async () => {
+    const errors = await stopLiveHost(ownedHost, target === 'web');
+    if (errors.length) {
+      hostCleanupErrors.push(...errors);
+      throw new Error(errors.join('; '));
     }
-  };
-  signalGroup('SIGTERM');
-  await stop(ownedHost);
-  signalGroup('SIGKILL');
-  if (host === ownedHost) host = undefined;
+    if (host === ownedHost) host = undefined;
+  })();
+  try {
+    await stoppingHost;
+  } finally {
+    stoppingHost = undefined;
+  }
 };
 const onSignal = () => {
   interrupted = true;
@@ -185,6 +191,7 @@ async function runHost(file, colorScheme, deadline) {
     }
   };
   let timer;
+  let stageError;
   try {
     if (target === 'web') {
       const limit = handshakeDeadline;
@@ -217,7 +224,6 @@ async function runHost(file, colorScheme, deadline) {
       new Promise((_, reject) => {
         timer = setTimeout(
           () => {
-            void stopHost();
             reject(new Error('Live history host exceeded the stage/theme deadline'));
           },
           Math.max(1, deadline - Date.now()),
@@ -226,10 +232,17 @@ async function runHost(file, colorScheme, deadline) {
     ]);
     ensureActive();
     if (!completed) throw new Error('Missing successful stage completion evidence: ' + file);
+  } catch (error) {
+    stageError = error;
   } finally {
     clearTimeout(timer);
-    await stopHost();
+    try {
+      await stopHost();
+    } catch (error) {
+      stageError ??= error;
+    }
   }
+  if (stageError) throw stageError;
 }
 
 try {
@@ -405,8 +418,9 @@ test(${JSON.stringify(identity)},async()=>{
   await capture(name+'-detail');record(name+'-detail-opened');
   await app.waitUntil(()=>app.shows('id:detail-episodes-error')||(app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading')),{timeout:budget()});
   if(app.shows('id:detail-episodes-error'))throw new Error('Real detail failed for '+seriesId+': '+app.texts().join(' | '));
-  record(name+'-detail-ready');
-  await app.press('id:detail-start');await app.waitFor('id:player-video',{timeout:budget()});
+  await capture(name+'-detail-ready');record(name+'-detail-ready',{texts:app.texts()});
+  await app.press('id:detail-start');record(name+'-start-pressed');
+  await app.waitFor('id:player-video',{timeout:budget(35000)});
   await capture(name+'-player');record(name+'-player-opened');
   await app.waitUntil(()=>clock()>=0&&app.enabled('播放进度'),{timeout:budget()});
   record(name+'-media-ready');
@@ -536,6 +550,8 @@ test(${JSON.stringify(identity)},async()=>{
   await app.keyboard.press('enter');
   await app.waitFor('id:detail-start',{timeout:budget()});
   await app.waitFor('text:'+candidates[1].title,{timeout:budget()});
+  await app.waitUntil(()=>app.shows('id:detail-episodes-error')||(app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading')),{timeout:budget(35000)});
+  if(app.shows('id:detail-episodes-error'))throw new Error('Retained real detail failed: '+app.texts().join(' | '));
   await capture('selected-remove-neighbor-detail');
   record('selected-remove-neighbor',{series_id:second,texts:app.texts()});`,
     );
@@ -627,8 +643,9 @@ test(${JSON.stringify(identity)},async()=>{
   ]);
   for (const result of cleanup)
     if (result.status === 'rejected') failures.push(result.reason.message);
+  failures.push(...hostCleanupErrors);
   if (interrupted || failures.length) evidence.passed = false;
-  evidence.cleanupErrors = failures;
+  evidence.cleanupErrors = [...new Set(failures)];
   evidence.interrupted = interrupted;
   process.off('SIGINT', onSignal);
   process.off('SIGTERM', onSignal);

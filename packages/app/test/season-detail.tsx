@@ -68,6 +68,135 @@ export function registerSeasonDetailTests(entry = './SeasonDetailPreview.tsx') {
     expect(app.shows('text:detail:none:none')).toBe(true);
   });
 
+  test('season metadata enriches an unknown type without aborting or replacing its pending detail', async () => {
+    const app = await open(entry);
+    await app.press('使用缺类型来源');
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:')));
+    expect(app.shows('text:selected-type:none')).toBe(true);
+    expect(app.shows('text:loading:true')).toBe(true);
+    await app.press('补全原季类型');
+    await app.waitFor('text:selected-type:1004');
+    expect(app.texts().some((value) => /abort1|read2:/.test(value))).toBe(false);
+    expect(app.shows('text:loading:true')).toBe(true);
+    await app.press('完成补全类型详情');
+    await app.waitFor('text:detail:100:1004');
+    expect(app.shows('text:episodes:1001,1002')).toBe(true);
+    expect(app.shows('text:metadata:0:0')).toBe(true);
+    expect(app.shows('text:loading:false')).toBe(true);
+    expect(app.shows('text:error:')).toBe(true);
+    await app.press('重试详情');
+    expect(app.texts().some((value) => /abort1|read2:/.test(value))).toBe(false);
+  });
+
+  test('season metadata enriches an unknown type without discarding already validated detail', async () => {
+    const app = await open(entry);
+    await app.press('使用缺类型来源');
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:')));
+    await app.press('完成补全类型详情');
+    await app.waitFor('text:detail:100:1004');
+    expect(app.shows('text:selected-type:none')).toBe(true);
+    await app.press('补全原季类型');
+    await app.waitFor('text:selected-type:1004');
+    expect(app.shows('text:detail:100:1004')).toBe(true);
+    expect(app.shows('text:episodes:1001,1002')).toBe(true);
+    expect(app.shows('text:metadata:0:0')).toBe(true);
+    expect(app.shows('text:loading:false')).toBe(true);
+    await app.press('重试详情');
+    expect(app.texts().some((value) => /abort1|read2:/.test(value))).toBe(false);
+  });
+
+  test('an unknown request still rejects detail that conflicts with its enriched selected type', async () => {
+    const app = await open(entry);
+    await app.press('使用缺类型来源');
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:')));
+    await app.press('补全原季类型');
+    await app.waitFor('text:selected-type:1004');
+    expect(app.texts().some((value) => /abort1|read2:/.test(value))).toBe(false);
+    await app.press('错误内容类型');
+    await app.waitFor('text:error:详情加载失败，请重试');
+    expect(app.shows('text:detail:none:none')).toBe(true);
+    await app.press('重试详情');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read2:100:1004')));
+    await app.press('完成补全类型详情');
+    await app.waitFor('text:detail:100:1004');
+    expect(app.shows('text:error:')).toBe(true);
+  });
+
+  test('enrichment rereads a known type when the previously completed unknown request cached a conflicting type', async () => {
+    const app = await open(entry);
+    await app.press('使用缺类型来源');
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:')));
+    await app.press('完成类型一详情');
+    await app.waitFor('text:detail:100:1');
+    expect(app.shows('text:selected-type:none')).toBe(true);
+    await app.press('补全原季类型');
+    await app.waitFor('text:selected-type:1004');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read2:100:1004')));
+    expect(app.shows('text:detail:none:none')).toBe(true);
+    expect(app.shows('text:metadata:unread')).toBe(true);
+    expect(app.shows('text:loading:true')).toBe(true);
+    await app.press('完成补全类型详情');
+    await app.waitFor('text:detail:100:1004');
+    expect(app.shows('text:metadata:0:0')).toBe(true);
+    expect(app.shows('text:error:')).toBe(true);
+    expect(app.texts().some((value) => value.includes('read3:'))).toBe(false);
+  });
+
+  test('a later explicit season type change aborts the refined request and rejects its late matching response', async () => {
+    const app = await open(entry);
+    await app.press('使用缺类型来源');
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:')));
+    await app.press('补全原季类型');
+    await app.waitFor('text:selected-type:1004');
+    expect(app.texts().some((value) => /abort1|read2:/.test(value))).toBe(false);
+    await app.press('重读系列元数据');
+    await app.press('原季元数据改为类型一');
+    await app.waitFor('text:selected-type:1');
+    await app.waitUntil(() =>
+      app.texts().some((value) => value.includes('abort1') && value.includes('read2:100:1')),
+    );
+    await app.press('完成旧类型一详情');
+    expect(app.shows('text:detail:none:none')).toBe(true);
+    expect(app.shows('text:metadata:unread')).toBe(true);
+    expect(app.shows('text:loading:true')).toBe(true);
+    await app.press('完成类型一详情');
+    await app.waitFor('text:detail:100:1');
+    expect(app.shows('text:metadata:0:0')).toBe(true);
+    expect(app.shows('text:error:')).toBe(true);
+    await app.press('重试详情');
+    expect(app.texts().some((value) => value.includes('read3:'))).toBe(false);
+  });
+
+  test('type enrichment preserves source replacement and season selection fences for late detail', async () => {
+    for (const [action, id] of [
+      ['切换来源', '900'],
+      ['浏览第二季', '200'],
+    ]) {
+      const app = await open(entry);
+      await app.press('使用缺类型来源');
+      await app.press('激活浏览');
+      await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:')));
+      await app.press('补全原季类型');
+      await app.waitFor('text:selected-type:1004');
+      expect(app.texts().some((value) => /abort1|read2:/.test(value))).toBe(false);
+      await app.press(action);
+      await app.waitUntil(() =>
+        app.texts().some((value) => value.includes('abort1') && value.includes(`read2:${id}:1`)),
+      );
+      await app.press('完成旧详情');
+      expect(app.shows('text:detail:none:none')).toBe(true);
+      await app.press('完成当前详情');
+      await app.waitFor(`text:detail:${id}:1`);
+      expect(app.texts().some((value) => value.includes('read3:'))).toBe(false);
+      app.dispose();
+    }
+  });
+
   test('source replacement fences old detail writes and content types have separate cache identities', async () => {
     const app = await open(entry);
     await app.press('激活浏览');

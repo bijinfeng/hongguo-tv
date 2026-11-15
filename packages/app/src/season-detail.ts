@@ -187,7 +187,8 @@ export function createSeasonDetail(
   let revision = 0;
   let disposed = false;
   let abort: AbortController | undefined;
-  let watched = '';
+  let reading: { key: string } | undefined;
+  let watched = { key: '', source: '', id: '', type: undefined as string | undefined };
   const selected = () => seasons.selectedDrama();
   const key = () => JSON.stringify([identity(seasons.source()), identity(selected())]);
   const supplied = () => {
@@ -205,63 +206,101 @@ export function createSeasonDetail(
     revision++;
     abort?.abort();
     abort = undefined;
+    reading = undefined;
     pending.set('');
   };
   const read = async () => {
     const chosen = selected();
     if (!chosen || !validId(chosen.series_id) || !enabled() || !allowed() || pending()) return;
     const owner = ++revision;
-    const ownedKey = key();
+    const context = { key: key() };
+    reading = context;
     const controller = new AbortController();
     abort = controller;
     const owns = () =>
       owner === revision &&
+      reading === context &&
       !controller.signal.aborted &&
-      ownedKey === key() &&
+      context.key === key() &&
       enabled() &&
       allowed();
-    pending.set(ownedKey);
-    failure.set({ key: ownedKey, message: '' });
+    pending.set(context.key);
+    failure.set({ key: context.key, message: '' });
     try {
       const result = await request<SeriesDetail>(
         `/api/v1/series/detail?series_id=${encodeURIComponent(chosen.series_id)}&content_type=${encodeURIComponent(chosen.content_type ?? '')}`,
         controller.signal,
       );
-      if (!owns()) return;
-      const detail = normalizeDetail(result, chosen);
+      const current = selected();
+      if (!owns() || !current) return;
+      const detail = normalizeDetail(result, current);
       if (!detail) throw new Error('Season detail identity mismatch');
       cache.set(
-        new Map(cache()).set(ownedKey, {
-          ...chosen,
+        new Map(cache()).set(context.key, {
+          ...current,
           ...detail,
-          content_type: detail.content_type ?? chosen.content_type,
-          title: detail.title || chosen.title,
-          cover: detail.cover || chosen.cover,
-          cover_fallback: detail.cover_fallback || chosen.cover_fallback,
-          intro: detail.intro || chosen.intro,
-          tags: detail.tags ?? chosen.tags,
+          content_type: detail.content_type ?? current.content_type,
+          title: detail.title || current.title,
+          cover: detail.cover || current.cover,
+          cover_fallback: detail.cover_fallback || current.cover_fallback,
+          intro: detail.intro || current.intro,
+          tags: detail.tags ?? current.tags,
         }),
       );
     } catch (error) {
-      if (owns()) failure.set({ key: ownedKey, message: errorMessage(error, '详情加载失败') });
+      if (owns()) failure.set({ key: context.key, message: errorMessage(error, '详情加载失败') });
     } finally {
       if (owns()) {
         abort = undefined;
+        reading = undefined;
         pending.set('');
       }
     }
   };
   effect(() => {
     const next = key();
+    const chosen = selected();
+    const current = {
+      key: next,
+      source: identity(seasons.source()),
+      id: chosen?.series_id ?? '',
+      type: chosen?.content_type,
+    };
     const provided = supplied();
     const visible = enabled();
     const readable = allowed();
     untracked(() => {
-      if (watched !== next || !visible || !readable) {
+      const refining =
+        visible &&
+        readable &&
+        chosen &&
+        watched.source === current.source &&
+        watched.id === current.id &&
+        watched.type === undefined &&
+        !!current.type &&
+        current.type !== '1003';
+      if (refining) {
+        // Season metadata can fill a search summary's type without changing its upstream detail.
+        const previous = cache().get(watched.key);
+        const detail = previous && normalizeDetail(previous, chosen);
+        if (detail)
+          cache.set(
+            new Map(cache()).set(next, {
+              ...detail,
+              content_type: detail.content_type ?? chosen.content_type,
+            }),
+          );
+        if (reading?.key === watched.key) {
+          reading.key = next;
+          pending.set(next);
+        }
+        if (failure().key === watched.key) failure.set({ ...failure(), key: next });
+      }
+      if ((watched.key !== next && !refining) || !visible || !readable) {
         cancel();
-        watched = next;
         failure.set({ key: next, message: '' });
       }
+      watched = current;
       if (!visible || !readable || !selected() || cache().has(next)) return;
       const complete =
         provided && completeExtras(provided) ? normalizeDetail(provided, provided) : undefined;

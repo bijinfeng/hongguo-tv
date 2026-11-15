@@ -1,6 +1,6 @@
 import { cleanup, signal, Text, View } from 'nsh';
 import { Button } from '@hongguo/ui';
-import type { Drama, SeriesDetail, SeriesSeason } from '@hongguo/core-client';
+import type { Drama, SeriesDetail, SeriesSeason, SeriesSeasonsResult } from '@hongguo/core-client';
 import { createSeasons } from '../src/seasons';
 import { createSeasonDetail } from '../src/season-detail';
 
@@ -31,25 +31,33 @@ export function SeasonDetailFixture() {
   const events = signal<string[]>([]);
   const log = (event: string) => events.update((all) => [...all, event]);
   let count = 0;
+  let deferOriginalSeasons = false;
+  let completeSeasons: ((value: SeriesSeasonsResult) => void) | undefined;
   const tasks = new Map<
     number,
     { id: string; type: string; resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
   let select: ((id: string) => boolean) | undefined;
   let retry: (() => void) | undefined;
+  let retrySeasons: (() => void) | undefined;
   function Owner() {
     const request = async <T,>(path: string, abort?: AbortSignal, body?: unknown): Promise<T> => {
       if (body !== undefined) throw new Error('Unexpected write');
       const url = new URL(path, 'http://127.0.0.1');
       const id = url.searchParams.get('series_id') ?? '';
       const type = url.searchParams.get('content_type') ?? '';
-      if (url.pathname === '/api/v1/series/seasons')
+      if (url.pathname === '/api/v1/series/seasons') {
+        if (id === '100' && deferOriginalSeasons)
+          return new Promise<unknown>((resolve) => {
+            completeSeasons = resolve;
+          }) as Promise<T>;
         return {
           items:
             id === '100'
               ? [season('200'), season('100', source().content_type), season('300'), season('400')]
               : [],
         } as T;
+      }
       if (url.pathname !== '/api/v1/series/detail') throw new Error('Unexpected side-effect read');
       const requestId = ++count;
       log(`read${requestId}:${id}:${type}`);
@@ -62,13 +70,16 @@ export function SeasonDetailFixture() {
     const browse = createSeasonDetail(request, seasons, active);
     select = seasons.select;
     retry = browse.retry;
+    retrySeasons = seasons.retry;
     cleanup(() => {
       select = undefined;
       retry = undefined;
+      retrySeasons = undefined;
     });
     return (
       <View testID="season-detail-owner">
         <Text>{`selected:${seasons.selectedId()}`}</Text>
+        <Text>{`selected-type:${seasons.selectedDrama()?.content_type ?? 'none'}`}</Text>
         <Text>{`availability:${seasons.availability()}`}</Text>
         <Text>{`detail:${browse.drama()?.series_id ?? 'none'}:${browse.drama()?.content_type ?? 'none'}`}</Text>
         <Text>{`summary:${browse.summary()?.series_id ?? 'none'}`}</Text>
@@ -111,7 +122,16 @@ export function SeasonDetailFixture() {
       task.reject(new Error('https://internal.fixture/private?token=never-expose'));
     } else {
       const detail = {
-        ...drama(mode === 'identity' ? '999' : task.id, mode === 'type' ? '999' : task.type),
+        ...drama(
+          mode === 'identity' ? '999' : task.id,
+          mode === 'type'
+            ? '999'
+            : mode === 'enriched'
+              ? '1004'
+              : mode === 'type-one'
+                ? '1'
+                : task.type,
+        ),
         episodes: episodes(task.id),
       };
       task.resolve(
@@ -144,6 +164,34 @@ export function SeasonDetailFixture() {
       <View class="flex-row flex-wrap">
         <Button label="激活浏览" onPress={() => active.set(true)} />
         <Button label="隐藏浏览" onPress={() => active.set(false)} />
+        <Button
+          label="使用缺类型来源"
+          onPress={() => {
+            deferOriginalSeasons = true;
+            source.set({ ...drama('100'), content_type: undefined });
+          }}
+        />
+        <Button
+          label="补全原季类型"
+          onPress={() => {
+            const resolve = completeSeasons;
+            completeSeasons = undefined;
+            resolve?.({
+              items: [season('200'), season('100', '1004'), season('300'), season('400')],
+            });
+          }}
+        />
+        <Button label="重读系列元数据" onPress={() => retrySeasons?.()} />
+        <Button
+          label="原季元数据改为类型一"
+          onPress={() => {
+            const resolve = completeSeasons;
+            completeSeasons = undefined;
+            resolve?.({
+              items: [season('200'), season('100', '1'), season('300'), season('400')],
+            });
+          }}
+        />
         <Button label="浏览原季" onPress={() => select?.('100')} />
         <Button label="浏览第二季" onPress={() => select?.('200')} />
         <Button label="浏览预告季" onPress={() => select?.('300')} />
@@ -231,6 +279,9 @@ export function SeasonDetailFixture() {
         />
         <Button label="重试详情" onPress={() => retry?.()} />
         <Button label="完成当前详情" onPress={() => complete(count)} />
+        <Button label="完成补全类型详情" onPress={() => complete(count, 'enriched')} />
+        <Button label="完成类型一详情" onPress={() => complete(count, 'type-one')} />
+        <Button label="完成旧类型一详情" onPress={() => complete(1, 'type-one')} />
         <Button label="完成扩展详情" onPress={() => complete(count, 'extras')} />
         <Button label="非法扩展详情" onPress={() => complete(count, 'invalid-extras')} />
         <Button label="完成旧详情" onPress={() => complete(1)} />

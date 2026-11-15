@@ -873,3 +873,32 @@ OpenSpec `wire-guest-history-management` 已启动，仅任务 1.1 完成。新�
 本批工程门禁：`verify-browser-lifecycle-cached.log` 的完整 `pnpm verify` exit 0，工具 55／55、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 167／167、Desktop／TV 各 169／169，三端 check／build、格式、lint、codegen:check 与版本门禁通过。NSH Desktop／TV headless 构建摘要各有 1 条 warning，不宣称零告警。产品／回归源码全程不变；最后 runner 只清空已完成的所属 host 引用，避免总 finally 再发旧进程组信号，经过语法／lint、独立只读复核及 `tooling-browser-canonical-final.log` 的公共 `pnpm test:tooling` 55／55。严格 OpenSpec 校验通过。没有依赖变化，既有安全阻塞保持开放。
 
 工程失败分别保留：`verify-browser-lifecycle-final.log` 漏带既定缓存／关闭增量环境，重复构建后 TV 描述程序链接因 errno=28（磁盘不足）失败；清理本轮产生的 85 个增量缓存目录约 1540 MiB 后，使用既定缓存重跑得到上述完整结果。`tooling-browser-cleanup-final.log` 的直接 Node 工具测试 54／55，临时仓库 commit-msg 触发 pnpm install，因无 TTY 拒绝移除 modules 目录；同一源码的公共 pnpm 入口 55／55，原部分暂存／不自动 stash 的断言仍保留。上述环境／启动问题与真实详情超时分开记录，不据工程门禁关闭 E1 或 MVP。
+
+## E1 详情类型补全修复与真实浏览器复验 · 2026-11-15（仍为 7／13）
+
+`season-detail` 对同一来源／同一所选季的未知类型单向补全保留在途读取、完整缓存与失败状态，回包按当前类型重验；冲突缓存不迁移而重新读取，补全后再次明确变更类型仍取消旧请求并拒绝迟到结果。来源替换、切季、1003、隐藏、后台和卸载保护保留。源码在主项目工作区，本段记录时尚未提交或推送；临时路径只复用构建缓存。共享详情 18／18 合成回归通过，包括新增冲突缓存重读和补全后明确类型变化两项；这不作为功能验收通过的依据。三端 check／build 均通过，定向日志为 `artifacts/guest-history-state/logs/season-detail-enrichment-final.log` 和 `season-detail-check-build.log`。
+
+真实主验收继续使用 `node tooling/src/live-history-host.mjs web --anonymous-live`，正式 `apps/web/App.tsx`、当前 Rust API／真实 Chromium／精确 Origin／独立 SQLite，不注入响应、直接写历史或手动推进播放时钟。两次都以失败结束，没有用合成通过替代：
+
+- `artifacts/live-history/2026-11-15T07-31-08-928Z/`：浅色首次实际播放、取消、单删和再次实际播放四段完成，《重生，他只做创一代第三季》`7705305581673794585` 两次 UI 时钟均 0→3，产生和重建真实观看记录。第二部《重生！丑小鸭逆袭成了万人迷》`7682645700781296665` 已到详情 ready，随后未记录到播放器，外部阶段超时。超时清理并发出现 `kill EPERM`，覆盖了最终错误，不能从这批证据断言点击、生命周期、网络或解码根因。`passed=false`、runtime 字节恢复；清理错误发生在 runHost 阶段，不能仅凭顶层 `cleanupErrors=[]` 宣称全程无清理错误。事后未见该轮所属进程残留。
+- `artifacts/live-history/2026-11-15T07-36-10-675Z/`：启动器将超时／退出清理合并为同一等待，超时计时器只拒绝、由 finally 执行清理；增加详情 ready 实际截图及点击后日志，进入视频的等待限定 35 秒，保留失败页面。真实详情显示 138 集及开放选集，点击后有实际 play/info 请求，但页面显示“播放失败，请重试”，没有 player-video，首段失败。未取得失败响应体，不能判断来源解析、网络、媒体准备或浏览器解码根因。本次 `passed=false`、`cleanupErrors=[]`、runtime 原字节恢复，961 项源码事后核对 changed=[]。深色、双记录、重启及后续管理均未执行；该失败退出不单独证明所有并发清理边界已通过。
+
+实际请求记录中，首轮首次播放／重播／第二部详情和补诊断轮首次详情均各只有一次 series/detail，未因季列表补全类型再派发带 1004 的重复详情；不能由这项局部结果推导完整播放或历史管理验收通过。实际查看四张浅色图，确认真实详情、播放器失败页、取消确认和重播历史；它们没有证明深色、完整焦点、hover／pressed、动态、辅助技术或 TV。18 项合成回归、真实流程失败和工程门禁分别记录；E1、C3.2、完整 MVP、物理电视、安全与正式发行继续开放。
+
+播放诊断另存 `artifacts/live-history/play-info-diagnostic-2026-11-15T07-41-19-080Z/result.json`：在独立 Rust API／数据目录对失败轮同一剧集、视频和类型发起一次只读 play/info，返回 200／ok=true；记录只含状态与 DTO 键，不输出媒体地址。这是后续独立请求，不能替代原浏览器失败响应、视频解码或实际播放验收，也不能由此排除瞬时来源／网络问题。
+
+本批完整工程门禁 `artifacts/guest-history-state/logs/verify-enrichment-final.log` exit 0：工具 55／55、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 173／173、Desktop／TV 各 175／175，以及三端 check／build、格式、lint、codegen:check 与版本检查。使用既有 `/tmp/hongguo-discovery-target` 作为 Rust 构建缓存并关闭增量编译，源码、测试和文档均在主项目；Desktop／TV headless 摘要各有 1 条 warning，不宣称零告警。随后文档补记另过格式检查；严格 OpenSpec 校验通过。没有依赖变化，未重跑 security，既有安全阻塞保持开放。工程门禁通过不改变上述真实流程失败或 E1／MVP 状态。
+
+退出边界另验 `artifacts/live-history/2026-11-15T07-44-57-546Z/`：真实浏览器打开后向所属 runner 发送一次 SIGTERM，信号处理与阶段 finally 共享清理；子进程非零退出、`passed=false`、`interrupted=true`、`cleanupErrors=[]`，runtime 原字节恢复。外层断言 exit 0，日志 `artifacts/guest-history-state/logs/live-browser-enrichment-interrupt.log`；只证明本次受控中断，不计真实业务正向通过，也未证明所有异常／并发清理路径。
+
+## E1 Chromium 真实主链终轮与清理复审 · 2026-11-15（仍为 7／13）
+
+最终证据 `artifacts/live-history/2026-11-15T07-55-30-330Z/`，`NSH_VERBOSE=1 CARGO_INCREMENTAL=0 node tooling/src/live-history-host.mjs web --anonymous-live` exit 0。正式 Web 入口、真实 Chromium／Rust API／独立 SQLite，无合成响应、直接历史写入或手动时钟；浅深各 9 段／共 18 段通过，耗时分别 91.818 秒和 117.895 秒，6 次实际播放 UI 时钟均 0→3。内容为 `7705305581673794585` 与 `7682645700781296665`，分别对应《重生，他只做创一代第三季》与《重生！丑小鸭逆袭成了万人迷》。32 次 Node 只读 GET 成功，23 次 API 启动包括精确浏览器 Origin 握手重启，不能只称两次持久化重启。
+
+两条完整真实记录跨 API 重启／应用重开不变；取消零写且快照一致，单删后实际重播重新建记录；所选删除只移除目标、保留另一条完整 entry；Enter 打开保留项后，这轮明确等待真实详情可用或失败，浅深均显示 102 集、启用的“继续第 1 集”、1–24 集切换器和 24 个真实选集，不再只凭标题／入口宣称详情完成。清空后 API／应用重启仍为空，关键词“重生”保留；最终只读 SQLite 核查 history=0、recent_searches=[“重生”]。963 项源码 before／after manifest 无漂移，`passed=true`、`interrupted=false`、`cleanupErrors=[]`、runtime 原字节恢复。
+
+独立代理实际打开终轮浅深各 7 张共 14 张关键图：双条重开、mixed 选择、所选删除确认／保留邻项／邻项详情、清空确认／空态。圆角、字级、间距、对齐、浅深表面和公共 Checkbox／Button／ConfirmDialog 静态状态未见阻断；邻项详情本轮确已完整加载，相关海报只露出顶部，不据 JSON 文本宣称完整卡片视觉验收。无可辨识键盘焦点环，未由静态图证明 Tab／完整焦点、hover／pressed、逐帧动态／减少动态、读屏、其他尺寸、Desktop native 或 TV。首次完整成功 `07-47-05-358Z/` 也保留，但其邻项详情仍在加载，仅作先前较弱证据；旧失败记录及间歇性问题根因均保留，不因后续成功抹去。
+
+独立代码审查发现上一版清理在成功前清空 host，进程组 EPERM 可跳过单进程终止、丢失重试句柄并覆盖原阶段错误。已提取 `stopLiveHost`，group TERM、子进程 stop、group KILL 各自尝试／收集错误；只有全部清理成功才释放所属句柄，并发调用共享同一等待。runHost 保留主阶段错误，清理错误始终进入最终 cleanupErrors，后来重试成功也不抹去先前失败。三项真实 detached 子进程受控故障测试分别覆盖正常退出、group EPERM 后继续终止和单进程停止失败后最终强制终止，属于退出边界测试；独立复审无新的明确阻断，不扩写为全部信号／并发路径通过。
+
+本批产品与回归源码与上一段完整 verify 相同，三端 check／build、Rust 244／244、Web 173／173、Desktop／TV 各 175／175 的门禁证据继续适用。随后只新增清理辅助函数／3 项工具测试、强化 runner 与更新文档；当前 `pnpm test:tooling` 58／58、格式、lint 和严格 OpenSpec 另行通过，不将旧工具 55 项写为最终 58 项的完整 verify。无依赖变化，既有安全门禁仍开放。继续执行 E1 完整焦点／虚拟长列表、真实后台、Desktop native／当前 TV 包；2.3、3.1–3.3、4.2–4.3 未勾完，E1 与完整 MVP 不因浏览器主链通过而完成。
