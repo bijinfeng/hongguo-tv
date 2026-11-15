@@ -37,6 +37,7 @@ export function Account(props: {
   openNotifications?: (restore: () => void) => void;
 }) {
   let updatesRef: ViewRef | undefined;
+  let notificationsRef: ViewRef | undefined;
   let loginRef: ViewRef | undefined;
   let logoutRef: ViewRef | undefined;
   let qrRef: ViewRef | undefined;
@@ -146,7 +147,10 @@ export function Account(props: {
               <Button
                 label="查看更新提醒"
                 testID="account-notifications"
-                onPress={() => props.openNotifications?.(() => undefined)}
+                buttonRef={(ref) => {
+                  notificationsRef = ref;
+                }}
+                onPress={() => props.openNotifications?.(() => notificationsRef?.focus())}
               />
             </If>
             <Button
