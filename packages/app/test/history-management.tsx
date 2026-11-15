@@ -74,14 +74,24 @@ export function registerHistoryManagementTests(entry: string, target: ProductTar
     await app.press('id:history-delete-selected');
     await app.press('id:history-confirm-confirm');
     await app.waitFor('text:关闭');
+    expect(app.enabled('id:history-confirm-confirm')).toBe(false);
+    await expect(app.press('id:history-confirm-confirm')).rejects.toMatchObject({
+      code: 'ERR_NSH_TEST_DISABLED',
+    });
+    expect(app.texts().filter((text) => text === `calls:remove:${first}`).length).toBe(1);
     await app.press('id:history-confirm-cancel');
     await app.waitFor('id:history-operation');
+    expect(app.enabled(`id:history-remove-${second}`)).toBe(false);
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    expect(app.shows('id:history-delete-selected')).toBe(false);
     await app.press('id:history-fixture-active');
     await app.waitFor('text:synthetic · mode:slow · active:false · count:13 · opened:none');
     await app.press('id:history-fixture-active');
     await app.waitFor('text:synthetic · mode:slow · active:true · count:13 · opened:none');
     await app.press('id:history-manage');
     await app.waitFor('text:删除所选（0）');
+    expect(app.texts().includes(`calls:remove:${first}`)).toBe(true);
     expect(app.requests()).toEqual([]);
   });
   test('clear uses all records and unavailable owners cannot create a deletion', async () => {
@@ -143,6 +153,121 @@ export function registerHistoryManagementTests(entry: string, target: ProductTar
     expect(
       app.texts().includes('synthetic · mode:interrupt · active:true · count:13 · opened:none'),
     ).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
+  test('mixed selection selects all, all selection clears, and committed snapshot removal prunes selection', async () => {
+    const app = await open(entry, options);
+    expect(app.shows('id:history-select-all')).toBe(false);
+    await app.press('id:history-manage');
+    expect(app.enabled('id:history-delete-selected')).toBe(false);
+    await app.press(`id:history-select-${first}`);
+    await app.waitFor('text:删除所选（1）');
+    // A mixed aggregate must select the complete snapshot, including virtualized records.
+    await app.press('id:history-select-all');
+    await app.waitFor('text:删除所选（14）');
+    await app.press('id:history-select-all');
+    await app.waitFor('text:删除所选（0）');
+    expect(app.enabled('id:history-delete-selected')).toBe(false);
+    await app.press(`id:history-select-${first}`);
+    await app.press('id:history-fixture-drop-first');
+    await app.waitFor('text:删除所选（0）');
+    await app.press('id:history-fixture-restore-first');
+    await app.waitFor('text:synthetic · mode:success · active:true · count:14 · opened:none');
+    await app.waitFor('text:删除所选（0）');
+    await app.press('id:history-manage');
+    expect(app.shows(`id:history-select-${first}`)).toBe(false);
+    expect(app.texts().includes('calls:')).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
+  test('selection and recycled row actions keep their exact identities after scrolling away and back', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-manage');
+    await app.press(`id:history-select-${second}`);
+    for (let step = 0; step < 7 && !app.shows('id:history-select-8013'); step++) {
+      await app.scroll('id:history-list', 600);
+      await app.wait(80);
+    }
+    await app.scroll('id:history-list', 600);
+    await app.press('id:history-select-8013');
+    await app.waitFor('text:删除所选（2）');
+    await app.scroll('id:history-list', -10000);
+    await app.waitFor(`id:history-select-${second}`);
+    // Toggling a rematerialized selected row must remove that exact membership.
+    await app.press(`id:history-select-${second}`);
+    await app.waitFor('text:删除所选（1）');
+    await app.press(`id:history-select-${second}`);
+    await app.waitFor('text:删除所选（2）');
+    await app.press('id:history-delete-selected');
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor(`text:calls:remove:${second},8013`);
+    await app.waitFor('text:synthetic · mode:success · active:true · count:12 · opened:none');
+    expect(app.shows(`id:history-${first}`)).toBe(true);
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitFor('text:synthetic · mode:success · active:true · count:12 · opened:8002');
+    expect(app.requests()).toEqual([]);
+  });
+  test('Back cancels each destructive scope without calls and returns to its surviving source', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-manage');
+    await app.press(`id:history-select-${second}`);
+    for (const source of [`history-remove-${second}`, 'history-delete-selected', 'history-clear']) {
+      await app.press(`id:${source}`);
+      await app.waitFor('id:history-confirm');
+      await app.back();
+      await app.waitFor('id:history-confirm', { state: 'gone' });
+      expect(app.texts().includes('calls:')).toBe(true);
+      await app.wait(80);
+      await app.keyboard.press('enter');
+      await app.waitFor('id:history-confirm');
+      expect(app.texts().includes('calls:')).toBe(true);
+      await app.press('id:history-confirm-cancel');
+      await app.waitFor('id:history-confirm', { state: 'gone' });
+    }
+    await app.waitFor('text:synthetic · mode:success · active:true · count:14 · opened:none');
+    expect(app.requests()).toEqual([]);
+  });
+  test('closing a failed confirmation focuses its available retry instead of disabled selection', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-partial');
+    await app.press('id:history-manage');
+    await app.press(`id:history-select-${first}`);
+    await app.press(`id:history-select-${second}`);
+    await app.press('id:history-delete-selected');
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('text:重试剩余（1）');
+    await app.press('id:history-confirm-cancel');
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitFor(`text:calls:remove:${first},${second}|retry:partial:${second}`);
+    await app.waitFor('text:synthetic · mode:partial · active:true · count:12 · opened:none');
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitFor('text:synthetic · mode:partial · active:true · count:12 · opened:8002');
+    expect(app.requests()).toEqual([]);
+  });
+  test('partial work survives leaving without automatic replay and explicit retry restores a committed neighbor', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-partial');
+    await app.press('id:history-manage');
+    await app.press(`id:history-select-${first}`);
+    await app.press(`id:history-select-${second}`);
+    await app.press('id:history-delete-selected');
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('text:重试剩余（1）');
+    await app.press('id:history-confirm-cancel');
+    await app.press('id:history-fixture-active');
+    await app.press('id:history-fixture-active');
+    await app.wait(80);
+    expect(app.shows('id:history-delete-selected')).toBe(false);
+    expect(app.texts().includes(`calls:remove:${first},${second}`)).toBe(true);
+    await app.waitFor('id:history-operation-retry');
+    await app.press('id:history-operation-retry');
+    await app.waitFor(`text:calls:remove:${first},${second}|retry:partial:${second}`);
+    await app.waitFor('text:synthetic · mode:partial · active:true · count:12 · opened:none');
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitFor('text:synthetic · mode:partial · active:true · count:12 · opened:8002');
     expect(app.requests()).toEqual([]);
   });
 }

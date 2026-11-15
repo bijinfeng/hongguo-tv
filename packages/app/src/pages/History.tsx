@@ -182,6 +182,7 @@ export function History(props: { store: Store }) {
   let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
   let waiting: typeof returnSource;
   const refs = new Map<string, ViewRef>();
+  const detailRefs = new Map<string, Set<ViewRef>>();
   const owner = () => props.store.library()?.owner_id ?? '';
   const present = () => !disposed && props.store.activePage('history');
   const enabled = () => present() && !!props.store.library() && owner() === '';
@@ -210,14 +211,43 @@ export function History(props: { store: Store }) {
   };
   const reveal = () => {
     cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(async () => {
       const plan = waiting;
       if (!plan) return;
       if (!present() || owner() !== plan.owner || epoch !== plan.epoch || !plan.owns()) {
         waiting = undefined;
         return;
       }
-      const ref = refs.get(plan.key);
+      const candidates = detailRefs.get(plan.key);
+      let ref = refs.get(plan.key);
+      if (candidates) {
+        ref = undefined;
+        const viewport = await list?.measure();
+        for (const candidate of candidates) {
+          const measured = await candidate.measure();
+          if (
+            measured &&
+            viewport &&
+            measured.bounds.size.width > 0 &&
+            measured.bounds.size.height > 0 &&
+            measured.pagePosition.y >= viewport.pagePosition.y + 4 &&
+            measured.pagePosition.y + measured.bounds.size.height <=
+              viewport.pagePosition.y + viewport.bounds.size.height - 4
+          ) {
+            ref = candidate;
+            break;
+          }
+        }
+      }
+      if (
+        waiting !== plan ||
+        !present() ||
+        owner() !== plan.owner ||
+        epoch !== plan.epoch ||
+        !plan.owns() ||
+        (candidates && ref && !candidates.has(ref))
+      )
+        return;
       if (!ref) return; // Recycled cells retry on registration/layout.
       waiting = undefined;
       ref.reveal({ vertical: 'center', horizontal: 'nearest', animated: false });
@@ -261,11 +291,15 @@ export function History(props: { store: Store }) {
     const sourceExists =
       !sourceId || props.store.entries().some((entry) => entry.drama.series_id === sourceId);
     const key =
-      sourceExists && refs.has(source.key)
-        ? source.key
-        : props.store.entries().length
+      operation()?.status === 'partial' || operation()?.status === 'unresolved'
+        ? 'retry'
+        : busy()
           ? 'manage'
-          : 'empty';
+          : sourceExists && refs.has(source.key)
+            ? source.key
+            : props.store.entries().length
+              ? 'manage'
+              : 'empty';
     queueFocus(key, source.owns);
   };
   const ask = (kind: Confirmation['kind'], ids: string[], title: string, source: string) => {
@@ -293,6 +327,14 @@ export function History(props: { store: Store }) {
     if (!retry && (!current || !available())) return;
     const job = operation();
     if (retry && (!job || !['partial', 'unresolved'].includes(job.status))) return;
+    const index =
+      current?.index ??
+      Math.max(
+        0,
+        props.store
+          .entries()
+          .findIndex((entry) => job!.remainingIds.includes(entry.drama.series_id)),
+      );
     submitting = true;
     localError.set('');
     const ownedEpoch = epoch;
@@ -308,13 +350,14 @@ export function History(props: { store: Store }) {
       const settled = operation();
       if (settled?.status !== 'complete' || settled.id !== dialogJob()) return;
       selected.set(new Set(selectedIds()));
-      if (!current || confirmation() !== current || ownedEpoch !== epoch || !enabled()) return;
+      if (confirmation() !== current || ownedEpoch !== epoch || !enabled()) return;
       const entries = props.store.entries();
-      const survivor = entries[Math.min(current.index, entries.length - 1)];
+      const survivor = entries[Math.min(index, entries.length - 1)];
       if (!entries.length) managing.set(false);
       returnSource = undefined;
       confirmation.set(undefined);
       // Wait for the native dialog to release focus, then restore only if no newer input won.
+      cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (epoch === ownedEpoch && owns())
           queueFocus(survivor ? `detail:${survivor.drama.series_id}` : 'empty', owns);
@@ -352,6 +395,7 @@ export function History(props: { store: Store }) {
     disposed = true;
     cancelAnimationFrame(frame);
     refs.clear();
+    detailRefs.clear();
   });
   return (
     <View
@@ -437,6 +481,10 @@ export function History(props: { store: Store }) {
                 testID="history-operation-retry"
                 label={retryLabel()}
                 disabled={!enabled()}
+                buttonRef={(ref) => register('retry', ref)}
+                onFocusedRemoval={() => {
+                  if (present()) refs.get('manage')?.focus();
+                }}
                 onPress={() => {
                   props.store.noteFocusIntent();
                   void run(true);
@@ -496,8 +544,17 @@ export function History(props: { store: Store }) {
             controlRef={register}
             register={(id, ref, previous) => {
               const key = `detail:${id}`;
-              if (ref) register(key, ref);
-              else if (refs.get(key) === previous) refs.delete(key);
+              const candidates = detailRefs.get(key) ?? new Set<ViewRef>();
+              if (ref) candidates.add(ref);
+              else if (previous) candidates.delete(previous);
+              // Recycling may briefly register the same identity in multiple cells.
+              if (candidates.size) {
+                detailRefs.set(key, candidates);
+                register(key, candidates.values().next().value!);
+              } else {
+                detailRefs.delete(key);
+                refs.delete(key);
+              }
             }}
             restore={(id) => queueFocus(`detail:${id}`)}
           />

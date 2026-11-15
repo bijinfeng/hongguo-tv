@@ -15,11 +15,10 @@ import {
 } from './process.mjs';
 
 // Opt-in only: genuine media progress and UI mutations against a disposable real SQLite database.
-if (process.argv.slice(2).join(' ') !== 'macos --anonymous-live')
+if (process.platform !== 'darwin' || process.argv.slice(2).join(' ') !== 'macos --anonymous-live')
   throw new Error(
-    'Expected macos --anonymous-live; requires visible macOS, real upstream and playable media',
+    'Expected macos --anonymous-live; requires a real host, upstream and playable media',
   );
-if (process.platform !== 'darwin') throw new Error('Live history acceptance requires macOS');
 
 const artifacts = resolve(
   root,
@@ -171,9 +170,9 @@ try {
   build = child(executable('cargo'), ['build', '--locked', '-p', 'hongguo-web-api']);
   await build.done;
   ensureActive();
-  const target = process.env.CARGO_TARGET_DIR ?? 'target';
+  const cargoTarget = process.env.CARGO_TARGET_DIR ?? 'target';
   const binary = resolve(
-    isAbsolute(target) ? target : resolve(root, target),
+    isAbsolute(cargoTarget) ? cargoTarget : resolve(root, cargoTarget),
     'debug/hongguo-web-api',
   );
   evidence.apiBinarySha256 = hash(await readFile(binary));
@@ -204,7 +203,6 @@ try {
   await runtimeConfig('web', origin);
   evidence.runtimeMainSha256 = hash(await readFile(runtime));
   evidence.uncovered = [
-    'Second distinct title playback and selected deletion of one of two entries',
     'Desktop native, browser Web, TV, remote input and packaged installation',
     'Foreground/key focus and manual keyboard input; native driver steps target the actual host',
   ];
@@ -226,7 +224,7 @@ const deadline=${deadline};
 test(${JSON.stringify(identity)},async()=>{
  const budget=(limit=120000)=>{const remaining=deadline-Date.now();if(remaining<=0)throw new Error('Stage/theme deadline exceeded');return Math.min(limit,remaining);};
  const app=await open('../App.tsx',{width:1440,height:1000,colorScheme,network:'live'});
- const first=candidates[0].series_id;
+ const first=candidates[0].series_id,second=candidates[1].series_id;
  let current=${JSON.stringify(name)};
  const record=(name:string,details:unknown={})=>console.log('LIVE_HISTORY:'+JSON.stringify({colorScheme,stage:name,at:new Date().toISOString(),details,requests:app.requests()}));
  const capture=async(name:string)=>{current=name;await app.wait(Math.min(300,budget()));await app.screenshot(artifacts+'/'+name+'-'+colorScheme+'.png');};
@@ -235,10 +233,10 @@ test(${JSON.stringify(identity)},async()=>{
   await app.waitFor('id:nav-history',{timeout:budget()});await app.press('id:nav-history');
   await app.waitFor('id:history-page',{timeout:budget()});
  };
- const manage=async()=>{
-  await history();await app.waitFor('id:history-'+first,{timeout:budget()});
+ const manage=async(seriesId=first)=>{
+  await history();await app.waitFor('id:history-'+seriesId,{timeout:budget()});
   await app.waitFor('id:history-manage',{timeout:budget()});await app.press('id:history-manage');
-  await app.waitFor('id:history-select-'+first,{timeout:budget()});
+  await app.waitFor('id:history-select-'+seriesId,{timeout:budget()});
  };
  const clock=()=>{
   for(const text of app.texts()){
@@ -247,31 +245,43 @@ test(${JSON.stringify(identity)},async()=>{
   }
   return -1;
  };
- const play=async(name:string)=>{
+ const play=async(index:number,name:string,expected:string[])=>{
+  const seriesId=candidates[index].series_id;
+  record(name+'-navigate');
   await app.waitFor('id:nav-discover',{timeout:budget()});await app.press('id:nav-discover');
+  await capture(name+'-discover');record(name+'-discover-ready');
   await app.waitFor('id:search-input',{timeout:budget()});await app.clear('id:search-input');
   await app.type('id:search-input',term);await app.press('id:search-submit');
+  await capture(name+'-search');record(name+'-search-submitted');
   for(const candidate of candidates)await app.waitFor('id:drama-'+candidate.series_id,{timeout:budget()});
-  await app.press('id:drama-'+first);
+  record(name+'-search-ready');
+  await app.press('id:drama-'+seriesId);
+  await capture(name+'-detail');record(name+'-detail-opened');
   await app.waitUntil(()=>app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading'),{timeout:budget()});
+  record(name+'-detail-ready');
   await app.press('id:detail-start');await app.waitFor('id:player-video',{timeout:budget()});
+  await capture(name+'-player');record(name+'-player-opened');
   await app.waitUntil(()=>clock()>=0&&app.enabled('播放进度'),{timeout:budget()});
+  record(name+'-media-ready');
   const initial=clock();await app.waitUntil(()=>clock()>=3&&clock()>=initial+3,{timeout:budget()});
   const progressed=clock();await app.press('label:暂停');
-  await capture(name+'-paused');record(name+'-media-progress',{series_id:first,initial,progressed});
-  await app.back();await history();await app.waitFor('id:history-'+first,{timeout:budget()});
+  await capture(name+'-paused');record(name+'-media-progress',{series_id:seriesId,initial,progressed});
+  await app.back();await history();
+  for(const id of expected)await app.waitFor('id:history-'+id,{timeout:budget()});
+  for(const candidate of candidates)expect(app.shows('id:history-'+candidate.series_id)).toBe(expected.includes(candidate.series_id));
   await capture(name+'-history');
  };
- const confirm=async(name:string)=>{
+ const confirm=async(name:string,expected:string[]=[])=>{
   await app.waitFor('id:history-confirm-confirm',{timeout:budget()});await capture(name+'-confirm');
   await app.press('id:history-confirm-confirm');
   await app.waitUntil(()=>!app.shows('id:history-confirm-confirm'),{timeout:budget()});
-  await app.waitFor('id:history-empty-discover',{timeout:budget()});
-  expect(app.shows('id:history-'+first)).toBe(false);await capture(name+'-empty');
+  await app.waitUntil(()=>candidates.every(candidate=>app.shows('id:history-'+candidate.series_id)===expected.includes(candidate.series_id)),{timeout:budget()});
+  if(expected.length===0)await app.waitFor('id:history-empty-discover',{timeout:budget()});
+  await capture(name+(expected.length===0?'-empty':'-retained'));
  };
  try{
   await app.waitFor('id:nav-history',{timeout:budget(60000)});
-  record(${JSON.stringify(identity + '-window-state')},{window:app.window('main').state()});
+  record(${JSON.stringify(identity + '-window-state')},{window:app.window('main').state(),driverTarget:'macos'});
   expect(app.clock).toBe(null);
   ${steps}
   record(${JSON.stringify(identity + '-complete')},{texts:app.texts()});
@@ -294,9 +304,9 @@ test(${JSON.stringify(identity)},async()=>{
       throw new Error(name + ': persistent history identities differ');
     return snapshot;
   };
-  const checkpoint = (snapshot) => {
+  const checkpoint = (snapshot, index) => {
     const entry = snapshot.entries.find(
-      (entry) => entry.drama.series_id === candidates[0].series_id,
+      (entry) => entry.drama.series_id === candidates[index].series_id,
     );
     if (!entry || entry.position < 3 || entry.duration <= 0)
       throw new Error('Real media checkpoint was not persisted: ' + JSON.stringify(entry));
@@ -306,10 +316,11 @@ test(${JSON.stringify(identity)},async()=>{
     const deadline = began + 300000;
     themeDeadline = deadline;
     const first = candidates[0].series_id;
+    const second = candidates[1].series_id;
     await library('initial-empty-' + colorScheme, []);
-    await stage('first-play', colorScheme, deadline, "await play('first-play');");
+    await stage('first-play', colorScheme, deadline, "await play(0,'first-play',[first]);");
     const baseline = await library('first-play-' + colorScheme, [first]);
-    checkpoint(baseline);
+    checkpoint(baseline, 0);
     await stage(
       'cancel',
       colorScheme,
@@ -334,14 +345,66 @@ test(${JSON.stringify(identity)},async()=>{
   await manage();await app.press('id:history-remove-'+first);await confirm('remove-first');`,
     );
     await library('removed-' + colorScheme, []);
-    await stage('replay', colorScheme, deadline, "await play('first-recreated');");
-    checkpoint(await library('recreated-' + colorScheme, [first]));
+    await stage('replay', colorScheme, deadline, "await play(0,'first-recreated',[first]);");
+    checkpoint(await library('recreated-' + colorScheme, [first]), 0);
+    await stage(
+      'second-play',
+      colorScheme,
+      deadline,
+      "await play(1,'second-play',[first,second]);",
+    );
+    const populated = await library('two-played-' + colorScheme, [first, second]);
+    checkpoint(populated, 0);
+    checkpoint(populated, 1);
+    await stop(api);
+    origin = await start();
+    await runtimeConfig('web', origin);
+    evidence['runtimePopulatedReopenSha256-' + colorScheme] = hash(await readFile(runtime));
+    const restartedPopulated = await library('restarted-populated-' + colorScheme, [first, second]);
+    if (JSON.stringify(restartedPopulated) !== JSON.stringify(populated))
+      throw new Error('Rust API restart changed real populated history in ' + colorScheme);
+    await stage(
+      'reopen-populated',
+      colorScheme,
+      deadline,
+      `
+  await history();
+  for(const candidate of candidates)await app.waitFor('id:history-'+candidate.series_id,{timeout:budget()});
+  expect(app.shows('id:history-empty-discover')).toBe(false);await capture('reopened-populated');`,
+    );
+    if (
+      JSON.stringify(await library('reopened-populated-' + colorScheme, [first, second])) !==
+      JSON.stringify(populated)
+    )
+      throw new Error('Reopening the formal app changed real populated history in ' + colorScheme);
+    await stage(
+      'selected-remove',
+      colorScheme,
+      deadline,
+      `
+  await manage();await app.press('id:history-select-'+first);
+  await app.waitUntil(()=>app.enabled('id:history-delete-selected'),{timeout:budget()});
+  await capture('selected-first');await app.press('id:history-delete-selected');
+  await confirm('selected-remove-first',[second]);
+  await app.keyboard.press('enter');
+  await app.waitFor('id:detail-start',{timeout:budget()});
+  await app.waitFor('text:'+candidates[1].title,{timeout:budget()});
+  await capture('selected-remove-neighbor-detail');
+  record('selected-remove-neighbor',{series_id:second,texts:app.texts()});`,
+    );
+    const selected = await library('selected-removed-' + colorScheme, [second]);
+    checkpoint(selected, 1);
+    if (
+      JSON.stringify(selected.entries[0]) !==
+      JSON.stringify(populated.entries.find((entry) => entry.drama.series_id === second))
+    )
+      throw new Error('Selected deletion changed the retained real entry in ' + colorScheme);
     await stage(
       'clear',
       colorScheme,
       deadline,
       `
-  await manage();await app.press('id:history-clear');await confirm('clear-all');`,
+  await manage(second);await app.press('id:history-clear');await confirm('clear-all');`,
     );
     await library('cleared-' + colorScheme, []);
     const searches = await get(origin, '/api/v1/search/history', 'searches-' + colorScheme);
@@ -371,7 +434,13 @@ test(${JSON.stringify(identity)},async()=>{
     );
     await library('reopened-final-' + colorScheme, []);
     if (Date.now() >= deadline) throw new Error('Theme exceeded 300 seconds: ' + colorScheme);
-    evidence.themes.push({ colorScheme, elapsedMs: Date.now() - began, apiRestartVerified: true });
+    evidence.themes.push({
+      colorScheme,
+      elapsedMs: Date.now() - began,
+      apiRestartVerified: true,
+      populatedRestartVerified: true,
+      selectedDeletionVerified: true,
+    });
   }
   themeDeadline = undefined;
   const after = await manifest('source-manifest-after');
@@ -384,6 +453,8 @@ test(${JSON.stringify(identity)},async()=>{
   if (changed.length || sources.head !== after.head)
     throw new Error('Sources changed during real acceptance: ' + changed.join(', '));
   evidence.apiRestartVerified = true;
+  evidence.populatedRestartVerified = true;
+  evidence.selectedDeletionVerified = true;
   evidence.uiReopenThemes = ['light', 'dark'];
   ensureActive();
   evidence.passed = true;

@@ -193,6 +193,20 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
             label="未加载"
             onPress={() => snapshot.set(undefined)}
           />
+          <Button
+            testID="history-fixture-drop-first"
+            label="合成快照移除首条"
+            onPress={() => publish([first])}
+          />
+          <Button
+            testID="history-fixture-restore-first"
+            label="合成新观看恢复首条"
+            onPress={() => {
+              const current = snapshot();
+              if (current && !current.entries.some((entry) => entry.drama.series_id === first))
+                snapshot.set({ ...current, entries: [initial.entries[0], ...current.entries] });
+            }}
+          />
         </View>
         <Text>{`synthetic · mode:${mode()} · active:${active()} · count:${entries().length} · opened:${opened()}`}</Text>
         <Text testID="history-fixture-calls">{`calls:${calls().join('|')}`}</Text>
