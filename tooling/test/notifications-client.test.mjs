@@ -6,9 +6,14 @@ registerHooks({
   resolve(specifier, context, next) {
     if (
       context.parentURL?.includes('/packages/core-client/src/') &&
-      ['./index', './notifications', './library-writer', './follow', './reservations'].includes(
-        specifier,
-      )
+      [
+        './index',
+        './notifications',
+        './library-writer',
+        './follow',
+        './reservations',
+        './watch-statistics',
+      ].includes(specifier)
     )
       return next(`${specifier}.ts`, context);
     return next(specifier, context);

@@ -15,6 +15,21 @@ export {
   markNotificationRead,
   validNotificationSnapshot,
 } from './notifications';
+export {
+  readWatchStatistics,
+  appendWatchStatistics,
+  resetWatchStatistics,
+  validWatchStatisticsBatch,
+  validWatchStatisticsSnapshot,
+} from './watch-statistics';
+export type {
+  WatchStatisticsContentType,
+  WatchStatisticsSegment,
+  WatchStatisticsBatch,
+  WatchStatisticsSnapshot,
+  WatchStatisticsAppendResult,
+  WatchStatisticsQuery,
+} from './watch-statistics';
 export type {
   NotificationItem,
   NotificationKind,
@@ -26,7 +41,7 @@ export type {
 /** One host-owned transport; shared pages never import native modules. */
 export interface CoreTransport {
   mediaOrigin: string;
-  request(path: string, abort?: AbortSignal, body?: unknown): Promise<unknown>;
+  request(path: string, abort?: AbortSignal, body?: unknown, method?: string): Promise<unknown>;
 }
 
 let transport: CoreTransport | undefined;
@@ -49,10 +64,10 @@ export function configureClient(origin: string) {
   validOrigin(origin);
   configureTransport({
     mediaOrigin: origin,
-    async request(path, abort, body) {
+    async request(path, abort, body, method) {
       const response = await fetch(origin + path, {
         signal: abort,
-        method: body === undefined ? 'GET' : 'POST',
+        method: method ?? (body === undefined ? 'GET' : 'POST'),
         headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
@@ -100,6 +115,14 @@ export function captureRequest() {
 
 export async function request<T>(path: string, abort?: AbortSignal, body?: unknown): Promise<T> {
   return (await currentTransport().request(path, abort, body)) as T;
+}
+export async function requestWithMethod<T>(
+  path: string,
+  method: string,
+  abort?: AbortSignal,
+  body?: unknown,
+): Promise<T> {
+  return (await currentTransport().request(path, abort, body, method)) as T;
 }
 export const search = (q: string, abort: AbortSignal) =>
   request<SearchResult>(`/api/v1/search?q=${encodeURIComponent(q)}`, abort);

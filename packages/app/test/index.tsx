@@ -2,6 +2,7 @@ export { registerApplicationTests, registerBrowsingTests } from './App';
 export { registerLibraryTests } from './library';
 export { registerLibraryLifecycleTests } from './library-lifecycle';
 export { registerPlaybackTests } from './playback';
+export { registerWatchStatisticsTests } from './watch-statistics';
 export { registerNativeStartupTests } from './native-startup';
 
 export { registerUpdateTests } from './updates';

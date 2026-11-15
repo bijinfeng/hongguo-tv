@@ -16,6 +16,7 @@ use hongguo_core::{
     },
     playback::{PlaybackError, PlaybackRequest, PlaybackService},
     radar::{RadarError, RadarService},
+    watch_statistics::{WatchStatisticsBatch, WatchStatisticsError},
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
@@ -106,6 +107,13 @@ struct NoParams {}
 struct Release {
     path: String,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct WatchStatisticsParams {
+    owner_id: String,
+    owner_epoch: String,
+    day: String,
+}
 
 pub(crate) enum Request {
     Status,
@@ -139,13 +147,43 @@ pub(crate) enum Request {
     SearchHistory,
     ChangeSearchHistory(SearchHistoryChange),
     Release(String),
+    WatchStatistics(WatchStatisticsParams),
+    AppendWatchStatistics(WatchStatisticsParams, WatchStatisticsBatch),
+    ResetWatchStatistics(WatchStatisticsParams),
     Unavailable,
 }
 fn query<T: DeserializeOwned>(uri: &Uri) -> Result<T, ()> {
     Query::<T>::try_from_uri(uri).map(|q| q.0).map_err(|_| ())
 }
+fn statistics_params(uri: &Uri) -> Result<WatchStatisticsParams, Reply> {
+    let value = query::<WatchStatisticsParams>(uri)
+        .map_err(|_| statistics_error(WatchStatisticsError::InvalidInput))?;
+    let owner_valid = (value.owner_id.is_empty()
+        || (value.owner_id.len() <= 32
+            && value.owner_id.bytes().all(|byte| byte.is_ascii_digit())
+            && value.owner_id.bytes().any(|byte| byte != b'0')))
+        && !value.owner_epoch.is_empty()
+        && value.owner_epoch.len() <= 128
+        && value
+            .owner_epoch
+            .bytes()
+            .all(|byte| byte.is_ascii() && !byte.is_ascii_control());
+    if owner_valid {
+        Ok(value)
+    } else {
+        Err(statistics_error(WatchStatisticsError::InvalidInput))
+    }
+}
 impl Request {
+    #[cfg(test)]
     pub fn parse(path: &str, body: Option<&str>) -> Result<Self, Reply> {
+        Self::parse_with_method(path, body, None)
+    }
+    pub fn parse_with_method(
+        path: &str,
+        body: Option<&str>,
+        method: Option<&str>,
+    ) -> Result<Self, Reply> {
         if path.len() > 8192 || body.is_some_and(|s| s.len() > 32 * 1024) {
             return Err(Reply::failure(
                 413,
@@ -164,7 +202,42 @@ impl Request {
         {
             return Err(Reply::failure(400, "CORE_REQUEST_INVALID", "请求地址无效"));
         }
+        if let Some(method) = method {
+            if method.eq_ignore_ascii_case("DELETE") {
+                if body.is_some() {
+                    return Err(Reply::failure(
+                        400,
+                        "STATISTICS_REQUEST_INVALID",
+                        "统计请求无效",
+                    ));
+                }
+                if uri.path() != "/api/v1/watch-statistics" {
+                    return Err(Reply::failure(
+                        405,
+                        "METHOD_NOT_ALLOWED",
+                        "Method not allowed",
+                    ));
+                }
+                let params = statistics_params(&uri)?;
+                return Ok(Self::ResetWatchStatistics(params));
+            }
+            if !method.eq_ignore_ascii_case(if body.is_some() { "POST" } else { "GET" }) {
+                return Err(Reply::failure(
+                    405,
+                    "METHOD_NOT_ALLOWED",
+                    "Method not allowed",
+                ));
+            }
+        }
         match (uri.path(), body) {
+            ("/api/v1/watch-statistics", None) => {
+                Ok(Self::WatchStatistics(statistics_params(&uri)?))
+            }
+            ("/api/v1/watch-statistics", Some(body)) => Ok(Self::AppendWatchStatistics(
+                statistics_params(&uri)?,
+                serde_json::from_str(body)
+                    .map_err(|_| statistics_error(WatchStatisticsError::InvalidInput))?,
+            )),
             ("/api/v1/radar", None) => {
                 if uri.query().is_some_and(|q| !q.is_empty()) {
                     return Err(Reply::failure(400, "RADAR_INVALID_INPUT", "榜单请求无效"));
@@ -661,6 +734,54 @@ impl Request {
                 .release(&token)
                 .map(|()| Reply::success(json!({"released":true})))
                 .map_err(playback_error),
+            Self::WatchStatistics(params) => match &services.account {
+                Some(account) => account
+                    .watch_statistics_snapshot(&params.owner_id, &params.owner_epoch, &params.day)
+                    .await
+                    .map(Reply::success)
+                    .map_err(statistics_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
+            Self::AppendWatchStatistics(params, batch) => match &services.account {
+                Some(account) => {
+                    if batch.owner_id != params.owner_id || batch.owner_epoch != params.owner_epoch
+                    {
+                        Err(statistics_error(WatchStatisticsError::InvalidInput))
+                    } else {
+                        account
+                            .append_watch_statistics(
+                                &params.owner_id,
+                                &params.owner_epoch,
+                                &params.day,
+                                batch,
+                            )
+                            .await
+                            .map(Reply::success)
+                            .map_err(statistics_error)
+                    }
+                }
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
+            Self::ResetWatchStatistics(params) => match &services.account {
+                Some(account) => account
+                    .reset_watch_statistics(&params.owner_id, &params.owner_epoch, &params.day)
+                    .await
+                    .map(Reply::success)
+                    .map_err(statistics_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
             Self::Unavailable => Err(Reply::failure(
                 501,
                 "CORE_NOT_IMPLEMENTED",
@@ -760,6 +881,20 @@ pub(crate) fn account_error(error: AccountError) -> Reply {
         AccountError::NotificationInvalidRead => 400,
     };
     Reply::failure(status, error.code(), &error.to_string())
+}
+
+pub(crate) fn statistics_error(error: WatchStatisticsError) -> Reply {
+    let (status, code) = match error {
+        WatchStatisticsError::InvalidInput => (400, "STATISTICS_REQUEST_INVALID"),
+        WatchStatisticsError::OwnerChanged => (409, "ACCOUNT_OWNER_CHANGED"),
+        WatchStatisticsError::RevisionChanged => (409, "STATISTICS_RESET"),
+        WatchStatisticsError::BatchConflict => (409, "STATISTICS_BATCH_CONFLICT"),
+        WatchStatisticsError::InvalidDatabase | WatchStatisticsError::Storage => {
+            (503, "STATISTICS_STORAGE_UNAVAILABLE")
+        }
+        WatchStatisticsError::DailyLimit => (400, "STATISTICS_REQUEST_INVALID"),
+    };
+    Reply::failure(status, code, &error.to_string())
 }
 
 #[cfg(test)]

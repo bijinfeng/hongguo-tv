@@ -18,6 +18,7 @@ import { currentWindow, isAvailable, type WindowMode } from 'nsh/desktop';
 import { CoreError, play, type Drama, type Episode } from '@hongguo/core-client';
 import { type Store } from '../store';
 import { playbackActivity, playbackLease, progressSession } from '../playback';
+import { createWatchStatisticsCollector, watchContentType } from '../watch-statistics';
 import { playbackTime as timeLabel } from '../format';
 import { errorMessage } from '../error-messages';
 import { createSeasons, isFinalEpisode, type SeasonsController } from '../seasons';
@@ -287,6 +288,40 @@ export function Player(props: {
   const session = progressSession((time, total, finished) => {
     void props.store.save(playingDrama, playingEpisode, time, total, finished);
   });
+  let lastStatisticsAt = 0;
+  const performanceClock = (globalThis as unknown as { performance?: { now: () => number } })
+    .performance;
+  const performanceEpoch = Date.now() - (performanceClock?.now() ?? 0);
+  let statisticsScopeKey = '';
+  const statistics = createWatchStatisticsCollector({
+    scope: () => {
+      const account = props.store.account();
+      const current = props.store.watchStatistics.snapshot();
+      if (!account || !current) return undefined;
+      return {
+        ownerId: account.owner_id ?? '',
+        ownerEpoch: account.owner_epoch,
+        revision: current.revision,
+      };
+    },
+    send: async (batch) => {
+      await props.store.watchStatistics.append(batch);
+    },
+  });
+  const statisticsSampleTime = () => {
+    const next = performanceClock ? performanceEpoch + performanceClock.now() : Date.now();
+    lastStatisticsAt = Math.max(lastStatisticsAt, next);
+    return lastStatisticsAt;
+  };
+  effect(() => {
+    const account = props.store.account();
+    const current = account ? `${account.owner_id ?? ''}\u0000${account.owner_epoch}` : '';
+    if (current !== statisticsScopeKey) {
+      statisticsScopeKey = current;
+      statistics.setScope();
+    }
+    if (account) void props.store.watchStatistics.ensure();
+  });
   const checkpoint = () => {
     session.save();
     props.feed?.onCheckpoint({
@@ -346,6 +381,8 @@ export function Player(props: {
   const refresh = () => {
     cancelSuccessor();
     checkpoint();
+    statistics.reset();
+    void statistics.flush(true);
     if (!firstLoad) restorePosition = position();
     preview.set(undefined);
     void lease.prepare((abort) => play(props.drama, props.episode, abort, { quality: quality() }));
@@ -354,6 +391,7 @@ export function Player(props: {
     cancelSuccessor();
     if (!enabled() || !Number.isFinite(value)) return;
     resetActivity();
+    statistics.reset();
     const next = Math.min(duration(), Math.max(0, value));
     session.seed(next, duration());
     seekingTo = next;
@@ -375,6 +413,8 @@ export function Player(props: {
       closePanel();
       return;
     }
+    statistics.reset();
+    void statistics.flush(true);
     checkpoint();
     if (props.feed) {
       if (drama.series_id === props.drama.series_id) props.feed.onEpisode(episode);
@@ -423,6 +463,7 @@ export function Player(props: {
     cancelSuccessor();
     if (!enabled()) return;
     resetActivity();
+    statistics.reset();
     if (completed()) {
       session.restart();
       seek(0);
@@ -456,6 +497,8 @@ export function Player(props: {
   const leave = () => {
     cancelSuccessor();
     checkpoint();
+    statistics.reset();
+    void statistics.flush(true);
     if (fullScreen()) window?.setMode(previousMode);
     if (props.feed) props.feed.onLeave();
     else props.store.nav.pop();
@@ -541,6 +584,8 @@ export function Player(props: {
         cancelSuccessor();
         paused.set(true);
         checkpoint();
+        statistics.reset();
+        void statistics.flush(true);
         if (lifecycle() === 'background' || !active()) {
           hadBackground = true;
           restorePosition = position();
@@ -618,6 +663,7 @@ export function Player(props: {
     disposed = true;
     cancelSuccessor();
     checkpoint();
+    void statistics.dispose();
     lease.dispose();
     if (fullScreen()) window?.setMode(previousMode);
   });
@@ -681,6 +727,7 @@ export function Player(props: {
                       }}
                       onLoad={(total) => {
                         resetActivity();
+                        statistics.reset();
                         duration.set(total);
                         loaded.set(true);
                         buffering.set(false);
@@ -718,17 +765,34 @@ export function Player(props: {
                           if (Math.abs(time - seekingTo) > Math.max(1, Number(rate()) + 0.5))
                             return;
                           seekingTo = undefined;
+                          statistics.reset();
                           session.seed(time, total);
                           position.set(time);
                           duration.set(total);
                           return;
                         }
                         advancing.set(running() ? activity.update(time) : false);
+                        statistics.observe({
+                          at: statisticsSampleTime(),
+                          position: time,
+                          rate: Number(rate()),
+                          active: active(),
+                          ready: loaded(),
+                          paused: paused(),
+                          buffering: buffering(),
+                          ended: completed(),
+                          seeking: seekingTo !== undefined,
+                          type: watchContentType(playingDrama.content_type),
+                          genre: playingDrama.tags?.[0],
+                        });
                         position.set(time);
                         duration.set(total);
                         session.update(time, total, !paused() && !buffering() && loaded());
                       }}
-                      onBuffer={(value) => buffering.set(value)}
+                      onBuffer={(value) => {
+                        if (value) statistics.reset();
+                        buffering.set(value);
+                      }}
                       onError={(failure, revision) => {
                         console.warn('播放媒体失败', {
                           code:
@@ -738,6 +802,8 @@ export function Player(props: {
                           revision,
                         });
                         cancelSuccessor();
+                        statistics.reset();
+                        void statistics.flush(true);
                         error.set('播放失败，请重试。');
                         buffering.set(false);
                         paused.set(true);
@@ -754,6 +820,8 @@ export function Player(props: {
                         )
                           return;
                         session.end();
+                        statistics.reset();
+                        void statistics.flush(true);
                         completed.set(true);
                         paused.set(true);
                         layer.set('controls');

@@ -11,7 +11,7 @@ export interface NativeCall {
 /** Structural contract implemented by the generated native session class. */
 export interface NativeSession {
   origin(): string;
-  start(path: string, body: string | null): NativeCall;
+  start(path: string, body: string | null, method?: string | null): NativeCall;
   close(): void;
   dispose(): void;
 }
@@ -24,10 +24,14 @@ export function createNativeTransport(session: NativeSession): CoreTransport & {
   const calls = new Set<NativeCall>();
   return {
     mediaOrigin: session.origin(),
-    async request(path, abort, body) {
+    async request(path, abort, body, method) {
       if (closed) throw new CoreError('核心已关闭，请重新打开应用', 'CORE_CLOSED', 410);
       if (abort?.aborted) throw cancelled();
-      const call = session.start(path, body === undefined ? null : JSON.stringify(body));
+      const call = session.start(
+        path,
+        body === undefined ? null : JSON.stringify(body),
+        method ?? null,
+      );
       calls.add(call);
       const cancel = () => call.cancel();
       abort?.addEventListener('abort', cancel, { once: true });

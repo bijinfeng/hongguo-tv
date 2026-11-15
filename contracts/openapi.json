@@ -2722,6 +2722,273 @@
         }
       }
     },
+    "/api/v1/watch-statistics": {
+      "get": {
+        "tags": [
+          "watch_statistics"
+        ],
+        "operationId": "get_watch_statistics",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_epoch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchStatisticsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "watch_statistics"
+        ],
+        "operationId": "append_watch_statistics",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_epoch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchStatisticsBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchStatisticsAppendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "watch_statistics"
+        ],
+        "operationId": "reset_watch_statistics",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_epoch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchStatisticsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "tags": [],
@@ -6345,6 +6612,277 @@
             "description": "Always true."
           }
         }
+      },
+      "WatchStatisticsAppendResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WatchStatisticsAppendResult"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WatchStatisticsAppendResult": {
+        "type": "object",
+        "description": "Result of appending a batch.  A duplicate returns `applied=false` and the same\nauthoritative snapshot, so a lost response can be recovered with the same ID.",
+        "required": [
+          "id",
+          "applied",
+          "snapshot"
+        ],
+        "properties": {
+          "applied": {
+            "type": "boolean",
+            "description": "Whether this request added the batch."
+          },
+          "id": {
+            "type": "string",
+            "description": "Idempotency ID echoed from the request."
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/WatchStatisticsSnapshot",
+            "description": "Authoritative post-append snapshot."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsBatch": {
+        "type": "object",
+        "description": "A retriable bounded batch.  The batch ID is the idempotency key.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "id",
+          "revision",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Client generated id, 8–96 ASCII letters, digits, `_` or `-`."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchStatisticsSegment"
+            },
+            "description": "One to 128 actual playback items."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Expected active process/account generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Expected active account ID."
+          },
+          "revision": {
+            "type": "string",
+            "description": "Reset revision observed before collecting this batch."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsBucket": {
+        "type": "object",
+        "description": "A duration bucket in a snapshot.",
+        "required": [
+          "key",
+          "duration_ms"
+        ],
+        "properties": {
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Accumulated milliseconds.",
+            "minimum": 0
+          },
+          "key": {
+            "type": "string",
+            "description": "Content type or genre name."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsContentType": {
+        "type": "string",
+        "description": "The only content buckets accepted by the local statistics contract.",
+        "enum": [
+          "real",
+          "comic",
+          "ai",
+          "unknown"
+        ]
+      },
+      "WatchStatisticsDay": {
+        "type": "object",
+        "description": "One daily total, retained for at most 366 days.",
+        "required": [
+          "day",
+          "duration_ms",
+          "content_types",
+          "genres"
+        ],
+        "properties": {
+          "content_types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchStatisticsBucket"
+            },
+            "description": "Type buckets for the day."
+          },
+          "day": {
+            "type": "string",
+            "description": "Local civil date."
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total actual playback milliseconds for the day.",
+            "minimum": 0
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchStatisticsBucket"
+            },
+            "description": "Genre buckets for the day."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsParams": {
+        "type": "object",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "day"
+        ],
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "owner_epoch": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WatchStatisticsSnapshot"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WatchStatisticsScope": {
+        "type": "object",
+        "description": "Current owner scope.  AccountService validates that the ID and epoch belong to\nthe active account before invoking this storage service.",
+        "required": [
+          "owner_id",
+          "owner_epoch"
+        ],
+        "properties": {
+          "owner_epoch": {
+            "type": "string",
+            "description": "Current process/account generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Expected active account ID; empty identifies the guest scope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsSegment": {
+        "type": "object",
+        "description": "One actual advancing playback segment.  It contains no content identity.",
+        "required": [
+          "day",
+          "ms",
+          "type"
+        ],
+        "properties": {
+          "day": {
+            "type": "string",
+            "description": "Local civil date in `YYYY-MM-DD` form."
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One bounded primary genre.  Missing classification is stored as `unknown`."
+          },
+          "ms": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Milliseconds during which media time actually advanced in the foreground.",
+            "minimum": 0
+          },
+          "type": {
+            "$ref": "#/components/schemas/WatchStatisticsContentType",
+            "description": "Coarse content bucket; unavailable classification is `unknown`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WatchStatisticsSnapshot": {
+        "type": "object",
+        "description": "Authoritative local statistics for one already validated owner scope.",
+        "required": [
+          "version",
+          "since",
+          "reset_at_ms",
+          "revision",
+          "days"
+        ],
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchStatisticsDay"
+            },
+            "description": "Daily totals, newest first."
+          },
+          "reset_at_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix milliseconds of the last reset."
+          },
+          "revision": {
+            "type": "string",
+            "description": "Random reset fence."
+          },
+          "since": {
+            "type": "string",
+            "description": "Oldest retained day or reset start day."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "DTO version.",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
       }
     }
   }

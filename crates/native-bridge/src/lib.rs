@@ -71,8 +71,9 @@ impl NativeSession {
     }
 
     /// Start a bounded business call. A null body selects a read, a JSON string a mutation.
-    pub fn start(&self, path: String, body: Option<String>) -> NativeCall {
-        self.session.start(&path, body.as_deref())
+    pub fn start(&self, path: String, body: Option<String>, method: Option<String>) -> NativeCall {
+        self.session
+            .start_with_method(&path, body.as_deref(), method.as_deref())
     }
 
     /// Stop pending work and media access. Calling this repeatedly is harmless.
@@ -221,8 +222,17 @@ impl Session {
         });
         Ok(session)
     }
+    #[cfg(test)]
     fn start(self: &Arc<Self>, path: &str, body: Option<&str>) -> NativeCall {
-        let request = match Request::parse(path, body) {
+        self.start_with_method(path, body, None)
+    }
+    fn start_with_method(
+        self: &Arc<Self>,
+        path: &str,
+        body: Option<&str>,
+        method: Option<&str>,
+    ) -> NativeCall {
+        let request = match Request::parse_with_method(path, body, method) {
             Ok(request) => request,
             Err(reply) => {
                 return NativeCall {

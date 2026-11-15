@@ -6,6 +6,7 @@ pub mod library;
 pub mod media;
 pub mod playback;
 pub mod radar;
+pub mod watch_statistics;
 
 use serde::Serialize;
 use utoipa::ToSchema;

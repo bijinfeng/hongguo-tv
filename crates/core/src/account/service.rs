@@ -11,6 +11,10 @@ use crate::library::{
     HistoryChange, Library, LibraryError, LibraryOperation, LibraryOperationIdentity,
     LibraryOperationOutcome, LibraryStore, LibraryWriteSession, LibraryWriteSessionRequest,
 };
+use crate::watch_statistics::{
+    WatchStatisticsAppendResult, WatchStatisticsBatch, WatchStatisticsError, WatchStatisticsScope,
+    WatchStatisticsService, WatchStatisticsSnapshot,
+};
 use ring::rand::{SecureRandom, SystemRandom};
 use std::{
     collections::HashMap,
@@ -40,6 +44,7 @@ pub struct AccountService {
     state: Arc<Mutex<State>>,
     storage: SessionStore,
     directory: PathBuf,
+    statistics: WatchStatisticsService,
     sync: Arc<sync::SyncRuntime>,
     online: Arc<online::OnlineRuntime>,
 }
@@ -160,6 +165,9 @@ impl AccountService {
     /// Open only this application's explicit data directory; never imports legacy credentials.
     pub async fn open(directory: &Path, guest: LibraryStore) -> Result<Self, AccountError> {
         let (storage, saved, device) = SessionStore::open(directory).await?;
+        let statistics = WatchStatisticsService::open(directory.join("watch-statistics.sqlite3"))
+            .await
+            .map_err(|_| AccountError::Storage)?;
         if guest
             .snapshot()
             .await
@@ -203,9 +211,79 @@ impl AccountService {
             })),
             storage,
             directory: directory.to_owned(),
+            statistics,
             sync: Arc::new(sync::SyncRuntime::default()),
             online: Arc::new(online::OnlineRuntime::default()),
         })
+    }
+
+    /// Read statistics only for the active owner and epoch. The scope lock is held
+    /// through the storage operation so an owner transition cannot overtake it.
+    pub async fn watch_statistics_snapshot(
+        &self,
+        owner_id: &str,
+        owner_epoch: &str,
+        as_of_day: &str,
+    ) -> Result<WatchStatisticsSnapshot, WatchStatisticsError> {
+        let _state = self.state.lock().await;
+        _state
+            .check_scope(owner_id, owner_epoch)
+            .map_err(|_| WatchStatisticsError::OwnerChanged)?;
+        self.statistics
+            .snapshot(
+                &WatchStatisticsScope {
+                    owner_id: owner_id.to_owned(),
+                    owner_epoch: owner_epoch.to_owned(),
+                },
+                as_of_day,
+            )
+            .await
+    }
+
+    /// Append a bounded statistics batch for the active owner and epoch.
+    pub async fn append_watch_statistics(
+        &self,
+        owner_id: &str,
+        owner_epoch: &str,
+        as_of_day: &str,
+        batch: WatchStatisticsBatch,
+    ) -> Result<WatchStatisticsAppendResult, WatchStatisticsError> {
+        let _state = self.state.lock().await;
+        _state
+            .check_scope(owner_id, owner_epoch)
+            .map_err(|_| WatchStatisticsError::OwnerChanged)?;
+        self.statistics
+            .append(
+                &WatchStatisticsScope {
+                    owner_id: owner_id.to_owned(),
+                    owner_epoch: owner_epoch.to_owned(),
+                },
+                as_of_day,
+                batch,
+            )
+            .await
+    }
+
+    /// Reset only the active owner's statistics; history and account data remain intact.
+    pub async fn reset_watch_statistics(
+        &self,
+        owner_id: &str,
+        owner_epoch: &str,
+        as_of_day: &str,
+    ) -> Result<WatchStatisticsSnapshot, WatchStatisticsError> {
+        let _state = self.state.lock().await;
+        _state
+            .check_scope(owner_id, owner_epoch)
+            .map_err(|_| WatchStatisticsError::OwnerChanged)?;
+        self.statistics
+            .reset(
+                &WatchStatisticsScope {
+                    owner_id: owner_id.to_owned(),
+                    owner_epoch: owner_epoch.to_owned(),
+                },
+                as_of_day,
+            )
+            .await
     }
 
     /// Current local session; this does not claim that a cloud session is still valid.

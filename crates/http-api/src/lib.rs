@@ -5,6 +5,7 @@ mod library;
 mod playback;
 mod radar;
 mod search_history;
+mod watch_statistics;
 
 use axum::{
     Json, Router,
@@ -314,6 +315,12 @@ pub fn router_with_account(
         )
         .route("/api/v1/account", get(account::read_account))
         .route(
+            "/api/v1/watch-statistics",
+            get(watch_statistics::get)
+                .post(watch_statistics::append)
+                .delete(watch_statistics::reset),
+        )
+        .route(
             "/api/v1/follow",
             get(account::read_follow).post(account::set_follow),
         )
@@ -388,7 +395,10 @@ pub fn router_with_account(
         playback::info,
         playback::release,
         playback::media,
-        playback::head_media
+        playback::head_media,
+        watch_statistics::get,
+        watch_statistics::append,
+        watch_statistics::reset
     ),
     components(schemas(
         StatusResponse,
@@ -505,7 +515,18 @@ pub fn router_with_account(
         hongguo_core::library::LibraryChange,
         hongguo_core::library::LibraryKind,
         hongguo_core::library::FavoriteEntry,
-        hongguo_core::library::Progress
+        hongguo_core::library::Progress,
+        hongguo_core::watch_statistics::WatchStatisticsContentType,
+        hongguo_core::watch_statistics::WatchStatisticsSegment,
+        hongguo_core::watch_statistics::WatchStatisticsScope,
+        hongguo_core::watch_statistics::WatchStatisticsBatch,
+        hongguo_core::watch_statistics::WatchStatisticsBucket,
+        hongguo_core::watch_statistics::WatchStatisticsDay,
+        hongguo_core::watch_statistics::WatchStatisticsSnapshot,
+        hongguo_core::watch_statistics::WatchStatisticsAppendResult,
+        watch_statistics::WatchStatisticsParams,
+        watch_statistics::WatchStatisticsResponse,
+        watch_statistics::WatchStatisticsAppendResponse
     ))
 )]
 struct ApiDoc;

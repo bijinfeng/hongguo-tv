@@ -37,6 +37,7 @@ import { createCalendar } from './calendar';
 import { createRankings } from './rankings';
 import { createRadar } from './radar';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
+import { createWatchStatisticsState } from './watch-statistics-state';
 
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
@@ -208,6 +209,7 @@ export function createStore(
       throw cause;
     }
   });
+  const watchStatistics = createWatchStatisticsState(() => account());
   const publishAccount = (next: Account) => {
     accountRevision++;
     latestAccount = next;
@@ -597,6 +599,7 @@ export function createStore(
     results,
     library,
     account,
+    watchStatistics,
     accountCommand,
     async importGuestHistory(): Promise<GuestHistoryImportResult | undefined> {
       const result = await accountCommandResult(

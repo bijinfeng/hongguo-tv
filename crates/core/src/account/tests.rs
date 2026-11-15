@@ -3,6 +3,10 @@ use super::*;
 use crate::{
     catalog::Drama,
     library::{HistoryKind, LibraryOperationOutcome, Progress},
+    watch_statistics::{
+        WatchStatisticsBatch, WatchStatisticsContentType, WatchStatisticsError,
+        WatchStatisticsSegment,
+    },
 };
 use rusqlite::Connection;
 use std::{
@@ -99,6 +103,25 @@ fn identity(session: &LibraryWriteSession, sequence: u64) -> LibraryOperationIde
         session_id: session.session_id.clone(),
         operation_id: sequence.to_string(),
     }
+}
+
+fn current_day() -> String {
+    let days = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
+        / 86_400;
+    let z = days + 719_468;
+    let era = (if z >= 0 { z } else { z - 146_096 }) / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    let year = year + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
 }
 
 async fn session(service: &AccountService, owner: &str) -> LibraryWriteSession {
@@ -437,6 +460,54 @@ async fn owner_switches_preserve_separate_libraries_and_expire_prior_generations
     );
     assert_eq!(retained_a.snapshot().await.unwrap().entries.len(), 2);
     assert!(persisted_payload(&tmp.session_db()).is_none());
+}
+
+#[tokio::test]
+async fn watch_statistics_rejects_an_old_epoch_after_returning_to_the_same_account() {
+    let tmp = Temp::new();
+    let service = tmp.open().await;
+    switch_to(&service, "1").await.unwrap();
+    let old = service.snapshot().await;
+    let day = current_day();
+
+    let initial = service
+        .watch_statistics_snapshot(&old.owner_id, &old.owner_epoch, &day)
+        .await
+        .unwrap();
+    let batch = WatchStatisticsBatch {
+        owner_id: old.owner_id.clone(),
+        owner_epoch: old.owner_epoch.clone(),
+        id: "account-001".into(),
+        revision: initial.revision,
+        items: vec![WatchStatisticsSegment {
+            day: day.clone(),
+            ms: 1_000,
+            kind: WatchStatisticsContentType::Real,
+            genre: Some("都市".into()),
+        }],
+    };
+    service
+        .append_watch_statistics(&old.owner_id, &old.owner_epoch, &day, batch)
+        .await
+        .unwrap();
+
+    switch_to(&service, "2").await.unwrap();
+    switch_to(&service, "1").await.unwrap();
+    let current = service.snapshot().await;
+    assert_eq!(current.owner_id, old.owner_id);
+    assert_ne!(current.owner_epoch, old.owner_epoch);
+    assert_eq!(
+        service
+            .watch_statistics_snapshot(&old.owner_id, &old.owner_epoch, &day)
+            .await
+            .unwrap_err(),
+        WatchStatisticsError::OwnerChanged
+    );
+    let current_stats = service
+        .watch_statistics_snapshot(&current.owner_id, &current.owner_epoch, &day)
+        .await
+        .unwrap();
+    assert_eq!(current_stats.days[0].duration_ms, 1_000);
 }
 
 #[tokio::test]

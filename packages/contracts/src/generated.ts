@@ -420,6 +420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/watch-statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_watch_statistics"];
+        put?: never;
+        post: operations["append_watch_statistics"];
+        delete: operations["reset_watch_statistics"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -1838,6 +1854,116 @@ export interface components {
             data: components["schemas"]["SearchSuggestions"];
             /** @description Always true. */
             ok: boolean;
+        };
+        WatchStatisticsAppendResponse: {
+            data: components["schemas"]["WatchStatisticsAppendResult"];
+            ok: boolean;
+        };
+        /**
+         * @description Result of appending a batch.  A duplicate returns `applied=false` and the same
+         *     authoritative snapshot, so a lost response can be recovered with the same ID.
+         */
+        WatchStatisticsAppendResult: {
+            /** @description Whether this request added the batch. */
+            applied: boolean;
+            /** @description Idempotency ID echoed from the request. */
+            id: string;
+            /** @description Authoritative post-append snapshot. */
+            snapshot: components["schemas"]["WatchStatisticsSnapshot"];
+        };
+        /** @description A retriable bounded batch.  The batch ID is the idempotency key. */
+        WatchStatisticsBatch: {
+            /** @description Client generated id, 8–96 ASCII letters, digits, `_` or `-`. */
+            id: string;
+            /** @description One to 128 actual playback items. */
+            items: components["schemas"]["WatchStatisticsSegment"][];
+            /** @description Expected active process/account generation. */
+            owner_epoch: string;
+            /** @description Expected active account ID. */
+            owner_id: string;
+            /** @description Reset revision observed before collecting this batch. */
+            revision: string;
+        };
+        /** @description A duration bucket in a snapshot. */
+        WatchStatisticsBucket: {
+            /**
+             * Format: int64
+             * @description Accumulated milliseconds.
+             */
+            duration_ms: number;
+            /** @description Content type or genre name. */
+            key: string;
+        };
+        /**
+         * @description The only content buckets accepted by the local statistics contract.
+         * @enum {string}
+         */
+        WatchStatisticsContentType: "real" | "comic" | "ai" | "unknown";
+        /** @description One daily total, retained for at most 366 days. */
+        WatchStatisticsDay: {
+            /** @description Type buckets for the day. */
+            content_types: components["schemas"]["WatchStatisticsBucket"][];
+            /** @description Local civil date. */
+            day: string;
+            /**
+             * Format: int64
+             * @description Total actual playback milliseconds for the day.
+             */
+            duration_ms: number;
+            /** @description Genre buckets for the day. */
+            genres: components["schemas"]["WatchStatisticsBucket"][];
+        };
+        WatchStatisticsParams: {
+            day: string;
+            owner_epoch: string;
+            owner_id: string;
+        };
+        WatchStatisticsResponse: {
+            data: components["schemas"]["WatchStatisticsSnapshot"];
+            ok: boolean;
+        };
+        /**
+         * @description Current owner scope.  AccountService validates that the ID and epoch belong to
+         *     the active account before invoking this storage service.
+         */
+        WatchStatisticsScope: {
+            /** @description Current process/account generation. */
+            owner_epoch: string;
+            /** @description Expected active account ID; empty identifies the guest scope. */
+            owner_id: string;
+        };
+        /** @description One actual advancing playback segment.  It contains no content identity. */
+        WatchStatisticsSegment: {
+            /** @description Local civil date in `YYYY-MM-DD` form. */
+            day: string;
+            /** @description One bounded primary genre.  Missing classification is stored as `unknown`. */
+            genre?: string | null;
+            /**
+             * Format: int32
+             * @description Milliseconds during which media time actually advanced in the foreground.
+             */
+            ms: number;
+            /** @description Coarse content bucket; unavailable classification is `unknown`. */
+            type: components["schemas"]["WatchStatisticsContentType"];
+        };
+        /** @description Authoritative local statistics for one already validated owner scope. */
+        WatchStatisticsSnapshot: {
+            /** @description Daily totals, newest first. */
+            days: components["schemas"]["WatchStatisticsDay"][];
+            /**
+             * Format: int64
+             * @description Unix milliseconds of the last reset.
+             */
+            reset_at_ms: number;
+            /** @description Random reset fence. */
+            revision: string;
+            /** @description Oldest retained day or reset start day. */
+            since: string;
+            /**
+             * Format: int32
+             * @description DTO version.
+             */
+            version: number;
         };
     };
     responses: never;
@@ -3921,6 +4047,191 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_watch_statistics: {
+        parameters: {
+            query: {
+                owner_id: string;
+                owner_epoch: string;
+                day: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchStatisticsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    append_watch_statistics: {
+        parameters: {
+            query: {
+                owner_id: string;
+                owner_epoch: string;
+                day: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchStatisticsBatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchStatisticsAppendResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reset_watch_statistics: {
+        parameters: {
+            query: {
+                owner_id: string;
+                owner_epoch: string;
+                day: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchStatisticsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

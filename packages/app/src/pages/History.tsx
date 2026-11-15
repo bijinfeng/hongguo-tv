@@ -11,13 +11,16 @@ import {
 } from 'nsh';
 import {
   Button,
+  Badge,
   Checkbox,
   ConfirmDialog,
   Cover,
   Notice,
   Progress,
   ResultCard,
+  Surface,
   Tabs,
+  UiText,
   tvUnit,
 } from '@hongguo/ui';
 import type { FavoriteEntry, Library, LibraryKind } from '@hongguo/core-client';
@@ -185,6 +188,200 @@ export function LibraryStatus(props: {
     </If>
   );
 }
+
+type StatisticsPeriod = 'today' | 'week' | 'month';
+
+const statisticsDayValue = (day: string) => {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date).getTime();
+};
+
+const statisticsToday = () => {
+  const value = new Date();
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+};
+
+const statisticsDuration = (value: number) => {
+  const minutes = Math.max(0, Math.round(value / 60_000));
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} 小时 ${rest} 分钟` : `${hours} 小时`;
+};
+
+export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClose: () => void }) {
+  const period = signal<StatisticsPeriod>('week');
+  const resetOpen = signal(false);
+  const resetBusy = signal(false);
+  const localError = signal('');
+  let closeRef: ViewRef | undefined;
+  const state = () => props.store.watchStatistics;
+  effect(() => {
+    if (props.open) void state().ensure();
+  });
+  const days = () => {
+    const snapshot = state().snapshot();
+    if (!snapshot) return [];
+    const now = statisticsToday();
+    const length = period() === 'today' ? 1 : period() === 'week' ? 7 : 31;
+    const cutoff = now - (length - 1) * 86_400_000;
+    return snapshot.days.filter((day) => statisticsDayValue(day.day) >= cutoff);
+  };
+  const total = () => days().reduce((sum, day) => sum + day.duration_ms, 0);
+  const buckets = (key: 'content_types' | 'genres') => {
+    const values = new Map<string, number>();
+    for (const day of days())
+      for (const bucket of day[key])
+        values.set(bucket.key, (values.get(bucket.key) ?? 0) + bucket.duration_ms);
+    return [...values.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  };
+  const bars = () => {
+    const end = statisticsToday();
+    const values = new Map(days().map((day) => [day.day, day.duration_ms]));
+    return Array.from({ length: 7 }, (_, index) => {
+      const value = new Date(end - (6 - index) * 86_400_000);
+      const day = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+      return { day, value: values.get(day) ?? 0 };
+    });
+  };
+  const maxBar = () => Math.max(1, ...bars().map((bar) => bar.value));
+  const reset = () => {
+    if (resetBusy()) return;
+    resetBusy.set(true);
+    localError.set('');
+    void state()
+      .reset()
+      .then(() => resetOpen.set(false))
+      .catch((cause) => localError.set(errorMessage(cause, '统计重置失败，请重试')))
+      .finally(() => resetBusy.set(false));
+  };
+  return (
+    <If when={props.open}>
+      <Surface testID="watch-statistics-panel" variant="page" class="gap-4">
+        <View class="flex-row items-center justify-between gap-3">
+          <UiText role="section">观看统计</UiText>
+          <View class="flex-row gap-2">
+            <Button
+              testID="watch-statistics-reset"
+              label="重置统计"
+              disabled={state().loading() || !state().snapshot()}
+              onPress={() => resetOpen.set(true)}
+            />
+            <Button
+              testID="watch-statistics-close"
+              label="收起"
+              buttonRef={(ref) => (closeRef = ref)}
+              onPress={props.onClose}
+            />
+          </View>
+        </View>
+        <If when={state().loading()}>
+          <Notice message="正在读取观看统计…" />
+        </If>
+        <If when={state().error() || localError()}>
+          <Notice
+            error
+            message={state().error() || localError()}
+            retry={() => void state().refetch()}
+          />
+        </If>
+        <If when={!state().loading() && !state().error() && !state().snapshot()}>
+          <Notice message="暂时没有可显示的观看统计。真正播放并提交后会出现在这里。" />
+        </If>
+        <If when={!!state().snapshot() && !state().loading()}>
+          <Tabs
+            label="统计周期"
+            testID="watch-statistics-period"
+            value={period()}
+            options={[
+              { value: 'today', label: '今天' },
+              { value: 'week', label: '近 7 天' },
+              { value: 'month', label: '近 31 天' },
+            ]}
+            onChange={(event) => period.set(event.value as StatisticsPeriod)}
+          />
+          <View class="flex-row flex-wrap gap-5">
+            <View class="min-w-[160px] gap-1">
+              <UiText role="meta" tone="muted">
+                累计观看
+              </UiText>
+              <UiText role="numeric">{statisticsDuration(total())}</UiText>
+            </View>
+            <View class="min-w-[160px] gap-1">
+              <UiText role="meta" tone="muted">
+                统计起点
+              </UiText>
+              <UiText role="numeric">{state().snapshot()?.since ?? '—'}</UiText>
+            </View>
+          </View>
+          <View class="gap-2">
+            <UiText role="meta" tone="muted">
+              最近 7 天
+            </UiText>
+            <View
+              class="flex-row items-end gap-2"
+              style={{ height: props.store.target === 'tv' ? tvUnit(112) : 88 }}
+            >
+              <Each of={bars()} key={(bar) => bar.day}>
+                {(bar) => (
+                  <View class="flex-1 items-center gap-1">
+                    <View
+                      class="w-full rounded-(--radius) bg-accent"
+                      style={{
+                        height: Math.max(
+                          4,
+                          (bar().value / maxBar()) *
+                            (props.store.target === 'tv' ? tvUnit(84) : 64),
+                        ),
+                      }}
+                      accessible
+                      accessibilityLabel={`${bar().day} ${statisticsDuration(bar().value)}`}
+                    />
+                    <UiText role="meta" tone="muted">
+                      {bar().day.slice(5)}
+                    </UiText>
+                  </View>
+                )}
+              </Each>
+            </View>
+          </View>
+          <View class="flex-row flex-wrap gap-4">
+            <View class="flex-1 min-w-[220px] gap-2">
+              <UiText role="meta" tone="muted">
+                内容类型
+              </UiText>
+              <Each of={buckets('content_types')} key={(entry) => entry[0]}>
+                {(entry) => <Badge label={`${entry()[0]} · ${statisticsDuration(entry()[1])}`} />}
+              </Each>
+            </View>
+            <View class="flex-1 min-w-[220px] gap-2">
+              <UiText role="meta" tone="muted">
+                题材
+              </UiText>
+              <Each of={buckets('genres')} key={(entry) => entry[0]}>
+                {(entry) => <Badge label={`${entry()[0]} · ${statisticsDuration(entry()[1])}`} />}
+              </Each>
+            </View>
+          </View>
+        </If>
+      </Surface>
+      <ConfirmDialog
+        testID="watch-statistics-reset-confirm"
+        open={resetOpen()}
+        title="重置观看统计？"
+        description="仅重置当前设备当前用户的观看统计，观看记录和播放进度不会删除。"
+        destructive
+        pending={resetBusy()}
+        onOpenChange={(event) => {
+          if (!event.open && !resetBusy()) resetOpen.set(false);
+        }}
+        returnFocus={() => closeRef?.focus()}
+        onConfirm={reset}
+        confirmLabel="重置统计"
+      />
+    </If>
+  );
+}
 type Confirmation = {
   kind: 'single' | 'selected' | 'clear';
   ids: string[];
@@ -198,6 +395,7 @@ type Confirmation = {
 
 export function History(props: { store: Store }) {
   const managing = signal(false);
+  const statisticsOpen = signal(false);
   const selected = signal<ReadonlySet<string>>(new Set());
   const confirmation = signal<Confirmation | undefined>(undefined);
   const localError = signal('');
@@ -593,13 +791,23 @@ export function History(props: { store: Store }) {
         >
           我的片库
         </Text>
-        <Button
-          testID="history-manage"
-          label={managing() ? '完成' : '管理'}
-          buttonRef={(ref) => register('manage', ref)}
-          disabled={!enabled() || (!managing() && !entries().length)}
-          onPress={() => void toggleManaging()}
-        />
+        <View class="flex-row flex-wrap gap-2">
+          <Button
+            testID="history-statistics"
+            label={statisticsOpen() ? '收起统计' : '观看统计'}
+            onPress={() => {
+              props.store.noteFocusIntent();
+              statisticsOpen.update((value) => !value);
+            }}
+          />
+          <Button
+            testID="history-manage"
+            label={managing() ? '完成' : '管理'}
+            buttonRef={(ref) => register('manage', ref)}
+            disabled={!enabled() || (!managing() && !entries().length)}
+            onPress={() => void toggleManaging()}
+          />
+        </View>
       </View>
       <Tabs
         label="片库"
@@ -614,6 +822,11 @@ export function History(props: { store: Store }) {
           props.store.noteFocusIntent();
           props.store.libraryKind.set(event.value === 'favorites' ? 'favorites' : 'history');
         }}
+      />
+      <WatchStatisticsPanel
+        store={props.store}
+        open={statisticsOpen()}
+        onClose={() => statisticsOpen.set(false)}
       />
       <LibrarySyncNotice store={props.store} active={present()} testID="history-library-sync" />
       <If when={managing()}>
