@@ -9,7 +9,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use hongguo_core::library::{
-    HistoryChange, Library, LibraryError, LibraryOperation, LibraryOperationIdentity,
+    Library, LibraryChange, LibraryError, LibraryOperation, LibraryOperationIdentity,
     LibraryWriteSession, LibraryWriteSessionRequest,
 };
 use serde::{Deserialize, Serialize};
@@ -76,17 +76,20 @@ pub(crate) async fn get(
     .await;
     response(result)
 }
-#[utoipa::path(post, path = "/api/v1/library", request_body = HistoryChange,
+#[utoipa::path(post, path = "/api/v1/library", request_body = LibraryChange,
     responses((status = 200, body = LibraryResponse), (status = 400, body = ApiError),
         (status = 403, body = ApiError), (status = 409, body = ApiError),
         (status = 413, body = ApiError), (status = 415, body = ApiError),
         (status = 500, body = ApiError), (status = 501, body = ApiError)))]
 pub(crate) async fn change(
     State(state): State<ApiState>,
-    payload: Result<Json<HistoryChange>, JsonRejection>,
+    payload: Result<Json<LibraryChange>, JsonRejection>,
 ) -> Response {
     let result = async {
         let Json(change) = payload.map_err(|_| LibraryError::InvalidInput)?;
+        if !change.is_history() {
+            return Err(LibraryError::InvalidInput);
+        }
         if let Some(account) = state.account {
             return account.apply_history(change).await.map(Some);
         }
@@ -124,7 +127,7 @@ pub(crate) async fn session(
     )
 }
 
-#[utoipa::path(post, path = "/api/v1/library/operation", request_body = HistoryChange,
+#[utoipa::path(post, path = "/api/v1/library/operation", request_body = LibraryChange,
     params(("session_id" = String, Query, description = "Server-issued write session"),
         ("operation_id" = String, Query, description = "Consecutive canonical decimal identity, starting at 1")),
     responses((status = 200, body = LibraryOperationResponse), (status = 400, body = ApiError),
@@ -134,7 +137,7 @@ pub(crate) async fn session(
 pub(crate) async fn operation(
     State(state): State<ApiState>,
     params: Result<Query<LibraryOperationIdentity>, QueryRejection>,
-    payload: Result<Json<HistoryChange>, JsonRejection>,
+    payload: Result<Json<LibraryChange>, JsonRejection>,
 ) -> Response {
     response(
         async {
@@ -169,7 +172,9 @@ fn response<T: Serialize>(result: Result<Option<T>, LibraryError>) -> Response {
         Err(error) => {
             let status = match error {
                 LibraryError::InvalidInput => StatusCode::BAD_REQUEST,
+                LibraryError::NotImplemented => StatusCode::NOT_IMPLEMENTED,
                 LibraryError::OwnerChanged
+                | LibraryError::SyncQueueFull
                 | LibraryError::SessionExpired
                 | LibraryError::OperationConflict
                 | LibraryError::OperationSequence

@@ -1,13 +1,18 @@
 //! Versioned owner-scoped history. Mutations publish only after a durable transaction commits.
+mod favorites;
+mod guest_import;
+mod migration;
 mod operations;
 mod search;
 mod store;
+mod sync;
 pub use operations::{
     LibraryOperation, LibraryOperationIdentity, LibraryOperationOutcome, LibraryWriteSession,
     LibraryWriteSessionRequest,
 };
 pub use search::{SearchHistory, SearchHistoryChange, SearchHistoryError, normalize_keyword};
 pub use store::LibraryStore;
+pub(crate) use sync::{PendingChange, RemoteFavorite, RemoteHistory, RemoteLibrary, SyncMetadata};
 
 use crate::catalog::Drama;
 use serde::{Deserialize, Serialize};
@@ -45,11 +50,25 @@ pub struct Entry {
     pub last_played_at: Option<i64>,
 }
 
+/// Favorite membership without invented viewing progress.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FavoriteEntry {
+    /// Compact summary without episode arrays.
+    pub drama: Drama,
+    /// Original favorite time in Unix milliseconds.
+    pub favorite_at: i64,
+}
+
 /// Snapshot of the owner fixed when the local library was opened.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct Library {
     /// Most recently viewed first.
     pub entries: Vec<Entry>,
+    /// Independent favorite membership, empty when none is stored.
+    #[serde(default)]
+    #[schema(required = true)]
+    pub favorites: Vec<FavoriteEntry>,
     /// Empty for guests; optional for compatibility with existing clients.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -80,18 +99,23 @@ pub struct Progress {
     pub completed: bool,
 }
 
-/// The only migrated record category.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
+/// Independent local library categories.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
-pub enum HistoryKind {
+pub enum LibraryKind {
     /// Watch history belonging to the opened library owner.
     History,
+    /// Favorites, independent of viewing progress.
+    Favorites,
 }
 
-/// Strict, explicit history mutations; favorites and likes remain unavailable.
+/// Compatibility name for the same library category contract.
+pub type HistoryKind = LibraryKind;
+
+/// Strict mutations shared by registered writes; unknown fields are rejected.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "action", rename_all = "lowercase", deny_unknown_fields)]
-pub enum HistoryChange {
+pub enum LibraryChange {
     /// Save a playback checkpoint.
     Progress(Box<Progress>),
     /// Remove one history item; repeating it is harmless.
@@ -99,25 +123,57 @@ pub enum HistoryChange {
         /// Expected owner, empty for guests.
         #[serde(default)]
         owner_id: Option<String>,
-        /// Only history is migrated.
-        kind: HistoryKind,
+        /// Category whose one item is removed.
+        kind: LibraryKind,
         /// Exact series ID.
         series_id: String,
     },
-    /// Clear watch history for the expected owner.
+    /// Hide one category on this device without bulk remote deletion.
     Clear {
         /// Expected owner, empty for guests.
         #[serde(default)]
         owner_id: Option<String>,
-        /// Only history is migrated.
-        kind: HistoryKind,
+        /// Category to clear locally.
+        kind: LibraryKind,
+    },
+    /// Set exact favorite membership; does not create history.
+    Favorite {
+        /// Expected owner, absent or empty only for guests.
+        #[serde(default)]
+        owner_id: Option<String>,
+        /// Summary for this exact series.
+        drama: Drama,
+        /// Desired membership; never an implicit toggle.
+        value: bool,
     },
 }
-impl HistoryChange {
+
+/// Compatibility name, not a second mutation model.
+pub type HistoryChange = LibraryChange;
+
+impl LibraryChange {
+    /// Whether an unregistered compatibility endpoint may accept this history-only mutation.
+    pub fn is_history(&self) -> bool {
+        matches!(
+            self,
+            Self::Progress(_)
+                | Self::Remove {
+                    kind: LibraryKind::History,
+                    ..
+                }
+                | Self::Clear {
+                    kind: LibraryKind::History,
+                    ..
+                }
+        )
+    }
+
     fn validate(&self, expected_owner: &str) -> Result<(), LibraryError> {
         let owner = match self {
             Self::Progress(p) => &p.owner_id,
-            Self::Remove { owner_id, .. } | Self::Clear { owner_id, .. } => owner_id,
+            Self::Remove { owner_id, .. }
+            | Self::Clear { owner_id, .. }
+            | Self::Favorite { owner_id, .. } => owner_id,
         };
         if owner.as_deref().unwrap_or_default() != expected_owner {
             return Err(LibraryError::OwnerChanged);
@@ -127,27 +183,15 @@ impl HistoryChange {
             Self::Remove { series_id, .. } if !valid_id(series_id) => {
                 Err(LibraryError::InvalidInput)
             }
+            Self::Favorite { drama, .. } => validate_drama(drama),
             _ => Ok(()),
         }
     }
 }
 impl Progress {
     fn validate(&self) -> Result<(), LibraryError> {
-        if !valid_id(&self.drama.series_id)
-            || self.drama.title.trim().is_empty()
-            || self.drama.title.chars().count() > 256
-            || self.drama.cover.len() > 4096
-            || self
-                .drama
-                .cover_fallback
-                .as_ref()
-                .is_some_and(|s| s.len() > 4096)
-            || self
-                .drama
-                .content_type
-                .as_ref()
-                .is_some_and(|s| s.len() > 32)
-            || !(1..=10000).contains(&self.episode)
+        validate_drama(&self.drama)?;
+        if !(1..=10000).contains(&self.episode)
             || !valid_id(&self.video_id)
             || !valid_time(self.position)
             || !valid_time(self.duration)
@@ -156,17 +200,9 @@ impl Progress {
         }
         Ok(())
     }
-    fn into_entry(mut self, stamp: i64) -> Entry {
-        self.drama.episodes = None;
-        self.drama.intro = self.drama.intro.chars().take(1000).collect();
-        self.drama.tags = self.drama.tags.map(|tags| {
-            tags.into_iter()
-                .take(8)
-                .map(|s| s.chars().take(80).collect())
-                .collect()
-        });
+    fn into_entry(self, stamp: i64) -> Entry {
         Entry {
-            drama: self.drama,
+            drama: compact_drama(self.drama),
             episode: Some(self.episode),
             video_id: Some(self.video_id),
             position: Some(self.position),
@@ -175,6 +211,32 @@ impl Progress {
             last_played_at: Some(stamp),
         }
     }
+}
+pub(super) fn compact_drama(mut drama: Drama) -> Drama {
+    drama.episodes = None;
+    drama.intro = drama.intro.chars().take(1000).collect();
+    drama.tags = drama.tags.map(|tags| {
+        tags.into_iter()
+            .take(8)
+            .map(|tag| tag.chars().take(80).collect())
+            .collect()
+    });
+    drama
+}
+fn validate_drama(drama: &Drama) -> Result<(), LibraryError> {
+    if !valid_id(&drama.series_id)
+        || drama.title.trim().is_empty()
+        || drama.title.chars().count() > 256
+        || drama.cover.len() > 4096
+        || drama
+            .cover_fallback
+            .as_ref()
+            .is_some_and(|s| s.len() > 4096)
+        || drama.content_type.as_ref().is_some_and(|s| s.len() > 32)
+    {
+        return Err(LibraryError::InvalidInput);
+    }
+    Ok(())
 }
 fn valid_id(s: &str) -> bool {
     !s.is_empty()
@@ -197,6 +259,10 @@ fn seconds<'de, D: serde::Deserializer<'de>>(de: D) -> Result<f64, D::Error> {
 /// Sanitized failures; database paths, SQL and stored data never cross the transport.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LibraryError {
+    /// Contract exists but its durable behavior has not been connected.
+    NotImplemented,
+    /// A new operation cannot fit in the bounded durable cloud queue.
+    SyncQueueFull,
     /// Invalid history mutation.
     InvalidInput,
     /// A request or database refers to another owner.
@@ -218,6 +284,8 @@ impl LibraryError {
     /// Stable transport-independent error code.
     pub fn code(self) -> &'static str {
         match self {
+            Self::NotImplemented => "LIBRARY_NOT_IMPLEMENTED",
+            Self::SyncQueueFull => "LIBRARY_SYNC_QUEUE_FULL",
             Self::InvalidInput => "LIBRARY_REQUEST_INVALID",
             Self::OwnerChanged => "LIBRARY_OWNER_CHANGED",
             Self::InvalidDatabase => "LIBRARY_DATABASE_INVALID",
@@ -232,6 +300,8 @@ impl LibraryError {
 impl fmt::Display for LibraryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::NotImplemented => "此记录操作尚未开放",
+            Self::SyncQueueFull => "待同步记录已满，请先同步后重试",
             Self::InvalidInput => "观看记录参数无效",
             Self::OwnerChanged => "记录所属账号已变化，请重新加载",
             Self::InvalidDatabase => "记录数据库不兼容或已损坏，请保留数据并检查版本或备份",

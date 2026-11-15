@@ -179,10 +179,17 @@ function SaveFixture() {
           operation_id: new URL(path, 'http://fixture').searchParams.get('operation_id'),
           outcome: fail
             ? { status: 'failed', code: 'LIBRARY_STORAGE_UNAVAILABLE', error: '合成写入失败' }
-            : { status: 'committed', library: { entries: [], owner_id: '' } },
+            : { status: 'committed', library: { favorites: [], entries: [], owner_id: '' } },
         } as T;
       }
-      return { entries: [], owner_id: '', items: [], logged_in: false } as T;
+      return {
+        favorites: [],
+        entries: [],
+        owner_id: '',
+        items: [],
+        logged_in: false,
+        sync: { state: 'local', pending: 0 },
+      } as T;
     },
   });
   const store = createStore('desktop');

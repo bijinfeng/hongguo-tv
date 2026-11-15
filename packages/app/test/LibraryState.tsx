@@ -11,6 +11,7 @@ export function LibraryStateFixture() {
   const drama = { series_id: '123', title: '状态边界', cover: '', intro: '' };
   let persisted: Library = {
     owner_id: '',
+    favorites: [],
     entries: [
       { drama, episode: 1, video_id: '456', position: 10, duration: 100, last_played_at: 1 },
     ],
@@ -33,7 +34,13 @@ export function LibraryStateFixture() {
         return Promise.resolve(receipts.get(path));
       }
       if (path !== '/api/v1/library' && !operation)
-        return Promise.resolve({ items: [], entries: [], logged_in: false });
+        return Promise.resolve({
+          items: [],
+          favorites: [],
+          entries: [],
+          logged_in: false,
+          sync: { state: 'local', pending: 0 },
+        });
       if (!body) {
         const snapshot = persisted;
         const number = ++readCount;
@@ -47,6 +54,8 @@ export function LibraryStateFixture() {
         });
       }
       const change = body as HistoryChange;
+      if (change.action !== 'progress' && change.action !== 'remove' && change.action !== 'clear')
+        return Promise.reject(new Error('Unexpected fixture history action'));
       changes.update((items) => [
         ...items,
         change.action === 'progress'
@@ -77,6 +86,7 @@ export function LibraryStateFixture() {
           if (change.action === 'progress')
             persisted = {
               owner_id: '',
+              favorites: [],
               entries: [
                 { ...change, drama: change.drama, last_played_at: writeCount + 10 },
                 ...persisted.entries.filter(
@@ -87,6 +97,7 @@ export function LibraryStateFixture() {
           else
             persisted = {
               owner_id: '',
+              favorites: [],
               entries:
                 change.action === 'clear'
                   ? []
@@ -116,6 +127,8 @@ export function LibraryStateFixture() {
     <View class="flex-row gap-3">
       <View class="flex-1">
         <Text>{events().join('|')}</Text>
+        <Text>{`read-count:${events().filter((event) => event.startsWith('read-')).length}`}</Text>
+        <Text>{`write-count:${changes().length}`}</Text>
         <Text>{`changes:${changes().join('|')}`}</Text>
         <Text>{`snapshot:${store.library()?.entries[0]?.position ?? 'none'}`}</Text>
         <Text>{`history:${store.entries()[0]?.position ?? 'none'}`}</Text>
@@ -157,6 +170,7 @@ export function LibraryStateFixture() {
           onPress={() => {
             persisted = {
               owner_id: '',
+              favorites: [],
               entries: ['123', '124', '125', '126'].map((id, index) => ({
                 drama: { ...drama, series_id: id },
                 episode: 1,

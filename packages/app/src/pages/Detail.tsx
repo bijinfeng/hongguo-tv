@@ -6,12 +6,22 @@ import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
 import { DetailExtras } from '../DetailExtras';
+import { createDetailFavorite } from '../detail-favorite';
+import { LibrarySyncNotice } from '../LibrarySyncNotice';
 
 export function Detail(props: { drama: Drama; store: Store; active?: boolean }) {
   const active = () => props.active !== false;
   const seasons = createSeasons(props.store.request, () => props.drama, active);
   const browse = createSeasonDetail(props.store.request, seasons, active);
   const current = () => browse.summary() ?? props.drama;
+  const favorite = createDetailFavorite(
+    props.store,
+    () => {
+      const summary = browse.summary();
+      return summary?.series_id === seasons.selectedId() ? summary : undefined;
+    },
+    () => active() && lifecycle() === 'active',
+  );
   const segment = signal(0);
   const pageSize = props.store.target === 'tv' ? 12 : 24;
   const columns = () => (props.store.target === 'tv' ? 6 : 8);
@@ -102,7 +112,7 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
                 <Text class="text-[32px] font-semibold text-foreground">{current().title}</Text>
                 <Text class="text-base text-muted-foreground">{meta()}</Text>
                 <Text class="text-base text-foreground">{current().intro || '暂无简介'}</Text>
-                <View class="items-start pt-3">
+                <View class="flex-row flex-wrap items-center gap-3 pt-3">
                   <Button
                     testID="detail-start"
                     buttonRef={(ref) => {
@@ -117,6 +127,7 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
                       if (episode) play(episode, startRef);
                     }}
                   />
+                  <FavoriteButton favorite={favorite} />
                 </View>
               </View>
             </View>
@@ -129,21 +140,39 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
             meta={meta()}
             description={current().intro}
           >
-            <Button
-              testID="detail-start"
-              primary
-              icon="play"
-              label={startLabel()}
-              disabled={!startEpisode()}
-              buttonRef={(ref) => {
-                startRef = ref;
-              }}
-              onPress={() => {
-                const episode = startEpisode();
-                if (episode) play(episode, startRef);
-              }}
-            />
+            <View class="flex-row flex-wrap items-center" style={{ gap: tvUnit(16) }}>
+              <Button
+                testID="detail-start"
+                primary
+                icon="play"
+                label={startLabel()}
+                disabled={!startEpisode()}
+                buttonRef={(ref) => {
+                  startRef = ref;
+                }}
+                onPress={() => {
+                  const episode = startEpisode();
+                  if (episode) play(episode, startRef);
+                }}
+              />
+              <FavoriteButton favorite={favorite} />
+            </View>
           </StoryFeature>
+        </If>
+        <LibrarySyncNotice store={props.store} active={active()} testID="detail-library-sync" />
+        <If when={favorite.message()}>
+          <View class="gap-3">
+            <Notice testID="detail-favorite-error" error message={favorite.message() ?? ''} />
+            <If when={favorite.retryable()}>
+              <View class="flex-row">
+                <Button
+                  testID="detail-favorite-retry"
+                  label={favorite.retryLabel()}
+                  onPress={() => void favorite.retry()}
+                />
+              </View>
+            </If>
+          </View>
         </If>
         <If when={browse.loading()}>
           <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
@@ -256,5 +285,19 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
         />
       </View>
     </Scroll>
+  );
+}
+
+function FavoriteButton(props: { favorite: ReturnType<typeof createDetailFavorite> }) {
+  return (
+    <Button
+      testID="detail-favorite"
+      label={props.favorite.selected() ? '已收藏' : '收藏'}
+      icon="bookmark"
+      selected={props.favorite.selected()}
+      pending={props.favorite.pending()}
+      disabled={props.favorite.disabled()}
+      onPress={() => void props.favorite.press()}
+    />
   );
 }

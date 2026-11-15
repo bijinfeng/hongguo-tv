@@ -17,31 +17,37 @@ import {
   Notice,
   Progress,
   ResultCard,
+  Tabs,
   tvUnit,
 } from '@hongguo/ui';
-import type { Library } from '@hongguo/core-client';
+import type { FavoriteEntry, Library, LibraryKind } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { playbackTime } from '../format';
+import { historyProgress, playbackTime } from '../format';
 import { errorMessage } from '../error-messages';
+import { LibrarySyncNotice } from '../LibrarySyncNotice';
 
 type Entry = Library['entries'][number];
-export const historyLabel = (entry: Entry) =>
-  `${entry.drama.title} · 第 ${entry.episode ?? 1} 集 · ${entry.completed ? '本集已看完' : playbackTime(entry.position)}`;
+type LibraryItem = Entry | FavoriteEntry;
+export const historyLabel = (entry: LibraryItem) =>
+  'favorite_at' in entry
+    ? `${entry.drama.title} · 收藏`
+    : `${entry.drama.title}${(entry.episode ?? 0) > 0 ? ` · 第 ${entry.episode} 集` : ''} · ${entry.completed ? '本集已看完' : playbackTime(entry.position)}`;
 export function HistoryItem(props: {
-  entry: Entry;
+  entry: LibraryItem;
   store: Store;
   register?: (id: string, ref?: ViewRef, previous?: ViewRef) => void;
-  restore?: (id: string) => void;
+  open?: (entry: LibraryItem) => void;
   managing?: boolean;
   checked?: boolean;
   disabled?: boolean;
   select?: (id: string, checked: boolean) => void;
-  remove?: (entry: Entry) => void;
+  remove?: (entry: LibraryItem) => void;
   controlRef?: (key: string, ref?: ViewRef, previous?: ViewRef) => void;
 }) {
   let ref: ViewRef | undefined;
   const selectRef = signal<ViewRef | undefined>(undefined);
   const removeRef = signal<ViewRef | undefined>(undefined);
+  const progress = () => ('favorite_at' in props.entry ? undefined : props.entry);
   effect(() => {
     const id = props.entry.drama.series_id;
     if (ref) props.register?.(id, ref);
@@ -68,11 +74,8 @@ export function HistoryItem(props: {
       label={historyLabel(props.entry)}
       selected={false}
       onPress={() => {
-        const drama = props.entry.drama;
-        props.store.open(drama, () => {
-          if (props.restore) props.restore(drama.series_id);
-          else ref?.focus();
-        });
+        if (props.open) props.open(props.entry);
+        else props.store.open(props.entry.drama, () => ref?.focus());
       }}
     >
       <View
@@ -108,28 +111,28 @@ export function HistoryItem(props: {
             onChange={(event) => props.select?.(props.entry.drama.series_id, event.checked)}
           />
         </If>
-        <Text
-          style={props.store.target === 'tv' ? { fontSize: tvUnit(20) } : undefined}
-          class="text-sm text-muted-foreground"
-        >{`第 ${props.entry.episode ?? 1} 集 · 看到 ${playbackTime(props.entry.position)}`}</Text>
-        <If when={props.entry.duration && props.entry.duration > 0}>
-          <View class="max-w-[220px]">
-            <Progress position={props.entry.position ?? 0} duration={props.entry.duration} />
-          </View>
-        </If>
-        <If when={props.entry.completed}>
+        <If when={progress()}>
           <Text
             style={props.store.target === 'tv' ? { fontSize: tvUnit(20) } : undefined}
-            class="text-base text-muted-foreground"
+            class="text-sm text-muted-foreground"
           >
-            本集已看完
+            {historyProgress(progress())}
           </Text>
+        </If>
+        <If when={(progress()?.duration ?? 0) > 0}>
+          <View class="max-w-[220px]">
+            <Progress position={progress()?.position ?? 0} duration={progress()?.duration} />
+          </View>
         </If>
         <If when={props.managing}>
           <View class="flex-row">
             <Button
-              label={`移除${props.entry.drama.title}的观看记录`}
-              displayLabel="移除"
+              label={
+                progress()
+                  ? `移除${props.entry.drama.title}的观看记录`
+                  : `取消收藏${props.entry.drama.title}`
+              }
+              displayLabel={progress() ? '移除' : '取消收藏'}
               testID={`history-remove-${props.entry.drama.series_id}`}
               disabled={props.disabled}
               buttonRef={removeRef.set}
@@ -141,18 +144,22 @@ export function HistoryItem(props: {
     </ResultCard>
   );
 }
-export function LibraryStatus(props: { store: Store; emptyRef?: (ref: ViewRef) => void }) {
+export function LibraryStatus(props: {
+  store: Store;
+  kind?: LibraryKind;
+  emptyRef?: (ref: ViewRef) => void;
+}) {
+  const favorites = () => props.kind === 'favorites';
+  const empty = () =>
+    !(favorites() ? props.store.favorites() : props.store.entries()).length &&
+    props.store.library.state() === 'ready';
   return (
-    <If
-      when={
-        props.store.library.loading() ||
-        props.store.library.error() ||
-        (!props.store.entries().length && props.store.library.state() === 'ready')
-      }
-    >
+    <If when={props.store.library.loading() || props.store.library.error() || empty()}>
       <View class="gap-3">
         <If when={props.store.library.loading()}>
-          <Text class="text-base text-muted-foreground">正在读取观看记录…</Text>
+          <Text class="text-base text-muted-foreground">
+            {favorites() ? '正在读取收藏…' : '正在读取观看记录…'}
+          </Text>
         </If>
         <If when={errorMessage(props.store.library.error(), '记录加载失败')}>
           <Notice
@@ -161,8 +168,8 @@ export function LibraryStatus(props: { store: Store; emptyRef?: (ref: ViewRef) =
             retry={props.store.library.refetch}
           />
         </If>
-        <If when={!props.store.entries().length && props.store.library.state() === 'ready'}>
-          <Notice message="看过的短剧会保存在这里。" />
+        <If when={empty()}>
+          <Notice message={favorites() ? '收藏的短剧会保存在这里。' : '看过的短剧会保存在这里。'} />
           <Button
             label="去找剧"
             testID="history-empty-discover"
@@ -185,6 +192,8 @@ type Confirmation = {
   source: string;
   index: number;
   owner: string;
+  scope: string;
+  category: LibraryKind;
 };
 
 export function History(props: { store: Store }) {
@@ -193,55 +202,82 @@ export function History(props: { store: Store }) {
   const confirmation = signal<Confirmation | undefined>(undefined);
   const localError = signal('');
   let list: ListRef | undefined;
-  let anchor: { id: string; offset: number } | undefined;
+  const anchors: Partial<Record<LibraryKind, { id: string; offset: number }>> = {};
   let frame = 0;
   let disposed = false;
   let epoch = 0;
   let focusEpoch = 0;
+  let sourceEpoch = 0;
   let submitting = false;
   const dialogJob = signal<number | undefined>(undefined);
   let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
-  let waiting: typeof returnSource;
+  let waiting: (NonNullable<typeof returnSource> & { align: 'center' | 'nearest' }) | undefined;
   const refs = new Map<string, ViewRef>();
   const rowRefs = new Map<string, Set<ViewRef>>();
+  const category = () => props.store.libraryKind();
+  const favorites = () => category() === 'favorites';
+  const entries = (): LibraryItem[] =>
+    favorites() ? props.store.favorites() : props.store.entries();
+  const management = () =>
+    favorites() ? props.store.favoritesManagement : props.store.historyManagement;
+  const scope = () => JSON.stringify([owner(), props.store.account()?.owner_epoch ?? '']);
   const focusGuard = () => {
     const version = focusEpoch;
     const pageEpoch = epoch;
-    const pageOwner = owner();
+    const pageScope = scope();
+    const pageCategory = category();
     const owns = props.store.focusGuard();
     return () =>
       present() &&
       pageEpoch === epoch &&
-      pageOwner === owner() &&
+      pageScope === scope() &&
+      pageCategory === category() &&
       version === focusEpoch &&
       lifecycle() !== 'background' &&
       owns();
   };
   const owner = () => props.store.library()?.owner_id ?? '';
   const present = () => !disposed && props.store.activePage('history');
-  const enabled = () => present() && !!props.store.library() && owner() === '';
+  const enabled = () =>
+    present() &&
+    lifecycle() !== 'background' &&
+    !!props.store.library() &&
+    !!props.store.account() &&
+    (props.store.account()?.owner_id ?? '') === owner();
   const operation = () => {
-    const job = props.store.historyManagement.operation();
+    const job = management().operation();
     return job?.ownerId === owner() ? job : undefined;
   };
-  const busy = () => !!operation() && operation()!.status !== 'complete';
+  const outstanding = () =>
+    [props.store.historyManagement.operation(), props.store.favoritesManagement.operation()].find(
+      (job) => job?.ownerId === owner() && job?.status !== 'complete',
+    );
+  const busy = () => !!outstanding();
   const available = () => enabled() && !busy();
   const selectedIds = () =>
-    props.store
-      .entries()
+    entries()
       .map((entry) => entry.drama.series_id)
       .filter((id) => selected().has(id));
   const retryLabel = () =>
     operation()?.status === 'unresolved'
-      ? '确认删除结果'
+      ? favorites()
+        ? '确认收藏处理结果'
+        : '确认删除结果'
       : `重试剩余（${operation()?.remainingIds.length ?? 0}）`;
   const operationMessage = () => {
     const job = operation();
     if (!job || job.status === 'complete') return '';
     if (job.status === 'pending')
-      return `正在删除观看记录（${job.completedIds.length}/${job.ids.length}）…`;
-    if (job.status === 'unresolved') return '删除结果尚未确认，请确认结果后再继续管理。';
-    return `已删除 ${job.completedIds.length} 条，还有 ${job.remainingIds.length} 条未删除。`;
+      return favorites()
+        ? `正在处理收藏（${job.completedIds.length}/${job.ids.length}）…`
+        : `正在删除观看记录（${job.completedIds.length}/${job.ids.length}）…`;
+    if (job.status === 'unresolved')
+      return favorites()
+        ? '收藏处理结果尚未确认，请确认结果后再继续管理。'
+        : '删除结果尚未确认，请确认结果后再继续管理。';
+    return favorites()
+      ? `已处理 ${job.completedIds.length} 条，还有 ${job.remainingIds.length} 条未处理。`
+      : `已删除 ${job.completedIds.length} 条，还有 ${job.remainingIds.length} 条未删除。`;
   };
   const reveal = () => {
     cancelAnimationFrame(frame);
@@ -264,9 +300,12 @@ export function History(props: { store: Store }) {
             viewport &&
             measured.bounds.size.width > 0 &&
             measured.bounds.size.height > 0 &&
-            measured.pagePosition.y >= viewport.pagePosition.y + 4 &&
-            measured.pagePosition.y + measured.bounds.size.height <=
-              viewport.pagePosition.y + viewport.bounds.size.height - 4
+            (plan.align === 'nearest'
+              ? measured.pagePosition.y < viewport.pagePosition.y + viewport.bounds.size.height &&
+                measured.pagePosition.y + measured.bounds.size.height > viewport.pagePosition.y
+              : measured.pagePosition.y >= viewport.pagePosition.y + 4 &&
+                measured.pagePosition.y + measured.bounds.size.height <=
+                  viewport.pagePosition.y + viewport.bounds.size.height - 4)
           ) {
             ref = candidate;
             break;
@@ -284,16 +323,17 @@ export function History(props: { store: Store }) {
         return;
       if (!ref) return; // Recycled cells retry on registration/layout.
       waiting = undefined;
-      ref.reveal({ vertical: 'center', horizontal: 'nearest', animated: false });
+      ref.reveal({ vertical: plan.align, horizontal: 'nearest', animated: false });
       ref.focus();
     });
   };
-  const queueFocus = (key: string, owns = focusGuard()) => {
+  const queueFocus = (key: string, owns = focusGuard(), align: 'center' | 'nearest' = 'center') => {
     if (!present() || !owns()) return;
-    waiting = { key, owner: owner(), epoch, owns };
+    waiting = { key, owner: owner(), epoch, owns, align };
     const id = key.split(':')[1];
-    const index = props.store.entries().findIndex((entry) => entry.drama.series_id === id);
-    if (index >= 0) list?.scrollToIndex({ index, viewPosition: 0.5, animated: false });
+    const index = entries().findIndex((entry) => entry.drama.series_id === id);
+    if (index >= 0 && align === 'center')
+      list?.scrollToIndex({ index, viewPosition: 0.5, animated: false });
     reveal();
   };
   const register = (key: string, ref: ViewRef) => {
@@ -313,21 +353,70 @@ export function History(props: { store: Store }) {
       refs.delete(key);
     }
   };
-  const restoreAnchor = (position = anchor, owns = focusGuard()) => {
-    if (!position || !owns()) return;
-    const index = props.store.entries().findIndex((entry) => entry.drama.series_id === position.id);
-    if (index >= 0) list?.scrollToIndex({ index, viewOffset: -position.offset, animated: false });
+  const restoreAnchor = (
+    position: { id: string; offset: number } | undefined,
+    owns = focusGuard(),
+  ) => {
+    if (!owns()) return;
+    const index = position
+      ? entries().findIndex((entry) => entry.drama.series_id === position.id)
+      : 0;
+    if (index >= 0 && entries().length)
+      list?.scrollToIndex({ index, viewOffset: -(position?.offset ?? 0), animated: false });
+  };
+  const openDetail = async (item: LibraryItem) => {
+    props.store.noteFocusIntent();
+    const owns = focusGuard();
+    const ownedScope = scope();
+    const ownedCategory = category();
+    const ownedSourceEpoch = sourceEpoch;
+    const snapshot = props.store.library();
+    const ids = entries().map((entry) => entry.drama.series_id);
+    const position = await list?.measureScrollPosition();
+    if (!owns() || snapshot !== props.store.library()) return;
+    const anchorId = position && ids[position.index];
+    const saved =
+      anchorId && position ? { id: anchorId, offset: position.offset } : anchors[ownedCategory];
+    if (saved) anchors[ownedCategory] = saved;
+    let returned = false;
+    props.store.open(item.drama, () => {
+      if (
+        returned ||
+        !present() ||
+        sourceEpoch !== ownedSourceEpoch ||
+        scope() !== ownedScope ||
+        category() !== ownedCategory
+      )
+        return;
+      returned = true;
+      const current = new Set(entries().map((entry) => entry.drama.series_id));
+      const surviving = (id: string) => {
+        const index = ids.indexOf(id);
+        return [
+          ...ids.slice(Math.max(0, index)),
+          ...ids.slice(0, Math.max(0, index)).reverse(),
+        ].find((candidate) => current.has(candidate));
+      };
+      const source = surviving(item.drama.series_id) ?? entries()[0]?.drama.series_id;
+      const anchor = saved && surviving(saved.id);
+      const restored = anchor ? { id: anchor, offset: saved!.offset } : undefined;
+      if (restored) anchors[ownedCategory] = restored;
+      const returnOwns = focusGuard();
+      restoreAnchor(restored, returnOwns);
+      queueFocus(source ? `detail:${source}` : 'empty', returnOwns, 'nearest');
+    });
   };
   const toggleManaging = async () => {
     props.store.noteFocusIntent();
     const owns = focusGuard();
     const snapshot = props.store.library();
-    const entries = props.store.entries();
+    const items = entries();
     const position = await list?.measureScrollPosition();
     if (!owns() || !enabled() || snapshot !== props.store.library()) return;
-    const entry = position && entries[position.index];
-    if (entry && position) anchor = { id: entry.drama.series_id, offset: position.offset };
-    const saved = anchor;
+    const entry = position && items[position.index];
+    if (entry && position)
+      anchors[category()] = { id: entry.drama.series_id, offset: position.offset };
+    const saved = anchors[category()];
     managing.set(!managing());
     selected.set(new Set());
     cancelAnimationFrame(frame);
@@ -350,8 +439,7 @@ export function History(props: { store: Store }) {
     returnSource = undefined; // Native close and the shared close frame may both call us.
     if (!source || source.owner !== owner() || source.epoch !== epoch) return;
     const sourceId = source.key.split(':')[1];
-    const sourceExists =
-      !sourceId || props.store.entries().some((entry) => entry.drama.series_id === sourceId);
+    const sourceExists = !sourceId || entries().some((entry) => entry.drama.series_id === sourceId);
     const key =
       operation()?.status === 'partial' || operation()?.status === 'unresolved'
         ? 'retry'
@@ -359,7 +447,7 @@ export function History(props: { store: Store }) {
           ? 'manage'
           : sourceExists && refs.has(source.key)
             ? source.key
-            : props.store.entries().length
+            : entries().length
               ? 'manage'
               : 'empty';
     queueFocus(key, source.owns);
@@ -378,14 +466,21 @@ export function History(props: { store: Store }) {
       source,
       index: Math.max(
         0,
-        props.store.entries().findIndex((entry) => ids.includes(entry.drama.series_id)),
+        entries().findIndex((entry) => ids.includes(entry.drama.series_id)),
       ),
       owner: owner(),
+      scope: scope(),
+      category: category(),
     });
   };
   const run = async (retry = false) => {
     const current = confirmation();
-    if (submitting || !enabled() || (current && current.owner !== owner())) return;
+    if (
+      submitting ||
+      !enabled() ||
+      (current && (current.scope !== scope() || current.category !== category()))
+    )
+      return;
     if (!retry && (!current || !available())) return;
     const job = operation();
     if (retry && (!job || !['partial', 'unresolved'].includes(job.status))) return;
@@ -393,9 +488,7 @@ export function History(props: { store: Store }) {
       current?.index ??
       Math.max(
         0,
-        props.store
-          .entries()
-          .findIndex((entry) => job!.remainingIds.includes(entry.drama.series_id)),
+        entries().findIndex((entry) => job!.remainingIds.includes(entry.drama.series_id)),
       );
     submitting = true;
     localError.set('');
@@ -403,19 +496,19 @@ export function History(props: { store: Store }) {
     const owns = focusGuard();
     try {
       const result = retry
-        ? props.store.historyManagement.retry(job!.id)
+        ? management().retry(job!.id)
         : current!.kind === 'clear'
-          ? props.store.historyManagement.clear()
-          : props.store.historyManagement.remove(current!.ids);
-      dialogJob.set(props.store.historyManagement.operation()?.id);
+          ? management().clear()
+          : management().remove(current!.ids);
+      dialogJob.set(management().operation()?.id);
       await result;
       const settled = operation();
       if (settled?.status !== 'complete' || settled.id !== dialogJob()) return;
       selected.set(new Set(selectedIds()));
       if (confirmation() !== current || ownedEpoch !== epoch || !enabled()) return;
-      const entries = props.store.entries();
-      const survivor = entries[Math.min(index, entries.length - 1)];
-      if (!entries.length) managing.set(false);
+      const items = entries();
+      const survivor = items[Math.min(index, items.length - 1)];
+      if (!items.length) managing.set(false);
       returnSource = undefined;
       confirmation.set(undefined);
       // Wait for the native dialog to release focus, then restore only if no newer input won.
@@ -425,12 +518,16 @@ export function History(props: { store: Store }) {
           queueFocus(survivor ? `detail:${survivor.drama.series_id}` : 'empty', owns);
       });
     } catch (cause) {
-      if (ownedEpoch === epoch) localError.set(errorMessage(cause, '暂时无法删除观看记录'));
+      if (ownedEpoch === epoch)
+        localError.set(
+          errorMessage(cause, favorites() ? '暂时无法处理收藏' : '暂时无法删除观看记录'),
+        );
     } finally {
       submitting = false;
     }
   };
-  let previousOwner: string | undefined;
+  let previousScope: string | undefined;
+  let previousCategory: LibraryKind | undefined;
   let previousActive = false;
   effect(() => {
     if (lifecycle() !== 'background') return;
@@ -441,14 +538,22 @@ export function History(props: { store: Store }) {
   });
   effect(() => {
     const current = selected();
-    const ids = new Set(props.store.entries().map((entry) => entry.drama.series_id));
+    const ids = new Set(entries().map((entry) => entry.drama.series_id));
     const next = new Set([...current].filter((id) => ids.has(id)));
     if (next.size !== current.size) selected.set(next);
   });
   effect(() => {
     const active = props.store.activePage('history');
-    const currentOwner = props.store.library() ? owner() : undefined;
-    if (!active || previousOwner !== currentOwner) {
+    const currentScope = props.store.library() ? scope() : undefined;
+    const currentCategory = category();
+    const ownerChanged = previousScope !== currentScope;
+    const categoryChanged = previousCategory !== currentCategory;
+    if (ownerChanged || categoryChanged) sourceEpoch++;
+    if (ownerChanged) {
+      delete anchors.history;
+      delete anchors.favorites;
+    }
+    if (!active || ownerChanged || categoryChanged) {
       epoch++;
       managing.set(false);
       selected.set(new Set());
@@ -458,11 +563,13 @@ export function History(props: { store: Store }) {
       localError.set('');
       cancelAnimationFrame(frame);
     }
-    if (active && !previousActive) {
+    if (active && (!previousActive || categoryChanged || ownerChanged)) {
       const owns = focusGuard();
-      frame = requestAnimationFrame(() => restoreAnchor(anchor, owns));
+      const saved = anchors[currentCategory];
+      frame = requestAnimationFrame(() => restoreAnchor(saved, owns));
     }
-    previousOwner = currentOwner;
+    previousScope = currentScope;
+    previousCategory = currentCategory;
     previousActive = active;
   });
   cleanup(() => {
@@ -484,60 +591,82 @@ export function History(props: { store: Store }) {
           style={props.store.target === 'tv' ? { fontSize: tvUnit(44) } : { fontSize: 32 }}
           class={`${props.store.target === 'tv' ? 'text-4xl' : 'text-3xl'} font-semibold text-foreground`}
         >
-          继续观看
+          我的片库
         </Text>
         <Button
           testID="history-manage"
           label={managing() ? '完成' : '管理'}
           buttonRef={(ref) => register('manage', ref)}
-          disabled={!enabled() || (!managing() && !props.store.entries().length)}
+          disabled={!enabled() || (!managing() && !entries().length)}
           onPress={() => void toggleManaging()}
         />
       </View>
+      <Tabs
+        label="片库"
+        testID="library-tabs"
+        value={category()}
+        options={[
+          { value: 'history', label: '观看记录' },
+          { value: 'favorites', label: '收藏' },
+        ]}
+        onChange={(event) => {
+          if (event.value === category()) return;
+          props.store.noteFocusIntent();
+          props.store.libraryKind.set(event.value === 'favorites' ? 'favorites' : 'history');
+        }}
+      />
+      <LibrarySyncNotice store={props.store} active={present()} testID="history-library-sync" />
       <If when={managing()}>
         <View class="flex-row flex-wrap items-center gap-3">
           <Checkbox
             label="全选"
             testID="history-select-all"
-            checked={
-              !!props.store.entries().length &&
-              selectedIds().length === props.store.entries().length
-            }
-            indeterminate={
-              selectedIds().length > 0 && selectedIds().length < props.store.entries().length
-            }
-            disabled={!available() || !props.store.entries().length}
+            checked={!!entries().length && selectedIds().length === entries().length}
+            indeterminate={selectedIds().length > 0 && selectedIds().length < entries().length}
+            disabled={!available() || !entries().length}
             onChange={(event) => {
               props.store.noteFocusIntent();
               selected.set(
-                new Set(
-                  event.checked ? props.store.entries().map((entry) => entry.drama.series_id) : [],
-                ),
+                new Set(event.checked ? entries().map((entry) => entry.drama.series_id) : []),
               );
             }}
           />
           <Button
             testID="history-delete-selected"
-            label={`删除所选（${selectedIds().length}）`}
+            label={
+              favorites()
+                ? `取消收藏所选（${selectedIds().length}）`
+                : `删除所选（${selectedIds().length}）`
+            }
             disabled={!available() || !selectedIds().length}
             buttonRef={(ref) => register('selected', ref)}
-            onPress={() => ask('selected', selectedIds(), '删除所选观看记录？', 'selected')}
+            onPress={() =>
+              ask(
+                'selected',
+                selectedIds(),
+                favorites() ? '取消收藏所选短剧？' : '删除所选观看记录？',
+                'selected',
+              )
+            }
           />
           <Button
             testID="history-clear"
-            label="清空本机记录"
-            disabled={!available() || !props.store.entries().length}
+            label={favorites() ? '清空本机收藏' : '清空本机记录'}
+            disabled={!available() || !entries().length}
             buttonRef={(ref) => register('clear', ref)}
             onPress={() =>
               ask(
                 'clear',
-                props.store.entries().map((entry) => entry.drama.series_id),
-                '清空本机观看记录？',
+                entries().map((entry) => entry.drama.series_id),
+                favorites() ? '清空本机收藏？' : '清空本机观看记录？',
                 'clear',
               )
             }
           />
         </View>
+      </If>
+      <If when={busy() && (!operation() || operation()?.status === 'complete')}>
+        <Notice message="另一栏目仍有未完成的管理操作，请切换栏目确认。" />
       </If>
       <If when={operationMessage() || localError()}>
         <View testID="history-operation" class="gap-3">
@@ -553,7 +682,7 @@ export function History(props: { store: Store }) {
                 disabled={!enabled()}
                 buttonRef={(ref) => register('retry', ref)}
                 onFocusedRemoval={() => {
-                  if (present()) refs.get('manage')?.focus();
+                  if (enabled()) refs.get('manage')?.focus();
                 }}
                 onPress={() => {
                   props.store.noteFocusIntent();
@@ -564,7 +693,11 @@ export function History(props: { store: Store }) {
           </If>
         </View>
       </If>
-      <LibraryStatus store={props.store} emptyRef={(ref) => register('empty', ref)} />
+      <LibraryStatus
+        store={props.store}
+        kind={category()}
+        emptyRef={(ref) => register('empty', ref)}
+      />
       <List
         ref={(ref) => {
           list = ref;
@@ -575,10 +708,11 @@ export function History(props: { store: Store }) {
         onScroll={() => {
           if (!props.store.activePage('history')) return;
           const snapshot = props.store.library();
-          const entries = props.store.entries();
+          const items = entries();
+          const currentCategory = category();
           const pageEpoch = epoch;
           void list?.measureScrollPosition().then((position) => {
-            const entry = position && entries[position.index];
+            const entry = position && items[position.index];
             if (
               present() &&
               epoch === pageEpoch &&
@@ -586,12 +720,12 @@ export function History(props: { store: Store }) {
               entry &&
               position
             )
-              anchor = { id: entry.drama.series_id, offset: position.offset };
+              anchors[currentCategory] = { id: entry.drama.series_id, offset: position.offset };
           });
         }}
         testID="history-list"
-        each={props.store.entries()}
-        keyExtractor={(entry) => entry.drama.series_id}
+        each={entries()}
+        keyExtractor={(entry) => `${category()}:${entry.drama.series_id}`}
         estimatedItemSize={
           props.store.target === 'tv' ? tvUnit(managing() ? 270 : 202) : managing() ? 210 : 154
         }
@@ -616,7 +750,9 @@ export function History(props: { store: Store }) {
               ask(
                 'single',
                 [item.drama.series_id],
-                `移除《${item.drama.title}》的观看记录？`,
+                favorites()
+                  ? `取消收藏《${item.drama.title}》？`
+                  : `移除《${item.drama.title}》的观看记录？`,
                 `remove:${item.drama.series_id}`,
               )
             }
@@ -624,7 +760,7 @@ export function History(props: { store: Store }) {
             register={(id, ref, previous) => {
               registerRow(`detail:${id}`, ref, previous);
             }}
-            restore={(id) => queueFocus(`detail:${id}`)}
+            open={(item) => void openDetail(item)}
           />
         )}
       </List>
@@ -633,9 +769,17 @@ export function History(props: { store: Store }) {
         open={!!confirmation()}
         title={confirmation()?.title ?? '删除观看记录？'}
         description={
-          confirmation()?.kind === 'single'
-            ? '仅删除本机观看记录和已保存的观看位置，再次播放会重新记录。'
-            : `将删除本机 ${confirmation()?.ids.length ?? 0} 条观看记录和已保存的观看位置，再次播放会重新记录。`
+          favorites()
+            ? confirmation()?.kind === 'clear'
+              ? owner()
+                ? '仅清空本机收藏，不取消账号云端收藏；观看记录保留。'
+                : '仅清空本机收藏，观看记录保留。'
+              : owner()
+                ? '取消收藏会同步到当前账号；观看记录保留。'
+                : '从本机收藏移除，观看记录保留。'
+            : confirmation()?.kind === 'single'
+              ? '仅删除本机观看记录和已保存的观看位置，再次播放会重新记录。'
+              : `将删除本机 ${confirmation()?.ids.length ?? 0} 条观看记录和已保存的观看位置，再次播放会重新记录。`
         }
         destructive
         pending={operation()?.id === dialogJob() && operation()?.status === 'pending'}
@@ -647,10 +791,14 @@ export function History(props: { store: Store }) {
           ['partial', 'unresolved'].includes(operation()?.status ?? '')
             ? retryLabel()
             : confirmation()?.kind === 'clear'
-              ? '清空本机记录'
-              : confirmation()?.kind === 'single'
-                ? '移除记录'
-                : '删除记录'
+              ? favorites()
+                ? '清空本机收藏'
+                : '清空本机记录'
+              : favorites()
+                ? '取消收藏'
+                : confirmation()?.kind === 'single'
+                  ? '移除记录'
+                  : '删除记录'
         }
         error={
           localError() ||

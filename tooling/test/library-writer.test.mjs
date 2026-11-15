@@ -3,10 +3,11 @@ import test from 'node:test';
 import {
   createLibraryWriter,
   LibraryWriteError,
+  validLibrarySnapshot,
 } from '../../packages/core-client/src/library-writer.ts';
 
 const token = 'a'.repeat(32);
-const empty = { owner_id: '', entries: [] };
+const empty = { owner_id: '', entries: [], favorites: [] };
 const clear = { action: 'clear', kind: 'history', owner_id: '' };
 const remove = { action: 'remove', kind: 'history', owner_id: '', series_id: '123' };
 const receipt = (operation_id = '1', outcome = { status: 'committed', library: empty }) => ({
@@ -270,7 +271,7 @@ test('account writers capture exact owner in session and every payload and recei
       ? { session_id: token }
       : receipt('1', {
           status: 'committed',
-          library: { owner_id, entries: [] },
+          library: { ...empty, owner_id },
         });
   });
   assert.equal((await writer.write({ ...clear, owner_id })).library.owner_id, owner_id);
@@ -286,7 +287,7 @@ test('an account receipt cannot cross owner boundaries even with a correct opera
       ? { session_id: token }
       : receipt('1', {
           status: 'committed',
-          library: { owner_id: ++reads === 1 ? '456' : '123', entries: [] },
+          library: { ...empty, owner_id: ++reads === 1 ? '456' : '123' },
         }),
   );
   await assert.rejects(writer.write({ ...clear, owner_id: '123' }), unresolved);
@@ -308,12 +309,12 @@ test('reset rejects pending and in-flight work; successful same-owner reentry op
       return new Promise((resolve) => {
         finish = resolve;
       });
-    return receipt('1', { status: 'committed', library: { owner_id: '123', entries: [] } });
+    return receipt('1', { status: 'committed', library: { ...empty, owner_id: '123' } });
   });
   const pending = writer.write({ ...clear, owner_id: '123' });
   await Promise.resolve();
   assert.throws(() => writer.reset());
-  finish(receipt('1', { status: 'committed', library: { owner_id: '123', entries: [] } }));
+  finish(receipt('1', { status: 'committed', library: { ...empty, owner_id: '123' } }));
   await pending;
   writer.reset();
   assert.equal((await writer.write({ ...clear, owner_id: '123' })).operation_id, '1');
@@ -329,4 +330,124 @@ test('invalid owner identifiers fail before any session is admitted', async () =
     await assert.rejects(writer.write({ ...clear, owner_id }));
   }
   assert.equal(requests, 0);
+});
+
+const drama = {
+  series_id: '123',
+  title: 'Synthetic compact card',
+  cover: '',
+  intro: '',
+};
+
+test('readable cloud history may lack a playable episode while malformed identities remain invalid', async () => {
+  for (const video_id of [undefined, '456']) {
+    const library = {
+      ...empty,
+      entries: [
+        {
+          drama,
+          episode: 0,
+          video_id,
+          position: 0,
+          duration: 30,
+          completed: false,
+          last_played_at: 1000,
+        },
+      ],
+    };
+    assert.equal(validLibrarySnapshot(library), true);
+    const writer = createLibraryWriter(async (path) =>
+      path.endsWith('/session')
+        ? { session_id: token }
+        : receipt('1', { status: 'committed', library }),
+    );
+    assert.deepEqual((await writer.write(clear)).library, library);
+    for (const patch of [
+      { episode: -1 },
+      { episode: 0.5 },
+      { episode: 10001 },
+      { episode: null },
+      { video_id: '' },
+      { video_id: '0' },
+      { video_id: 'bad' },
+      { video_id: null },
+    ])
+      assert.equal(
+        validLibrarySnapshot({ ...library, entries: [{ ...library.entries[0], ...patch }] }),
+        false,
+      );
+  }
+});
+
+test('synthetic committed snapshots keep favorites independent of history at safe timestamp bounds', async () => {
+  for (const favorite_at of [1, 1731600000000, Number.MAX_SAFE_INTEGER]) {
+    const library = {
+      ...empty,
+      entries: [{ drama, episode: 2, video_id: '456', position: 30, last_played_at: 1000 }],
+      favorites: [{ drama: { ...drama, series_id: '789' }, favorite_at }],
+    };
+    const writer = createLibraryWriter(async (path) =>
+      path.endsWith('/session')
+        ? { session_id: token }
+        : receipt('1', { status: 'committed', library }),
+    );
+    const result = await writer.write(clear);
+    assert.deepEqual(result.library, library);
+    assert.deepEqual(
+      result.library.entries.map(({ drama }) => drama.series_id),
+      ['123'],
+    );
+    assert.deepEqual(
+      result.library.favorites.map(({ drama }) => drama.series_id),
+      ['789'],
+    );
+  }
+});
+
+test('synthetic malformed favorite snapshots preserve the exact unresolved write until valid replay', async () => {
+  const favorite = { drama, favorite_at: 1731600000000 };
+  const invalid = [
+    { owner_id: '', entries: [] },
+    ...[null, {}, 'favorites'].map((favorites) => ({ ...empty, favorites })),
+    ...[undefined, null, {}, { favorite_at: 1 }].map((entry) => ({ ...empty, favorites: [entry] })),
+    ...[undefined, null, 0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '1'].map(
+      (favorite_at) => ({ ...empty, favorites: [{ drama, favorite_at }] }),
+    ),
+    ...[
+      undefined,
+      [],
+      { ...drama, series_id: '0' },
+      { ...drama, series_id: '1'.repeat(33) },
+      { ...drama, title: 123 },
+      { ...drama, cover: null },
+      { ...drama, intro: false },
+      { ...drama, episode_count: 10001 },
+      { ...drama, episode_count: 1.5 },
+      { ...drama, tags: ['valid', 1] },
+      { ...drama, episodes: [] },
+      { ...drama, episodes: [{ video_id: '456' }] },
+    ].map((drama) => ({ ...empty, favorites: [{ ...favorite, drama }] })),
+    { ...empty, favorites: [{ ...favorite, episode: 1 }] },
+    { ...empty, favorites: [{ ...favorite, position: 30 }] },
+    { ...empty, entries: [{ drama: { ...drama, episodes: [] } }] },
+  ];
+  for (const library of invalid) {
+    let reads = 0;
+    const writer = createLibraryWriter(async (path) =>
+      path.endsWith('/session')
+        ? { session_id: token }
+        : ++reads === 1
+          ? receipt('1', { status: 'committed', library })
+          : receipt(),
+    );
+    await assert.rejects(
+      writer.write(clear),
+      (error) =>
+        unresolved(error) && error.code === 'LIBRARY_RECEIPT_INVALID' && error.operation_id === '1',
+    );
+    await assert.rejects(writer.write(remove), unresolved);
+    assert.equal(reads, 1);
+    assert.deepEqual((await writer.resolve()).change, clear);
+    assert.equal(reads, 2);
+  }
 });

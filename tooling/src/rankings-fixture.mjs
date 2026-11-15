@@ -108,9 +108,13 @@ export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {})
     const path = url.pathname + url.search;
     const params = url.searchParams;
     if (url.pathname === '/api/v1/library')
-      return ok({ owner_id: 'rankings-fixture', entries: [] });
+      return ok({ owner_id: 'rankings-fixture', entries: [], favorites: [] });
     if (url.pathname === '/api/v1/account')
-      return ok({ logged_in: false, qr_login_available: false });
+      return ok({
+        logged_in: false,
+        qr_login_available: false,
+        sync: { state: 'local', pending: 0 },
+      });
     if (url.pathname === '/api/v1/search/history' || url.pathname === '/api/v1/search/suggestions')
       return ok({ items: [] });
     if (url.pathname === '/api/v1/search/discovery') return ok({ guesses: [], boards: [] });

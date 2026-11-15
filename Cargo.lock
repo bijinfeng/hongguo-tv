@@ -1032,6 +1032,7 @@ dependencies = [
  "nsh-core",
  "nsh-engine",
  "reqwest",
+ "rusqlite",
  "serde",
  "serde_json",
  "tokio",

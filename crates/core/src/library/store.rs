@@ -85,20 +85,7 @@ pub(super) fn apply(
     validate_database_owner(&tx, owner)?;
     match change {
         HistoryChange::Progress(progress) => {
-            let previous: i64 = tx.query_row(
-                "SELECT COALESCE(MAX(last_played_at), 0) FROM history",
-                [],
-                |r| r.get(0),
-            )?;
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map_err(|_| LibraryError::Storage)?
-                .as_millis();
-            let stamp = i64::try_from(now).map_err(|_| LibraryError::Storage)?.max(
-                previous
-                    .checked_add(1)
-                    .ok_or(LibraryError::InvalidDatabase)?,
-            );
+            let stamp = next_stamp(&tx)?;
             let entry = progress.into_entry(stamp);
             let json = serde_json::to_string(&entry).map_err(|_| LibraryError::InvalidInput)?;
             tx.execute(
@@ -106,17 +93,85 @@ pub(super) fn apply(
                  ON CONFLICT(series_id) DO UPDATE SET entry_json=excluded.entry_json, last_played_at=excluded.last_played_at",
                 params![entry.drama.series_id, json, stamp],
             )?;
+            super::sync::clear_hidden(&tx, super::LibraryKind::History, &entry.drama.series_id)?;
+            super::sync::cancel_backfill(&tx, &entry.drama.series_id)?;
+            tx.execute(
+                "UPDATE sync_metadata SET history_remote=0 WHERE series_id=?1",
+                [&entry.drama.series_id],
+            )?;
+            if !owner.is_empty() {
+                super::sync::enqueue_progress(&tx, &entry)?;
+            }
         }
-        HistoryChange::Remove { series_id, .. } => {
+        HistoryChange::Remove {
+            series_id,
+            kind: super::LibraryKind::History,
+            ..
+        } => {
+            let stamp = next_stamp(&tx)?;
+            super::sync::hide(&tx, super::LibraryKind::History, &series_id, stamp)?;
+            super::sync::cancel_backfill(&tx, &series_id)?;
             tx.execute("DELETE FROM history WHERE series_id=?1", [series_id])?;
         }
-        HistoryChange::Clear { .. } => {
+        HistoryChange::Clear {
+            kind: super::LibraryKind::History,
+            ..
+        } => {
+            let stamp = next_stamp(&tx)?;
+            super::sync::hide_all(&tx, super::LibraryKind::History, stamp)?;
             tx.execute("DELETE FROM history", [])?;
+        }
+        HistoryChange::Favorite { drama, value, .. } => {
+            let stamp = next_stamp(&tx)?;
+            super::sync::clear_hidden(&tx, super::LibraryKind::Favorites, &drama.series_id)?;
+            if !owner.is_empty() {
+                super::sync::enqueue_favorite(&tx, &drama.series_id, value)?;
+            }
+            super::favorites::set(&tx, drama, value, stamp)?;
+        }
+        HistoryChange::Remove {
+            series_id,
+            kind: super::LibraryKind::Favorites,
+            ..
+        } => {
+            super::sync::clear_hidden(&tx, super::LibraryKind::Favorites, &series_id)?;
+            if !owner.is_empty() {
+                super::sync::enqueue_favorite(&tx, &series_id, false)?;
+            }
+            super::favorites::remove(&tx, &series_id)?;
+        }
+        HistoryChange::Clear {
+            kind: super::LibraryKind::Favorites,
+            ..
+        } => {
+            let stamp = next_stamp(&tx)?;
+            super::sync::hide_all(&tx, super::LibraryKind::Favorites, stamp)?;
+            super::favorites::clear(&tx)?;
         }
     }
     let result = snapshot(&tx, owner)?;
     tx.commit()?;
     Ok(result)
+}
+
+pub(super) fn next_stamp(conn: &Connection) -> Result<i64, LibraryError> {
+    let previous: i64 = conn.query_row(
+        "SELECT MAX(stamp) FROM (
+         SELECT COALESCE(MAX(last_played_at),0) AS stamp FROM history
+         UNION ALL SELECT COALESCE(MAX(favorite_at),0) FROM favorites
+         UNION ALL SELECT COALESCE(MAX(hidden_at),0) FROM sync_hidden)",
+        [],
+        |row| row.get(0),
+    )?;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| LibraryError::Storage)?
+        .as_millis();
+    Ok(i64::try_from(now).map_err(|_| LibraryError::Storage)?.max(
+        previous
+            .checked_add(1)
+            .ok_or(LibraryError::InvalidDatabase)?,
+    ))
 }
 
 fn initialize(path: PathBuf, owner: &str) -> Result<Connection, LibraryError> {
@@ -145,7 +200,7 @@ fn initialize(path: PathBuf, owner: &str) -> Result<Connection, LibraryError> {
         Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
         Err(_) => return Err(LibraryError::Storage),
     }
-    let mut conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
+    let mut conn = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
     conn.busy_timeout(Duration::from_secs(2))?;
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
     let id: i64 = tx.query_row("PRAGMA application_id", [], |r| r.get(0))?;
@@ -164,40 +219,61 @@ fn initialize(path: PathBuf, owner: &str) -> Result<Connection, LibraryError> {
              last_played_at INTEGER NOT NULL CHECK(last_played_at > 0));
              CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL CHECK(rank >= 0 AND rank < 10),
              query TEXT UNIQUE NOT NULL);
-             PRAGMA application_id=1212634198;
-             PRAGMA user_version=2;",
+             PRAGMA application_id=1212634198;",
         )?;
-        if !owner.is_empty() {
-            tx.execute_batch(
-                "CREATE TABLE library_owner(singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-                 owner_id TEXT NOT NULL); PRAGMA user_version=3;",
-            )?;
-            tx.execute(
-                "INSERT INTO library_owner(singleton, owner_id) VALUES (1, ?1)",
-                [owner],
-            )?;
+        super::migration::install(&tx, owner, 0)?;
+        snapshot(&tx, owner)?;
+        super::search::snapshot(&tx)?;
+        check_integrity(&tx)?;
+        tx.commit()?;
+    } else {
+        if id != APPLICATION_ID || !(1..=4).contains(&version) {
+            return Err(LibraryError::InvalidDatabase);
         }
-    } else if id != APPLICATION_ID || !(1..=3).contains(&version) {
-        return Err(LibraryError::InvalidDatabase);
+        snapshot(&tx, owner)?;
+        if version >= 2 {
+            super::search::snapshot(&tx)?;
+        }
+        check_integrity(&tx)?;
+        tx.commit()?;
+        if version < 4 {
+            // VACUUM needs no active transaction; recheck the owner under the migration lock.
+            super::migration::backup(&conn, &path)?;
+            let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let current: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+            snapshot(&tx, owner)?;
+            if current == version {
+                if current == 1 {
+                    tx.execute_batch(
+                        "CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL CHECK(rank >= 0 AND rank < 10),
+                         query TEXT UNIQUE NOT NULL);",
+                    )?;
+                }
+                super::migration::install(&tx, owner, current)?;
+            } else if current != 4 {
+                return Err(LibraryError::InvalidDatabase);
+            }
+            snapshot(&tx, owner)?;
+            super::search::snapshot(&tx)?;
+            check_integrity(&tx)?;
+            tx.commit()?;
+        }
     }
-    snapshot(&tx, owner)?;
-    if version == 1 {
-        tx.execute_batch(
-            "CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL CHECK(rank >= 0 AND rank < 10),
-             query TEXT UNIQUE NOT NULL); PRAGMA user_version=2;",
-        )?;
-    }
-    super::search::snapshot(&tx)?;
-    let integrity: String = tx.query_row("PRAGMA quick_check(1)", [], |r| r.get(0))?;
-    if integrity != "ok" {
-        return Err(LibraryError::InvalidDatabase);
-    }
-    tx.commit()?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "synchronous", "FULL")?;
     Ok(conn)
 }
-fn validate_database_owner(conn: &Connection, expected: &str) -> Result<(), LibraryError> {
+fn check_integrity(conn: &Connection) -> Result<(), LibraryError> {
+    let integrity: String = conn.query_row("PRAGMA quick_check(1)", [], |r| r.get(0))?;
+    if integrity != "ok" {
+        return Err(LibraryError::InvalidDatabase);
+    }
+    Ok(())
+}
+pub(super) fn validate_database_owner(
+    conn: &Connection,
+    expected: &str,
+) -> Result<(), LibraryError> {
     let id: i64 = conn.query_row("PRAGMA application_id", [], |r| r.get(0))?;
     let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     if id != APPLICATION_ID {
@@ -215,7 +291,7 @@ fn validate_database_owner(conn: &Connection, expected: &str) -> Result<(), Libr
             }
             String::new()
         }
-        3 => {
+        3 | 4 => {
             let mut statement = conn
                 .prepare("SELECT singleton, owner_id FROM library_owner")
                 .map_err(|_| LibraryError::InvalidDatabase)?;
@@ -229,7 +305,7 @@ fn validate_database_owner(conn: &Connection, expected: &str) -> Result<(), Libr
             let singleton: i64 = row.get(0).map_err(|_| LibraryError::InvalidDatabase)?;
             let owner: String = row.get(1).map_err(|_| LibraryError::InvalidDatabase)?;
             if singleton != 1
-                || !super::valid_id(&owner)
+                || !(super::valid_id(&owner) || (version == 4 && owner.is_empty()))
                 || rows
                     .next()
                     .map_err(|_| LibraryError::InvalidDatabase)?
@@ -246,8 +322,9 @@ fn validate_database_owner(conn: &Connection, expected: &str) -> Result<(), Libr
     }
     Ok(())
 }
-fn snapshot(conn: &Connection, owner: &str) -> Result<Library, LibraryError> {
+pub(super) fn snapshot(conn: &Connection, owner: &str) -> Result<Library, LibraryError> {
     validate_database_owner(conn, owner)?;
+    let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
     let mut query = conn.prepare("SELECT series_id, entry_json, last_played_at FROM history ORDER BY last_played_at DESC, series_id")?;
     let mut rows = query.query([])?;
     let mut entries = Vec::new();
@@ -257,30 +334,48 @@ fn snapshot(conn: &Connection, owner: &str) -> Result<Library, LibraryError> {
         let stamp: i64 = row.get(2)?;
         let entry: Entry =
             serde_json::from_str(&json).map_err(|_| LibraryError::InvalidDatabase)?;
-        let progress = super::Progress {
-            owner_id: None,
-            drama: entry.drama.clone(),
-            episode: entry.episode.ok_or(LibraryError::InvalidDatabase)?,
-            video_id: entry
-                .video_id
-                .clone()
-                .ok_or(LibraryError::InvalidDatabase)?,
-            position: entry.position.ok_or(LibraryError::InvalidDatabase)?,
-            duration: entry.duration.ok_or(LibraryError::InvalidDatabase)?,
-            completed: entry.completed.ok_or(LibraryError::InvalidDatabase)?,
-        };
-        if progress.validate().is_err()
-            || id != entry.drama.series_id
-            || entry.last_played_at != Some(stamp)
-            || stamp <= 0
-            || progress.into_entry(stamp) != entry
-        {
+        let strict = (|| {
+            let progress = super::Progress {
+                owner_id: None,
+                drama: entry.drama.clone(),
+                episode: entry.episode.ok_or(LibraryError::InvalidDatabase)?,
+                video_id: entry
+                    .video_id
+                    .clone()
+                    .ok_or(LibraryError::InvalidDatabase)?,
+                position: entry.position.ok_or(LibraryError::InvalidDatabase)?,
+                duration: entry.duration.ok_or(LibraryError::InvalidDatabase)?,
+                completed: entry.completed.ok_or(LibraryError::InvalidDatabase)?,
+            };
+            progress.validate()?;
+            if progress.into_entry(stamp) != entry {
+                return Err(LibraryError::InvalidDatabase);
+            }
+            Ok::<_, LibraryError>(())
+        })();
+        if strict.is_err() {
+            let remote = version >= 4 && conn.query_row(
+                "SELECT EXISTS(SELECT 1 FROM sync_metadata WHERE series_id=?1 AND history_remote=1)",
+                [&id], |row| row.get::<_, bool>(0),
+            )?;
+            if !remote {
+                return Err(LibraryError::InvalidDatabase);
+            }
+            super::sync::validate_remote_entry(&entry)
+                .map_err(|_| LibraryError::InvalidDatabase)?;
+        }
+        if id != entry.drama.series_id || entry.last_played_at != Some(stamp) || stamp <= 0 {
             return Err(LibraryError::InvalidDatabase);
         }
         entries.push(entry);
     }
     Ok(Library {
         entries,
+        favorites: if version >= 4 {
+            super::favorites::snapshot(conn)?
+        } else {
+            Vec::new()
+        },
         owner_id: Some(owner.to_owned()),
     })
 }

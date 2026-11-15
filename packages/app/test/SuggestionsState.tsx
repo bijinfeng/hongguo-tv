@@ -108,7 +108,13 @@ export function ReturnFocusStateFixture() {
   let receiveFocus: Parameters<FocusSource>[0] | undefined;
   configureTransport({
     mediaOrigin: 'http://127.0.0.1:18765',
-    request: async () => ({ entries: [], items: [], logged_in: false }),
+    request: async () => ({
+      favorites: [],
+      entries: [],
+      items: [],
+      logged_in: false,
+      sync: { state: 'local', pending: 0 },
+    }),
   });
   function Owner() {
     const store = createStore('desktop', undefined, (receive) => {

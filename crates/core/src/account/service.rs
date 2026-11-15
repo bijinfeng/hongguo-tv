@@ -1,6 +1,6 @@
 use super::{
     Account, AccountCommand, AccountCommandRequest, AccountCommandResult, AccountError,
-    AccountLogin, AccountProfile, LoginMethod, LoginState,
+    AccountLogin, AccountProfile, AccountSyncStatus, GuestHistoryStatus, LoginMethod, LoginState,
     passport::{
         MfaResult, PassportClient, PassportError, PersistedSession, PhoneChallenge, PhoneCodeState,
         PhoneLogin, PhoneNumber, QrChallenge, QrPoll, VerifiedSession,
@@ -8,8 +8,8 @@ use super::{
     persistence::{SavedSession, SessionStore},
 };
 use crate::library::{
-    HistoryChange, Library, LibraryError, LibraryOperation, LibraryOperationIdentity, LibraryStore,
-    LibraryWriteSession, LibraryWriteSessionRequest,
+    HistoryChange, Library, LibraryError, LibraryOperation, LibraryOperationIdentity,
+    LibraryOperationOutcome, LibraryStore, LibraryWriteSession, LibraryWriteSessionRequest,
 };
 use ring::rand::{SecureRandom, SystemRandom};
 use std::{
@@ -23,12 +23,16 @@ use std::{
 };
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
+#[path = "sync.rs"]
+mod sync;
+
 /// One local account coordinator shared by HTTP or native transports, never a public multiuser manager.
 #[derive(Clone)]
 pub struct AccountService {
     state: Arc<Mutex<State>>,
     storage: SessionStore,
     directory: PathBuf,
+    sync: Arc<sync::SyncRuntime>,
 }
 struct State {
     saved: Option<SavedSession>,
@@ -39,6 +43,10 @@ struct State {
     cooldowns: HashMap<String, Instant>,
     legacy_guest: bool,
     epoch: String,
+    sync_view: AccountSyncStatus,
+    syncing: bool,
+    sync_error: Option<String>,
+    guest_history: Option<GuestHistoryStatus>,
 }
 struct Attempt {
     view: AccountLogin,
@@ -109,6 +117,8 @@ impl State {
             profile: self.saved.as_ref().map(|s| s.profile.clone()),
             qr_login_available: true,
             phone_login_available: true,
+            sync: self.sync_view.clone(),
+            guest_history: self.guest_history.clone(),
             login,
             error: None,
         }
@@ -177,9 +187,14 @@ impl AccountService {
                 cooldowns: HashMap::new(),
                 legacy_guest,
                 epoch: random_id()?,
+                sync_view: AccountSyncStatus::default(),
+                syncing: false,
+                sync_error: None,
+                guest_history: None,
             })),
             storage,
             directory: directory.to_owned(),
+            sync: Arc::new(sync::SyncRuntime::default()),
         })
     }
 
@@ -187,6 +202,13 @@ impl AccountService {
     pub async fn snapshot(&self) -> Account {
         let mut state = self.state.lock().await;
         state.expire();
+        if !self.sync.is_running() {
+            state.syncing = false;
+        }
+        if state.refresh_sync_view().await.is_err() {
+            state.sync_view.state = super::AccountSyncState::Error;
+            state.sync_view.error = Some("本机同步状态读取失败，请重试".into());
+        }
         state.account()
     }
 
@@ -194,7 +216,12 @@ impl AccountService {
     pub async fn state(&self) -> Result<AccountCommandResult, AccountError> {
         let mut state = self.state.lock().await;
         state.expire();
+        if !self.sync.is_running() {
+            state.syncing = false;
+        }
+        state.refresh_sync_view().await?;
         Ok(AccountCommandResult {
+            import_history: None,
             account: state.account(),
             library: state
                 .library
@@ -214,6 +241,9 @@ impl AccountService {
     }
     /// Apply to the authenticated library; request owner is a precondition, never a selector.
     pub async fn apply_history(&self, change: HistoryChange) -> Result<Library, LibraryError> {
+        if !change.is_history() {
+            return Err(LibraryError::InvalidInput);
+        }
         let state = self.state.lock().await;
         // Compatibility writes have no epoch. After any switch only registered operations are safe.
         if !state.legacy_guest || state.saved.is_some() {
@@ -236,7 +266,25 @@ impl AccountService {
         change: HistoryChange,
     ) -> Result<LibraryOperation, LibraryError> {
         let state = self.state.lock().await;
-        state.library.apply_operation(identity, change).await
+        let library = state.library.clone();
+        let runtime = self.sync.clone();
+        let mut work = Box::pin(async move {
+            let result = library.apply_operation(identity, change).await?;
+            if matches!(result.outcome, LibraryOperationOutcome::Committed { .. }) {
+                runtime.wake();
+            }
+            Ok(result)
+        });
+        // Register under the owner lock, then retain only the completion waiter on caller loss.
+        tokio::select! {
+            biased;
+            result = work.as_mut() => return result,
+            _ = std::future::ready(()) => {},
+        }
+        drop(state);
+        tokio::spawn(work)
+            .await
+            .map_err(|_| LibraryError::Storage)?
     }
 
     /// Execute one explicit command. Dropping network work cancels its uncommitted attempt.
@@ -249,6 +297,16 @@ impl AccountService {
             state.check_scope(&request.owner_id, &request.owner_epoch)?;
         }
         match request.command {
+            AccountCommand::Sync {} => {
+                return self
+                    .request_sync(&request.owner_id, &request.owner_epoch)
+                    .await;
+            }
+            AccountCommand::ImportGuestHistory {} => {
+                return self
+                    .import_history(&request.owner_id, &request.owner_epoch)
+                    .await;
+            }
             AccountCommand::QrStart {} => {
                 self.start(&request.owner_id, &request.owner_epoch, None, false)
                     .await?
@@ -379,13 +437,8 @@ impl AccountService {
                     return Err(error);
                 }
                 let device = protocol.client.credential().without_credentials();
-                self.storage.save_device(device.clone()).await?;
-                {
-                    let mut state = self.state.lock().await;
-                    state.check_owner(owner)?;
-                    state.check_attempt(&id)?;
-                    state.device = Some(device);
-                }
+                self.save_registered_device(owner, epoch, &id, device)
+                    .await?;
                 let phone = protocol
                     .phone
                     .as_ref()
@@ -429,11 +482,11 @@ impl AccountService {
                     .await
                     .map_err(protocol_error)?;
                 let device = protocol.client.credential().without_credentials();
-                self.storage.save_device(device.clone()).await?;
+                self.save_registered_device(owner, epoch, &id, device)
+                    .await?;
                 let mut state = self.state.lock().await;
-                state.check_owner(owner)?;
+                state.check_scope(owner, epoch)?;
                 state.check_attempt(&id)?.view.state = LoginState::Pending;
-                state.device = Some(device);
             }
         } else {
             let qr = match protocol.client.qr_start().await {
@@ -639,6 +692,29 @@ impl AccountService {
         Ok(())
     }
 
+    async fn save_registered_device(
+        &self,
+        owner: &str,
+        epoch: &str,
+        id: &str,
+        device: PersistedSession,
+    ) -> Result<(), AccountError> {
+        let mut state = self.state.clone().lock_owned().await;
+        state.check_scope(owner, epoch)?;
+        state.check_attempt(id)?;
+        let storage = self.storage.clone();
+        let id = id.to_owned();
+        // Keep the coordinator until admitted persistence settles, including after caller loss.
+        tokio::spawn(async move {
+            storage.save_device(device.clone()).await?;
+            state.check_attempt(&id)?;
+            state.device = Some(device);
+            Ok(())
+        })
+        .await
+        .map_err(|_| AccountError::Storage)?
+    }
+
     async fn commit(
         &self,
         mut state: OwnedMutexGuard<State>,
@@ -647,6 +723,9 @@ impl AccountService {
     ) -> Result<(), AccountError> {
         let storage = self.storage.clone();
         let epoch = random_id()?;
+        let runtime = self.sync.clone();
+        runtime.interrupt();
+        state.syncing = false;
         // Once admitted, persistence and publication retain the coordinator even if the caller disappears.
         tokio::spawn(async move {
             library
@@ -671,6 +750,10 @@ impl AccountService {
             state.legacy_guest = false;
             state.library = library;
             state.attempt = None;
+            state.sync_view = AccountSyncStatus::default();
+            state.sync_error = None;
+            state.guest_history = None;
+            runtime.wake();
             Ok(())
         })
         .await

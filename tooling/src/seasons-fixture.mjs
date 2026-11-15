@@ -65,7 +65,7 @@ export async function seasonsFixture({ port = 0 } = {}) {
       locked: false,
     })),
   });
-  const snapshot = () => ({ owner_id: '', entries: clone(entries) });
+  const snapshot = () => ({ owner_id: '', favorites: [], entries: clone(entries) });
   const ok = (data) => ({ status: 200, body: { ok: true, data } });
   const invalid = (record, reason) => {
     unknown.push({ ...record, reason });
@@ -299,7 +299,11 @@ export async function seasonsFixture({ port = 0 } = {}) {
     }
     if (url.pathname === '/api/v1/library' && !url.search) return ok(snapshot());
     if (url.pathname === '/api/v1/account')
-      return ok({ logged_in: false, qr_login_available: false });
+      return ok({
+        logged_in: false,
+        sync: { state: 'local', pending: 0 },
+        qr_login_available: false,
+      });
     if (url.pathname === '/api/v1/search/history') return ok({ items: keywords });
     if (url.pathname === '/api/v1/search/suggestions') return ok({ items: [] });
     if (url.pathname === '/api/v1/search/discovery') return ok({ guesses: [], boards: [] });

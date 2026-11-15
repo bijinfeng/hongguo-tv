@@ -31,9 +31,14 @@ export function registerPlayerHost(
           '*': (request) => {
             const url = new URL(request.url);
             const ok = (data: unknown) => ({ body: { ok: true, data } });
-            if (url.pathname.endsWith('/library')) return ok({ owner_id: '', entries: [] });
+            if (url.pathname.endsWith('/library'))
+              return ok({ owner_id: '', favorites: [], entries: [] });
             if (url.pathname.endsWith('/account'))
-              return ok({ logged_in: false, qr_login_available: false });
+              return ok({
+                logged_in: false,
+                sync: { state: 'local', pending: 0 },
+                qr_login_available: false,
+              });
             if (url.pathname.endsWith('/search')) return ok({ items: [drama], has_more: false });
             if (url.pathname.endsWith('/series/detail')) return ok(drama);
             if (

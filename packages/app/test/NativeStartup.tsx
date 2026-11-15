@@ -27,7 +27,7 @@ export function NativeStartupFixture(props: { logoMark: ImageAsset }) {
             body:
               path === '/api/v1/account'
                 ? { ok: false, code: 'CORE_NOT_IMPLEMENTED', error: '此功能尚未开放' }
-                : { ok: true, data: { entries: [], owner_id: '' } },
+                : { ok: true, data: { favorites: [], entries: [], owner_id: '' } },
           }),
         accept() {},
         cancel() {},
@@ -100,7 +100,14 @@ function StoreDrainFixture() {
     request(path, _signal, body) {
       if (path === '/api/v1/library/session')
         return Promise.resolve({ session_id: 'a'.repeat(32) });
-      if (!body) return Promise.resolve({ entries: [], owner_id: '' });
+      if (!body)
+        return Promise.resolve({
+          favorites: [],
+          entries: [],
+          owner_id: '',
+          logged_in: false,
+          sync: { state: 'local', pending: 0 },
+        });
       const position = (body as { position: number }).position;
       record(`writing-${position}`);
       return new Promise((resolve) => {
@@ -109,7 +116,7 @@ function StoreDrainFixture() {
           resolve({
             session_id: 'a'.repeat(32),
             operation_id: new URL(path, 'http://fixture').searchParams.get('operation_id'),
-            outcome: { status: 'committed', library: { entries: [], owner_id: '' } },
+            outcome: { status: 'committed', library: { favorites: [], entries: [], owner_id: '' } },
           });
         };
       });

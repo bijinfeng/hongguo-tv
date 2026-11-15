@@ -112,6 +112,14 @@ pub struct Account {
     pub qr_login_available: bool,
     /// Whether the host attached the real Passport phone service.
     pub phone_login_available: bool,
+    /// Cloud synchronization state, independent of local login success.
+    #[serde(default)]
+    #[schema(required = true)]
+    pub sync: AccountSyncStatus,
+    /// Eligible guest history counts; absent until successfully computed for this scope.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub guest_history: Option<GuestHistoryStatus>,
     /// Active or terminal attempt, until replaced or cancelled.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -120,6 +128,61 @@ pub struct Account {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     pub error: Option<String>,
+}
+
+/// One serialized synchronization phase for the current account scope.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AccountSyncState {
+    /// Local-only operation; no cloud success or availability is implied.
+    #[default]
+    Local,
+    /// No work is currently waiting.
+    Idle,
+    /// Durable work is waiting for synchronization.
+    Pending,
+    /// A bounded synchronization round is running.
+    Syncing,
+    /// A round failed; records and pending work remain available.
+    Error,
+}
+
+/// Safe synchronization summary without credentials or upstream responses.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AccountSyncStatus {
+    /// Current phase.
+    pub state: AccountSyncState,
+    /// Number of durable pending operations.
+    pub pending: u32,
+    /// Unix milliseconds of the last fully committed successful round.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub last_sync: Option<i64>,
+    /// Safe recovery message; never raw remote or storage diagnostics.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub error: Option<String>,
+}
+
+/// Counts read from this application's guest library for the current account scope.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GuestHistoryStatus {
+    /// Total guest history records before eligibility checks.
+    pub total: u64,
+    /// Valid newer records eligible for explicit import.
+    pub available: u64,
+}
+
+/// Counts belonging to one confirmed import result, never reconstructed after a lost response.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GuestHistoryImportResult {
+    /// Records committed by this import.
+    pub imported: u64,
+    /// Eligible records still remaining after that commit.
+    pub remaining: u64,
 }
 
 /// Explicit user intent; sensitive inputs are never debug formatted or persisted.
@@ -161,6 +224,10 @@ pub enum AccountCommand {
     },
     /// Reliably clear credentials and restore the guest library.
     Logout {},
+    /// Wake the account's existing synchronization worker.
+    Sync {},
+    /// Explicitly import eligible guest viewing history into this account.
+    ImportGuestHistory {},
 }
 
 /// Owner precondition prevents an old page from changing a different active account.
@@ -182,11 +249,17 @@ pub struct AccountCommandResult {
     pub account: Account,
     /// Committed snapshot of its local library.
     pub library: Library,
+    /// Present only for a confirmed import; reconciliation does not invent its counts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub import_history: Option<GuestHistoryImportResult>,
 }
 
 /// Sanitized transport-independent account failures.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AccountError {
+    /// The command contract exists but its behavior has not been connected.
+    NotImplemented,
     /// Request does not meet the account contract.
     InvalidInput,
     /// Attempt was cancelled, replaced or expired.
@@ -207,11 +280,14 @@ pub enum AccountError {
     IdentityMismatch,
     /// Old-owner history could not be committed safely.
     Library,
+    /// Explicit import cannot fit any new progress in the durable cloud queue.
+    LibrarySyncQueueFull,
 }
 impl AccountError {
     /// Stable code without upstream response data.
     pub fn code(self) -> &'static str {
         match self {
+            Self::NotImplemented => "ACCOUNT_NOT_IMPLEMENTED",
             Self::InvalidInput => "ACCOUNT_REQUEST_INVALID",
             Self::AttemptExpired => "ACCOUNT_ATTEMPT_EXPIRED",
             Self::Busy => "ACCOUNT_ATTEMPT_BUSY",
@@ -222,12 +298,14 @@ impl AccountError {
             Self::Upstream => "ACCOUNT_UPSTREAM_UNAVAILABLE",
             Self::IdentityMismatch => "ACCOUNT_IDENTITY_MISMATCH",
             Self::Library => "ACCOUNT_LIBRARY_UNAVAILABLE",
+            Self::LibrarySyncQueueFull => "LIBRARY_SYNC_QUEUE_FULL",
         }
     }
 }
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::NotImplemented => "此账号操作尚未开放",
             Self::InvalidInput => "账号参数无效，请检查后重试",
             Self::AttemptExpired => "登录已过期或取消，请重新登录",
             Self::Busy => "登录操作尚未结束，请稍候",
@@ -238,6 +316,7 @@ impl fmt::Display for AccountError {
             Self::Upstream => "登录服务暂不可用，请稍后重试",
             Self::IdentityMismatch => "登录身份未能确认，请重新登录",
             Self::Library => "观看记录尚未准备好，请先重试保存或读取",
+            Self::LibrarySyncQueueFull => "待同步记录已满，请先同步后重试",
         })
     }
 }

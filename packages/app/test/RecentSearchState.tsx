@@ -42,7 +42,12 @@ export function RecentSearchStateFixture() {
       }
       if (path.startsWith('/api/v1/search?'))
         return Promise.resolve({ items: [], has_more: false });
-      return Promise.resolve({ entries: [], logged_in: false });
+      return Promise.resolve({
+        favorites: [],
+        entries: [],
+        logged_in: false,
+        sync: { state: 'local', pending: 0 },
+      });
     },
   });
   function Owner() {

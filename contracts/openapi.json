@@ -500,7 +500,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HistoryChange"
+                "$ref": "#/components/schemas/LibraryChange"
               }
             }
           },
@@ -612,7 +612,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HistoryChange"
+                "$ref": "#/components/schemas/LibraryChange"
               }
             }
           },
@@ -2253,12 +2253,17 @@
           "owner_id",
           "owner_epoch",
           "qr_login_available",
-          "phone_login_available"
+          "phone_login_available",
+          "sync"
         ],
         "properties": {
           "error": {
             "type": "string",
             "description": "Sanitized local recovery failure."
+          },
+          "guest_history": {
+            "$ref": "#/components/schemas/GuestHistoryStatus",
+            "description": "Eligible guest history counts; absent until successfully computed for this scope."
           },
           "logged_in": {
             "type": "boolean",
@@ -2287,6 +2292,10 @@
           "qr_login_available": {
             "type": "boolean",
             "description": "Whether the host attached the real QR service."
+          },
+          "sync": {
+            "$ref": "#/components/schemas/AccountSyncStatus",
+            "description": "Cloud synchronization state, independent of local login success."
           }
         }
       },
@@ -2305,7 +2314,8 @@
                   "qr_start"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -2325,7 +2335,8 @@
                 "type": "string",
                 "description": "Local attempt identity."
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -2345,7 +2356,8 @@
                 "type": "string",
                 "description": "Local attempt identity."
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -2375,7 +2387,8 @@
                 "type": "boolean",
                 "description": "True only when the user selected the send-code action."
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -2400,7 +2413,8 @@
                 "type": "string",
                 "description": "Local attempt identity."
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -2420,7 +2434,8 @@
                 "type": "string",
                 "description": "Local attempt identity."
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -2435,7 +2450,40 @@
                   "logout"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Wake the account's existing synchronization worker.",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "sync"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Explicitly import eligible guest viewing history into this account.",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "import_guest_history"
+                ]
+              }
+            },
+            "additionalProperties": false
           }
         ],
         "description": "Explicit user intent; sensitive inputs are never debug formatted or persisted."
@@ -2475,6 +2523,10 @@
           "account": {
             "$ref": "#/components/schemas/Account",
             "description": "Current durable account."
+          },
+          "import_history": {
+            "$ref": "#/components/schemas/GuestHistoryImportResult",
+            "description": "Present only for a confirmed import; reconciliation does not invent its counts."
           },
           "library": {
             "$ref": "#/components/schemas/Library",
@@ -2596,6 +2648,47 @@
             "description": "Always true."
           }
         }
+      },
+      "AccountSyncState": {
+        "type": "string",
+        "description": "One serialized synchronization phase for the current account scope.",
+        "enum": [
+          "local",
+          "idle",
+          "pending",
+          "syncing",
+          "error"
+        ]
+      },
+      "AccountSyncStatus": {
+        "type": "object",
+        "description": "Safe synchronization summary without credentials or upstream responses.",
+        "required": [
+          "state",
+          "pending"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Safe recovery message; never raw remote or storage diagnostics."
+          },
+          "last_sync": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix milliseconds of the last fully committed successful round."
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of durable pending operations.",
+            "minimum": 0
+          },
+          "state": {
+            "$ref": "#/components/schemas/AccountSyncState",
+            "description": "Current phase."
+          }
+        },
+        "additionalProperties": false
       },
       "ActorSummary": {
         "type": "object",
@@ -3243,6 +3336,26 @@
           }
         }
       },
+      "FavoriteEntry": {
+        "type": "object",
+        "description": "Favorite membership without invented viewing progress.",
+        "required": [
+          "drama",
+          "favorite_at"
+        ],
+        "properties": {
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Compact summary without episode arrays."
+          },
+          "favorite_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Original favorite time in Unix milliseconds."
+          }
+        },
+        "additionalProperties": false
+      },
       "FeedChannel": {
         "type": "string",
         "description": "The migrated anonymous channels; followed content remains account-owned.",
@@ -3359,7 +3472,87 @@
           }
         }
       },
+      "GuestHistoryImportResult": {
+        "type": "object",
+        "description": "Counts belonging to one confirmed import result, never reconstructed after a lost response.",
+        "required": [
+          "imported",
+          "remaining"
+        ],
+        "properties": {
+          "imported": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Records committed by this import.",
+            "minimum": 0
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Eligible records still remaining after that commit.",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "GuestHistoryStatus": {
+        "type": "object",
+        "description": "Counts read from this application's guest library for the current account scope.",
+        "required": [
+          "total",
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Valid newer records eligible for explicit import.",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total guest history records before eligibility checks.",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
       "HistoryChange": {
+        "$ref": "#/components/schemas/LibraryChange"
+      },
+      "HistoryKind": {
+        "$ref": "#/components/schemas/LibraryKind"
+      },
+      "Library": {
+        "type": "object",
+        "description": "Snapshot of the owner fixed when the local library was opened.",
+        "required": [
+          "entries",
+          "favorites"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "description": "Most recently viewed first."
+          },
+          "favorites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FavoriteEntry"
+            },
+            "description": "Independent favorite membership, empty when none is stored."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Empty for guests; optional for compatibility with existing clients."
+          }
+        }
+      },
+      "LibraryChange": {
         "oneOf": [
           {
             "type": "object",
@@ -3433,8 +3626,8 @@
                 ]
               },
               "kind": {
-                "$ref": "#/components/schemas/HistoryKind",
-                "description": "Only history is migrated."
+                "$ref": "#/components/schemas/LibraryKind",
+                "description": "Category whose one item is removed."
               },
               "owner_id": {
                 "type": [
@@ -3447,11 +3640,12 @@
                 "type": "string",
                 "description": "Exact series ID."
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
-            "description": "Clear watch history for the expected owner.",
+            "description": "Hide one category on this device without bulk remote deletion.",
             "required": [
               "kind",
               "action"
@@ -3464,8 +3658,8 @@
                 ]
               },
               "kind": {
-                "$ref": "#/components/schemas/HistoryKind",
-                "description": "Only history is migrated."
+                "$ref": "#/components/schemas/LibraryKind",
+                "description": "Category to clear locally."
               },
               "owner_id": {
                 "type": [
@@ -3474,37 +3668,52 @@
                 ],
                 "description": "Expected owner, empty for guests."
               }
-            }
-          }
-        ],
-        "description": "Strict, explicit history mutations; favorites and likes remain unavailable."
-      },
-      "HistoryKind": {
-        "type": "string",
-        "description": "The only migrated record category.",
-        "enum": [
-          "history"
-        ]
-      },
-      "Library": {
-        "type": "object",
-        "description": "Snapshot of the owner fixed when the local library was opened.",
-        "required": [
-          "entries"
-        ],
-        "properties": {
-          "entries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Entry"
             },
-            "description": "Most recently viewed first."
+            "additionalProperties": false
           },
-          "owner_id": {
-            "type": "string",
-            "description": "Empty for guests; optional for compatibility with existing clients."
+          {
+            "type": "object",
+            "description": "Set exact favorite membership; does not create history.",
+            "required": [
+              "drama",
+              "value",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "favorite"
+                ]
+              },
+              "drama": {
+                "$ref": "#/components/schemas/Drama",
+                "description": "Summary for this exact series."
+              },
+              "owner_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Expected owner, absent or empty only for guests."
+              },
+              "value": {
+                "type": "boolean",
+                "description": "Desired membership; never an implicit toggle."
+              }
+            },
+            "additionalProperties": false
           }
-        }
+        ],
+        "description": "Strict mutations shared by registered writes; unknown fields are rejected."
+      },
+      "LibraryKind": {
+        "type": "string",
+        "description": "Independent local library categories.",
+        "enum": [
+          "history",
+          "favorites"
+        ]
       },
       "LibraryOperation": {
         "type": "object",

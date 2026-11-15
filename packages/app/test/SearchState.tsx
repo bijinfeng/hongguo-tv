@@ -30,7 +30,13 @@ export function SearchStateFixture(props: { focus?: boolean } = {}) {
     mediaOrigin: 'http://127.0.0.1:18765',
     request(path, abort) {
       const url = new URL(path, 'http://127.0.0.1:18765');
-      if (url.pathname !== '/api/v1/search') return Promise.resolve({ entries: [] });
+      if (url.pathname !== '/api/v1/search')
+        return Promise.resolve({
+          favorites: [],
+          entries: [],
+          logged_in: false,
+          sync: { state: 'local', pending: 0 },
+        });
       const term = url.searchParams.get('q');
       const offset = url.searchParams.get('offset');
       record(`request-${term}-${offset ?? 'first'}`);

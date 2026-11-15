@@ -470,10 +470,24 @@ async fn disk_failure_returns_stable_error_and_previous_snapshot() {
 #[test]
 fn schema_contains_generated_history_and_strict_mutations() {
     let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
-    for name in ["Entry", "Library", "HistoryChange", "LibraryResponse"] {
+    for name in [
+        "Entry",
+        "FavoriteEntry",
+        "Library",
+        "LibraryChange",
+        "LibraryResponse",
+    ] {
         assert!(schema["components"]["schemas"][name].is_object());
     }
-    let variant = &schema["components"]["schemas"]["HistoryChange"]["oneOf"][0];
+    assert_eq!(
+        schema["components"]["schemas"]["HistoryChange"]["$ref"],
+        "#/components/schemas/LibraryChange"
+    );
+    assert_eq!(
+        schema["components"]["schemas"]["HistoryKind"]["$ref"],
+        "#/components/schemas/LibraryKind"
+    );
+    let variant = &schema["components"]["schemas"]["LibraryChange"]["oneOf"][0];
     let payload = progress();
     // Every key of a valid wire payload must be allowed by the closed object schema.
     assert_eq!(variant["type"], "object");
@@ -485,6 +499,32 @@ fn schema_contains_generated_history_and_strict_mutations() {
         assert!(payload.get(key.as_str().unwrap()).is_some());
     }
     assert_eq!(variant["properties"]["action"]["enum"], json!(["progress"]));
+    let canonical = &schema["components"]["schemas"]["LibraryChange"];
+    assert_eq!(canonical["oneOf"].as_array().unwrap().len(), 4);
+    let favorite = canonical["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["properties"]["action"]["enum"] == json!(["favorite"]))
+        .unwrap();
+    assert_eq!(favorite["additionalProperties"], false);
+    assert_eq!(favorite["properties"]["value"]["type"], "boolean");
+    assert_eq!(
+        schema["components"]["schemas"]["LibraryKind"]["enum"],
+        json!(["history", "favorites"])
+    );
+    assert!(
+        schema["components"]["schemas"]["Library"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("favorites"))
+    );
+    assert!(
+        schema["components"]["schemas"]["Account"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("sync"))
+    );
     for method in ["get", "post"] {
         assert_eq!(
             schema["paths"]["/api/v1/library"][method]["responses"]["200"]["content"]["application/json"]

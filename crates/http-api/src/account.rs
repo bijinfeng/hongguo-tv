@@ -89,9 +89,11 @@ fn response(result: Result<AccountCommandResult, AccountError>) -> Response {
 fn error(error: AccountError) -> Response {
     let status = match error {
         AccountError::InvalidInput => StatusCode::BAD_REQUEST,
-        AccountError::AttemptExpired | AccountError::Busy | AccountError::OwnerChanged => {
-            StatusCode::CONFLICT
-        }
+        AccountError::NotImplemented => StatusCode::NOT_IMPLEMENTED,
+        AccountError::AttemptExpired
+        | AccountError::Busy
+        | AccountError::OwnerChanged
+        | AccountError::LibrarySyncQueueFull => StatusCode::CONFLICT,
         AccountError::Limited => StatusCode::TOO_MANY_REQUESTS,
         AccountError::Storage | AccountError::InvalidSession | AccountError::Library => {
             StatusCode::INTERNAL_SERVER_ERROR

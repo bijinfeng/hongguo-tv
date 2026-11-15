@@ -1,5 +1,6 @@
 //! Fixed Passport protocols. Credentials and challenges never implement Debug or enter API DTOs.
 mod client;
+mod cloud;
 mod crypto;
 mod device;
 mod phone;
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 pub(crate) use client::PassportClient;
+pub(crate) use cloud::{CloudCard, CloudError, CloudFavorite, CloudHistory, CloudLibrary};
 
 /// Only bounded, non-private categories may leave this protocol boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

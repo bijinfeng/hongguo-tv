@@ -93,7 +93,7 @@ function Navigation(props: { store: Store }) {
         buttonRef={(ref) => props.store.primaryRef('history', ref)}
         variant="navigation"
         icon={props.store.target === 'desktop' ? 'history' : undefined}
-        label={props.store.target === 'tv' ? '我的' : '继续观看'}
+        label={props.store.target === 'tv' ? '我的' : '片库'}
         selected={props.store.activePage('history')}
         onPress={() => props.store.navigate('history')}
       />

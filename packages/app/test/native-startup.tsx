@@ -47,7 +47,7 @@ export function registerNativeStartupTests() {
   test('HTTP preview is explicit and invalid modes never open native core or silently fall back', async () => {
     const preview = await open('./NativeStartupPreview.tsx', {
       host: { params: { scenario: 'http-preview' } },
-      network: { '*': { body: { ok: true, data: { entries: [], owner_id: '' } } } },
+      network: { '*': { body: { ok: true, data: { favorites: [], entries: [], owner_id: '' } } } },
     });
     await preview.waitFor('id:app-desktop');
     expect(preview.requests().some((r) => r.url.includes('/api/v1/library'))).toBe(true);

@@ -1,9 +1,9 @@
 //! Guest persistence tests use isolated, disposable databases and no legacy/live data.
 use hongguo_core::{
     catalog::{Drama, Episode},
-    library::{HistoryChange, LibraryError, LibraryStore, Progress},
+    library::{Entry, HistoryChange, LibraryError, LibraryStore, Progress},
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
@@ -29,6 +29,40 @@ impl Drop for Temp {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
+}
+fn legacy_guest(path: &std::path::Path, version: i64, entries: &[Entry], keywords: &[String]) {
+    assert!(!path.exists());
+    let mut conn = Connection::open(path).unwrap();
+    conn.execute_batch(
+        "PRAGMA application_id=1212634198;
+        CREATE TABLE history(series_id TEXT PRIMARY KEY NOT NULL,entry_json TEXT NOT NULL,
+        last_played_at INTEGER NOT NULL CHECK(last_played_at>0));",
+    )
+    .unwrap();
+    if version == 2 {
+        conn.execute_batch("CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL,query TEXT UNIQUE NOT NULL);").unwrap();
+    }
+    conn.pragma_update(None, "user_version", version).unwrap();
+    let tx = conn.transaction().unwrap();
+    for entry in entries {
+        tx.execute(
+            "INSERT INTO history VALUES(?1,?2,?3)",
+            params![
+                entry.drama.series_id,
+                serde_json::to_string(entry).unwrap(),
+                entry.last_played_at.unwrap()
+            ],
+        )
+        .unwrap();
+    }
+    for (rank, query) in keywords.iter().enumerate() {
+        tx.execute(
+            "INSERT INTO recent_searches VALUES(?1,?2)",
+            params![i64::try_from(rank).unwrap(), query],
+        )
+        .unwrap();
+    }
+    tx.commit().unwrap();
 }
 fn progress(id: &str) -> Progress {
     Progress {
@@ -433,18 +467,21 @@ async fn keyword_migration_preserves_v1_history_and_rolls_back_failed_upgrade() 
         .unwrap();
     let viewing = store.snapshot().await.unwrap();
     drop(store);
-    let conn = Connection::open(tmp.db()).unwrap();
-    conn.execute_batch("DROP TABLE recent_searches; PRAGMA user_version=1;")
-        .unwrap();
-    drop(conn);
-    let migrated = LibraryStore::open(tmp.db()).await.unwrap();
+    let legacy = tmp.0.join("v1.sqlite3");
+    legacy_guest(&legacy, 1, &viewing.entries, &[]);
+    let migrated = LibraryStore::open(&legacy).await.unwrap();
     assert_eq!(migrated.snapshot().await.unwrap(), viewing);
     assert!(migrated.search_history().await.unwrap().items.is_empty());
     drop(migrated);
-    let conn = Connection::open(tmp.db()).unwrap();
-    conn.execute_batch("PRAGMA user_version=1;").unwrap();
-    // A conflicting table fails the migration without publishing version2 or touching history.
-    assert!(LibraryStore::open(tmp.db()).await.is_err());
+    let legacy = tmp.0.join("conflicting-v1.sqlite3");
+    legacy_guest(&legacy, 1, &viewing.entries, &[]);
+    let conn = Connection::open(&legacy).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY,query TEXT UNIQUE NOT NULL);",
+    )
+    .unwrap();
+    // A conflicting table fails migration without publishing v4 or changing history.
+    assert!(LibraryStore::open(&legacy).await.is_err());
     let version: i64 = conn
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
@@ -455,7 +492,7 @@ async fn keyword_migration_preserves_v1_history_and_rolls_back_failed_upgrade() 
     assert_eq!(count, 1);
     conn.execute_batch("DROP TABLE recent_searches; CREATE TABLE corrupt_constraint(value INTEGER CHECK(value>0)); PRAGMA ignore_check_constraints=ON; INSERT INTO corrupt_constraint VALUES(0);").unwrap();
     assert!(matches!(
-        LibraryStore::open(tmp.db()).await,
+        LibraryStore::open(&legacy).await,
         Err(LibraryError::InvalidDatabase)
     ));
     assert_eq!(
@@ -566,20 +603,22 @@ async fn opening_for_an_account_never_adopts_or_migrates_a_guest_v2_database() {
         .await
         .unwrap();
     drop(guest);
-    let before = std::fs::read(tmp.db()).unwrap();
+    let legacy = tmp.0.join("v2.sqlite3");
+    legacy_guest(&legacy, 2, &viewing.entries, &searches.items);
+    let before = std::fs::read(&legacy).unwrap();
     assert!(matches!(
-        LibraryStore::open_for_owner(tmp.db(), "1".into()).await,
+        LibraryStore::open_for_owner(&legacy, "1".into()).await,
         Err(LibraryError::OwnerChanged)
     ));
-    assert_eq!(std::fs::read(tmp.db()).unwrap(), before);
-    let reopened = LibraryStore::open(tmp.db()).await.unwrap();
+    assert_eq!(std::fs::read(&legacy).unwrap(), before);
+    let reopened = LibraryStore::open(&legacy).await.unwrap();
     assert_eq!(reopened.snapshot().await.unwrap(), viewing);
     assert_eq!(reopened.search_history().await.unwrap(), searches);
-    let conn = Connection::open(tmp.db()).unwrap();
+    let conn = Connection::open(&legacy).unwrap();
     assert_eq!(
         conn.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
             .unwrap(),
-        2
+        4
     );
     assert_eq!(
         conn.query_row(
@@ -588,7 +627,7 @@ async fn opening_for_an_account_never_adopts_or_migrates_a_guest_v2_database() {
             |r| r.get::<_, i64>(0)
         )
         .unwrap(),
-        0
+        1
     );
 }
 

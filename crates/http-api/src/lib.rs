@@ -387,6 +387,10 @@ pub fn router_with_account(
         hongguo_core::account::AccountCommand,
         hongguo_core::account::AccountCommandRequest,
         hongguo_core::account::AccountCommandResult,
+        hongguo_core::account::AccountSyncStatus,
+        hongguo_core::account::AccountSyncState,
+        hongguo_core::account::GuestHistoryStatus,
+        hongguo_core::account::GuestHistoryImportResult,
         radar::RadarResponse,
         hongguo_core::radar::RadarSnapshot,
         hongguo_core::radar::RadarRanks,
@@ -458,8 +462,9 @@ pub fn router_with_account(
         hongguo_core::playback::PlayInfo,
         hongguo_core::library::Entry,
         hongguo_core::library::Library,
-        hongguo_core::library::HistoryChange,
-        hongguo_core::library::HistoryKind,
+        hongguo_core::library::LibraryChange,
+        hongguo_core::library::LibraryKind,
+        hongguo_core::library::FavoriteEntry,
         hongguo_core::library::Progress
     ))
 )]
@@ -467,14 +472,17 @@ struct ApiDoc;
 
 /// Export the shared generated contract without private account credentials.
 pub fn openapi() -> utoipa::openapi::OpenApi {
-    use utoipa::openapi::{RefOr, schema::Schema};
+    use utoipa::openapi::{
+        Ref, RefOr,
+        schema::{AdditionalProperties, Schema},
+    };
     let mut doc = ApiDoc::openapi();
     if let Some(components) = &mut doc.components {
         let progress = components.schemas.get("Progress").cloned();
         if let (
             Some(RefOr::T(Schema::Object(mut progress))),
             Some(RefOr::T(Schema::OneOf(change))),
-        ) = (progress, components.schemas.get_mut("HistoryChange"))
+        ) = (progress, components.schemas.get_mut("LibraryChange"))
         {
             // Utoipa 6 adds the tag via allOf, conflicting with the closed Progress object.
             if let Some(RefOr::T(Schema::AllOf(variant))) = change.items.first()
@@ -484,6 +492,26 @@ pub fn openapi() -> utoipa::openapi::OpenApi {
                 progress.required.extend(tag.required.clone());
                 change.items[0] = Schema::Object(progress).into();
             }
+        }
+        // Utoipa omits enum-level deny_unknown_fields on inline tagged variants.
+        for name in ["LibraryChange", "AccountCommand"] {
+            if let Some(RefOr::T(Schema::OneOf(command))) = components.schemas.get_mut(name) {
+                for variant in &mut command.items {
+                    if let RefOr::T(Schema::Object(object)) = variant {
+                        object.additional_properties =
+                            Some(Box::new(AdditionalProperties::FreeForm(false)));
+                    }
+                }
+            }
+        }
+        // Compatibility names reference the canonical contracts instead of duplicating variants.
+        for (alias, canonical) in [
+            ("HistoryChange", "LibraryChange"),
+            ("HistoryKind", "LibraryKind"),
+        ] {
+            components
+                .schemas
+                .insert(alias.into(), Ref::from_schema_name(canonical).into());
         }
     }
     doc

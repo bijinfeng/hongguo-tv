@@ -1,10 +1,11 @@
 import { registerFeedUiTests } from './feed-ui';
 import { registerFeedTests } from './feed';
+import { registerLibraryFavoritesTests } from './library-favorites';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import { registerFocusedRemovalTests, registerSearchFocusTests } from './focused-removal';
 import { registerCategoryTests } from './category';
-import { CoreError } from '@hongguo/core-client';
-import { playbackTime } from '../src/format';
+import { CoreError, libraryDrama } from '@hongguo/core-client';
+import { historyProgress, playbackTime } from '../src/format';
 import { errorMessage } from '../src/error-messages';
 
 const drama = {
@@ -30,8 +31,9 @@ function fixture(request: StubRequest): StubResponse {
   if (url.pathname === '/api/v1/search/history') return ok({ items: [] });
   if (url.pathname === '/api/v1/search/suggestions') return ok({ items: [] });
   if (url.pathname === '/api/v1/search/discovery') return ok({ guesses: [], boards: [] });
-  if (url.pathname === '/api/v1/library') return ok({ entries: [], owner_id: '' });
-  if (url.pathname === '/api/v1/account') return ok({ logged_in: false, qr_login_available: true });
+  if (url.pathname === '/api/v1/library') return ok({ favorites: [], entries: [], owner_id: '' });
+  if (url.pathname === '/api/v1/account')
+    return ok({ logged_in: false, sync: { state: 'local', pending: 0 }, qr_login_available: true });
   if (url.pathname === '/api/v1/search') return ok({ items: [drama], has_more: false });
   if (url.pathname === '/api/v1/series/detail') return ok(drama);
   if (
@@ -60,6 +62,7 @@ function fixture(request: StubRequest): StubResponse {
 }
 
 export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  registerLibraryFavoritesTests(target, entry);
   registerCategoryTests();
   registerFeedTests();
   registerFeedUiTests(target, entry);
@@ -68,7 +71,16 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       if (new URL(request.url).pathname === '/api/v1/library')
         return ok({
           owner_id: '',
-          entries: [{ drama, episode: 1, position: 3, duration: 60, last_played_at: 1 }],
+          favorites: [],
+          entries: [
+            {
+              drama: libraryDrama(drama),
+              episode: 1,
+              position: 3,
+              duration: 60,
+              last_played_at: 1,
+            },
+          ],
         });
       return fixture(request);
     };
@@ -816,7 +828,12 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       network: {
         'POST *': fixture,
         '*': (request) => {
-          if (request.url.endsWith('/library')) return ok({ entries, owner_id: '' });
+          if (request.url.endsWith('/library'))
+            return ok({
+              entries: entries.map((entry) => ({ ...entry, drama: libraryDrama(entry.drama) })),
+              favorites: [],
+              owner_id: '',
+            });
           if (request.url.includes('/series/detail'))
             return ok(
               entries.find(
@@ -854,10 +871,17 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
           if (request.url.endsWith('/library'))
             return ok({
               owner_id: '',
+              favorites: [],
               entries: [
-                { drama: older, episode: 1, video_id: '456', position: 9, last_played_at: 100 },
                 {
-                  drama,
+                  drama: libraryDrama(older),
+                  episode: 1,
+                  video_id: '456',
+                  position: 9,
+                  last_played_at: 100,
+                },
+                {
+                  drama: libraryDrama(drama),
                   episode: 3,
                   video_id: '458',
                   position: 60,
@@ -876,10 +900,11 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     const texts = app.texts();
     expect(texts.indexOf('重生之后') >= 0).toBe(true);
     expect(texts.indexOf('重生之后') < texts.indexOf('较早的故事')).toBe(true);
-    expect(app.shows('第 3 集 · 看到 01:00')).toBe(true);
-    expect(app.shows('role:header[继续观看]')).toBe(true);
+    expect(app.shows('第 3 集 · 本集已看完')).toBe(true);
+    expect(app.shows('第 1 集 · 看到 00:09')).toBe(true);
+    expect(app.shows('第 3 集 · 看到 01:00')).toBe(false);
+    expect(app.shows('role:header[我的片库]')).toBe(true);
     expect(app.shows('role:header[首页]')).toBe(false);
-    expect(app.shows('本集已看完')).toBe(true);
     await app.press('id:history-123');
     await app.waitFor('原观看集已不可用，可选择其他已开放集数从头观看。');
     await app.press('从第 1 集开始');
@@ -909,8 +934,15 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
               ? { status: 502, body: { ok: false, error: '记录离线' } }
               : ok({
                   owner_id: '',
+                  favorites: [],
                   entries: [
-                    { drama, episode: 2, video_id: '457', position: 15, last_played_at: 123 },
+                    {
+                      drama: libraryDrama(drama),
+                      episode: 2,
+                      video_id: '457',
+                      position: 15,
+                      last_played_at: 123,
+                    },
                   ],
                 });
           return fixture(request);
@@ -962,9 +994,10 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
         '*': (request) => {
           if (request.url.endsWith('/library'))
             return ok({
+              favorites: [],
               entries: [
                 {
-                  drama: full,
+                  drama: libraryDrama(full),
                   episode: 59,
                   video_id: unavailable ? '9999' : '1058',
                   position: 15,
@@ -1061,6 +1094,8 @@ export function registerApplicationTests(
       '--:--',
       '--:--',
     ]);
+    expect(historyProgress({ episode: 0, position: 12 })).toBe('看到 00:12');
+    expect(historyProgress({ episode: 2, position: 12 })).toBe('第 2 集 · 看到 00:12');
   });
   test('request copy uses error categories, keeps raw details for diagnostics and ignores cancellation', () => {
     const timeout = new CoreError('raw transport details', 'UPSTREAM_TIMEOUT', 504);
@@ -1325,10 +1360,23 @@ export function registerApplicationTests(
         '*': (request) => {
           if (request.url.endsWith('/library'))
             return ok({
-              entries: [{ drama, episode: 2, video_id: '457', position: 15, last_played_at: 123 }],
+              favorites: [],
+              entries: [
+                {
+                  drama: libraryDrama(drama),
+                  episode: 2,
+                  video_id: '457',
+                  position: 15,
+                  last_played_at: 123,
+                },
+              ],
             });
           if (request.url.endsWith('/account'))
-            return ok({ logged_in: true, profile: { name: '测试账号' } });
+            return ok({
+              logged_in: true,
+              sync: { state: 'local', pending: 0 },
+              profile: { name: '测试账号' },
+            });
           return fixture(request);
         },
       },

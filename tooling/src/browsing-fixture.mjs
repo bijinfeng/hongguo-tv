@@ -126,6 +126,7 @@ export async function browsingFixture({
       if (url.pathname === '/api/v1/library' && exact([]))
         return reply({
           owner_id: '',
+          favorites: [],
           entries: [
             {
               drama: summary('123'),
@@ -137,7 +138,11 @@ export async function browsingFixture({
           ],
         });
       if (url.pathname === '/api/v1/account' && exact([]))
-        return reply({ logged_in: false, qr_login_available: false });
+        return reply({
+          logged_in: false,
+          sync: { state: 'local', pending: 0 },
+          qr_login_available: false,
+        });
       if (url.pathname === '/api/v1/search/history' && exact([])) return reply({ items: [] });
       if (url.pathname === '/api/v1/series/detail') {
         const id = url.searchParams.get('series_id');
@@ -333,6 +338,7 @@ export async function browsingFixture({
           status: 'committed',
           library: {
             owner_id: '',
+            favorites: [],
             entries: [{ ...entry, last_played_at: Date.now() }],
           },
         },
@@ -505,16 +511,24 @@ export async function browsingFixture({
       return;
     }
     if (url.pathname === '/api/v1/library') {
+      const { episodes: _episodes, ...summary } = drama();
       reply({
         owner_id: '',
+        favorites: [],
         entries: [
-          { drama: drama(), episode: 59, video_id: '1058', position: 15, last_played_at: 123 },
+          {
+            drama: summary,
+            episode: 59,
+            video_id: '1058',
+            position: 15,
+            last_played_at: 123,
+          },
         ],
       });
       return;
     }
     if (url.pathname === '/api/v1/account') {
-      reply({ logged_in: false, qr_login_available: false });
+      reply({ logged_in: false, sync: { state: 'local', pending: 0 }, qr_login_available: false });
       return;
     }
     if (url.pathname === '/api/v1/search') {

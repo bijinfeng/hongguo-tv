@@ -9,8 +9,10 @@ export function CalendarBackStateFixture() {
     mediaOrigin: 'http://127.0.0.1:18765',
     async request(path, _signal, body) {
       if (body !== undefined) throw new Error('Calendar back acceptance cannot write');
-      if (path === '/api/v1/library') return { owner_id: 'calendar-back', entries: [] };
-      if (path === '/api/v1/account') return { logged_in: false };
+      if (path === '/api/v1/library')
+        return { owner_id: 'calendar-back', favorites: [], entries: [] };
+      if (path === '/api/v1/account')
+        return { logged_in: false, sync: { state: 'local', pending: 0 } };
       if (path === '/api/v1/lists/calendar')
         return {
           items: [],

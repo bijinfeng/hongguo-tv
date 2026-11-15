@@ -383,4 +383,167 @@ export function registerHistoryManagementTests(
     ).toBe(true);
     expect(app.requests()).toEqual([]);
   });
+  test('favorites use real favorite entries and clearing stays local while viewing history survives', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-signed-in');
+    await app.press('id:library-tabs-favorites');
+    await app.waitFor('合成收藏1');
+    expect(app.texts().some((text) => text.includes('看到 '))).toBe(false);
+    await app.press('id:history-manage');
+    await app.press(`id:history-remove-${first}`);
+    await app.waitFor('取消收藏会同步到当前账号；观看记录保留。');
+    await app.press('id:history-confirm-cancel');
+    expect(app.texts()).toContain('calls:');
+    await app.press('id:history-clear');
+    await app.waitFor('仅清空本机收藏，不取消账号云端收藏；观看记录保留。');
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('收藏的短剧会保存在这里。');
+    expect(
+      app.texts().some((text) => text.startsWith(`calls:favorites:clear:${first},${second}`)),
+    ).toBe(true);
+    await app.press('id:library-tabs-history');
+    await app.waitFor(`id:history-${first}`);
+    expect(app.texts().some((text) => text.includes('看到 '))).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
+  test('tab switching preserves an unresolved favorite and prevents a second management intent', async () => {
+    const app = await open(entry, options);
+    await app.press('id:library-tabs-favorites');
+    await app.press('id:history-fixture-unresolved');
+    await app.press('id:history-manage');
+    await app.press(`id:history-remove-${first}`);
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('确认收藏处理结果');
+    await app.press('id:history-confirm-cancel');
+    await app.press('id:library-tabs-history');
+    await app.press('id:history-manage');
+    expect(app.enabled('id:history-clear')).toBe(false);
+    await app.press('id:library-tabs-favorites');
+    await app.waitFor('id:history-operation-retry');
+    await app.press('id:history-operation-retry');
+    await app.waitFor('重试剩余（1）');
+    await app.press('id:history-operation-retry');
+    await app.waitFor(
+      `text:calls:favorites:remove:${first}|retry:unresolved:${first}|retry:partial:${first}`,
+    );
+    await app.waitFor(`id:history-${first}`, { state: 'gone' });
+    expect(app.shows(`id:history-${first}`)).toBe(false);
+    await app.press('id:library-tabs-history');
+    await app.waitFor(`id:history-${first}`);
+    expect(app.requests()).toEqual([]);
+  });
+  test('each tab restores its own reading anchor without carrying management selection', async () => {
+    const app = await open(entry, options);
+    await app.scroll('id:history-list', target === 'tv' ? 1000 : 750);
+    await app.wait(80);
+    expect(app.shows('id:history-8005')).toBe(true);
+    await app.press('id:library-tabs-favorites');
+    await app.wait(80);
+    expect(app.shows(`id:history-${first}`)).toBe(true);
+    await app.scroll('id:history-list', target === 'tv' ? 1600 : 1200);
+    await app.wait(80);
+    expect(app.shows('id:history-8008')).toBe(true);
+    await app.press('id:library-tabs-history');
+    await app.wait(80);
+    expect(app.shows('id:history-8005')).toBe(true);
+    await app.press('id:library-tabs-favorites');
+    await app.wait(80);
+    expect(app.shows('id:history-8008')).toBe(true);
+    await capture(app, 'favorites-restored-anchor');
+    expect(app.requests()).toEqual([]);
+  });
+  test('a same-owner epoch change dismisses stale confirmation without dispatching removal', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-signed-in');
+    await app.press('id:history-fixture-epoch');
+    await app.press('id:history-manage');
+    await app.press(`id:history-remove-${first}`);
+    await app.waitFor('id:history-confirm');
+    await app.wait(600);
+    await app.waitFor('id:history-confirm', { state: 'gone' });
+    expect(app.shows('id:history-clear')).toBe(false);
+    expect(app.texts()).toContain('calls:');
+    await app.press('id:history-manage');
+    expect(app.enabled('id:history-clear')).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
+  test('detail return restores the middle favorite reading context and its source focus', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-detail-flow');
+    await app.press('id:library-tabs-favorites');
+    await app.scroll('id:history-list', target === 'tv' ? 1000 : 750);
+    await app.wait(80);
+    await capture(app, 'favorites-before-detail');
+    await app.press('id:history-8006');
+    await app.waitFor('id:history-fixture-detail-return');
+    await app.press('id:history-fixture-detail-return');
+    await app.wait(80);
+    expect(app.shows('id:history-8005')).toBe(true);
+    await capture(app, 'favorites-after-detail');
+    await app.keyboard.press('enter');
+    await app.waitFor('id:history-fixture-detail-return');
+    expect(app.texts()).toContain(
+      'synthetic · mode:success · active:false · count:14 · opened:8006',
+    );
+    expect(app.texts()).toContain('calls:');
+    expect(app.requests()).toEqual([]);
+  });
+  test('detail unfavorite returns to a surviving favorite and an empty library returns to discovery', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-detail-flow');
+    await app.press('id:library-tabs-favorites');
+    await app.press(`id:history-${first}`);
+    await app.waitFor('id:history-fixture-detail-remove');
+    await app.press('id:history-fixture-detail-remove');
+    await app.press('id:history-fixture-detail-return');
+    await app.wait(80);
+    expect(app.shows(`id:history-${first}`)).toBe(false);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:history-fixture-detail-return');
+    expect(app.texts()).toContain(
+      `synthetic · mode:success · active:false · count:14 · opened:${second}`,
+    );
+    await app.press('id:history-fixture-detail-clear');
+    await app.press('id:history-fixture-detail-return');
+    await app.waitFor('id:history-empty-discover');
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitFor('text:synthetic · mode:success · active:true · count:14 · opened:discover');
+    expect(app.requests()).toEqual([]);
+  });
+  test('detail source from an old owner cannot steal the new owner focus', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-detail-flow');
+    await app.press('id:library-tabs-favorites');
+    await app.press(`id:history-${first}`);
+    await app.waitFor('id:history-fixture-detail-return');
+    await app.press('id:history-fixture-signed-in');
+    await app.press('id:history-fixture-detail-return');
+    await app.wait(80);
+    expect(app.texts()).toContain('alternate-focused:true');
+    await app.keyboard.press('enter');
+    await app.waitFor('text:alternate:1');
+    expect(app.shows('id:history-fixture-detail-return')).toBe(false);
+    expect(app.requests()).toEqual([]);
+  });
+  test('a completed history job cannot hide an unresolved favorite in the other tab', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-manage');
+    await app.press(`id:history-remove-${first}`);
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('text:synthetic · mode:success · active:true · count:13 · opened:none');
+    await app.press('id:library-tabs-favorites');
+    await app.press('id:history-fixture-unresolved');
+    await app.press('id:history-manage');
+    await app.press(`id:history-remove-${first}`);
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('确认收藏处理结果');
+    await app.press('id:history-confirm-cancel');
+    await app.press('id:library-tabs-history');
+    await app.press('id:history-manage');
+    expect(app.enabled('id:history-clear')).toBe(false);
+    expect(app.enabled('id:history-select-all')).toBe(false);
+    expect(app.texts()).toContain(`calls:remove:${first}|favorites:remove:${first}`);
+    expect(app.requests()).toEqual([]);
+  });
 }

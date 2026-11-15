@@ -1,0 +1,56 @@
+{
+  "history": {
+    "code": 0,
+    "data": {
+      "data_list": [
+        {
+          "book_id_str": "7690163276214176792",
+          "book_name": "Synthetic history",
+          "thumb_url": "https://fixture.invalid/history.jpg",
+          "vid": "7690163276214176793",
+          "vid_index": 7,
+          "current_play_position": 12500,
+          "duration": 90000,
+          "read_timestamp_ms": 1700000000000,
+          "episode_cnt": 80,
+          "season_index": 13,
+          "is_multi_season": true
+        }
+      ],
+      "has_more": false
+    }
+  },
+  "favorites": {
+    "code": 0,
+    "data": {
+      "video_shelf_info": [
+        { "series_id": "7690163276214176792", "collect_time": 1700000000 },
+        { "series_id": "7690163276214176794", "collect_time": 1699999900 }
+      ]
+    }
+  },
+  "metadata": {
+    "code": 0,
+    "data": {
+      "7690163276214176794": {
+        "video_data": {
+          "series_id_str": "7690163276214176794",
+          "series_title": "Synthetic favorite",
+          "series_cover": "https://fixture.invalid/favorite.jpg",
+          "episode_cnt": 50
+        }
+      }
+    }
+  },
+  "progress": {
+    "code": 0,
+    "video_data": [
+      {
+        "series_id": "7690163276214176792",
+        "vid_index": 7,
+        "episode_count": 80,
+        "last_watch_time": 1700000000
+      }
+    ]
+  }
+}

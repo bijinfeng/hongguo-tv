@@ -16,6 +16,7 @@ import {
 import type { Store } from '../store';
 import { errorMessage } from '../error-messages';
 import { accountCountries, createAccountState, type AccountUiState } from '../account-state';
+import { AccountLibrary } from '../AccountLibrary';
 
 const loginStatus: Record<string, string> = {
   pending: '请用红果短剧 App 扫码',
@@ -135,20 +136,7 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
               </If>
             </View>
           </View>
-          <View class="gap-4">
-            <UiText role="section">本机记录</UiText>
-            <UiText tone="muted">登录不会自动合并本机观看记录，退出后仍可查看游客记录。</UiText>
-            <View class="self-start">
-              <Button
-                label="查看观看记录"
-                onPress={() => {
-                  props.store.navigate('history');
-                  props.store.restoreFocus();
-                }}
-                testID="account-history"
-              />
-            </View>
-          </View>
+          <AccountLibrary store={props.store} />
           <If when={failure() && !dialogOpen()}>
             <Notice
               error

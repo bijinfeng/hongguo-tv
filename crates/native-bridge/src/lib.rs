@@ -13,10 +13,14 @@ use request::{
 };
 use std::{
     collections::HashMap,
-    path::Path,
-    sync::{Arc, Mutex, Weak},
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex, OnceLock, Weak},
 };
-use tokio::{runtime::Handle, sync::watch, task::AbortHandle};
+use tokio::{
+    runtime::Handle,
+    sync::{Mutex as AsyncMutex, OwnedMutexGuard, watch},
+    task::{AbortHandle, JoinHandle},
+};
 
 const MAX_CALLS: usize = 8;
 
@@ -118,6 +122,11 @@ struct Session {
     runtime: Handle,
     calls: Mutex<Calls>,
     shutdown: watch::Sender<bool>,
+    lifecycle: Mutex<Option<Lifecycle>>,
+}
+struct Lifecycle {
+    worker: Option<JoinHandle<()>>,
+    lease: Option<OwnedMutexGuard<()>>,
 }
 #[derive(Default)]
 struct Calls {
@@ -127,6 +136,14 @@ struct Calls {
 }
 impl Session {
     async fn open(dir: &Path) -> Result<Arc<Self>, Reply> {
+        let lease = directory_lease(dir).await?;
+        let dir = dir.to_owned();
+        // Once admitted, initialization retains its lease even if the JS waiter is cancelled.
+        tokio::spawn(async move { Self::initialize(&dir, lease).await })
+            .await
+            .map_err(|_| Reply::failure(500, "NATIVE_INITIALIZATION_FAILED", "核心初始化失败"))?
+    }
+    async fn initialize(dir: &Path, lease: OwnedMutexGuard<()>) -> Result<Arc<Self>, Reply> {
         let library = LibraryStore::open(dir.join("guest.sqlite3"))
             .await
             .map_err(library_error)?;
@@ -136,16 +153,26 @@ impl Session {
         let catalog = CatalogClient::new().map_err(catalog_error)?;
         let playback = PlaybackService::new(dir).map_err(playback_error)?;
         let radar = RadarService::open(dir).map_err(radar_error)?;
-        Self::with_services(Services {
-            catalog,
-            library,
-            playback,
-            radar: Some(radar),
-            account: Some(account),
-        })
+        Self::with_services_and_lease(
+            Services {
+                catalog,
+                library,
+                playback,
+                radar: Some(radar),
+                account: Some(account),
+            },
+            Some(lease),
+        )
         .await
     }
+    #[cfg(test)]
     async fn with_services(services: Services) -> Result<Arc<Self>, Reply> {
+        Self::with_services_and_lease(services, None).await
+    }
+    async fn with_services_and_lease(
+        services: Services,
+        lease: Option<OwnedMutexGuard<()>>,
+    ) -> Result<Arc<Self>, Reply> {
         let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
             .await
             .map_err(|_| Reply::failure(500, "NATIVE_MEDIA_UNAVAILABLE", "本机媒体服务无法启动"))?;
@@ -163,8 +190,21 @@ impl Session {
             runtime: Handle::current(),
             calls: Mutex::new(Calls::default()),
             shutdown,
+            lifecycle: Mutex::new(Some(Lifecycle {
+                worker: None,
+                lease,
+            })),
         });
         let owner = Arc::downgrade(&session);
+        if let Some(account) = session.services.account.clone() {
+            let stopped = session.shutdown.subscribe();
+            let worker = tokio::spawn(async move {
+                if let Err(error) = account.run_sync(stopped).await {
+                    eprintln!("account sync worker stopped: {}", error.code());
+                }
+            });
+            session.lifecycle.lock().unwrap().as_mut().unwrap().worker = Some(worker);
+        }
         tokio::spawn(async move {
             let result = axum::serve(listener, router)
                 .with_graceful_shutdown(async move {
@@ -238,6 +278,9 @@ impl Session {
         }
     }
     fn close(&self) {
+        if let Some(account) = &self.services.account {
+            account.stop_sync();
+        }
         let pending = if let Ok(mut calls) = self.calls.lock() {
             if calls.closed {
                 return;
@@ -255,6 +298,31 @@ impl Session {
         }
         self.services.playback.close();
         self.shutdown.send_replace(true);
+        let lifecycle = self.lifecycle.lock().unwrap().take();
+        if let Some(lifecycle) = lifecycle {
+            let services = self.services.clone();
+            self.runtime.spawn(async move {
+                if let Some(worker) = lifecycle.worker
+                    && worker.await.is_err()
+                {
+                    eprintln!("native shutdown drain failed: NATIVE_SYNC_TASK_FAILED");
+                }
+                // Acquiring the coordinator drains admitted import/session publications.
+                if let Some(account) = &services.account {
+                    if let Err(error) = account.state().await {
+                        eprintln!("native shutdown drain failed: {}", error.code());
+                    }
+                    if let Err(error) = account.library_snapshot(None).await {
+                        eprintln!("native shutdown drain failed: {}", error.code());
+                    }
+                }
+                // Seal and drain guest compatibility writes, including dropped callers.
+                if let Err(error) = services.library.invalidate_write_sessions().await {
+                    eprintln!("native shutdown drain failed: {}", error.code());
+                }
+                drop(lifecycle.lease);
+            });
+        }
     }
     fn release(&self, path: Option<String>) {
         if let Some(token) = path.as_deref().and_then(token) {
@@ -265,6 +333,54 @@ impl Session {
 impl Drop for Session {
     fn drop(&mut self) {
         self.close();
+    }
+}
+
+// Only lifecycle locks are indexed here; account data remains owned by each service.
+async fn directory_lease(dir: &Path) -> Result<OwnedMutexGuard<()>, Reply> {
+    static DIRECTORIES: OnceLock<Mutex<HashMap<PathBuf, Weak<AsyncMutex<()>>>>> = OnceLock::new();
+    let path = directory_identity(dir)
+        .map_err(|_| Reply::failure(500, "NATIVE_DATA_UNAVAILABLE", "应用数据目录不可用"))?;
+    let gate = {
+        let mut directories = DIRECTORIES
+            .get_or_init(Mutex::default)
+            .lock()
+            .map_err(|_| Reply::failure(500, "NATIVE_INITIALIZATION_FAILED", "核心初始化失败"))?;
+        directories.retain(|_, gate| gate.strong_count() > 0);
+        if let Some(gate) = directories.get(&path).and_then(Weak::upgrade) {
+            gate
+        } else {
+            let gate = Arc::new(AsyncMutex::new(()));
+            directories.insert(path, Arc::downgrade(&gate));
+            gate
+        }
+    };
+    Ok(gate.lock_owned().await)
+}
+
+// Resolve aliases without creating the private directory before its lifecycle lease is acquired.
+fn directory_identity(dir: &Path) -> std::io::Result<PathBuf> {
+    let mut prefix = std::path::absolute(dir)?;
+    let mut missing = Vec::new();
+    loop {
+        match std::fs::canonicalize(&prefix) {
+            Ok(mut identity) => {
+                for component in missing.into_iter().rev() {
+                    identity.push(component);
+                }
+                return Ok(identity);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let component = prefix.file_name().ok_or_else(|| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid data directory")
+                })?;
+                missing.push(component.to_owned());
+                if !prefix.pop() {
+                    return Err(error);
+                }
+            }
+            Err(error) => return Err(error),
+        }
     }
 }
 
@@ -380,3 +496,7 @@ impl Call {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "lifecycle_tests.rs"]
+mod lifecycle_tests;

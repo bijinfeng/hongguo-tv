@@ -50,19 +50,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some(library),
         Some(playback.clone()),
         Some(radar),
-        Some(account),
+        Some(account.clone()),
     );
+    let (sync_shutdown, sync_stopped) = tokio::sync::watch::channel(false);
+    let sync_account = account.clone();
+    let sync_worker = tokio::spawn(async move { sync_account.run_sync(sync_stopped).await });
     println!(
         "{}",
         serde_json::json!({"event":"ready", "origin":format!("http://{address}")})
     );
     std::io::stdout().flush()?;
-    axum::serve(listener, app)
+    let shutdown_account = account.clone();
+    let shutdown_sync = sync_shutdown.clone();
+    let result = axum::serve(listener, app)
         .with_graceful_shutdown(async move {
             shutdown().await;
+            shutdown_account.stop_sync();
+            shutdown_sync.send_replace(true);
             playback.close();
         })
-        .await?;
+        .await;
+    account.stop_sync();
+    sync_shutdown.send_replace(true);
+    sync_worker.await??;
+    result?;
     Ok(())
 }
 

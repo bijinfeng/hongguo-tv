@@ -14,6 +14,7 @@ const accountId = '9007199254740993';
 const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
 const guest = (owner_epoch = guestEpoch): Account => ({
   logged_in: false,
+  sync: { state: 'local', pending: 0 },
   owner_id: '',
   owner_epoch,
   qr_login_available: true,
@@ -21,6 +22,7 @@ const guest = (owner_epoch = guestEpoch): Account => ({
 });
 const library = (owner_id = ''): Library => ({
   owner_id,
+  favorites: [],
   entries: [
     {
       drama: {
@@ -88,6 +90,7 @@ function accountFixture(
 }
 const signedIn = (): Account => ({
   logged_in: true,
+  sync: { state: 'local', pending: 0 },
   owner_id: accountId,
   owner_epoch: accountEpoch,
   profile: { uid: accountId, name: '集成账号' },
@@ -274,5 +277,204 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
     await app.waitFor('id:history-202');
     expect(app.shows('id:history-101')).toBe(false);
     expect(fixture.commands.map(({ command }) => command.action)).toEqual(['qr_start', 'qr_poll']);
+  });
+  test('synthetic account library sync keeps readable records after failure and retries explicitly', async () => {
+    let attempts = 0;
+    const fixture = accountFixture(({ command }, state) => {
+      expect(command.action).toBe('sync');
+      if (++attempts === 1) {
+        state.account = {
+          ...state.account,
+          sync: { state: 'error', pending: 1, error: '合成同步失败' },
+        };
+        return {
+          status: 502,
+          body: { ok: false, error: '合成同步失败', code: 'ACCOUNT_UPSTREAM' },
+        };
+      }
+      state.account = { ...state.account, sync: { state: 'idle', pending: 0, last_sync: 1 } };
+      return ok(state);
+    });
+    fixture.state.account = { ...signedIn(), sync: { state: 'pending', pending: 1 } };
+    fixture.state.library = library(accountId);
+    const app = await open(entry, {
+      ...dimensions,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await app.press(
+      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
+    );
+    await app.waitFor('id:account-sync');
+    expect(fixture.commands.length).toBe(0);
+    await app.press('id:account-sync');
+    await app.waitFor('合成同步失败');
+    expect(app.shows('id:account-history')).toBe(true);
+    expect(fixture.commands.length).toBe(1);
+    await app.waitUntil(() => app.enabled('id:account-sync'));
+    await app.press('id:account-sync');
+    await app.waitFor('已同步');
+    expect(fixture.commands.length).toBe(2);
+    await app.press('id:account-history');
+    await app.waitFor('id:history-202');
+    app.dispose();
+  });
+
+  test('synthetic account import defaults to cancel and shows partial original counts without merging favorites', async () => {
+    const fixture = accountFixture(({ command }, state) => {
+      expect(command.action).toBe('import_guest_history');
+      state.account = {
+        ...state.account,
+        guest_history: { total: 2, available: 1 },
+        sync: { state: 'pending', pending: 1 },
+      };
+      state.library = {
+        ...state.library,
+        entries: [...state.library.entries, ...library().entries],
+      };
+      return ok({ ...state, import_history: { imported: 1, remaining: 1 } });
+    });
+    fixture.state.account = { ...signedIn(), guest_history: { total: 2, available: 2 } };
+    fixture.state.library = library(accountId);
+    const app = await open(entry, {
+      ...dimensions,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await app.press(
+      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
+    );
+    await app.press('id:account-import-open');
+    await app.waitFor('id:account-import-cancel');
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitUntil(() => !app.shows('id:account-import'));
+    expect(fixture.commands.length).toBe(0);
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:account-import');
+    await app.keyboard.press('escape');
+    await app.waitUntil(() => !app.shows('id:account-import'));
+    await app.press('id:account-import-open');
+    await app.waitFor('id:account-import-confirm');
+    await app.press('id:account-import-confirm');
+    await app.waitFor('已合并 1 条记录，还剩 1 条可合并。');
+    expect(fixture.commands.length).toBe(1);
+    expect(fixture.state.library.favorites).toEqual([]);
+    expect(app.shows('合并登录前观看记录（1）')).toBe(true);
+    await app.press('id:account-history');
+    await app.waitFor('id:history-101');
+    app.dispose();
+  });
+
+  test('synthetic account import lost response reconciles state without inventing completion counts', async () => {
+    const fixture = accountFixture(({ command }, state) => {
+      expect(command.action).toBe('import_guest_history');
+      state.account = { ...state.account, guest_history: { total: 1, available: 0 } };
+      state.library = {
+        ...state.library,
+        entries: [...state.library.entries, ...library().entries],
+      };
+      return { error: 'synthetic import response lost' };
+    });
+    fixture.state.account = { ...signedIn(), guest_history: { total: 1, available: 1 } };
+    fixture.state.library = library(accountId);
+    const app = await open(entry, {
+      ...dimensions,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await app.press(
+      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
+    );
+    await app.press('id:account-import-open');
+    await app.waitFor('id:account-import-confirm');
+    await app.press('id:account-import-confirm');
+    await app.waitFor('合并结果未确认，已重新读取片库。');
+    expect(app.shows('已合并 1 条记录。')).toBe(false);
+    expect(app.shows('id:account-import-open')).toBe(false);
+    expect(fixture.commands.length).toBe(1);
+    await app.press('id:account-history');
+    await app.waitFor('id:history-101');
+    app.dispose();
+  });
+
+  test('synthetic account owner change during import closes old confirmation without focusing the new library entry', async () => {
+    const fixture = accountFixture(({ command }, state) => {
+      expect(command.action).toBe('import_guest_history');
+      state.account = {
+        ...state.account,
+        owner_epoch: 'c'.repeat(32),
+        guest_history: { total: 1, available: 0 },
+      };
+      return {
+        status: 409,
+        body: { ok: false, code: 'ACCOUNT_OWNER_CHANGED', error: '合成账号会话已变化' },
+      };
+    });
+    fixture.state.account = { ...signedIn(), guest_history: { total: 1, available: 1 } };
+    fixture.state.library = library(accountId);
+    const app = await open(entry, {
+      ...dimensions,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await app.press(
+      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
+    );
+    await app.press('id:account-import-open');
+    await app.waitFor('id:account-import');
+    await app.press('id:account-import-confirm');
+    await app.waitFor('id:account-import', { state: 'gone' });
+    await app.wait(80);
+    await app.keyboard.press('enter');
+    expect(app.shows('id:account-history')).toBe(true);
+    expect(app.shows('id:history-page')).toBe(false);
+    expect(fixture.commands.length).toBe(1);
+    expect(fixture.recoveries()).toBe(1);
+    expect(app.shows('已合并 1 条记录。')).toBe(false);
+  });
+
+  test('synthetic import completion after dismissing cannot steal focus from a newer library choice', async () => {
+    const fixture = accountFixture(({ command }, state) => {
+      expect(command.action).toBe('import_guest_history');
+      state.account = { ...state.account, guest_history: { total: 1, available: 0 } };
+      state.library = {
+        ...state.library,
+        entries: [...state.library.entries, ...library().entries],
+      };
+      return { ...ok({ ...state, import_history: { imported: 1, remaining: 0 } }), delay: 500 };
+    });
+    fixture.state.account = { ...signedIn(), guest_history: { total: 1, available: 1 } };
+    fixture.state.library = library(accountId);
+    const app = await open(entry, {
+      ...dimensions,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await app.press(
+      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
+    );
+    await app.press('id:account-import-open');
+    await app.press('id:account-import-confirm');
+    await app.waitFor('关闭');
+    await app.press('id:account-import-cancel');
+    await app.press('id:account-favorites');
+    await app.waitFor('收藏的短剧会保存在这里。');
+    await app.wait(600);
+    await app.keyboard.press('enter');
+    expect(app.shows('收藏的短剧会保存在这里。')).toBe(true);
+    expect(app.shows('id:account-import')).toBe(false);
+    expect(fixture.commands.length).toBe(1);
   });
 }

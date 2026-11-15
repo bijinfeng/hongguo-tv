@@ -12,6 +12,7 @@ export function LibraryLifecycleFixture() {
   const episode = { index: 1, video_id: '456', locked: false };
   const persisted = signal<Library>({
     owner_id: '',
+    favorites: [],
     entries: [
       { drama, episode: 1, video_id: '456', position: 10, duration: 60, last_played_at: 1 },
     ],
@@ -43,6 +44,12 @@ export function LibraryLifecycleFixture() {
             return Promise.reject(new Error('Unknown fixture session'));
           if (owned.receipts.has(operation)) return Promise.resolve(owned.receipts.get(operation));
           const change = JSON.parse(JSON.stringify(body)) as HistoryChange;
+          if (
+            change.action !== 'progress' &&
+            change.action !== 'remove' &&
+            change.action !== 'clear'
+          )
+            return Promise.reject(new Error('Unexpected fixture history action'));
           record(
             `${owner}-write-${change.action === 'progress' ? change.position : change.action}`,
           );
@@ -53,6 +60,7 @@ export function LibraryLifecycleFixture() {
                 if (change.action === 'progress')
                   persisted.set({
                     owner_id: '',
+                    favorites: [],
                     entries: [
                       {
                         drama: change.drama,
@@ -68,6 +76,7 @@ export function LibraryLifecycleFixture() {
                 else
                   persisted.set({
                     owner_id: '',
+                    favorites: [],
                     entries:
                       change.action === 'clear'
                         ? []
@@ -89,7 +98,13 @@ export function LibraryLifecycleFixture() {
             });
           });
         }
-        return Promise.resolve({ items: [], entries: [], logged_in: false });
+        return Promise.resolve({
+          items: [],
+          favorites: [],
+          entries: [],
+          logged_in: false,
+          sync: { state: 'local', pending: 0 },
+        });
       },
     });
   };

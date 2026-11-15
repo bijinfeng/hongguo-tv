@@ -64,12 +64,18 @@ export function registerPlaybackTests() {
     if (!(error instanceof CoreError)) throw new Error('Expected unavailable error');
     expect(error.code).toBe('CORE_NOT_IMPLEMENTED');
     expect(error.status).toBe(501);
-    const succeeded = request<{ entries: unknown[] }>('/api/v1/library', undefined, {
-      action: 'clear',
-      kind: 'history',
-    });
-    resolve(JSON.stringify({ status: 200, body: { ok: true, data: { entries: [] } } }));
-    expect(await succeeded).toEqual({ entries: [] });
+    const succeeded = request<{ entries: unknown[]; favorites: unknown[] }>(
+      '/api/v1/library',
+      undefined,
+      {
+        action: 'clear',
+        kind: 'history',
+      },
+    );
+    resolve(
+      JSON.stringify({ status: 200, body: { ok: true, data: { favorites: [], entries: [] } } }),
+    );
+    expect(await succeeded).toEqual({ favorites: [], entries: [] });
     expect(events.includes('accept')).toBe(true);
     const accepted = events.filter((event) => event === 'accept').length;
     const malformed = request('/api/v1/status').catch((error) => error);

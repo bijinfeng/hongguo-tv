@@ -475,9 +475,13 @@ impl Request {
             }
             .map(Reply::success)
             .map_err(library_error),
-            Self::Change(change) => match &services.account {
-                Some(account) => account.apply_history(change).await,
-                None => services.library.apply(change).await,
+            Self::Change(change) => if !change.is_history() {
+                Err(LibraryError::InvalidInput)
+            } else {
+                match &services.account {
+                    Some(account) => account.apply_history(change).await,
+                    None => services.library.apply(change).await,
+                }
             }
             .map(Reply::success)
             .map_err(library_error),
@@ -571,7 +575,9 @@ pub(crate) fn catalog_error(error: CatalogError) -> Reply {
 pub(crate) fn library_error(error: LibraryError) -> Reply {
     let status = match error {
         LibraryError::InvalidInput => 400,
+        LibraryError::NotImplemented => 501,
         LibraryError::OwnerChanged
+        | LibraryError::SyncQueueFull
         | LibraryError::SessionExpired
         | LibraryError::OperationConflict
         | LibraryError::OperationSequence
@@ -612,7 +618,11 @@ pub(crate) fn radar_error(error: RadarError) -> Reply {
 pub(crate) fn account_error(error: AccountError) -> Reply {
     let status = match error {
         AccountError::InvalidInput => 400,
-        AccountError::AttemptExpired | AccountError::Busy | AccountError::OwnerChanged => 409,
+        AccountError::NotImplemented => 501,
+        AccountError::AttemptExpired
+        | AccountError::Busy
+        | AccountError::OwnerChanged
+        | AccountError::LibrarySyncQueueFull => 409,
         AccountError::Limited => 429,
         AccountError::Storage | AccountError::InvalidSession | AccountError::Library => 500,
         AccountError::Upstream | AccountError::IdentityMismatch => 502,

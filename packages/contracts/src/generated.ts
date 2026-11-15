@@ -412,6 +412,8 @@ export interface components {
         Account: {
             /** @description Sanitized local recovery failure. */
             error?: string;
+            /** @description Eligible guest history counts; absent until successfully computed for this scope. */
+            guest_history?: components["schemas"]["GuestHistoryStatus"];
             /** @description Whether a verified session is stored locally. */
             logged_in: boolean;
             /** @description Active or terminal attempt, until replaced or cancelled. */
@@ -426,6 +428,8 @@ export interface components {
             profile?: components["schemas"]["AccountProfile"];
             /** @description Whether the host attached the real QR service. */
             qr_login_available: boolean;
+            /** @description Cloud synchronization state, independent of local login success. */
+            sync: components["schemas"]["AccountSyncStatus"];
         };
         /** @description Explicit user intent; sensitive inputs are never debug formatted or persisted. */
         AccountCommand: {
@@ -465,6 +469,12 @@ export interface components {
         } | {
             /** @enum {string} */
             action: "logout";
+        } | {
+            /** @enum {string} */
+            action: "sync";
+        } | {
+            /** @enum {string} */
+            action: "import_guest_history";
         };
         /** @description Owner precondition prevents an old page from changing a different active account. */
         AccountCommandRequest: {
@@ -479,6 +489,8 @@ export interface components {
         AccountCommandResult: {
             /** @description Current durable account. */
             account: components["schemas"]["Account"];
+            /** @description Present only for a confirmed import; reconciliation does not invent its counts. */
+            import_history?: components["schemas"]["GuestHistoryImportResult"];
             /** @description Committed snapshot of its local library. */
             library: components["schemas"]["Library"];
         };
@@ -533,6 +545,28 @@ export interface components {
             data: components["schemas"]["AccountCommandResult"];
             /** @description Always true. */
             ok: boolean;
+        };
+        /**
+         * @description One serialized synchronization phase for the current account scope.
+         * @enum {string}
+         */
+        AccountSyncState: "local" | "idle" | "pending" | "syncing" | "error";
+        /** @description Safe synchronization summary without credentials or upstream responses. */
+        AccountSyncStatus: {
+            /** @description Safe recovery message; never raw remote or storage diagnostics. */
+            error?: string;
+            /**
+             * Format: int64
+             * @description Unix milliseconds of the last fully committed successful round.
+             */
+            last_sync?: number;
+            /**
+             * Format: int32
+             * @description Number of durable pending operations.
+             */
+            pending: number;
+            /** @description Current phase. */
+            state: components["schemas"]["AccountSyncState"];
         };
         /** @description Public actor identity and bounded display fields, without account state. */
         ActorSummary: {
@@ -805,6 +839,16 @@ export interface components {
             /** @description Exact upstream video identifier, never a floating-point number. */
             video_id: string;
         };
+        /** @description Favorite membership without invented viewing progress. */
+        FavoriteEntry: {
+            /** @description Compact summary without episode arrays. */
+            drama: components["schemas"]["Drama"];
+            /**
+             * Format: int64
+             * @description Original favorite time in Unix milliseconds.
+             */
+            favorite_at: number;
+        };
         /**
          * @description The migrated anonymous channels; followed content remains account-owned.
          * @enum {string}
@@ -862,8 +906,45 @@ export interface components {
             /** @description Opaque continuation session. */
             session_id: string;
         };
-        /** @description Strict, explicit history mutations; favorites and likes remain unavailable. */
-        HistoryChange: {
+        /** @description Counts belonging to one confirmed import result, never reconstructed after a lost response. */
+        GuestHistoryImportResult: {
+            /**
+             * Format: int64
+             * @description Records committed by this import.
+             */
+            imported: number;
+            /**
+             * Format: int64
+             * @description Eligible records still remaining after that commit.
+             */
+            remaining: number;
+        };
+        /** @description Counts read from this application's guest library for the current account scope. */
+        GuestHistoryStatus: {
+            /**
+             * Format: int64
+             * @description Valid newer records eligible for explicit import.
+             */
+            available: number;
+            /**
+             * Format: int64
+             * @description Total guest history records before eligibility checks.
+             */
+            total: number;
+        };
+        HistoryChange: components["schemas"]["LibraryChange"];
+        HistoryKind: components["schemas"]["LibraryKind"];
+        /** @description Snapshot of the owner fixed when the local library was opened. */
+        Library: {
+            /** @description Most recently viewed first. */
+            entries: components["schemas"]["Entry"][];
+            /** @description Independent favorite membership, empty when none is stored. */
+            favorites: components["schemas"]["FavoriteEntry"][];
+            /** @description Empty for guests; optional for compatibility with existing clients. */
+            owner_id?: string;
+        };
+        /** @description Strict mutations shared by registered writes; unknown fields are rejected. */
+        LibraryChange: {
             /** @enum {string} */
             action: "progress";
             /** @description Defaults to unfinished. */
@@ -892,8 +973,8 @@ export interface components {
         } | {
             /** @enum {string} */
             action: "remove";
-            /** @description Only history is migrated. */
-            kind: components["schemas"]["HistoryKind"];
+            /** @description Category whose one item is removed. */
+            kind: components["schemas"]["LibraryKind"];
             /** @description Expected owner, empty for guests. */
             owner_id?: string | null;
             /** @description Exact series ID. */
@@ -901,23 +982,25 @@ export interface components {
         } | {
             /** @enum {string} */
             action: "clear";
-            /** @description Only history is migrated. */
-            kind: components["schemas"]["HistoryKind"];
+            /** @description Category to clear locally. */
+            kind: components["schemas"]["LibraryKind"];
             /** @description Expected owner, empty for guests. */
             owner_id?: string | null;
+        } | {
+            /** @enum {string} */
+            action: "favorite";
+            /** @description Summary for this exact series. */
+            drama: components["schemas"]["Drama"];
+            /** @description Expected owner, absent or empty only for guests. */
+            owner_id?: string | null;
+            /** @description Desired membership; never an implicit toggle. */
+            value: boolean;
         };
         /**
-         * @description The only migrated record category.
+         * @description Independent local library categories.
          * @enum {string}
          */
-        HistoryKind: "history";
-        /** @description Snapshot of the owner fixed when the local library was opened. */
-        Library: {
-            /** @description Most recently viewed first. */
-            entries: components["schemas"]["Entry"][];
-            /** @description Empty for guests; optional for compatibility with existing clients. */
-            owner_id?: string;
-        };
+        LibraryKind: "history" | "favorites";
         /** @description Only a receipt matching the captured identity proves original execution has terminated. */
         LibraryOperation: {
             /** @description Captured exact operation identity. */
@@ -1787,7 +1870,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["HistoryChange"];
+                "application/json": components["schemas"]["LibraryChange"];
             };
         };
         responses: {
@@ -1871,7 +1954,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["HistoryChange"];
+                "application/json": components["schemas"]["LibraryChange"];
             };
         };
         responses: {

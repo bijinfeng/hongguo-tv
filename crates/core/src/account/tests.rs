@@ -705,3 +705,186 @@ async fn account_library_cannot_be_injected_as_the_guest_library() {
     assert_eq!(preserved.owner_id.as_deref(), Some("1"));
     assert_eq!(preserved.entries[0].drama.series_id, "201");
 }
+
+fn registered_device() -> PersistedSession {
+    saved("1").credential.without_credentials()
+}
+fn persisted_device(connection: &Connection) -> Option<String> {
+    connection
+        .query_row("SELECT device FROM session WHERE singleton=1", [], |row| {
+            row.get(0)
+        })
+        .unwrap()
+}
+
+#[tokio::test]
+async fn cancelled_registered_device_save_keeps_the_coordinator_until_sqlite_settles() {
+    let tmp = Temp::new();
+    let service = tmp.open().await;
+    let attempt = pending_attempt("device-save", LoginMethod::Phone, LoginState::Processing);
+    let cancellation = CancelOnDrop(attempt.alive.clone(), true);
+    service.state.lock().await.attempt = Some(attempt);
+    let scope = service.snapshot().await;
+    let device = registered_device();
+    let encoded = serde_json::to_string(&device).unwrap();
+    let gate = tmp.session_db();
+    gate.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let mut saving = Box::pin(service.save_registered_device(
+        &scope.owner_id,
+        &scope.owner_epoch,
+        "device-save",
+        device,
+    ));
+    assert!(matches!(
+        saving
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Pending
+    ));
+    drop(saving);
+    drop(cancellation);
+    service.stop_sync();
+    assert!(
+        tokio::time::timeout(Duration::from_millis(25), service.state())
+            .await
+            .is_err()
+    );
+    assert!(persisted_device(&gate).is_none());
+    gate.execute_batch("COMMIT").unwrap();
+    let state = tokio::time::timeout(Duration::from_secs(3), service.state())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(state.account.login.unwrap().state, LoginState::Cancelled);
+    assert_eq!(persisted_device(&gate).as_deref(), Some(encoded.as_str()));
+    assert!(service.state.lock().await.device.is_none());
+    let reopened = tmp.open().await;
+    assert_eq!(
+        serde_json::to_string(reopened.state.lock().await.device.as_ref().unwrap()).unwrap(),
+        encoded
+    );
+    assert!(!reopened.snapshot().await.logged_in);
+}
+
+#[tokio::test]
+async fn registered_device_save_checks_exact_scope_and_attempt_before_persistence() {
+    let tmp = Temp::new();
+    let service = tmp.open().await;
+    switch_to(&service, "1").await.unwrap();
+    let old = service.snapshot().await;
+    switch_to(&service, "2").await.unwrap();
+    switch_to(&service, "1").await.unwrap();
+    let scope = service.snapshot().await;
+    service.state.lock().await.attempt = Some(pending_attempt(
+        "current-phone",
+        LoginMethod::Phone,
+        LoginState::Processing,
+    ));
+    assert_eq!(
+        service
+            .save_registered_device(
+                &old.owner_id,
+                &old.owner_epoch,
+                "current-phone",
+                registered_device()
+            )
+            .await,
+        Err(AccountError::OwnerChanged)
+    );
+    assert_eq!(
+        service
+            .save_registered_device(
+                &scope.owner_id,
+                "stale-epoch",
+                "current-phone",
+                registered_device()
+            )
+            .await,
+        Err(AccountError::OwnerChanged)
+    );
+    assert_eq!(
+        service
+            .save_registered_device(
+                &scope.owner_id,
+                &scope.owner_epoch,
+                "replaced-phone",
+                registered_device()
+            )
+            .await,
+        Err(AccountError::AttemptExpired)
+    );
+    assert!(persisted_device(&tmp.session_db()).is_none());
+    assert!(service.state.lock().await.device.is_none());
+    service
+        .save_registered_device(
+            &scope.owner_id,
+            &scope.owner_epoch,
+            "current-phone",
+            registered_device(),
+        )
+        .await
+        .unwrap();
+    assert!(service.state.lock().await.device.is_some());
+    assert!(persisted_device(&tmp.session_db()).is_some());
+}
+
+#[tokio::test]
+async fn failed_registered_device_save_preserves_the_previous_device_and_payload() {
+    let tmp = Temp::new();
+    let service = tmp.open().await;
+    switch_to(&service, "1").await.unwrap();
+    let scope = service.snapshot().await;
+    service.state.lock().await.attempt = Some(pending_attempt(
+        "phone-storage",
+        LoginMethod::Phone,
+        LoginState::Processing,
+    ));
+    service
+        .save_registered_device(
+            &scope.owner_id,
+            &scope.owner_epoch,
+            "phone-storage",
+            registered_device(),
+        )
+        .await
+        .unwrap();
+    let gate = tmp.session_db();
+    let before = persisted_payload(&gate);
+    let previous_device = persisted_device(&gate);
+    gate.execute_batch("CREATE TRIGGER reject_device BEFORE UPDATE OF device ON session BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
+    assert_eq!(
+        service
+            .save_registered_device(
+                &scope.owner_id,
+                &scope.owner_epoch,
+                "phone-storage",
+                registered_device()
+            )
+            .await,
+        Err(AccountError::Storage)
+    );
+    assert_eq!(persisted_payload(&gate), before);
+    assert_eq!(persisted_device(&gate), previous_device);
+    assert_eq!(
+        service
+            .state
+            .lock()
+            .await
+            .device
+            .as_ref()
+            .map(|device| serde_json::to_string(device).unwrap()),
+        previous_device
+    );
+    gate.execute_batch("DROP TRIGGER reject_device").unwrap();
+    service
+        .save_registered_device(
+            &scope.owner_id,
+            &scope.owner_epoch,
+            "phone-storage",
+            registered_device(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(persisted_payload(&gate), before);
+    assert!(persisted_device(&gate).is_some());
+}

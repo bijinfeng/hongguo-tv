@@ -20,8 +20,10 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
     const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
     const fixture = (request: StubRequest): StubResponse => {
       const url = new URL(request.url);
-      if (url.pathname.endsWith('/library')) return ok({ owner_id: '', entries: [] });
-      if (url.pathname.endsWith('/account')) return ok({ logged_in: false });
+      if (url.pathname.endsWith('/library'))
+        return ok({ owner_id: '', favorites: [], entries: [] });
+      if (url.pathname.endsWith('/account'))
+        return ok({ logged_in: false, sync: { state: 'local', pending: 0 } });
       if (url.pathname.endsWith('/lists/recommend')) {
         const channel = url.searchParams.get('channel');
         const more = url.searchParams.has('offset');
@@ -155,8 +157,10 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
       const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
       const fixture = (request: StubRequest): StubResponse => {
         const url = new URL(request.url);
-        if (url.pathname.endsWith('/library')) return ok({ owner_id: '', entries: [] });
-        if (url.pathname.endsWith('/account')) return ok({ logged_in: false });
+        if (url.pathname.endsWith('/library'))
+          return ok({ owner_id: '', favorites: [], entries: [] });
+        if (url.pathname.endsWith('/account'))
+          return ok({ logged_in: false, sync: { state: 'local', pending: 0 } });
         if (url.pathname.endsWith('/lists/recommend'))
           return ok({
             channel: url.searchParams.get('channel'),

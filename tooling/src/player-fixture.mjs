@@ -129,19 +129,23 @@ export async function playerFixture({ port = 0 } = {}) {
       const receipt = {
         session_id: session,
         operation_id: operation,
-        outcome: { status: 'committed', library: { owner_id: '', entries } },
+        outcome: { status: 'committed', library: { owner_id: '', entries, favorites: [] } },
       };
       libraryReceipts.set(operation, { payload, receipt });
       return reply(receipt);
     }
     if (url.pathname === '/api/v1/library' && request.method === 'GET')
-      return reply({ owner_id: '', entries });
+      return reply({ owner_id: '', entries, favorites: [] });
     if (url.pathname.startsWith('/api/v1/library')) return reply('Unexpected library write', 409);
     if (url.pathname === '/api/v1/search/history') return reply({ items: [] });
     if (url.pathname === '/api/v1/search/suggestions') return reply({ items: [] });
     if (url.pathname === '/api/v1/search/discovery') return reply({ guesses: [], boards: [] });
     if (url.pathname === '/api/v1/account')
-      return reply({ logged_in: false, qr_login_available: false });
+      return reply({
+        logged_in: false,
+        sync: { state: 'local', pending: 0 },
+        qr_login_available: false,
+      });
     if (url.pathname === '/api/v1/search') return reply({ items: [drama], has_more: false });
     if (url.pathname === '/api/v1/series/detail') return reply(drama);
     if (

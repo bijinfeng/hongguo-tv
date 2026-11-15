@@ -51,6 +51,32 @@ async fn native_library_operations_share_exact_receipts_with_http_and_reject_sta
     let session = session.body["data"]["session_id"].as_str().unwrap();
     let path = format!("/api/v1/library/operation?session_id={session}&operation_id=1");
     let progress = r#"{"action":"progress","owner_id":"","drama":{"series_id":"11","title":"Receipt identity","cover":"","intro":""},"episode":1,"video_id":"22","position":12.5,"duration":30}"#;
+    // The legacy fallback cannot bypass registered-only categories, even without AccountService.
+    for payload in [
+        json!({"action":"favorite","owner_id":"","drama":{"series_id":"11","title":"Contract favorite","cover":"","intro":""},"value":true}),
+        json!({"action":"clear","kind":"favorites"}),
+        json!({"action":"remove","kind":"favorites","series_id":"11"}),
+    ] {
+        let native = fixture
+            .call("/api/v1/library", Some(&payload.to_string()))
+            .await;
+        let request = axum::http::Request::builder()
+            .method("POST")
+            .uri("/api/v1/library")
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .body(Body::from(payload.to_string()))
+            .unwrap();
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!((native.status, native.body), (400, body.clone()));
+        assert_eq!(body["code"], "LIBRARY_REQUEST_INVALID");
+        assert!(body.get("data").is_none());
+    }
     for invalid in [
         format!("/api/v1/library/operation?session_id={session}"),
         format!("/api/v1/library/operation?session_id={session}&operation_id=01"),
@@ -72,7 +98,7 @@ async fn native_library_operations_share_exact_receipts_with_http_and_reject_sta
         .header("content-type", "application/json")
         .body(Body::from(progress))
         .unwrap();
-    let replay = app.oneshot(request).await.unwrap();
+    let replay = app.clone().oneshot(request).await.unwrap();
     assert_eq!(replay.status(), StatusCode::OK);
     let bytes = axum::body::to_bytes(replay.into_body(), 1024 * 1024)
         .await
@@ -83,10 +109,75 @@ async fn native_library_operations_share_exact_receipts_with_http_and_reject_sta
         .await;
     assert_eq!(conflict.status, 409);
     assert_eq!(conflict.body["code"], "LIBRARY_OPERATION_CONFLICT");
-    let second_path = format!("/api/v1/library/operation?session_id={session}&operation_id=2");
+    for (index, (payload, expected_favorites)) in [
+        (
+            json!({"action":"favorite","owner_id":"","drama":{"series_id":"11","title":"Contract favorite","cover":"","intro":""},"value":true}),
+            vec!["11"],
+        ),
+        (
+            json!({"action":"favorite","owner_id":"","drama":{"series_id":"12","title":"Other season","cover":"","intro":""},"value":true}),
+            vec!["11", "12"],
+        ),
+        (
+            json!({"action":"remove","kind":"favorites","series_id":"11"}),
+            vec!["12"],
+        ),
+        (
+            json!({"action":"favorite","owner_id":"","drama":{"series_id":"11","title":"Contract favorite","cover":"","intro":""},"value":true}),
+            vec!["11", "12"],
+        ),
+        (
+            json!({"action":"clear","kind":"favorites"}),
+            vec![],
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let operation_id = (index + 2).to_string();
+        let favorite_path = format!(
+            "/api/v1/library/operation?session_id={session}&operation_id={operation_id}"
+        );
+        let native = fixture
+            .call(&favorite_path, Some(&payload.to_string()))
+            .await;
+        assert_eq!(native.status, 200);
+        assert!(native.media.is_none());
+        let receipt = &native.body["data"];
+        assert_eq!(receipt["session_id"], session);
+        assert_eq!(receipt["operation_id"], operation_id);
+        assert_eq!(receipt["outcome"]["status"], "committed");
+        let library = &receipt["outcome"]["library"];
+        assert_eq!(
+            library["entries"],
+            first.body["data"]["outcome"]["library"]["entries"]
+        );
+        let mut favorites: Vec<_> = library["favorites"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| entry["drama"]["series_id"].as_str().unwrap())
+            .collect();
+        favorites.sort_unstable();
+        assert_eq!(favorites, expected_favorites);
+        let request = axum::http::Request::builder()
+            .method("POST")
+            .uri(&favorite_path)
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .body(Body::from(payload.to_string()))
+            .unwrap();
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap(), native.body);
+    }
+    let second_path = format!("/api/v1/library/operation?session_id={session}&operation_id=7");
     let second = progress.replace(r#""series_id":"11""#, r#""series_id":"12""#);
     assert_eq!(fixture.call(&second_path, Some(&second)).await.status, 200);
-    let remove_path = format!("/api/v1/library/operation?session_id={session}&operation_id=3");
+    let remove_path = format!("/api/v1/library/operation?session_id={session}&operation_id=8");
     let foreign = fixture
         .call(
             &remove_path,
@@ -374,6 +465,18 @@ async fn account_http_native_scope_state_and_structured_history_contract_match()
         assert_eq!((native.status, native.body), (status, body));
     }
     let original = account.snapshot().await;
+    for action in ["sync", "import_guest_history"] {
+        let command =
+            json!({"owner_id":"","owner_epoch":original.owner_epoch,"command":{"action":action}});
+        let native = fixture
+            .call("/api/v1/account/command", Some(&command.to_string()))
+            .await;
+        let (status, body) = http(app.clone(), "/api/v1/account/command", Some(command)).await;
+        assert_eq!((native.status, native.body), (status, body.clone()));
+        assert_eq!(status, 502);
+        assert_eq!(body["code"], "ACCOUNT_IDENTITY_MISMATCH");
+        assert_eq!(account.snapshot().await, original);
+    }
     for body in [
         json!({"owner_id":"", "owner_epoch":"old", "command":{"action":"logout"}}),
         json!({"owner_id":"123", "owner_epoch":original.owner_epoch, "command":{"action":"logout"}}),

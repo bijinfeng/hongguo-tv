@@ -1,4 +1,4 @@
-import type { HistoryChange, Library, LibraryOperationIdentity } from '@hongguo/contracts';
+import type { LibraryChange, Library, LibraryOperationIdentity } from '@hongguo/contracts';
 
 /** The same captured request port serves HTTP and native sessions. */
 export type LibraryWriteRequest = <T>(
@@ -8,7 +8,7 @@ export type LibraryWriteRequest = <T>(
 ) => Promise<T>;
 
 export interface LibraryWriteResult extends LibraryOperationIdentity {
-  change: HistoryChange;
+  change: LibraryChange;
   library: Library;
 }
 
@@ -16,7 +16,7 @@ export interface LibraryWriteResult extends LibraryOperationIdentity {
 export class LibraryWriteError extends Error {
   readonly status: 'failed' | 'unresolved';
   readonly code: string;
-  readonly change: HistoryChange;
+  readonly change: LibraryChange;
   readonly session_id?: string;
   readonly operation_id: string;
 
@@ -24,7 +24,7 @@ export class LibraryWriteError extends Error {
     status: LibraryWriteError['status'],
     code: string,
     message: string,
-    change: HistoryChange,
+    change: LibraryChange,
     operation_id: string,
     session_id?: string,
   ) {
@@ -50,39 +50,55 @@ const optionalNumber = (value: unknown, maximum = Infinity, integer = false) =>
     value <= maximum &&
     (!integer || Number.isSafeInteger(value)));
 
+/** History and favorites publish the same compact card, never episode payloads. */
+function validDrama(value: unknown) {
+  return (
+    record(value) &&
+    decimalId(value.series_id) &&
+    typeof value.title === 'string' &&
+    typeof value.cover === 'string' &&
+    typeof value.intro === 'string' &&
+    (value.cover_fallback === undefined || typeof value.cover_fallback === 'string') &&
+    (value.content_type === undefined || typeof value.content_type === 'string') &&
+    optionalNumber(value.episode_count, 10000, true) &&
+    value.episodes === undefined &&
+    (value.tags === undefined ||
+      (Array.isArray(value.tags) && value.tags.every((tag: unknown) => typeof tag === 'string')))
+  );
+}
+
 /** Validate the publishable snapshot as well as the receipt's operation identity. */
-function validLibrary(value: unknown): value is Library {
+export function validLibrarySnapshot(value: unknown): value is Library {
   return (
     record(value) &&
     (value.owner_id === undefined || value.owner_id === '' || decimalId(value.owner_id)) &&
     Array.isArray(value.entries) &&
     value.entries.every((entry: unknown) => {
-      if (!record(entry) || !record(entry.drama)) return false;
-      const drama = entry.drama;
+      if (!record(entry) || !validDrama(entry.drama)) return false;
       return (
-        decimalId(drama.series_id) &&
-        typeof drama.title === 'string' &&
-        typeof drama.cover === 'string' &&
-        typeof drama.intro === 'string' &&
-        (drama.cover_fallback === undefined || typeof drama.cover_fallback === 'string') &&
-        (drama.content_type === undefined || typeof drama.content_type === 'string') &&
-        optionalNumber(drama.episode_count, 10000, true) &&
-        drama.episodes === undefined &&
-        (drama.tags === undefined ||
-          (Array.isArray(drama.tags) &&
-            drama.tags.every((tag: unknown) => typeof tag === 'string'))) &&
         optionalNumber(entry.duration, 86400) &&
         optionalNumber(entry.position, 86400) &&
         optionalNumber(entry.last_played_at, Number.MAX_SAFE_INTEGER, true) &&
         (entry.episode === undefined ||
           (typeof entry.episode === 'number' &&
             Number.isInteger(entry.episode) &&
-            entry.episode >= 1 &&
+            // Cloud history may not have a playable episode yet; Progress writes remain one-based.
+            entry.episode >= 0 &&
             entry.episode <= 10000)) &&
         (entry.video_id === undefined || decimalId(entry.video_id)) &&
         (entry.completed === undefined || typeof entry.completed === 'boolean')
       );
-    })
+    }) &&
+    Array.isArray(value.favorites) &&
+    value.favorites.every(
+      (entry: unknown) =>
+        record(entry) &&
+        validDrama(entry.drama) &&
+        typeof entry.favorite_at === 'number' &&
+        Number.isSafeInteger(entry.favorite_at) &&
+        entry.favorite_at > 0 &&
+        Object.keys(entry).every((key) => key === 'drama' || key === 'favorite_at'),
+    )
   );
 }
 
@@ -96,7 +112,7 @@ export function createLibraryWriter(
   let next = 1n;
   let pending: { operation_id: string; payload: string } | undefined;
   let running = false;
-  const change = () => JSON.parse(pending!.payload) as HistoryChange;
+  const change = () => JSON.parse(pending!.payload) as LibraryChange;
   const failure = (code: string, message: string) =>
     new LibraryWriteError('unresolved', code, message, change(), pending!.operation_id, session);
   const checkAbort = (abort?: AbortSignal) => {
@@ -145,7 +161,7 @@ export function createLibraryWriter(
       const outcome = receipt.outcome;
       if (
         outcome.status === 'committed' &&
-        validLibrary(outcome.library) &&
+        validLibrarySnapshot(outcome.library) &&
         (outcome.library.owner_id ?? '') === ownerId
       ) {
         const result = {
@@ -189,7 +205,7 @@ export function createLibraryWriter(
     }
   };
   return {
-    async write(input: HistoryChange, abort?: AbortSignal): Promise<LibraryWriteResult> {
+    async write(input: LibraryChange, abort?: AbortSignal): Promise<LibraryWriteResult> {
       if (pending)
         throw failure('LIBRARY_WRITE_UNRESOLVED', '上一条记录写入结果尚未确认，请先确认。');
       // A private JSON snapshot also prevents callers or transports from mutating a replay.

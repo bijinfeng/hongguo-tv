@@ -31,7 +31,7 @@ export function registerPlayerMediaHost(
     const fixture = (request: StubRequest): StubResponse => {
       const url = new URL(request.url);
       if (url.pathname === '/api/v1/library' && request.method === 'GET')
-        return ok({ owner_id: '', entries: [] });
+        return ok({ owner_id: '', favorites: [], entries: [] });
       if (url.pathname === '/api/v1/library/session' && request.method === 'POST') {
         if (url.search || request.body !== JSON.stringify({ owner_id: '' })) return rejected();
         librarySession++;
@@ -73,14 +73,18 @@ export function registerPlayerMediaHost(
         const response = ok({
           session_id: session,
           operation_id: id,
-          outcome: { status: 'committed', library: { owner_id: '', entries: [] } },
+          outcome: { status: 'committed', library: { owner_id: '', favorites: [], entries: [] } },
         });
         receipts.set(id, { payload, response });
         return response;
       }
       if (url.pathname.startsWith('/api/v1/library')) return rejected();
       if (url.pathname.endsWith('/account'))
-        return ok({ logged_in: false, qr_login_available: false });
+        return ok({
+          logged_in: false,
+          sync: { state: 'local', pending: 0 },
+          qr_login_available: false,
+        });
       if (url.pathname.endsWith('/search')) return ok({ items: [drama], has_more: false });
       if (url.pathname.endsWith('/series/detail')) return ok(drama);
       if (

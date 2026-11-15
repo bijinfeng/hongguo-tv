@@ -19,6 +19,7 @@ function fixture(handler) {
   let serial = 0;
   let account = {
     logged_in: false,
+    sync: { state: 'local', pending: 0 },
     owner_id: '',
     qr_login_available: true,
     phone_login_available: true,

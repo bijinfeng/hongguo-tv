@@ -1,6 +1,6 @@
 import { Text, View, signal, type ViewRef } from 'nsh';
 import { Button, Product, type ProductTarget } from '@hongguo/ui';
-import type { Library } from '@hongguo/core-client';
+import type { Library, LibraryKind } from '@hongguo/core-client';
 import { History } from '../src/pages/History';
 import type { HistoryOperation } from '../src/library-state';
 import type { Store } from '../src/store';
@@ -9,6 +9,15 @@ const first = '9007199254740992';
 const second = '9007199254740993';
 const initial: Library = {
   owner_id: '',
+  favorites: Array.from({ length: 14 }, (_, index) => ({
+    drama: {
+      series_id: index === 0 ? first : index === 1 ? second : String(8000 + index),
+      title: `合成收藏${index + 1}`,
+      cover: '',
+      intro: '',
+    },
+    favorite_at: 100 - index,
+  })),
   entries: Array.from({ length: 14 }, (_, index) => ({
     drama: {
       series_id: index === 0 ? first : index === 1 ? second : String(8000 + index),
@@ -32,25 +41,41 @@ const initial: Library = {
 export function HistoryManagementStateFixture(props: { target: ProductTarget }) {
   const snapshot = signal<Library | undefined>(initial);
   const active = signal(true);
+  const account = signal({ owner_id: '', owner_epoch: 'a'.repeat(32) });
+  const libraryKind = signal<LibraryKind>('history');
   const job = signal<HistoryOperation | undefined>(undefined);
+  const completedHistory = signal<HistoryOperation | undefined>(undefined);
+  const completedFavorites = signal<HistoryOperation | undefined>(undefined);
+  let jobCategory: LibraryKind = 'history';
   const mode = signal<'success' | 'partial' | 'unresolved' | 'slow' | 'interrupt'>('success');
   const calls = signal<string[]>([]);
   const opened = signal('none');
   const alternatePresses = signal(0);
   const alternateFocused = signal(false);
+  const detailFlow = signal(false);
+  let detailSource: (() => void) | undefined;
   let alternate: ViewRef | undefined;
   let sequence = 0;
   let intent = 0;
   const entries = () => snapshot()?.entries ?? [];
-  const publish = (ids: readonly string[]) => {
+  const items = (category: LibraryKind) =>
+    category === 'history' ? entries() : (snapshot()?.favorites ?? []);
+  const publish = (ids: readonly string[], category: LibraryKind = 'history') => {
     const current = snapshot();
     if (current)
       snapshot.set({
         ...current,
-        entries: current.entries.filter((entry) => !ids.includes(entry.drama.series_id)),
+        entries:
+          category === 'history'
+            ? current.entries.filter((entry) => !ids.includes(entry.drama.series_id))
+            : current.entries,
+        favorites:
+          category === 'favorites'
+            ? current.favorites.filter((entry) => !ids.includes(entry.drama.series_id))
+            : current.favorites,
       });
   };
-  const settle = async (current: HistoryOperation, retry = false) => {
+  const settle = async (current: HistoryOperation, category: LibraryKind, retry = false) => {
     await new Promise<void>((resolve) => setTimeout(resolve, mode() === 'slow' ? 500 : 30));
     if (retry && current.status === 'unresolved') {
       job.set({ ...current, status: 'partial', error: '合成回执确认原删除失败' });
@@ -59,7 +84,7 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
     const ids = current.remainingIds;
     if (!retry && mode() === 'partial') {
       const completed = ids.slice(0, 1);
-      publish(completed);
+      publish(completed, category);
       job.set({
         ...current,
         completedIds: completed,
@@ -70,14 +95,16 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
     } else if (!retry && mode() === 'unresolved') {
       job.set({ ...current, status: 'unresolved', error: '合成回执丢失' });
     } else {
-      publish(ids);
-      job.set({
+      publish(ids, category);
+      const complete: HistoryOperation = {
         ...current,
         completedIds: current.ids,
         remainingIds: [],
         status: 'complete',
         error: '',
-      });
+      };
+      (category === 'history' ? completedHistory : completedFavorites).set(complete);
+      job.set(complete);
       if (mode() === 'interrupt')
         requestAnimationFrame(() => {
           intent++;
@@ -85,17 +112,21 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
         });
     }
   };
-  const start = (kind: 'remove' | 'clear', ids: readonly string[]) => {
-    if (!snapshot() || snapshot()?.owner_id) throw new Error('合成 owner 不可管理');
+  const start = (category: LibraryKind, kind: 'remove' | 'clear', ids: readonly string[]) => {
+    if (!snapshot() || snapshot()?.owner_id !== account().owner_id)
+      throw new Error('合成 owner 不可管理');
     const current = job();
     if (current && current.status !== 'complete') return Promise.resolve();
-    const exact = entries()
+    const exact = items(category)
       .map((entry) => entry.drama.series_id)
       .filter((id) => ids.includes(id));
-    calls.update((items) => [...items, `${kind}:${exact.join(',')}`]);
+    calls.update((items) => [
+      ...items,
+      `${category === 'favorites' ? 'favorites:' : ''}${kind}:${exact.join(',')}`,
+    ]);
     const next: HistoryOperation = {
       id: ++sequence,
-      ownerId: '',
+      ownerId: account().owner_id,
       kind,
       ids: exact,
       completedIds: [],
@@ -103,8 +134,9 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
       status: 'pending',
       error: '',
     };
+    jobCategory = category;
     job.set(next);
-    return settle(next);
+    return settle(next, category);
   };
   const library = Object.assign(() => snapshot(), {
     state: () => (snapshot() ? ('ready' as const) : ('loading' as const)),
@@ -112,10 +144,36 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
     error: () => undefined,
     refetch: async () => {},
   });
+  const management = (category: LibraryKind) => ({
+    operation: () =>
+      jobCategory === category
+        ? job()
+        : (category === 'history' ? completedHistory : completedFavorites)(),
+    remove: (ids: readonly string[]) => start(category, 'remove', ids),
+    clear: () =>
+      start(
+        category,
+        'clear',
+        items(category).map((entry) => entry.drama.series_id),
+      ),
+    retry: (id: number) => {
+      const current = job();
+      if (!current || id !== current.id || jobCategory !== category) return Promise.resolve();
+      calls.update((items) => [
+        ...items,
+        `retry:${current.status}:${current.remainingIds.join(',')}`,
+      ]);
+      job.set({ ...current, status: 'pending', error: '' });
+      return settle(current, category, true);
+    },
+  });
   const ports = {
     target: props.target,
     library,
     entries,
+    favorites: () => snapshot()?.favorites ?? [],
+    account,
+    libraryKind,
     activePage: (name: string) => name === 'history' && active(),
     noteFocusIntent: () => {
       intent++;
@@ -127,26 +185,15 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
     focusPrimary() {},
     restoreFocus() {},
     navigate: (name: string) => opened.set(name),
-    open: (drama: { series_id: string }) => opened.set(drama.series_id),
-    historyManagement: {
-      operation: job,
-      remove: (ids: readonly string[]) => start('remove', ids),
-      clear: () =>
-        start(
-          'clear',
-          entries().map((entry) => entry.drama.series_id),
-        ),
-      retry: (id: number) => {
-        const current = job();
-        if (!current || id !== current.id) return Promise.resolve();
-        calls.update((items) => [
-          ...items,
-          `retry:${current.status}:${current.remainingIds.join(',')}`,
-        ]);
-        job.set({ ...current, status: 'pending', error: '' });
-        return settle(current, true);
-      },
+    open: (drama: { series_id: string }, restore?: () => void) => {
+      opened.set(drama.series_id);
+      if (detailFlow()) {
+        detailSource = restore;
+        active.set(false);
+      }
     },
+    historyManagement: management('history'),
+    favoritesManagement: management('favorites'),
   } as unknown as Store;
   return (
     <Product.Provider value={props.target}>
@@ -175,6 +222,43 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
             }}
           />
           <Button
+            testID="history-fixture-detail-flow"
+            label="合成详情返回流程"
+            onPress={() => detailFlow.set(true)}
+          />
+          <If when={detailFlow() && !active()}>
+            <Button
+              testID="history-fixture-detail-remove"
+              label="合成详情取消当前收藏"
+              onPress={() => publish([opened()], 'favorites')}
+            />
+            <Button
+              testID="history-fixture-detail-clear"
+              label="合成详情清空收藏"
+              onPress={() =>
+                publish(
+                  items('favorites').map((item) => item.drama.series_id),
+                  'favorites',
+                )
+              }
+            />
+            <Button
+              testID="history-fixture-detail-return"
+              label="返回片库"
+              onPress={() => {
+                intent++;
+                active.set(true);
+                alternate?.focus();
+                const owned = intent;
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => {
+                    if (owned === intent) detailSource?.();
+                  }),
+                );
+              }}
+            />
+          </If>
+          <Button
             testID="history-fixture-native-focus"
             label="合成原生焦点转移"
             onPress={() => {
@@ -189,6 +273,22 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
             onPress={() => {
               intent++;
               active.set(!active());
+            }}
+          />
+          <Button
+            testID="history-fixture-signed-in"
+            label="合成账号片库"
+            onPress={() => {
+              const current = snapshot();
+              account.set({ owner_id: '123', owner_epoch: 'b'.repeat(32) });
+              if (current) snapshot.set({ ...current, owner_id: '123' });
+            }}
+          />
+          <Button
+            testID="history-fixture-epoch"
+            label="合成同账号新会话"
+            onPress={() => {
+              setTimeout(() => account.set({ ...account(), owner_epoch: 'c'.repeat(32) }), 500);
             }}
           />
           <Button
@@ -224,7 +324,9 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
         <Text testID="history-fixture-calls">{`calls:${calls().join('|')}`}</Text>
         <Text>{`alternate:${alternatePresses()}`}</Text>
         <Text>{`alternate-focused:${alternateFocused()}`}</Text>
-        <History store={ports} />
+        <View class="flex-1" style={{ display: detailFlow() && !active() ? 'none' : 'flex' }}>
+          <History store={ports} />
+        </View>
       </View>
     </Product.Provider>
   );

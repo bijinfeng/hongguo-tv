@@ -17,6 +17,7 @@ import {
   type Account,
   type AccountCommand,
   type AccountCommandResult,
+  type GuestHistoryImportResult,
   type Drama,
   type Episode,
   type HistoryChange,
@@ -55,6 +56,7 @@ export function createStore(
   const request = captureRequest();
   const nav = createNavStack<Route>([{ name: 'browse' }]);
   const section = signal<Section>('home');
+  const libraryKind = signal<'history' | 'favorites'>('history');
   const activePage = (name: Section) =>
     nav.routes().at(-1)?.name === 'browse' && section() === name;
   const playing = () =>
@@ -175,10 +177,11 @@ export function createStore(
       }
     }
   };
-  const history = createLibraryState(request);
-  const library = history.library;
-  let accountRevision = 0;
   let latestAccount: Account | undefined;
+  const history = createLibraryState(request, () => latestAccount);
+  const library = history.library;
+  effect(() => history.setActive(lifecycle() === 'active'));
+  let accountRevision = 0;
   const account = resource(async ({ signal }) => {
     const revision = accountRevision;
     try {
@@ -198,7 +201,11 @@ export function createStore(
   };
   let accountTail = Promise.resolve();
   const cancelledAccountCommand = () => new CoreError('账号操作已取消。', 'CORE_CANCELLED', 499);
-  const accountCommand = (command: AccountCommand, abort?: AbortSignal): Promise<Account> => {
+  const accountCommandResult = (
+    command: AccountCommand,
+    abort?: AbortSignal,
+    allowReconciled = false,
+  ): Promise<AccountCommandResult> => {
     const scope = {
       owner_id: latestAccount?.owner_id ?? library()?.owner_id ?? '',
       owner_epoch: latestAccount?.owner_epoch ?? '',
@@ -226,7 +233,7 @@ export function createStore(
             result.account.owner_id === (library()?.owner_id ?? '')
           )
             publishAccount(result.account);
-          return result.account;
+          return result;
         });
     const run = async () => {
       if (abort?.aborted) throw cancelledAccountCommand();
@@ -270,8 +277,44 @@ export function createStore(
         },
         () => publishAccount(result!.account),
       );
-      if (failure) throw failure;
-      return result!.account;
+      const uncertainDelivery =
+        !(failure instanceof CoreError) ||
+        ['CORE_CANCELLED', 'CORE_RESPONSE_INVALID'].includes(failure.code);
+      if (failure && (!allowReconciled || !uncertainDelivery)) throw failure;
+      // The state endpoint never supplies a command receipt or reconstructed import counts.
+      return failure ? { account: result!.account, library: result!.library } : result!;
+    };
+    const pending = accountTail.then(run);
+    accountTail = pending.then(
+      () => {},
+      () => {},
+    );
+    return pending;
+  };
+  const accountCommand = (command: AccountCommand, abort?: AbortSignal): Promise<Account> =>
+    accountCommandResult(command, abort).then((result) => result.account);
+  const refreshAccountLibraryState = (shouldRun: () => boolean = () => true) => {
+    const run = async () => {
+      if (!shouldRun()) return;
+      let result: AccountCommandResult;
+      const recovering = history.ownerBlocked();
+      const scope = latestAccount;
+      const read = async (abort?: AbortSignal) => {
+        if (!shouldRun()) throw cancelledAccountCommand();
+        result = await request<AccountCommandResult>('/api/v1/account/state', abort);
+        if (
+          result.account.owner_id !== (result.library.owner_id ?? '') ||
+          (!recovering &&
+            scope &&
+            (result.account.owner_id !== scope.owner_id ||
+              result.account.owner_epoch !== scope.owner_epoch))
+        )
+          throw new CoreError('账号与观看记录不一致，请重新读取。', 'ACCOUNT_OWNER_CHANGED', 409);
+        return result.library;
+      };
+      const publish = () => publishAccount(result.account);
+      if (recovering) await history.transitionOwner(read, publish);
+      else await history.observe(read, publish, shouldRun);
     };
     const pending = accountTail.then(run);
     accountTail = pending.then(
@@ -331,10 +374,18 @@ export function createStore(
   return {
     target,
     historyManagement: history.management,
+    favoritesManagement: history.favoritesManagement,
+    favoriteOperation: history.favoriteOperation,
+    retryFavorite: history.retryFavorite,
     hostFocus,
     hostOwnsFocus: !!subscribeFocus,
     nav,
     section,
+    libraryKind,
+    openLibrary(kind: 'history' | 'favorites') {
+      libraryKind.set(kind);
+      navigate('history');
+    },
     activePage,
     playing,
     request,
@@ -482,6 +533,32 @@ export function createStore(
     library,
     account,
     accountCommand,
+    async importGuestHistory(): Promise<GuestHistoryImportResult | undefined> {
+      const result = await accountCommandResult(
+        { action: 'import_guest_history' },
+        undefined,
+        true,
+      );
+      return result.import_history;
+    },
+    refreshAccountLibraryState,
+    /** Read-only observation after core sync; does not run cloud work. */
+    async refreshLibraryState() {
+      await library.refetch();
+      await account.refetch();
+    },
+    favorites: () =>
+      (library()?.favorites ?? []).slice().sort((a, b) => b.favorite_at - a.favorite_at),
+    isFavorite: (drama: Drama) =>
+      library()?.favorites.some((entry) => entry.drama.series_id === drama.series_id) ?? false,
+    setFavorite(drama: Drama, value: boolean) {
+      return history.favorite({
+        action: 'favorite',
+        owner_id: library()?.owner_id ?? '',
+        drama: libraryDrama(drama),
+        value,
+      });
+    },
     warning,
     submit() {
       if (suggestions.composing()) return false;

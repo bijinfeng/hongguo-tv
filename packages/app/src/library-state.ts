@@ -4,14 +4,32 @@ import {
   createLibraryWriter,
   LibraryWriteError,
   type captureRequest,
-  type HistoryChange,
+  validLibrarySnapshot,
+  type Account,
+  type LibraryChange,
+  type LibraryKind,
   type Library,
 } from '@hongguo/core-client';
 import { errorMessage } from './error-messages';
 
+type OwnerScope = { ownerId: string; epoch: number; ownerEpoch?: string };
+type ManagedOperation = HistoryOperation & { category: LibraryKind; scope: OwnerScope };
+
+/** A favorite always retains its exact desired membership, including during recovery. */
+export interface FavoriteOperation {
+  readonly id: number;
+  readonly ownerId: string;
+  readonly ownerEpoch?: string;
+  readonly seriesId: string;
+  readonly value: boolean;
+  readonly status: 'pending' | 'failed' | 'unresolved' | 'complete';
+  readonly error: string;
+}
+
 type Checkpoint = {
-  change: Extract<HistoryChange, { action: 'progress' }>;
+  change: Extract<LibraryChange, { action: 'progress' }>;
   sequence: number;
+  scope?: OwnerScope;
 };
 
 /** A confirmed scope belongs to the app, independently of its page or dialog. */
@@ -33,7 +51,10 @@ const validOwner = (value: unknown): value is string =>
 let currentOwner: object | undefined;
 
 /** One committed snapshot and write order for home, history and resume. */
-export function createLibraryState(request: ReturnType<typeof captureRequest>) {
+export function createLibraryState(
+  request: ReturnType<typeof captureRequest>,
+  accountScope?: () => Pick<Account, 'owner_id' | 'owner_epoch'> | undefined,
+) {
   const lifetime = {};
   currentOwner = lifetime;
   const data = signal<Library | undefined>(undefined);
@@ -44,7 +65,14 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
   const failedProgress = new Map<string, Checkpoint>();
   const removedThrough = new Map<string, number>();
   const clearedThrough = new Map<string, number>();
-  const operation = signal<HistoryOperation | undefined>(undefined);
+  const operation = signal<ManagedOperation | undefined>(undefined);
+  const favoriteOperation = signal<FavoriteOperation | undefined>(undefined);
+  let favoriteIntent:
+    | { change: Extract<LibraryChange, { action: 'favorite' }>; scope: OwnerScope }
+    | undefined;
+  let epoch = 0;
+  let active = true;
+  let refreshNeeded = false;
   let revision = 0;
   let sequence = 0;
   let disposed = false;
@@ -53,11 +81,16 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
   let ownerBlocked = false;
   let transitionRunning = false;
   let abort: AbortController | undefined;
+  let readDispatched = false;
   let writes = Promise.resolve();
   const mayDispatch = () =>
     currentOwner === lifetime && (!disposed || draining) && (!sealed || draining);
-  const writer = createLibraryWriter(request, mayDispatch);
-  let pendingDispatch: { change: HistoryChange; ownerId: string; sequence: number } | undefined;
+  const writer = createLibraryWriter(request, () => {
+    if (!mayDispatch()) return false;
+    if (pendingDispatch) checkScope(pendingDispatch.scope);
+    return true;
+  });
+  let pendingDispatch: { change: LibraryChange; scope: OwnerScope; sequence: number } | undefined;
   const owner = () => {
     const current = data();
     if (!current)
@@ -66,28 +99,61 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
     return current.owner_id ?? '';
   };
+  const captureScope = (ownerId = owner()): OwnerScope => ({
+    ownerId,
+    epoch,
+    ownerEpoch: accountScope?.()?.owner_epoch,
+  });
+  const checkScope = (scope: OwnerScope) => {
+    const current = accountScope?.();
+    if (
+      scope.epoch !== epoch ||
+      owner() !== scope.ownerId ||
+      (scope.ownerEpoch !== undefined && current?.owner_epoch !== scope.ownerEpoch) ||
+      (current && (current.owner_id ?? '') !== scope.ownerId)
+    )
+      throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
+  };
   const cancelRead = () => {
     abort?.abort();
     abort = undefined;
+    readDispatched = false;
     batch(() => {
       loading.set(false);
       state.set(error() ? 'errored' : data() ? 'ready' : 'unresolved');
     });
   };
-  const read = async () => {
-    if (disposed || ownerBlocked) return;
+  const read = async (
+    fetch: (abort: AbortSignal) => Promise<Library> = (abort) =>
+      request<Library>('/api/v1/library', abort),
+    onPublish?: () => void,
+    shouldRun: () => boolean = () => true,
+    propagateFailure = false,
+  ) => {
+    if (disposed || sealed || ownerBlocked || !shouldRun()) return;
+    if (!active) {
+      refreshNeeded = true;
+      return;
+    }
+    refreshNeeded = false;
     cancelRead();
     // Capture all tokens before waiting: a later queued mutation invalidates this read.
     const owned = revision;
+    const ownedEpoch = epoch;
+    const coreEpoch = accountScope?.()?.owner_epoch;
     const expectedOwner = data() ? (data()!.owner_id ?? '') : undefined;
     const tail = writes;
     const controller = new AbortController();
     abort = controller;
     const owns = () =>
       !disposed &&
+      active &&
+      shouldRun() &&
       currentOwner === lifetime &&
       !controller.signal.aborted &&
       owned === revision &&
+      ownedEpoch === epoch &&
+      (coreEpoch === undefined || coreEpoch === accountScope?.()?.owner_epoch) &&
       expectedOwner === (data() ? (data()!.owner_id ?? '') : undefined);
     batch(() => {
       loading.set(true);
@@ -96,10 +162,16 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     try {
       await tail;
       if (!owns()) return;
-      const next = await request<Library>('/api/v1/library', controller.signal);
+      if (pendingDispatch) {
+        refreshNeeded = true;
+        state.set(error() ? 'errored' : data() ? 'ready' : 'unresolved');
+        return;
+      }
+      readDispatched = true;
+      const next = await fetch(controller.signal);
       if (
+        !validLibrarySnapshot(next) ||
         !validOwner(next.owner_id ?? '') ||
-        !Array.isArray(next.entries) ||
         (expectedOwner !== undefined && (next.owner_id ?? '') !== (expectedOwner ?? ''))
       )
         throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
@@ -108,21 +180,26 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
           data.set(next);
           error.set(undefined);
           state.set('ready');
+          onPublish?.();
         });
     } catch (cause) {
-      if (owns())
+      if (owns()) {
         batch(() => {
           error.set(cause);
           state.set('errored');
         });
+        if (propagateFailure) throw cause;
+      }
     } finally {
       if (abort === controller) {
         abort = undefined;
+        readDispatched = false;
         loading.set(false);
+        if (!owns()) state.set(error() ? 'errored' : data() ? 'ready' : 'unresolved');
       }
     }
   };
-  const admit = (change: HistoryChange) => {
+  const admit = (change: LibraryChange) => {
     if (disposed || sealed || currentOwner !== lifetime)
       throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
     if (ownerBlocked)
@@ -135,11 +212,15 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     if ((change.owner_id ?? '') !== expectedOwner)
       throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
     revision++;
+    if (abort && readDispatched) refreshNeeded = true;
     cancelRead();
-    return expectedOwner;
+    const scope = captureScope(expectedOwner);
+    checkScope(scope);
+    return scope;
   };
-  const publish = (next: Library, expectedOwner: string) => {
-    if (!validOwner(next.owner_id ?? '') || (next.owner_id ?? '') !== expectedOwner)
+  const publish = (next: Library, scope: OwnerScope) => {
+    checkScope(scope);
+    if (!validLibrarySnapshot(next) || (next.owner_id ?? '') !== scope.ownerId)
       throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
     if (!disposed && currentOwner === lifetime)
       batch(() => {
@@ -148,17 +229,16 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         state.set('ready');
       });
   };
-  const send = async (change: HistoryChange, expectedOwner: string, mutation: number) => {
+  const send = async (change: LibraryChange, scope: OwnerScope, mutation: number) => {
     // Queue admission is not permission to write to a later library owner.
     if (!mayDispatch()) throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
-    if (owner() !== expectedOwner)
-      throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
+    checkScope(scope);
     if (pendingDispatch) throw unresolved();
-    pendingDispatch = { change, ownerId: expectedOwner, sequence: mutation };
+    pendingDispatch = { change, scope, sequence: mutation };
     try {
       const result = await writer.write(change);
       pendingDispatch = undefined;
-      publish(result.library, expectedOwner);
+      publish(result.library, scope);
     } catch (cause) {
       if (cause instanceof LibraryWriteError && cause.status === 'failed')
         pendingDispatch = undefined;
@@ -172,6 +252,9 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       () => {},
       () => {},
     );
+    void writes.then(() => {
+      if (refreshNeeded && !pendingDispatch && !ownerBlocked) void read();
+    });
     return operation;
   };
   const keyFor = (change: Checkpoint['change']) =>
@@ -185,13 +268,14 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
   const blocked = (change: Checkpoint['change']) => {
     const job = operation();
     return (
-      job?.status === 'unresolved' &&
+      job?.category === 'history' &&
+      job.status === 'unresolved' &&
       job.ownerId === (change.owner_id ?? '') &&
       (job.kind === 'clear' || job.remainingIds.includes(change.drama.series_id))
     );
   };
   const unresolved = () =>
-    new CoreError('删除结果尚未确认，请先重试该操作。', 'LIBRARY_OPERATION_UNRESOLVED', 409);
+    new CoreError('片库操作结果尚未确认，请先重试该操作。', 'LIBRARY_OPERATION_UNRESOLVED', 409);
   const clearWarning = () => {
     if (!failedProgress.size) warning.set('');
   };
@@ -199,13 +283,14 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     if (!mayDispatch()) throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
     const pending = pendingDispatch;
     if (!pending) return;
-    if (owner() !== pending.ownerId)
-      throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
+    checkScope(pending.scope);
     try {
       const result = await writer.resolve();
       if (!result) throw unresolved();
       pendingDispatch = undefined;
-      publish(result.library, pending.ownerId);
+      publish(result.library, pending.scope);
+      if (pending.change.action === 'favorite' && favoriteOperation()?.id === pending.sequence)
+        favoriteOperation.set({ ...favoriteOperation()!, status: 'complete', error: '' });
       if (pending.change.action === 'progress') {
         const key = keyFor(pending.change);
         if ((failedProgress.get(key)?.sequence ?? 0) <= pending.sequence)
@@ -214,8 +299,15 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       }
       return pending;
     } catch (cause) {
-      if (cause instanceof LibraryWriteError && cause.status === 'failed')
+      if (cause instanceof LibraryWriteError && cause.status === 'failed') {
         pendingDispatch = undefined;
+        if (pending.change.action === 'favorite' && favoriteOperation()?.id === pending.sequence)
+          favoriteOperation.set({
+            ...favoriteOperation()!,
+            status: 'failed',
+            error: errorMessage(cause, '收藏未保存'),
+          });
+      }
       throw cause;
     }
   };
@@ -226,7 +318,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       if (superseded(checkpoint)) failedProgress.delete(key);
     clearWarning();
   };
-  const runOperation = async (job: HistoryOperation, retry = false, mutation = job.id) => {
+  const runOperation = async (job: ManagedOperation, retry = false, mutation = job.id) => {
     const completedIds = [...job.completedIds];
     const remainingIds = [...job.remainingIds];
     try {
@@ -242,26 +334,30 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         }
       }
       if (job.kind === 'clear') {
-        if (recovered?.change.action !== 'clear')
+        if (!(recovered?.change.action === 'clear' && recovered.change.kind === job.category))
           await send(
-            { action: 'clear', kind: 'history', owner_id: job.ownerId },
-            job.ownerId,
+            { action: 'clear', kind: job.category, owner_id: job.ownerId },
+            job.scope,
             mutation,
           );
-        supersede(job, recovered?.change.action === 'clear' ? recovered.sequence : mutation);
+        if (job.category === 'history')
+          supersede(job, recovered?.change.action === 'clear' ? recovered.sequence : mutation);
         completedIds.push(...remainingIds.splice(0));
       } else {
         while (remainingIds.length) {
           const seriesId = remainingIds[0]!;
           const recoveredRemoval =
-            recovered?.change.action === 'remove' && recovered.change.series_id === seriesId;
+            recovered?.change.action === 'remove' &&
+            recovered.change.kind === job.category &&
+            recovered.change.series_id === seriesId;
           if (!recoveredRemoval)
             await send(
-              { action: 'remove', kind: 'history', owner_id: job.ownerId, series_id: seriesId },
-              job.ownerId,
+              { action: 'remove', kind: job.category, owner_id: job.ownerId, series_id: seriesId },
+              job.scope,
               mutation,
             );
-          supersede(job, recoveredRemoval ? recovered!.sequence : mutation, seriesId);
+          if (job.category === 'history')
+            supersede(job, recoveredRemoval ? recovered!.sequence : mutation, seriesId);
           recovered = undefined;
           completedIds.push(remainingIds.shift()!);
           operation.set({
@@ -283,22 +379,32 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       });
     }
   };
-  const startOperation = (kind: HistoryOperation['kind'], selected: readonly string[] = []) => {
+  const startOperation = (
+    category: LibraryKind,
+    kind: HistoryOperation['kind'],
+    selected: readonly string[] = [],
+  ) => {
     const current = operation();
     if (current && current.status !== 'complete') return Promise.resolve();
     const expectedOwner = owner();
     const wanted = new Set(selected);
-    const ids = (data()!.entries ?? [])
-      .filter((entry) => entry.last_played_at)
-      .slice()
-      .sort((a, b) => b.last_played_at! - a.last_played_at!)
+    const ids = (
+      category === 'history'
+        ? data()!
+            .entries.filter((entry) => entry.last_played_at)
+            .slice()
+            .sort((a, b) => b.last_played_at! - a.last_played_at!)
+        : data()!.favorites
+    )
       .map((entry) => entry.drama.series_id)
       .filter(
         (id, index, values) => values.indexOf(id) === index && (kind === 'clear' || wanted.has(id)),
       );
     if (kind === 'remove' && !ids.length) return Promise.resolve();
-    admit({ action: 'clear', kind: 'history', owner_id: expectedOwner });
-    const job: HistoryOperation = {
+    const scope = admit({ action: 'clear', kind: category, owner_id: expectedOwner });
+    const job: ManagedOperation = {
+      category,
+      scope,
       id: ++sequence,
       ownerId: expectedOwner,
       kind,
@@ -311,14 +417,86 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     operation.set(job);
     return enqueue(() => runOperation(job));
   };
+  const retryOperation = (category: LibraryKind, id: number) => {
+    const current = operation();
+    if (
+      !current ||
+      current.category !== category ||
+      current.id !== id ||
+      !['partial', 'unresolved'].includes(current.status)
+    )
+      return Promise.resolve();
+    checkScope(current.scope);
+    const scope = admit({ action: 'clear', kind: category, owner_id: current.ownerId });
+    const job = { ...current, scope, status: 'pending' as const, error: '' };
+    operation.set(job);
+    const mutation = ++sequence;
+    return enqueue(() => runOperation(job, true, mutation));
+  };
+  const runFavorite = async (
+    job: FavoriteOperation,
+    intent: NonNullable<typeof favoriteIntent>,
+    retry = false,
+  ) => {
+    try {
+      checkScope(intent.scope);
+      let recovered: typeof pendingDispatch;
+      if (retry && pendingDispatch) {
+        const original = pendingDispatch.sequence === job.id;
+        try {
+          recovered = await reconcile();
+        } catch (cause) {
+          if (original || !(cause instanceof LibraryWriteError) || cause.status !== 'failed')
+            throw cause;
+        }
+      }
+      if (recovered?.sequence !== job.id) await send(intent.change, intent.scope, job.id);
+      if (favoriteOperation()?.id === job.id)
+        favoriteOperation.set({ ...job, status: 'complete', error: '' });
+    } catch (cause) {
+      if (favoriteOperation()?.id === job.id)
+        favoriteOperation.set({
+          ...job,
+          status: pendingDispatch ? 'unresolved' : 'failed',
+          error: errorMessage(cause, '收藏未保存'),
+        });
+    }
+  };
+  const retryFavorite = (id: number, recovery = false): Promise<void> => {
+    const current = favoriteOperation();
+    const intent = favoriteIntent;
+    if (
+      !current ||
+      current.id !== id ||
+      !intent ||
+      !['failed', 'unresolved'].includes(current.status)
+    )
+      return Promise.resolve();
+    checkScope(intent.scope);
+    if (recovery) {
+      revision++;
+      cancelRead();
+    } else admit(intent.change);
+    const job = { ...current, status: 'pending' as const, error: '' };
+    favoriteOperation.set(job);
+    return enqueue(() => runFavorite(job, intent, true));
+  };
   effect(() => untracked(() => void read()));
   cleanup(() => {
     disposed = true;
     cancelRead();
   });
   const api = {
-    library: Object.assign(() => data(), { state, loading, error, refetch: read }),
+    library: Object.assign(() => data(), { state, loading, error, refetch: () => read() }),
     warning,
+    /** Observe the current owner without resetting writer identity or management recovery. */
+    observe(
+      fetch: (abort: AbortSignal) => Promise<Library>,
+      onPublish: () => void,
+      shouldRun: () => boolean,
+    ) {
+      return read(fetch, onPublish, shouldRun, true);
+    },
     beginShutdown(checkpoint: () => void) {
       if (sealed || currentOwner !== lifetime) return () => {};
       draining = true;
@@ -329,6 +507,8 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         throw cause;
       } finally {
         sealed = true;
+        refreshNeeded = false;
+        cancelRead();
       }
       return () => {
         draining = false;
@@ -352,7 +532,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         api.assertSaved();
         dispatched = true;
         const next = await work();
-        if (!validOwner(next.owner_id ?? '') || !Array.isArray(next.entries))
+        if (!validLibrarySnapshot(next) || !validOwner(next.owner_id ?? ''))
           throw new CoreError(
             '账号记录响应无效，请重新确认账号状态。',
             'LIBRARY_OWNER_CHANGED',
@@ -360,6 +540,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
           );
         if (!mayDispatch()) throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
         writer.reset();
+        epoch++;
         revision++;
         failedProgress.clear();
         removedThrough.clear();
@@ -367,6 +548,8 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         pendingDispatch = undefined;
         batch(() => {
           operation.set(undefined);
+          favoriteOperation.set(undefined);
+          favoriteIntent = undefined;
           warning.set('');
           data.set(next);
           error.set(undefined);
@@ -374,6 +557,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
           publishAccount?.();
         });
         ownerBlocked = false;
+        refreshNeeded = false;
       } catch (cause) {
         // Before work starts the core owner cannot have changed. Afterwards only recovery can unlock.
         if (!dispatched && !wasBlocked) ownerBlocked = false;
@@ -384,21 +568,54 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     },
     ownerBlocked: () => ownerBlocked,
     management: {
-      operation: () => operation(),
-      remove: (ids: readonly string[]) => startOperation('remove', ids),
-      clear: () => startOperation('clear'),
-      retry(id: number) {
-        const current = operation();
-        if (!current || current.id !== id || !['partial', 'unresolved'].includes(current.status))
-          return Promise.resolve();
-        admit({ action: 'clear', kind: 'history', owner_id: current.ownerId });
-        const job = { ...current, status: 'pending' as const, error: '' };
-        operation.set(job);
-        const mutation = ++sequence;
-        return enqueue(() => runOperation(job, true, mutation));
-      },
+      operation: (): HistoryOperation | undefined =>
+        operation()?.category === 'history' ? operation() : undefined,
+      remove: (ids: readonly string[]) => startOperation('history', 'remove', ids),
+      clear: () => startOperation('history', 'clear'),
+      retry: (id: number) => retryOperation('history', id),
     },
-    save(change: Extract<HistoryChange, { action: 'progress' }>) {
+    favoritesManagement: {
+      operation: (): HistoryOperation | undefined =>
+        operation()?.category === 'favorites' ? operation() : undefined,
+      remove: (ids: readonly string[]) => startOperation('favorites', 'remove', ids),
+      clear: () => startOperation('favorites', 'clear'),
+      retry: (id: number) => retryOperation('favorites', id),
+    },
+    favoriteOperation: () => favoriteOperation(),
+    retryFavorite: (id: number) => retryFavorite(id),
+    favorite(input: Extract<LibraryChange, { action: 'favorite' }>) {
+      const current = favoriteOperation();
+      if (
+        (current && ['pending', 'unresolved'].includes(current.status)) ||
+        operation()?.status === 'unresolved'
+      )
+        throw unresolved();
+      const change = JSON.parse(JSON.stringify(input)) as typeof input;
+      const scope = admit(change);
+      const job: FavoriteOperation = {
+        id: ++sequence,
+        ownerId: scope.ownerId,
+        ownerEpoch: scope.ownerEpoch,
+        seriesId: change.drama.series_id,
+        value: change.value,
+        status: 'pending',
+        error: '',
+      };
+      const intent = { change, scope };
+      favoriteIntent = intent;
+      favoriteOperation.set(job);
+      return enqueue(() => runFavorite(job, intent));
+    },
+    /** Backgrounding cancels observation, never already accepted writes. */
+    setActive(next: boolean) {
+      if (active === next) return;
+      active = next;
+      if (!next) {
+        refreshNeeded = true;
+        cancelRead();
+      } else if (refreshNeeded) void read();
+    },
+    save(change: Extract<LibraryChange, { action: 'progress' }>) {
       const checkpoint: Checkpoint = { change, sequence: ++sequence };
       const key = keyFor(change);
       const failed = (cause: unknown) => {
@@ -409,9 +626,10 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         console.warn('观看进度写入失败', cause);
         warning.set(errorMessage(cause, '观看进度未保存'));
       };
-      let expectedOwner: string;
+      let scope: OwnerScope;
       try {
-        expectedOwner = admit(change);
+        scope = admit(change);
+        checkpoint.scope = scope;
       } catch (cause) {
         // Before the first read, retain progress for explicit recovery. Foreign/transition
         // rejections never join a different owner's retry queue.
@@ -422,7 +640,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       return enqueue(async () => {
         try {
           if (blocked(change)) throw unresolved();
-          await send(change, expectedOwner, checkpoint.sequence);
+          await send(change, scope, checkpoint.sequence);
           if ((failedProgress.get(key)?.sequence ?? 0) <= checkpoint.sequence)
             failedProgress.delete(key);
           clearWarning();
@@ -431,9 +649,18 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         }
       });
     },
-    retryFailed() {
+    retryFailed(): Promise<void> {
       if (disposed || sealed || currentOwner !== lifetime)
         throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
+      const favorite = favoriteOperation();
+      if (favorite && ['failed', 'unresolved'].includes(favorite.status))
+        return retryFavorite(favorite.id, true).then(() => {
+          if (favoriteOperation()?.status !== 'complete') {
+            if (pendingDispatch) throw unresolved();
+            throw new CoreError('收藏仍未保存，请重试。', 'LIBRARY_FAVORITE_UNSAVED', 409);
+          }
+          return api.retryFailed();
+        });
       const pending = Array.from(failedProgress);
       if (!pending.length) return Promise.resolve();
       revision++;
@@ -454,7 +681,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
           const expectedOwner = owner();
           if ((change.owner_id ?? '') !== expectedOwner)
             throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
-          await send(change, expectedOwner, checkpoint.sequence);
+          await send(change, checkpoint.scope ?? captureScope(expectedOwner), checkpoint.sequence);
           if (failedProgress.get(key) === checkpoint) failedProgress.delete(key);
         }
         clearWarning();
@@ -462,6 +689,8 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     },
     assertSaved() {
       if (pendingDispatch || operation()?.status === 'unresolved') throw unresolved();
+      if (favoriteOperation()?.status === 'failed')
+        throw new CoreError('收藏仍未保存，请重试。', 'LIBRARY_FAVORITE_UNSAVED', 409);
       if (failedProgress.size)
         throw new CoreError('观看进度仍未保存，请重试。', 'LIBRARY_PROGRESS_UNSAVED', 409);
     },

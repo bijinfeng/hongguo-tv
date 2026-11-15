@@ -52,7 +52,10 @@ export function registerLibraryTests() {
       await app.press('删除123');
       await app.press('排空保存');
       await app.waitFor('text:completion:drained');
-      expect(app.shows('text:read-1')).toBe(true);
+      expect(app.shows(foreign ? 'text:read-1' : 'text:read-1|abort-1')).toBe(true);
+      expect(app.shows('text:read-count:1')).toBe(true);
+      expect(app.shows('text:write-count:0')).toBe(true);
+      expect(app.shows('text:changes:')).toBe(true);
       expect(app.shows('text:snapshot:20')).toBe(false);
       expect(app.shows('text:no-warning')).toBe(false);
       expect(app.shows('text:operation:none')).toBe(true);

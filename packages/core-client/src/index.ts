@@ -1,6 +1,6 @@
 import type { Drama, Episode, PlayInfo, SearchResult } from '@hongguo/contracts';
 export type * from '@hongguo/contracts';
-export { createLibraryWriter, LibraryWriteError } from './library-writer';
+export { createLibraryWriter, LibraryWriteError, validLibrarySnapshot } from './library-writer';
 export type { LibraryWriteRequest, LibraryWriteResult } from './library-writer';
 
 /** One host-owned transport; shared pages never import native modules. */
