@@ -230,6 +230,16 @@ export function registerHistoryManagementTests(
     expect(app.texts().includes('calls:')).toBe(true);
     expect(app.requests()).toEqual([]);
   });
+  test('selection counts stable series identities once when a snapshot repeats a row', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-duplicate-first');
+    await app.press('id:history-manage');
+    await app.press('id:history-select-all');
+    await app.waitFor('text:删除所选（14）');
+    await app.press('id:history-select-all');
+    await app.waitFor('text:删除所选（0）');
+    expect(app.requests()).toEqual([]);
+  });
   test('selection and recycled row actions keep their exact identities after scrolling away and back', async () => {
     const app = await open(entry, options);
     await app.press('id:history-manage');

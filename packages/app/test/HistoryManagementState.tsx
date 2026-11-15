@@ -319,6 +319,15 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
                 snapshot.set({ ...current, entries: [initial.entries[0], ...current.entries] });
             }}
           />
+          <Button
+            testID="history-fixture-duplicate-first"
+            label="合成重复首条"
+            onPress={() => {
+              const current = snapshot();
+              if (current)
+                snapshot.set({ ...current, entries: [current.entries[0], ...current.entries] });
+            }}
+          />
         </View>
         <Text>{`synthetic · mode:${mode()} · active:${active()} · count:${entries().length} · opened:${opened()}`}</Text>
         <Text testID="history-fixture-calls">{`calls:${calls().join('|')}`}</Text>

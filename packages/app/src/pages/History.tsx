@@ -452,10 +452,17 @@ export function History(props: { store: Store }) {
     );
   const busy = () => !!outstanding();
   const available = () => enabled() && !busy();
-  const selectedIds = () =>
-    entries()
+  const availableIds = () => {
+    const seen = new Set<string>();
+    return entries()
       .map((entry) => entry.drama.series_id)
-      .filter((id) => selected().has(id));
+      .filter((id) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+  };
+  const selectedIds = () => availableIds().filter((id) => selected().has(id));
   const retryLabel = () =>
     operation()?.status === 'unresolved'
       ? favorites()
@@ -834,14 +841,12 @@ export function History(props: { store: Store }) {
           <Checkbox
             label="全选"
             testID="history-select-all"
-            checked={!!entries().length && selectedIds().length === entries().length}
-            indeterminate={selectedIds().length > 0 && selectedIds().length < entries().length}
-            disabled={!available() || !entries().length}
+            checked={!!availableIds().length && selectedIds().length === availableIds().length}
+            indeterminate={selectedIds().length > 0 && selectedIds().length < availableIds().length}
+            disabled={!available() || !availableIds().length}
             onChange={(event) => {
               props.store.noteFocusIntent();
-              selected.set(
-                new Set(event.checked ? entries().map((entry) => entry.drama.series_id) : []),
-              );
+              selected.set(new Set(event.checked ? availableIds() : []));
             }}
           />
           <Button

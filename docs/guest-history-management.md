@@ -40,7 +40,7 @@ operation 的 `pending` 表示当前排队或执行，`partial` 表示已取得�
 | 操作反馈、显式恢复                 | `history-operation`、`history-operation-retry`                                 |
 | 空态去找剧                         | `history-empty-discover`                                                       |
 
-`HistoryManagementStatePreview.test.tsx` 三端薄入口共用生产 History 与显式合成端口。当前共享合成交互回归补至 16 项，覆盖精确 ID、安全取消、mixed／全选／全不选、快照修剪、虚拟回收、部分完成、未知结果确认、pending 防重／关闭和离页、owner 禁用、尾行删除／清空回焦、页面级重试、较新焦点意图及后台完成／回前台不抢焦；新增后段回收行取消回源、管理密度切换保留阅读上下文，最终各端执行结果见 VALIDATION。这只补充受控边界，不是正式入口真实内容、实际播放、SQLite 持久化、重启或真实宿主的 E1 验收证据；其余端的执行结果也不能由 Web 合成通过推定。
+`HistoryManagementStatePreview.test.tsx` 三端薄入口共用生产 History 与显式合成端口。当前共享合成交互回归为 25 项，覆盖精确 ID、安全取消、mixed／全选／全不选、重复快照去重、快照修剪、虚拟回收、部分完成、未知结果确认、pending 防重／关闭和离页、owner 禁用、尾行删除／清空回焦、页面级重试、较新焦点意图及后台完成／回前台不抢焦；新增后段回收行取消回源、管理密度切换保留阅读上下文。headless 25/25 通过；macOS 可见宿主执行时两项生命周期用例由 NSH 测试框架限制为 headless 专项，不计为产品失败。该回归只补充受控边界，不是正式入口真实内容、实际播放、SQLite 持久化、重启或真实宿主的 E1 验收证据；其余端的执行结果也不能由 Web 合成通过推定。
 
 ## 原派发完成边界
 
