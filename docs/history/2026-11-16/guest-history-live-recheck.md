@@ -18,4 +18,4 @@
 - `pnpm fmt:check` 与 `node --check tooling/src/live-history-host.mjs` 通过。
 - 真实截图复核确认普通历史页、管理页、空态和播放页使用同一套生产布局；本次没有新增视觉样式或数据展示。
 
-本次没有勾选 `wire-guest-history-management` 的 4.2/4.3：浏览器全流程、Desktop native、当前 TV 包、完整焦点／后台和物理 TV 仍未覆盖；真实上游失败也没有被合成回归替代。
+本次仍未勾选 `wire-guest-history-management` 的 4.2：浏览器全流程、Desktop native、当前 TV 包、完整焦点／后台和物理 TV 仍未覆盖；真实上游失败也没有被合成回归替代。工程门禁补验已完成并记录为 4.3：冻结源码上的 `pnpm verify` 通过，三端 check/build、Rust 405/405、App Web/Desktop/TV 232/239/240、codegen:check、格式、包边界和 release check 均通过。
