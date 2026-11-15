@@ -89,7 +89,14 @@ pub(crate) async fn info(
     .await;
     let mut response = match result {
         Ok(data) => Json(PlayResponse { ok: true, data }).into_response(),
-        Err(error) => error_response(error),
+        Err(error) => {
+            let response = error_response(error);
+            eprintln!(
+                "{}",
+                serde_json::json!({"event":"playback_failure", "phase":"play_info", "status":response.status().as_u16(), "code":error.code()})
+            );
+            response
+        }
     };
     response
         .headers_mut()

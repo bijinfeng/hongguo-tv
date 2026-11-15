@@ -10,13 +10,14 @@ import {
   keymap,
   untracked,
   windowSize,
+  type VideoHostProps,
   type VideoRef,
   type ViewRef,
 } from 'nsh';
 import { currentWindow, isAvailable, type WindowMode } from 'nsh/desktop';
 import { CoreError, play, type Drama, type Episode } from '@hongguo/core-client';
 import { type Store } from '../store';
-import { playbackLease, progressSession } from '../playback';
+import { playbackActivity, playbackLease, progressSession } from '../playback';
 import { playbackTime as timeLabel } from '../format';
 import { errorMessage } from '../error-messages';
 import { createSeasons, isFinalEpisode, type SeasonsController } from '../seasons';
@@ -42,6 +43,30 @@ import {
 type Media = Awaited<ReturnType<typeof play>>;
 type Representation = { info: Media; revision: number };
 type TvLayer = 'hidden' | 'controls' | 'seek-preview' | 'episode-panel';
+type VideoFailure = Parameters<NonNullable<VideoHostProps['onError']>>[0];
+const prepareErrorCodes = new Set([
+  'INVALID_PLAYBACK_QUERY',
+  'UNSUPPORTED_CONTENT_TYPE',
+  'PLAYBACK_ACCESS_DENIED',
+  'PLAYBACK_IDENTITY_MISMATCH',
+  'PLAYBACK_INVALID_MODEL',
+  'PLAYBACK_INVALID_MEDIA',
+  'PLAYBACK_MEDIA_TOO_LARGE',
+  'PLAYBACK_MEDIA_CHANGED',
+  'PLAYBACK_STORAGE_FAILED',
+  'PLAYBACK_SOURCE_EMPTY',
+  'PLAYBACK_UNSUPPORTED_MEDIA',
+  'PLAYBACK_QUALITY_UNAVAILABLE',
+  'PLAYBACK_TIMEOUT',
+  'PLAYBACK_UPSTREAM_UNAVAILABLE',
+  'PLAYBACK_CONFIGURATION_ERROR',
+  'PLAYBACK_RESOURCE_EXPIRED',
+  'PLAYBACK_CAPACITY_REACHED',
+  'CORE_RESPONSE_INVALID',
+  'CORE_REQUEST_FAILED',
+  'CORE_NOT_IMPLEMENTED',
+]);
+const videoErrorCodes = new Set(['ERR_ACCESS_DENIED', 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM']);
 
 function Episodes(props: {
   drama: Drama;
@@ -98,6 +123,7 @@ function SeasonEpisodes(props: {
   drama: Drama;
   episode: Episode;
   target: 'desktop' | 'tv';
+  playingId?: string;
   resume: Store['resume'];
   onBrowse: () => void;
   onSelect: (drama: Drama, episode: Episode) => void;
@@ -107,7 +133,7 @@ function SeasonEpisodes(props: {
       <SeasonPicker
         seasons={props.seasons}
         compact
-        playingId={props.drama.series_id}
+        playingId={props.playingId}
         resume={props.resume}
         onChange={props.onBrowse}
       />
@@ -153,7 +179,7 @@ function MediaView(props: {
   onLoad: (duration: number) => void;
   onProgress: (position: number, duration: number) => void;
   onBuffer: (value: boolean) => void;
-  onError: () => void;
+  onError: (failure: VideoFailure, revision: number) => void;
   onEnd: () => void;
 }) {
   const revision = props.representation.revision;
@@ -178,8 +204,8 @@ function MediaView(props: {
       onBuffer={({ isBuffering }) => {
         if (props.current(revision)) props.onBuffer(isBuffering);
       }}
-      onError={() => {
-        if (props.current(revision)) props.onError();
+      onError={(failure) => {
+        if (props.current(revision)) props.onError(failure, revision);
       }}
       onEnd={() => {
         if (props.current(revision)) props.onEnd();
@@ -220,6 +246,12 @@ export function Player(props: {
   const media = signal<Representation | undefined>(undefined);
   const preparing = signal(true);
   const loaded = signal(false);
+  const advancing = signal(false);
+  const activity = playbackActivity();
+  const resetActivity = () => {
+    activity.reset();
+    advancing.set(false);
+  };
   const paused = signal(props.feed?.checkpoint?.paused ?? false);
   const completed = signal(false);
   const position = signal(0);
@@ -278,7 +310,16 @@ export function Player(props: {
       buffering.set(true);
     },
     failed(reason) {
-      console.warn('播放准备失败', reason);
+      const failure = reason instanceof CoreError ? reason : undefined;
+      const status = failure?.status;
+      console.warn('播放准备失败', {
+        status:
+          status !== undefined && Number.isInteger(status) && status >= 100 && status <= 599
+            ? status
+            : undefined,
+        code:
+          failure && prepareErrorCodes.has(failure.code) ? failure.code : 'PLAYBACK_UNKNOWN_ERROR',
+      });
       preparing.set(false);
       error.set(
         reason instanceof CoreError && reason.status === 501
@@ -296,6 +337,12 @@ export function Player(props: {
     },
   });
   const enabled = () => loaded() && !error() && !preparing();
+  const running = () =>
+    enabled() && active() && lifecycle() === 'active' && !paused() && !buffering() && !completed();
+  const playingId = () => (running() && advancing() ? props.drama.series_id : undefined);
+  effect(() => {
+    if (!running()) untracked(resetActivity);
+  });
   const refresh = () => {
     cancelSuccessor();
     checkpoint();
@@ -306,6 +353,7 @@ export function Player(props: {
   const seek = (value: number) => {
     cancelSuccessor();
     if (!enabled() || !Number.isFinite(value)) return;
+    resetActivity();
     const next = Math.min(duration(), Math.max(0, value));
     session.seed(next, duration());
     seekingTo = next;
@@ -374,6 +422,7 @@ export function Player(props: {
   const toggle = () => {
     cancelSuccessor();
     if (!enabled()) return;
+    resetActivity();
     if (completed()) {
       session.restart();
       seek(0);
@@ -631,6 +680,7 @@ export function Player(props: {
                         video = ref;
                       }}
                       onLoad={(total) => {
+                        resetActivity();
                         duration.set(total);
                         loaded.set(true);
                         buffering.set(false);
@@ -673,12 +723,20 @@ export function Player(props: {
                           duration.set(total);
                           return;
                         }
+                        advancing.set(running() ? activity.update(time) : false);
                         position.set(time);
                         duration.set(total);
                         session.update(time, total, !paused() && !buffering() && loaded());
                       }}
                       onBuffer={(value) => buffering.set(value)}
-                      onError={() => {
+                      onError={(failure, revision) => {
+                        console.warn('播放媒体失败', {
+                          code:
+                            failure.code && videoErrorCodes.has(failure.code)
+                              ? failure.code
+                              : 'VIDEO_UNKNOWN_ERROR',
+                          revision,
+                        });
                         cancelSuccessor();
                         error.set('播放失败，请重试。');
                         buffering.set(false);
@@ -972,6 +1030,7 @@ export function Player(props: {
                 drama={props.drama}
                 episode={props.episode}
                 target={props.store.target}
+                playingId={playingId()}
                 resume={props.store.resume}
                 onBrowse={cancelSuccessor}
                 onSelect={selectEpisode}
@@ -993,6 +1052,7 @@ export function Player(props: {
           drama={props.drama}
           episode={props.episode}
           target={props.store.target}
+          playingId={playingId()}
           resume={props.store.resume}
           onBrowse={cancelSuccessor}
           onSelect={selectEpisode}

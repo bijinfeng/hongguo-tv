@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, open as openFile, readFile, rename, writeFile } from 'node:fs/promises';
 import { isAbsolute, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { setTimeout as pause } from 'node:timers/promises';
@@ -192,7 +192,10 @@ async function runHost(file, colorScheme, deadline) {
           ...record.details,
         });
       await writeFile(
-        resolve(artifacts, `${record.stage}-${record.colorScheme}.json`),
+        resolve(
+          artifacts,
+          `${record.stage}${record.stage.endsWith('-playback-error') ? '-' + record.details.attempt : ''}-${record.colorScheme}.json`,
+        ),
         JSON.stringify(record, null, 2) + '\n',
       );
       if (record.stage === file.replace('.test.tsx', '') + '-complete') completed = true;
@@ -274,23 +277,36 @@ try {
   evidence.apiStarts = [];
   const start = async (deadline) => {
     ensureActive();
-    api = child(
-      binary,
-      [
-        '--data-dir',
-        resolve(artifacts, 'data'),
-        ...(apiPort ? ['--port', apiPort] : []),
-        ...(allowedOrigin ? ['--allow-origin', allowedOrigin] : []),
-      ],
-      {
-        stdio: ['ignore', 'pipe', 'inherit'],
-      },
-    );
+    const diagnostics = `api-${evidence.apiStarts.length + 1}.stderr.log`;
+    const log = await openFile(resolve(artifacts, diagnostics), 'a');
+    try {
+      api = child(
+        binary,
+        [
+          '--data-dir',
+          resolve(artifacts, 'data'),
+          ...(apiPort ? ['--port', apiPort] : []),
+          ...(allowedOrigin ? ['--allow-origin', allowedOrigin] : []),
+        ],
+        {
+          stdio: ['ignore', 'pipe', log.fd],
+        },
+      );
+    } finally {
+      await log.close();
+    }
+    const attempt = {
+      pid: api.pid,
+      startedAt: new Date().toISOString(),
+      allowedOrigin: allowedOrigin ?? null,
+      diagnostics,
+    };
+    evidence.apiStarts.push(attempt);
     const origin = await ready(
       api,
       Math.max(1, Math.min(15000, (deadline ?? themeDeadline ?? Date.now() + 15000) - Date.now())),
     );
-    evidence.apiStarts.push({ pid: api.pid, origin, allowedOrigin: allowedOrigin ?? null });
+    attempt.origin = origin;
     if (target === 'web') apiPort = new URL(origin).port;
     return origin;
   };
@@ -431,6 +447,7 @@ test(${JSON.stringify(identity)},async()=>{
   for(let attempt=0;attempt<2;attempt++){
    await app.waitUntil(()=>app.shows('text:播放遇到问题')||(app.shows('id:player-video')&&clock()>=0&&app.enabled('播放进度')),{timeout:budget(35000)});
    if(!app.shows('text:播放遇到问题'))break;
+   expect(app.texts().includes('播放中')).toBe(false);
    await capture(name+'-playback-error-'+attempt);
    record(name+'-playback-error',{series_id:seriesId,attempt,texts:app.texts()});
    if(attempt===1)throw new Error('Real playback failed after one explicit UI retry: '+seriesId);
@@ -440,8 +457,22 @@ test(${JSON.stringify(identity)},async()=>{
   await app.waitUntil(()=>clock()>=0&&app.enabled('播放进度'),{timeout:budget()});
   record(name+'-media-ready');
   const initial=clock();await app.waitUntil(()=>clock()>=3&&clock()>=initial+3,{timeout:budget()});
-  const progressed=clock();await app.press('label:暂停');
+  const progressed=clock();
+  if(app.shows('id:season-picker')){
+   expect(app.texts().includes('播放中')).toBe(true);
+   await capture(name+'-playing-season');record(name+'-playing-season',{inspected:true});
+  }else record(name+'-playing-season',{inspected:false});
+  await app.press('label:暂停');
+  expect(app.texts().includes('播放中')).toBe(false);
   await capture(name+'-paused');record(name+'-media-progress',{series_id:seriesId,initial,progressed});
+  const pausedAt=clock();await app.wait(Math.min(1500,budget()));
+  expect(clock()).toBe(pausedAt);
+  await app.press('label:播放');
+  await app.waitUntil(()=>clock()>=pausedAt+2,{timeout:budget(15000)});
+  if(app.shows('id:season-picker'))expect(app.texts().includes('播放中')).toBe(true);
+  await capture(name+'-resumed');record(name+'-media-resumed',{series_id:seriesId,pausedAt,resumedAt:clock()});
+  await app.press('label:暂停');
+  expect(app.texts().includes('播放中')).toBe(false);
   await app.back();await history();
   for(const id of expected)await app.waitFor('id:history-'+id,{timeout:budget()});
   for(const candidate of candidates)expect(app.shows('id:history-'+candidate.series_id)).toBe(expected.includes(candidate.series_id));

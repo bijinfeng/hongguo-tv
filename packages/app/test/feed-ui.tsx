@@ -208,7 +208,8 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
         await app.waitFor('id:season-203');
         await app.scroll('id:player-media-scroll', 10000);
         expect(app.shows('id:player-episodes-title')).toBe(true);
-        expect(app.shows('label:系列作品101，播放中')).toBe(true);
+        expect(app.shows('label:系列作品101，可观看')).toBe(true);
+        expect(app.shows('label:系列作品101，播放中')).toBe(false);
         expect(media().length).toBe(1);
         await app.press('id:season-203');
         await app.waitFor('本季待上线');

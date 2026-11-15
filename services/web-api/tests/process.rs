@@ -59,7 +59,7 @@ fn binary_serves_real_loopback_requests_and_exits() {
         .args(["--port", "0", "--data-dir"])
         .arg(&temp.0)
         .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
+        .stderr(Stdio::piped())
         .spawn()
         .unwrap();
     let mut server = Server(child);
@@ -82,7 +82,10 @@ fn binary_serves_real_loopback_requests_and_exits() {
     for (path, expected) in [
         ("/healthz", "200 OK"),
         ("/api/v1/status", "200 OK"),
-        ("/api/v1/play/info", "400 Bad Request"),
+        (
+            "/api/v1/play/info?series_id=private-series&vid=private-signed-token",
+            "400 Bad Request",
+        ),
         ("/api/v1/radar?refresh=1", "400 Bad Request"),
     ] {
         let mut socket = TcpStream::connect(address).unwrap();
@@ -110,20 +113,34 @@ fn binary_serves_real_loopback_requests_and_exits() {
                 .unwrap()
                 .success()
         );
+        let mut status = None;
         for _ in 0..100 {
-            if let Some(status) = server.0.try_wait().unwrap() {
-                assert!(status.success());
-                return;
+            status = server.0.try_wait().unwrap();
+            if status.is_some() {
+                break;
             }
             std::thread::sleep(Duration::from_millis(10));
         }
-        panic!("graceful shutdown timed out");
+        assert!(status.expect("graceful shutdown timed out").success());
     }
     #[cfg(not(unix))]
     {
         server.0.kill().unwrap();
         server.0.wait().unwrap();
     }
+    let mut diagnostics = String::new();
+    server
+        .0
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut diagnostics)
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(diagnostics.trim()).unwrap(),
+        serde_json::json!({"event":"playback_failure", "phase":"play_info", "status":400, "code":"INVALID_PLAYBACK_QUERY"})
+    );
+    assert!(!diagnostics.contains("private"));
 }
 
 struct Temp(std::path::PathBuf);

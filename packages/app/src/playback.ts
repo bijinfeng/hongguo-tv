@@ -30,6 +30,25 @@ export function isPlaybackCommand(value: unknown): value is PlaybackCommand {
   );
 }
 
+/** Metadata and restored positions are not evidence that media time is advancing. */
+export function playbackActivity() {
+  let previous: number | undefined;
+  return {
+    reset() {
+      previous = undefined;
+    },
+    update(position: number): boolean {
+      if (!Number.isFinite(position) || position < 0) {
+        previous = undefined;
+        return false;
+      }
+      const advancing = previous !== undefined && position > previous;
+      previous = position;
+      return advancing;
+    },
+  };
+}
+
 /** One playback session. A resolved URL alone must never create a history entry. */
 export function progressSession(
   persist: (position: number, duration: number, completed: boolean) => void,

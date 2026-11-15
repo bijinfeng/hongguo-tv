@@ -8,6 +8,8 @@ Two preparation jobs may run per instance. Equal requests share a revision-fence
 
 Only time spent resolving models consumes the 30-second source budget: video_tab 8 seconds, registered legacy 14 seconds, single profiles 8 seconds. The registered single variant has a 4-second sub-budget; attempts and anonymous refreshes remain finite. The complete job has a 95-second deadline. A parsed model is only a candidate: failed media preparation may advance the finite sequence, while explicit access denial, identity mismatch, storage/capacity failure, invalid selection or unsupported requested quality stops recovery. Nothing bypasses a business or CDN access rejection.
 
+Failed model and media-preparation attempts emit secret-free JSON to stderr with a fixed phase, provider enum and `PlaybackError.code()`. These attempts may recover through the existing fallback sequence; they do not establish a final playback failure. HTTP `play/info` failures separately log the final API status and stable code. Neither record includes request queries, media URLs, keys, handles, raw errors or filesystem paths; the API status is not the original upstream HTTP status. Readiness remains on stdout.
+
 Default tests use loopback sources and synthetic metadata/NIST vectors. An opt-in preparation probe is separate:
 
 ```sh

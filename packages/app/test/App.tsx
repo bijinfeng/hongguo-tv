@@ -1043,6 +1043,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
 export function registerApplicationTests(
   target: 'desktop' | 'tv' = 'desktop',
   entry = './App.tsx',
+  artifacts?: string,
 ) {
   test('playback time preserves minute/hour boundaries and distinguishes unknown from zero', () => {
     expect([0, 59, 60, 756.9, 3599, 3600, 3661].map(playbackTime)).toEqual([
@@ -1134,6 +1135,78 @@ export function registerApplicationTests(
       await app.host.send('player-command', 'next');
       expect(app.shows('开始观看')).toBe(true);
     });
+  test('season status does not claim playback during failed preparation, retry or unloaded media', async () => {
+    let preparations = 0;
+    const network = (request: StubRequest): StubResponse => {
+      const path = new URL(request.url).pathname;
+      if (path === '/api/v1/series/seasons')
+        return ok({
+          items: [
+            {
+              drama,
+              playable: true,
+              upcoming: false,
+              first_video_id: '456',
+              season_index: 1,
+              label: '第1季',
+            },
+          ],
+        });
+      if (path === '/api/v1/play/info') {
+        preparations++;
+        return preparations === 1
+          ? {
+              status: 501,
+              body: { ok: false, code: 'CORE_NOT_IMPLEMENTED', error: 'Synthetic failure' },
+              delay: 1500,
+            }
+          : { ...fixture(request), delay: 1500 };
+      }
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      width: 1180,
+      height: 780,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': network, 'POST *': network },
+    });
+    const inspectSeason = async (phase: 'preparing' | 'failed' | 'retrying' | 'unloaded') => {
+      if (target === 'tv') await app.press('选集');
+      await app.waitFor('id:season-123');
+      expect(app.texts().some((text) => text.includes('播放中'))).toBe(false);
+      if (artifacts) {
+        for (const theme of ['light', 'dark'] as const) {
+          await app.setColorScheme(theme);
+          await app.screenshot(`${artifacts}/season-status-${phase}-${theme}.png`);
+        }
+        await app.setColorScheme('light');
+      }
+      if (target === 'tv') await app.press('关闭选集');
+    };
+    if (target === 'tv') await app.press('id:nav-search');
+    await app.type('id:search-input', '重生');
+    await app.press('搜索');
+    await app.press('id:drama-123');
+    await app.waitUntil(() => app.enabled('开始观看'));
+    await app.press('开始观看');
+    await app.waitFor('正在准备播放…');
+    await inspectSeason('preparing');
+    expect(app.count('id:player-video')).toBe(0);
+    await app.waitFor('当前服务暂不支持播放，请稍后重试。');
+    await inspectSeason('failed');
+    await app.press('重试');
+    await app.waitFor('正在准备播放…');
+    await inspectSeason('retrying');
+    expect(app.count('id:player-video')).toBe(0);
+    await app.waitFor('id:player-video');
+    // Resolution does not imply onLoad or playback; a real host may already report an error.
+    await inspectSeason('unloaded');
+    expect(preparations).toBe(2);
+    expect(app.requests().some(libraryWrite)).toBe(false);
+  });
+
   test('background releases playback; returning prepares one paused owner without history writes', async () => {
     const app = await open(entry, {
       width: 1180,

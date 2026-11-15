@@ -2,6 +2,8 @@
 
 > 2026-11-15 验收标准更新：以正式入口的真实数据、真实使用流程作为功能验收依据；合成数据仅证明边界和回归。以下保留历史原始结果，但凡只有 fixture／合成宿主通过的条目，当前均属于边界验证，不能据此判定功能或 MVP 已验收。真实流程未完成的功能保持待验收，工程门禁通过不替代真实业务结果。
 
+验收结论按实际证据范围判定：真实接口成功不等于用户流程通过；合成边界、静态截图和工程门禁的通过结果均不能替代真实功能验收。真实流程发生失败后，即使重试恢复并走完后续操作，也需保留本轮失败，单独说明恢复结果。
+
 ## A 批浏览界面 · 定稿还原与业务验收
 
 本批实施 `implement-approved-browsing-ui`。第一版只接近主题与基础结构，未忠实还原定稿，已被用户指出；随后以 `design/prototype` 的实际 CSS／布局为依据重建壳、续播卡、海报、详情、区间 Select 与 TV 影院展示区。下列结果属于当前 NSH 工作区，不把设计原型、HTTP fixture、真实官网协议与真实播放混为一项通过。
@@ -924,3 +926,37 @@ OpenSpec `wire-guest-history-management` 已启动，仅任务 1.1 完成。新�
 独立实际打开浅深各 12 张 keyboard 图和各最终重新管理图，共 26 张，以及深色失败／重试恢复／暂停后的 3 张真实播放图。所看状态的圆角、字级、间距／对齐、浅深表面、公共控件、mixed／禁用／焦点外框未见新增阻断；三类确认取消后分别回到单行移除、删除所选和清空来源。全选 2→0 只有实际按键与断言，没有保存勾选全选时的截图，不称该状态已视觉审过。失败页当前季仍标“播放中”的文案不一致保留为待修正项。没有验证 hover／pressed、逐帧动效、真实减少动态、读屏、人工键盘／系统前台焦点、多尺寸／大字或原生 Desktop／TV；合成 macOS 长列表的 8 图不并入本轮真实证据。E1 的其余任务继续开放，仍 7／13。
 
 本批最终产品／回归／runner 源码的完整 `pnpm verify`（`artifacts/guest-history-state/logs/verify-history-focus-final.log`）exit 0：工具 58／58、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 176／176、Desktop／TV 各 178／178，三端 check／build、格式、lint、codegen:check 和版本门禁通过。既有建议框 Escape、播放器全屏两层返回等回归仍通过；Desktop／TV headless 摘要各有 1 条 warning，受控失败用例仍有预期告警。复用既有 Rust 缓存且关闭增量编译，没有在临时目录实现源码。随后仅补文档，最终格式／diff 检查和严格 OpenSpec 另过；独立范围审查未发现新的明确阻断。未增依赖，未重跑 security，既有安全阻塞保持开放。工程通过与上面的真实整轮失败分别记录，不据此关闭 E1／完整 MVP，也不推送、归档或发行。
+
+## 播放状态与原始失败诊断 · 2026-11-15（真实复验未通过）
+
+修正上一轮真实失败页仍标“播放中”的问题：Player 的两处 SeasonEpisodes 统一绑定已加载、当前可用且前台运行、未暂停／缓冲／完成的实际 playingId。准备、失败、重试和媒体未加载不宣称播放；原有浏览 selected 与真实续播标签保留，状态文字即时更新，不增加焦点、布局或动效。MediaView 仍按 representation revision 拒绝旧事件，透传宿主错误码后只记录白名单 code／revision；准备诊断只记录有效 HTTP status 与白名单分类，原有安全用户错误不变。
+
+Rust model／media_prepare 失败输出固定阶段、来源枚举和稳定 code；最终 HTTP play/info 失败另输出最终 API status／code。没有 query、签名媒体 URL、原始错误、句柄或本机路径。真实 runner 每次 API 启动继承独立 stderr 文件，父进程只关闭自己的描述符，启动 ready 前即登记附件；重试的错误 JSON 增加 attempt，保留各次独立记录。内部 fallback 的某次失败不等同最终播放失败，API 的 502 等状态也不等同上游原始状态；未改变恢复顺序、重试次数、DTO 或原验收失败规则。独立源码审查未发现明确安全／所有权阻断。
+
+边界与工程专项单列：`playback-diagnostic-process.log` 的真实 binary 进程用非法敏感参数验证 400 及完整四键安全诊断，stderr 不含敏感参数，stdout ready 不变；它不验证真实内容播放。既有 service 六项回归通过（`playback-diagnostic-core.log`）。新共享正式 App 合成用例覆盖准备中、501 失败、重试和 representation 已解析但未宿主 onLoad 四态，Web／TV 定向各 1／1，不误标“播放中”、恰好两次准备且无历史写入。首轮定向 TV 子进程漏继承系统 PATH，报 cc／xcrun 找不到；修正执行环境后 `playback-state-tv-recheck.log` 通过，不作为产品失败或静默跳过。Web check 通过。
+
+`playback-status-macos-2026-11-15T09-12-53-538Z/` 的正式 Web App 在实际 macOS 前台执行同一受控错误边界，1／1，通过日志 `playback-status-macos-boundary.log`。scope 明确 syntheticData／manualClock／reducedMotion=true、functionAcceptance=false；保存四态各浅深两张，共 8 图。最后阶段仅说明 representation 已解析，宿主随后实际报视频连接失败，不称真实媒体已加载或播放。独立逐张复审确认两色均未再误标“播放中”、季／选集面板无位置漂移；浅色 unloaded 截图仍显示缓冲，不能称两色均已观察到媒体失败终态，截图亦无可辨识焦点环，不能据此证明焦点保持或恢复。此项用于可见边界观察，不代替真实功能验收。
+
+真实证据没有以边界通过替代：
+
+- `artifacts/live-history/2026-11-15T08-54-44-116Z/` 使用当前源码／正式真实 runner，但第一个真实搜索预检返回 504，尚未打开产品窗口或进入播放，`passed=false`；API stderr 附件已保存，配置原字节恢复，cleanupErrors 为空。没有改用合成搜索或反复重跑取成功。
+- `artifacts/live-history/playback-diagnostic-2026-11-15T08-57-14-426Z/` 对上一轮失败的真实剧集 `7682645700781296665`、视频 `7682654592135334937` 做一次只读准备探测。当前 Rust binary 返回 200／ok=true、精确视频身份匹配，随后释放 200；安全诊断显示 VideoTab 和第一次 RegisteredLegacy 没有来源，后续来源恢复。它没有 UI／解码／首帧／观看进度，functionAcceptance=false，也不能排除或解释旧失败的原因。
+- `artifacts/live-history/desktop-native-2026-11-15T09-05-33-280Z/` 尝试正式 Desktop 原生入口、live 网络和 NSH 独立测试目录，但 macOS mixed 宿主编译在 objc2-foundation／naga 等依赖处报 OS error 28（磁盘不足），窗口未启动。runner 未能在满盘时完成自身结果文件，另以 `attempt-summary.json` 明确标注事后从 host.log 重建的失败摘要；未伪装为自动完成结果，源码 manifest 复核 changed=[]。仅清理这次失败构建新生成的 685 项 Cargo 缓存，清单在 `native-failed-build-cleanup.json`，没有清理源码、证据、用户数据或既有其他缓存。此失败与搜索 504、真实播放失败分开记录，不算原生业务通过。
+
+本批真实视频的播放／暂停状态切换、当前 Native Desktop／TV、同库应用重启、真实后台等继续待验；E1 仍为 7／13，完整 MVP、安全和发行范围均保持开放。
+
+本轮完整工程检查 `artifacts/guest-history-state/logs/verify-playback-state-final.log` exit 1：Web 177 项中 176 通过，刷剧季浏览用例仍要求合成媒体未加载时标“播放中”，与本次状态修正冲突。已改为同时断言“可观看”及不显示“播放中”，保留不自动播放、精确身份和零历史写入等原有检查；在 `apps/web` 执行 `nsh test App.test.tsx --filter 'feed season browsing'` 定向 1／1 通过。未将定向恢复改写为完整 verify 通过，也不计作真实功能验收；修改后的全量工程检查仍待执行。
+
+## 实际播放进度确认 · 2026-11-15（局部真实流程）
+
+独立审查发现 Web onLoad 来自元数据加载，浏览器拒绝自动播放时仍可能误标状态。现以当前媒体的两个合法递增进度样本确认“播放中”，准备、暂停、缓冲、seek、完成、失败、失活和后台均撤销旧确认；初次加载或恢复位置不算增长证据。两端共用同一绑定，历史保存和媒体 revision 围栏不变。纯状态事件回归补合法／非法／倒退／reset；独立接线复审未见新增明确阻断。已有 8 张合成边界图仅覆盖此前状态修正，不代替这次真实进度确认。
+
+真实 Web 证据 `artifacts/live-history/2026-11-15T09-27-22-243Z/`：正式入口／Chromium／当前 Rust HTTP／真实 SQLite，无合成响应或手动时钟。浅色首次播放、删除后重播、第二部播放均实际 0→3 秒；暂停后时钟在 1.5 秒窗口保持 4，恢复后增长至 6，季状态“播放中→可续播→播放中”。双记录跨 API／应用重开、三类键盘取消与精确所选删除已执行；随后保留项详情／系列连接超时，整轮 `passed=false`、`themes=[]`、`playbackFailures=[]`、`cleanupErrors=[]`，深色和后续清空未执行。配置字节恢复；事后核对该轮源码 manifest 无漂移，记录在 `source-after-failed-run.json`。没有重复整套获取成功。
+
+原生桌面构建阻断已解除：只清理仓库可再生 `target/debug` 缓存，清单在 `artifacts/guest-history-state/root-debug-cache-cleanup.json`；保留源码、数据、证据与其他构建目录。macOS mixed 宿主重新编译成功，仍有 1 条链接 warning。正式 `apps/desktop/App.tsx` 的真实原生运行见 `artifacts/live-history/desktop-native-2026-11-15T10-19-31Z/`：真实搜索与详情成功，但播放准备返回 409／`PLAYBACK_IDENTITY_MISMATCH`，未重试，`passed=false`。两色错误截图均无“播放中”，不算原生播放或历史主链通过；该错误码可能来自 Rust 来源校验或客户端成功响应的 vid 校验，本次默认隐藏的原生 stderr 不足以区分，不归因于桥接精度或网络。
+
+只补一次显式 `NSH_VERBOSE=1` 的原生日志诊断，证据 `artifacts/live-history/desktop-native-diagnostic-2026-11-15T10-27-56Z/`。同一正式原生入口／真实网络，本次实际播放 0→3 秒、暂停时钟稳定 1.5 秒、恢复增长后再次暂停，并由实际记录完成默认 Enter 取消／来源 Enter 重开／Escape 取消。浅深分别捕获播放／暂停／恢复状态；进程 exit 0、`journeyCompleted=true`，scope 保留 `functionAcceptance=false`，不把一次诊断扩展成完整功能验收。原生 stderr 明确显示 VideoTab 与第一次 RegisteredLegacy 的 model 来源为空，后续来源恢复；它只解释本次恢复过程，没有重现或解释上一轮 409。旧失败、同库跨进程重启、完整管理和稳定性继续开放。
+
+独立实际复核 Web 23 张与原生错误 2 张共 25 张图：三组播放／暂停／恢复状态、选中季及选集身份、键盘 mixed／默认取消／回源焦点、圆角／字级／间距／对齐未见新增阻断。Web 历史与失败详情封面仍为灰占位，不算封面加载通过；原生错误页焦点仍在搜索框，不证明重试默认焦点。未验证本轮 Web 深色、其他尺寸、TV、hover／pressed、逐帧动效或读屏。
+
+最终产品／测试／runner 源码的 `pnpm verify`（`artifacts/guest-history-state/logs/verify-playback-confirmation-final.log`）exit 0：工具 58／58、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 178／178、Desktop／TV 各 180／180，三端 check／build、格式、lint、codegen:check 与版本检查通过。中间 `verify-playback-state-recheck.log` 也通过，但运行中补了进度确认，不能用它代表最终源码；以上最终日志取代其工程结论。严格 OpenSpec 已通过且规格未变，未新增依赖或重跑 security，既有安全阻塞保留。E1 仍 7／13，真实后台、长列表完整焦点、原生／TV 主链及其他 MVP 能力继续开放；不推送、归档或发行。

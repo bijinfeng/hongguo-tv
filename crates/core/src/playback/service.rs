@@ -253,6 +253,10 @@ async fn prepare(
             let model = match candidate {
                 Ok(model) => model,
                 Err(error) => {
+                    eprintln!(
+                        "{}",
+                        serde_json::json!({"event":"playback_attempt_failure", "phase":"model", "source":format!("{source:?}"), "code":error.code()})
+                    );
                     if stops_recovery(error) {
                         return Err(error);
                     }
@@ -270,6 +274,10 @@ async fn prepare(
                     });
                 }
                 Err(error) => {
+                    eprintln!(
+                        "{}",
+                        serde_json::json!({"event":"playback_attempt_failure", "phase":"media_prepare", "source":format!("{source:?}"), "code":error.code()})
+                    );
                     if stops_recovery(error) {
                         return Err(error);
                     }

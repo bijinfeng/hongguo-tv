@@ -8,7 +8,12 @@ import {
   request,
 } from '@hongguo/core-client';
 import { createNativeTransport, type NativeCall } from '@hongguo/core-client/native';
-import { isPlaybackCommand, playbackLease, progressSession } from '../src/playback';
+import {
+  isPlaybackCommand,
+  playbackActivity,
+  playbackLease,
+  progressSession,
+} from '../src/playback';
 
 export function registerPlaybackTests() {
   test('native transport preserves errors and cancels an unaccepted late media result', async () => {
@@ -185,6 +190,24 @@ export function registerPlaybackTests() {
       }
       expect(rejected).toBe(true);
     }
+  });
+  test('playback activity requires fresh advancing samples after resets and invalid positions', () => {
+    const activity = playbackActivity();
+    expect([0, 0, 1, 0.5, 0.75].map(activity.update)).toEqual([false, false, true, false, true]);
+    for (const invalid of [NaN, Infinity, -Infinity, -1]) {
+      expect(activity.update(invalid)).toBe(false);
+      expect(activity.update(60)).toBe(false);
+      expect(activity.update(61)).toBe(true);
+    }
+    // A pause, seek or new representation cannot reuse the previous playback evidence.
+    activity.reset();
+    expect(activity.update(120)).toBe(false);
+    expect(activity.update(120)).toBe(false);
+    expect(activity.update(121)).toBe(true);
+    activity.reset();
+    activity.reset();
+    expect(activity.update(0)).toBe(false);
+    expect(activity.update(1)).toBe(true);
   });
   test('progress saves only played content and completion survives cleanup', () => {
     const writes: { position: number; completed: boolean }[] = [];
