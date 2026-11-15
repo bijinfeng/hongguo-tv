@@ -47,6 +47,7 @@ const evidence = {
   directHistoryWrites: false,
   manualClock: false,
   apiReads: [],
+  watchStatistics: [],
   playbackFailures: [],
   passed: false,
   sourceHead: output('git', ['rev-parse', 'HEAD']),
@@ -141,6 +142,25 @@ async function get(origin, path, name) {
   if (!response.ok || !json.ok) throw new Error(`Real ${path}: HTTP ${response.status}`);
   return json.data;
 }
+const localDay = (value = Date.now()) => {
+  const date = new Date(value);
+  return [
+    String(date.getFullYear()).padStart(4, '0'),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+};
+const watchStatistics = async (origin, account, name) => {
+  const day = localDay();
+  const params = new URLSearchParams({
+    owner_id: account.owner_id ?? '',
+    owner_epoch: account.owner_epoch,
+    day,
+  });
+  return get(origin, `/api/v1/watch-statistics?${params}`, name);
+};
+const statisticsDuration = (snapshot) =>
+  snapshot.days.reduce((total, day) => total + day.duration_ms, 0);
 async function runHost(file, colorScheme, deadline) {
   ensureActive();
   const handshake = resolve(artifacts, file + '-browser');
@@ -363,17 +383,37 @@ try {
         `/api/v1/series/detail?series_id=${encodeURIComponent(series_id)}&content_type=${encodeURIComponent(item.content_type ?? '')}`,
         'candidate-' + series_id,
       );
+      // Resolve the catalog's canonical content type before choosing a live
+      // candidate. Search results omit it, while the seasons endpoint carries
+      // the value that the production player will use. Prefer entries without
+      // the 1004 path for this journey, but retain it as a real-data fallback.
+      const seasons = await get(
+        origin,
+        `/api/v1/series/seasons?series_id=${encodeURIComponent(series_id)}`,
+        'candidate-seasons-' + series_id,
+      );
+      const contentType = seasons.items?.[0]?.drama?.content_type;
       const playable =
         detail.series_id === series_id &&
         detail.episodes?.some((episode) => !episode.locked && episode.video_id);
-      evidence.candidateChecks.push({ series_id, title, playable: !!playable });
-      if (playable) candidates.push({ series_id, title });
+      evidence.candidateChecks.push({
+        series_id,
+        title,
+        content_type: contentType ?? '',
+        playable: !!playable,
+      });
+      if (playable) candidates.push({ series_id, title, content_type: contentType });
     } catch (error) {
       evidence.candidateChecks.push({ series_id, title, playable: false, error: error.message });
       ensureActive();
     }
-    if (candidates.length === 2) break;
   }
+  candidates.sort(
+    (a, b) =>
+      Number(String(a.content_type ?? '') === '1004') -
+      Number(String(b.content_type ?? '') === '1004'),
+  );
+  candidates.splice(2);
   if (candidates.length !== 2 || candidates[0].series_id === candidates[1].series_id)
     throw new Error(
       'Real search did not provide two distinct dramas with accessible episodes; no fabricated replacement',
@@ -471,6 +511,7 @@ test(${JSON.stringify(identity)},async()=>{
   await app.waitUntil(()=>clock()>=pausedAt+2,{timeout:budget(15000)});
   if(app.shows('id:season-picker'))expect(app.texts().includes('播放中')).toBe(true);
   await capture(name+'-resumed');record(name+'-media-resumed',{series_id:seriesId,pausedAt,resumedAt:clock()});
+  ${name === 'first-play' || name === 'second-play' ? 'await app.wait(Math.min(32000,budget(35000)));' : ''}
   await app.press('label:暂停');
   expect(app.texts().includes('播放中')).toBe(false);
   await app.back();await history();
@@ -524,10 +565,45 @@ test(${JSON.stringify(identity)},async()=>{
     themeDeadline = deadline;
     const first = candidates[0].series_id;
     const second = candidates[1].series_id;
+    let account = await get(origin, '/api/v1/account', 'statistics-account-' + colorScheme);
+    const initialStatistics = await watchStatistics(
+      origin,
+      account,
+      'statistics-initial-' + colorScheme,
+    );
+    if (statisticsDuration(initialStatistics) !== 0)
+      throw new Error('Independent live watch statistics database was not empty');
     await library('initial-empty-' + colorScheme, []);
     await stage('first-play', colorScheme, deadline, "await play(0,'first-play',[first]);");
     const baseline = await library('first-play-' + colorScheme, [first]);
     checkpoint(baseline, 0);
+    account = await get(origin, '/api/v1/account', 'statistics-account-first-play-' + colorScheme);
+    const firstStatistics = await watchStatistics(
+      origin,
+      account,
+      'statistics-first-play-' + colorScheme,
+    );
+    const firstDuration = statisticsDuration(firstStatistics);
+    if (firstDuration <= 0)
+      throw new Error('Real playback did not produce watch statistics in ' + colorScheme);
+    evidence.watchStatistics.push({
+      colorScheme,
+      stage: 'first-play',
+      durationMs: firstDuration,
+      days: firstStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
+    });
+    await stage(
+      'statistics-panel',
+      colorScheme,
+      deadline,
+      `
+  await history();await app.waitFor('id:history-statistics',{timeout:budget()});
+  await app.press('id:history-statistics');await app.waitFor('id:watch-statistics-panel',{timeout:budget()});
+  await app.waitUntil(()=>!app.shows('text:正在读取观看统计…'),{timeout:budget()});
+  expect(app.texts().some(text=>text.includes('累计观看'))).toBe(true);
+  await capture('statistics-panel-real');record('statistics-panel-real',{durationMs:${firstDuration}});
+  await app.press('id:watch-statistics-close');await app.waitFor('id:history-page',{timeout:budget()});`,
+    );
     await stage(
       'cancel',
       colorScheme,
@@ -567,6 +643,21 @@ test(${JSON.stringify(identity)},async()=>{
     const populated = await library('two-played-' + colorScheme, [first, second]);
     checkpoint(populated, 0);
     checkpoint(populated, 1);
+    account = await get(origin, '/api/v1/account', 'statistics-account-two-played-' + colorScheme);
+    const populatedStatistics = await watchStatistics(
+      origin,
+      account,
+      'statistics-two-played-' + colorScheme,
+    );
+    const populatedDuration = statisticsDuration(populatedStatistics);
+    if (populatedDuration < firstDuration)
+      throw new Error('Real watch statistics regressed after a second playback');
+    evidence.watchStatistics.push({
+      colorScheme,
+      stage: 'two-played',
+      durationMs: populatedDuration,
+      days: populatedStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
+    });
     await stop(api);
     origin = await start();
     await runtimeConfig('web', origin);
@@ -574,6 +665,58 @@ test(${JSON.stringify(identity)},async()=>{
     const restartedPopulated = await library('restarted-populated-' + colorScheme, [first, second]);
     if (JSON.stringify(restartedPopulated) !== JSON.stringify(populated))
       throw new Error('Rust API restart changed real populated history in ' + colorScheme);
+    const restartedAccount = await get(
+      origin,
+      '/api/v1/account',
+      'statistics-account-restarted-' + colorScheme,
+    );
+    const restartedStatistics = await watchStatistics(
+      origin,
+      restartedAccount,
+      'statistics-restarted-' + colorScheme,
+    );
+    const restartedDuration = statisticsDuration(restartedStatistics);
+    if (restartedDuration !== populatedDuration)
+      throw new Error('Rust API restart changed real watch statistics in ' + colorScheme);
+    evidence.watchStatistics.push({
+      colorScheme,
+      stage: 'restarted',
+      durationMs: restartedDuration,
+      days: restartedStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
+    });
+    await stage(
+      'statistics-reset',
+      colorScheme,
+      deadline,
+      `
+  await history();await app.waitFor('id:history-statistics',{timeout:budget()});
+  await app.press('id:history-statistics');await app.waitFor('id:watch-statistics-panel',{timeout:budget()});
+  await app.waitUntil(()=>!app.shows('text:正在读取观看统计…'),{timeout:budget()});
+  await app.press('id:watch-statistics-reset');await app.waitFor('id:watch-statistics-reset-confirm',{timeout:budget()});
+  await app.press('id:watch-statistics-reset-confirm-confirm');await app.waitUntil(()=>!app.shows('id:watch-statistics-reset-confirm'),{timeout:budget()});
+  await app.waitUntil(()=>app.shows('text:这个周期还没有观看统计。开始观看后会显示在这里。'),{timeout:budget()});
+  await capture('statistics-reset-empty');record('statistics-reset-empty',{historyRetained:true});
+  await app.press('id:watch-statistics-close');await app.waitFor('id:history-page',{timeout:budget()});`,
+    );
+    const resetStatistics = await watchStatistics(
+      origin,
+      restartedAccount,
+      'statistics-reset-' + colorScheme,
+    );
+    if (statisticsDuration(resetStatistics) !== 0 || resetStatistics.days.length !== 0)
+      throw new Error('Real statistics reset did not clear statistics in ' + colorScheme);
+    const historyAfterStatisticsReset = await library(
+      'history-after-statistics-reset-' + colorScheme,
+      [first, second],
+    );
+    if (JSON.stringify(historyAfterStatisticsReset) !== JSON.stringify(restartedPopulated))
+      throw new Error('Statistics reset changed real viewing history in ' + colorScheme);
+    evidence.watchStatistics.push({
+      colorScheme,
+      stage: 'reset',
+      durationMs: 0,
+      historyEntries: historyAfterStatisticsReset.entries.map((entry) => entry.drama.series_id),
+    });
     await stage(
       'reopen-populated',
       colorScheme,

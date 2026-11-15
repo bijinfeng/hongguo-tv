@@ -172,12 +172,19 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.press('id:history-statistics');
     await app.waitFor('id:watch-statistics-panel');
     await app.waitFor('text:1 分钟');
+    await app.waitFor('text:真人 · 1 分钟');
     await app.press('id:watch-statistics-reset');
     await app.waitFor('id:watch-statistics-reset-confirm');
     await app.press('id:watch-statistics-reset-confirm-cancel');
     await app.keyboard.press('enter');
     await app.waitFor('id:watch-statistics-reset-confirm');
     await app.press('id:watch-statistics-reset-confirm-cancel');
+    await app.press('id:watch-statistics-reset');
+    await app.waitFor('id:watch-statistics-reset-confirm');
+    await app.press('id:watch-statistics-reset-confirm-confirm');
+    await app.waitUntil(() =>
+      app.texts().some((text) => text.includes('这个周期还没有观看统计。')),
+    );
     await app.press('id:watch-statistics-close');
     await app.keyboard.press('enter');
     await app.waitFor('id:watch-statistics-panel');

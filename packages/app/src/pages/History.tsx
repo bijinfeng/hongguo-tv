@@ -209,6 +209,13 @@ const statisticsDuration = (value: number) => {
   return rest ? `${hours} 小时 ${rest} 分钟` : `${hours} 小时`;
 };
 
+const statisticsContentTypeLabel: Record<string, string> = {
+  real: '真人',
+  comic: '漫剧',
+  ai: 'AI',
+  unknown: '未知',
+};
+
 export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClose: () => void }) {
   const period = signal<StatisticsPeriod>('week');
   const resetOpen = signal(false);
@@ -228,6 +235,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
     return snapshot.days.filter((day) => statisticsDayValue(day.day) >= cutoff);
   };
   const total = () => days().reduce((sum, day) => sum + day.duration_ms, 0);
+  const hasPeriodData = () => days().some((day) => day.duration_ms > 0);
   const buckets = (key: 'content_types' | 'genres') => {
     const values = new Map<string, number>();
     for (const day of days())
@@ -282,7 +290,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
           />
         </If>
         <If when={!state().loading() && !state().error() && !state().snapshot()}>
-          <Notice message="暂时没有可显示的观看统计。真正播放并提交后会出现在这里。" />
+          <Notice message="暂时没有可显示的观看统计。开始观看后会出现在这里。" />
         </If>
         <If when={!!state().snapshot() && !state().loading()}>
           <Tabs
@@ -296,69 +304,78 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
             ]}
             onChange={(event) => period.set(event.value as StatisticsPeriod)}
           />
-          <View class="flex-row flex-wrap gap-5">
-            <View class="min-w-[160px] gap-1">
-              <UiText role="meta" tone="muted">
-                累计观看
-              </UiText>
-              <UiText role="numeric">{statisticsDuration(total())}</UiText>
+          <If when={!hasPeriodData()}>
+            <Notice message="这个周期还没有观看统计。开始观看后会显示在这里。" />
+          </If>
+          <If when={hasPeriodData()}>
+            <View class="flex-row flex-wrap gap-5">
+              <View class="min-w-[160px] gap-1">
+                <UiText role="meta" tone="muted">
+                  累计观看
+                </UiText>
+                <UiText role="numeric">{statisticsDuration(total())}</UiText>
+              </View>
+              <View class="min-w-[160px] gap-1">
+                <UiText role="meta" tone="muted">
+                  统计起点
+                </UiText>
+                <UiText role="numeric">{state().snapshot()?.since ?? '—'}</UiText>
+              </View>
             </View>
-            <View class="min-w-[160px] gap-1">
+            <View class="gap-2">
               <UiText role="meta" tone="muted">
-                统计起点
+                最近 7 天
               </UiText>
-              <UiText role="numeric">{state().snapshot()?.since ?? '—'}</UiText>
+              <View
+                class="flex-row items-end gap-2"
+                style={{ height: props.store.target === 'tv' ? tvUnit(112) : 88 }}
+              >
+                <Each of={bars()} key={(bar) => bar.day}>
+                  {(bar) => (
+                    <View class="flex-1 items-center gap-1">
+                      <View
+                        class="w-full rounded-(--radius) bg-accent"
+                        style={{
+                          height: Math.max(
+                            4,
+                            (bar().value / maxBar()) *
+                              (props.store.target === 'tv' ? tvUnit(84) : 64),
+                          ),
+                        }}
+                        accessible
+                        accessibilityLabel={`${bar().day} ${statisticsDuration(bar().value)}`}
+                      />
+                      <UiText role="meta" tone="muted">
+                        {bar().day.slice(5)}
+                      </UiText>
+                    </View>
+                  )}
+                </Each>
+              </View>
             </View>
-          </View>
-          <View class="gap-2">
-            <UiText role="meta" tone="muted">
-              最近 7 天
-            </UiText>
-            <View
-              class="flex-row items-end gap-2"
-              style={{ height: props.store.target === 'tv' ? tvUnit(112) : 88 }}
-            >
-              <Each of={bars()} key={(bar) => bar.day}>
-                {(bar) => (
-                  <View class="flex-1 items-center gap-1">
-                    <View
-                      class="w-full rounded-(--radius) bg-accent"
-                      style={{
-                        height: Math.max(
-                          4,
-                          (bar().value / maxBar()) *
-                            (props.store.target === 'tv' ? tvUnit(84) : 64),
-                        ),
-                      }}
-                      accessible
-                      accessibilityLabel={`${bar().day} ${statisticsDuration(bar().value)}`}
+            <View class="flex-row flex-wrap gap-4">
+              <View class="flex-1 min-w-[220px] gap-2">
+                <UiText role="meta" tone="muted">
+                  内容类型
+                </UiText>
+                <Each of={buckets('content_types')} key={(entry) => entry[0]}>
+                  {(entry) => (
+                    <Badge
+                      label={`${statisticsContentTypeLabel[entry()[0]] ?? entry()[0]} · ${statisticsDuration(entry()[1])}`}
                     />
-                    <UiText role="meta" tone="muted">
-                      {bar().day.slice(5)}
-                    </UiText>
-                  </View>
-                )}
-              </Each>
+                  )}
+                </Each>
+              </View>
+              <View class="flex-1 min-w-[220px] gap-2">
+                <UiText role="meta" tone="muted">
+                  题材
+                </UiText>
+                <Each of={buckets('genres')} key={(entry) => entry[0]}>
+                  {(entry) => <Badge label={`${entry()[0]} · ${statisticsDuration(entry()[1])}`} />}
+                </Each>
+              </View>
             </View>
-          </View>
-          <View class="flex-row flex-wrap gap-4">
-            <View class="flex-1 min-w-[220px] gap-2">
-              <UiText role="meta" tone="muted">
-                内容类型
-              </UiText>
-              <Each of={buckets('content_types')} key={(entry) => entry[0]}>
-                {(entry) => <Badge label={`${entry()[0]} · ${statisticsDuration(entry()[1])}`} />}
-              </Each>
-            </View>
-            <View class="flex-1 min-w-[220px] gap-2">
-              <UiText role="meta" tone="muted">
-                题材
-              </UiText>
-              <Each of={buckets('genres')} key={(entry) => entry[0]}>
-                {(entry) => <Badge label={`${entry()[0]} · ${statisticsDuration(entry()[1])}`} />}
-              </Each>
-            </View>
-          </View>
+          </If>
         </If>
       </Surface>
       <ConfirmDialog
