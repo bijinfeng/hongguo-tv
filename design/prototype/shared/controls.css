@@ -9,6 +9,9 @@
   --icon: 20px;
   --pad: 16px;
   --section: 24px;
+  --page-title: 32px;
+  --section-title: 24px;
+  --content-title: 18px;
   --focus-width: 2px;
   --panel: 440px;
   --dialog: 480px;
@@ -25,6 +28,9 @@
   --icon: 26px;
   --pad: 24px;
   --section: 32px;
+  --page-title: 48px;
+  --section-title: 32px;
+  --content-title: 24px;
   --focus-width: 3px;
   --panel: 640px;
   --dialog: 800px;
@@ -91,6 +97,18 @@ button:disabled {
   background: transparent;
 }
 
+.ui-button.quiet:not(:disabled):not(.selected):not([aria-pressed='true']):not(
+    [aria-current]
+  ):hover {
+  background: var(--muted);
+}
+
+.ui-button.quiet:not(:disabled):not(.selected):not([aria-pressed='true']):not(
+    [aria-current]
+  ):active {
+  background: var(--border);
+}
+
 .ui-button.destructive {
   color: var(--destructive);
 }
@@ -138,6 +156,12 @@ button:disabled {
   width: var(--control);
   padding: 0;
   flex: none;
+}
+.ui-button.collection-toggle {
+  min-inline-size: 120px;
+}
+:root[data-platform='tv'] .ui-button.collection-toggle {
+  min-inline-size: 160px;
 }
 
 .icon svg {
@@ -501,11 +525,30 @@ dialog :is(button, input, select, textarea):focus {
 .chips button {
   min-height: var(--small);
   font-size: var(--meta);
+  border-color: transparent;
+  background: transparent;
+}
+.chips button:not(:disabled):not([aria-pressed='true']):hover {
+  background: var(--muted);
+}
+.chips button:not(:disabled):not([aria-pressed='true']):active {
+  background: var(--border);
 }
 .episodes button {
   min-height: 48px;
   padding: 0;
+  background: var(--muted);
+  border-color: transparent;
   font-variant-numeric: tabular-nums;
+}
+.episodes button:not(:disabled):not([aria-current]):hover {
+  background: var(--border);
+}
+.episodes button:not(:disabled):not([aria-current]):active {
+  background: var(--accent);
+}
+.episodes button[aria-current] {
+  font-weight: 700;
 }
 :root[data-platform='tv'] .episodes button {
   min-height: 80px;
@@ -671,6 +714,11 @@ input[type='checkbox']:disabled::after {
   margin: 0;
   color: var(--muted-foreground);
   font-size: var(--meta);
+}
+.review-tools :is(button, select) {
+  font-size: 14px;
+  min-height: 28px;
+  height: 32px;
 }
 @media (prefers-reduced-motion: reduce) {
   *,

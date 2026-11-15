@@ -649,6 +649,7 @@ document.addEventListener('click', (event) => {
     case 'clear-query':
       state.query = '';
       document.querySelector('#query').value = '';
+      document.querySelector('#query-status').textContent = '';
       document.querySelector('#query').focus();
       break;
     case 'search': {
@@ -707,7 +708,10 @@ document.addEventListener('submit', (event) => {
 document.addEventListener('input', (event) => {
   if (handleAccountInput(event, context())) return;
   if (event.target.id === 'suggestion-query') state.suggestionQuery = event.target.value;
-  if (event.target.id === 'query') state.query = event.target.value;
+  if (event.target.id === 'query') {
+    state.query = event.target.value;
+    document.querySelector('#query-status').textContent = '';
+  }
   if (event.target.id === 'code-input')
     event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6);
   if (event.target.type === 'range') {
@@ -727,6 +731,25 @@ function commitRange(range) {
     document.querySelector('#seek-status').textContent =
       `已提交演示定位：${range.getAttribute('aria-valuetext')}。未调用媒体服务。`;
 }
+function rollbackRange(range) {
+  if (range.dataset.editing !== 'true') return;
+  range.value = range.dataset.committed;
+  delete range.dataset.editing;
+  range.dispatchEvent(new Event('input', { bubbles: true }));
+  if (range.id === 'seek')
+    document.querySelector('#seek-status').textContent =
+      `已取消调整，保留 ${range.getAttribute('aria-valuetext')}。`;
+}
+function rollbackRanges() {
+  document.querySelectorAll('input[type="range"][data-editing="true"]').forEach(rollbackRange);
+}
+window.addEventListener('blur', rollbackRanges);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) rollbackRanges();
+});
+document.addEventListener('pointercancel', (event) => {
+  if (event.target.matches('input[type=range]')) rollbackRange(event.target);
+});
 document.addEventListener('change', (event) => {
   if (handleFrequentChange(event, context())) return;
   if (handleCollectionChange(event, context())) return;
@@ -743,6 +766,8 @@ document.addEventListener('click', (event) => {
   }
 });
 document.addEventListener('focusout', (event) => {
+  if (state.platform === 'tv' && event.target.matches('input[type=range]'))
+    rollbackRange(event.target);
   if (
     state.platform === 'tv' &&
     event.target.matches('input:not([type=range]):not([type=checkbox])')
@@ -813,12 +838,7 @@ document.addEventListener('keydown', (event) => {
     if (active.dataset.editing === 'true') {
       if (event.key === 'Escape') {
         event.preventDefault();
-        active.value = active.dataset.committed;
-        active.dispatchEvent(new Event('input', { bubbles: true }));
-        delete active.dataset.editing;
-        if (active.id === 'seek')
-          document.querySelector('#seek-status').textContent =
-            `已取消调整，保留 ${active.getAttribute('aria-valuetext')}。`;
+        rollbackRange(active);
       } else if (['ArrowUp', 'ArrowDown', 'Tab'].includes(event.key)) event.preventDefault();
       return;
     }

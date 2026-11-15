@@ -21,25 +21,26 @@
 
 旧docs/design路径保留简短转接与原章节导航，避免已有引用失效；现行交接、API与覆盖分别从[组件设计](../design/component-design.md)、[UI包](../../packages/ui/README.md)、[覆盖矩阵](../design/component-implementation.md)进入。旧简报里已取消的产品内容不重新成为需求。
 
-| 历史材料                       | 原文                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| 基础组件覆盖与状态完整度审查   | [历史记录](2026-11-15/design/component-completeness-state-audit.md)           |
-| 基础组件覆盖审查               | [历史记录](2026-11-15/design/component-coverage-audit.md)                     |
-| 基础组件设计交接               | [历史记录](2026-11-15/design/component-design.md)                             |
-| 基础组件实施与验收             | [历史记录](2026-11-15/design/component-implementation.md)                     |
-| 基础组件原生视觉独立复审       | [历史记录](2026-11-15/design/component-native-review.md)                      |
-| 基础组件设计评审               | [历史记录](2026-11-15/design/component-review.md)                             |
-| 高频组件预先设计与演进         | [历史记录](2026-11-15/design/component-roadmap.md)                            |
-| 基础组件规范还原修复与补审     | [历史记录](2026-11-15/design/component-spec-conformance-fixes.md)             |
-| 无障碍、组件状态与文案专项审查 | [历史记录](2026-11-15/design/design-system-accessibility-state-copy-audit.md) |
-| 设计规范历史快照 · 2026-11-15  | [历史记录](2026-11-15/design/design-system-history-2026-11-15.md)             |
-| desktop-polish-review          | [历史记录](2026-11-15/design/desktop-polish-review.md)                        |
-| 桌面独立复审修复记录           | [历史记录](2026-11-15/design/desktop-review-fixes.md)                         |
-| NSH 基础组件与视觉方案         | [历史记录](2026-11-15/design/nsh-components-plan.md)                          |
-| 第二轮 UI 设计                 | [历史记录](2026-11-15/design/redesign-brief.md)                               |
-| redesign-review                | [历史记录](2026-11-15/design/redesign-review.md)                              |
-| Android TV 独立设计简报        | [历史记录](2026-11-15/design/tv-design-brief.md)                              |
-| TV 原型复审修复记录            | [历史记录](2026-11-15/design/tv-review-fixes.md)                              |
+| 历史材料                        | 原文                                                                          |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| 桌面、TV 与组件板综合评估及打磨 | [历史记录](2026-11-15/design/prototype-comprehensive-review.md)               |
+| 基础组件覆盖与状态完整度审查    | [历史记录](2026-11-15/design/component-completeness-state-audit.md)           |
+| 基础组件覆盖审查                | [历史记录](2026-11-15/design/component-coverage-audit.md)                     |
+| 基础组件设计交接                | [历史记录](2026-11-15/design/component-design.md)                             |
+| 基础组件实施与验收              | [历史记录](2026-11-15/design/component-implementation.md)                     |
+| 基础组件原生视觉独立复审        | [历史记录](2026-11-15/design/component-native-review.md)                      |
+| 基础组件设计评审                | [历史记录](2026-11-15/design/component-review.md)                             |
+| 高频组件预先设计与演进          | [历史记录](2026-11-15/design/component-roadmap.md)                            |
+| 基础组件规范还原修复与补审      | [历史记录](2026-11-15/design/component-spec-conformance-fixes.md)             |
+| 无障碍、组件状态与文案专项审查  | [历史记录](2026-11-15/design/design-system-accessibility-state-copy-audit.md) |
+| 设计规范历史快照 · 2026-11-15   | [历史记录](2026-11-15/design/design-system-history-2026-11-15.md)             |
+| desktop-polish-review           | [历史记录](2026-11-15/design/desktop-polish-review.md)                        |
+| 桌面独立复审修复记录            | [历史记录](2026-11-15/design/desktop-review-fixes.md)                         |
+| NSH 基础组件与视觉方案          | [历史记录](2026-11-15/design/nsh-components-plan.md)                          |
+| 第二轮 UI 设计                  | [历史记录](2026-11-15/design/redesign-brief.md)                               |
+| redesign-review                 | [历史记录](2026-11-15/design/redesign-review.md)                              |
+| Android TV 独立设计简报         | [历史记录](2026-11-15/design/tv-design-brief.md)                              |
+| TV 原型复审修复记录             | [历史记录](2026-11-15/design/tv-review-fixes.md)                              |
 
 ## OpenSpec与运行产物
 

@@ -13,14 +13,14 @@ function button(label, action, options = {}) {
     follow: 'follows',
     reserve: 'reservations',
   }[action];
-  const toggle = state.mode === 'desktop' && collection;
+  const toggle = !!collection;
   const pressed = toggle && state[collection].has(value || state.id);
   return HongguoComponents.button(label, {
     variant: `${variant}${pressed ? ' selected' : ''}`,
     glyph: image,
     action,
     value,
-    className: 'btn',
+    className: collection ? 'btn collection-toggle' : 'btn',
     extra: `${toggle ? `aria-pressed="${!!pressed}"` : ''} ${attrs}`,
   });
 }
@@ -281,6 +281,7 @@ function navigate(route, id, { push = true } = {}) {
 }
 function back() {
   if (overlay.open) {
+    if (returnFromLoginStep()) return;
     overlay.close();
     return;
   }
@@ -315,6 +316,23 @@ function back() {
       },
     );
   else navigate('home', null, { push: false });
+}
+function returnFromLoginStep() {
+  if ($('#dialog-title')?.textContent !== '登录账号') return false;
+  const view = state.accountDemo?.view;
+  if (view === 'keypad' || view === 'scan') {
+    handleAction('account-input-cancel');
+    return true;
+  }
+  if (view === 'country') {
+    handleAction('account-input-return');
+    return true;
+  }
+  if (state.loginStep?.startsWith('mfa')) {
+    handleAction('account-mfa-cancel');
+    return true;
+  }
+  return false;
 }
 function render() {
   if (
@@ -500,17 +518,22 @@ function discoverFilters(tv = false) {
       'discoverBackground',
     ],
   ];
-  const row = ([action, label, options, key = action]) => {
+  const selectRow = ([action, label, options, key = action]) => {
+    const value = state[key] || (action === 'sort' ? '综合' : '全部');
+    return `<label><span>${label}</span><select id="${tv ? 'tv' : 'desktop'}-${action}" class="field-input ui-input" data-discover-filter="${action}">${options.map((option) => `<option ${option === value ? 'selected' : ''}>${option}</option>`).join('')}</select></label>`;
+  };
+  const row = (entry) => {
+    const [action, label, options, key = action] = entry;
     const value = state[key] || (action === 'sort' ? '综合' : '全部');
     return tv
-      ? `<label><span>${label}</span><select id="tv-${action}" class="field-input ui-input" data-discover-filter="${action}">${options.map((option) => `<option ${option === value ? 'selected' : ''}>${option}</option>`).join('')}</select></label>`
+      ? selectRow(entry)
       : `<div class="filter-row"><span class="filter-label">${label}</span>${chips(options, value, action)}</div>`;
   };
   const selected = advanced
     .filter(([, , , key]) => state[key] && state[key] !== '全部')
     .map(([, label, , key]) => `${label}：${state[key]}`)
     .join(' · ');
-  return `<section class="reality-discover-filters" aria-label="分类筛选"><div class="${tv ? 'tv-filter' : 'filters'}">${primary.map(row).join('')}</div><div class="reality-filter-toggle">${button(state.discoverExpanded ? '收起筛选' : '更多筛选', 'discover-expand', { attrs: `aria-expanded="${!!state.discoverExpanded}" aria-controls="discover-more-filters"` })}${!state.discoverExpanded && selected ? `<span class="small muted">${selected}</span>` : ''}</div><div id="discover-more-filters" ${state.discoverExpanded ? '' : 'hidden'}><div class="${tv ? 'tv-filter' : 'filters'}">${advanced.map(row).join('')}</div></div><p class="small muted">筛选与指标为演示样例；实际选项随内容类型提供。</p></section>`;
+  return `<section class="reality-discover-filters" aria-label="分类筛选"><div class="${tv ? 'tv-filter' : 'filters'}">${primary.map(row).join('')}</div><div class="reality-filter-toggle">${button(state.discoverExpanded ? '收起筛选' : '更多筛选', 'discover-expand', { attrs: `aria-expanded="${!!state.discoverExpanded}" aria-controls="discover-more-filters"` })}${!state.discoverExpanded && selected ? `<span class="small muted">${selected}</span>` : ''}</div><div id="discover-more-filters" ${state.discoverExpanded ? '' : 'hidden'}><div class="advanced-filter-grid ${tv ? 'tv-filter' : ''}">${advanced.map(selectRow).join('')}</div></div><p class="small muted">筛选与指标为演示样例；实际选项随内容类型提供。</p></section>`;
 }
 function discoverPageKey() {
   return state.query.trim()
@@ -1130,7 +1153,7 @@ function loginDialog() {
       failed: '验证码获取失败，请重试；当前未发送任何短信。',
       wait: '请等待重试时间结束；此处只演示限流状态。',
     }[demo.codeState] || '';
-  const phoneBody = `<section class="account-login-step" aria-label="手机号登录"><form id="phone-form"><label class="field"><span>国家或地区</span>${button(`${country[1]} ${country[0]}`, 'account-country', { attrs: 'type="button" aria-haspopup="dialog"' })}</label><label class="field"><span>演示手机号</span><input class="field-input ui-input" type="tel" value="${phone}" readonly tabindex="-1" aria-label="演示手机号 ${phone}" /></label>${state.mode === 'tv' ? `<div class="account-input-tools">${button('数字键盘', 'phone-keypad', { value: 'phone', attrs: 'type="button"' })}${button('同局域网手机输入', 'phone-scan', { value: 'phone', attrs: 'type="button"' })}</div>` : ''}<label class="field"><span>验证码</span><span class="verification"><input class="field-input ui-input" id="code" inputmode="numeric" autocomplete="off" value="${code}" placeholder="输入演示验证码 000000" maxlength="6" required aria-describedby="code-error account-code-state" />${button(demo.codeState === 'sent' ? '重新获取' : demo.codeState === 'wait' ? '等待后重试' : '获取验证码', 'account-code-send', { attrs: `type="button" ${demo.codeState === 'wait' ? 'disabled' : ''}` })}</span></label>${state.mode === 'tv' ? `<div class="account-input-tools">${button('验证码键盘', 'phone-keypad', { value: 'code', attrs: 'type="button"' })}${button('手机输入验证码', 'phone-scan', { value: 'code', attrs: 'type="button"' })}</div>` : ''}<p id="account-code-state" class="small ${demo.codeState === 'failed' ? 'error-text' : 'muted'}" role="status">${codeStatus}</p><p class="small muted">App 验证码仅在红果返回“可用”时适用；否则使用短信验证码。此处统一用 000000 演示。</p><p id="code-error" class="small error-text" role="alert"></p><button type="submit" class="ui-button btn primary account-wide-action">登录演示账号</button></form>${review(`${button('需要额外短信验证', 'account-mfa-open')}${button('验证码获取失败', 'account-code-state', { value: 'failed' })}${button('等待后重试', 'account-code-state', { value: 'wait' })}${button('重置验证码状态', 'account-code-state', { value: '' })}`)}</section>`;
+  const phoneBody = `<section class="account-login-step" aria-label="手机号登录"><form id="phone-form"><div class="field"><span>国家或地区</span>${button(`${country[1]} ${country[0]}`, 'account-country', { attrs: `type="button" aria-haspopup="dialog" aria-label="国家或地区：${country[1]} ${country[0]}"` })}</div><label class="field"><span>演示手机号</span><input class="field-input ui-input" type="tel" value="${phone}" readonly tabindex="-1" aria-label="演示手机号 ${phone}" /></label>${state.mode === 'tv' ? `<div class="account-input-tools">${button('数字键盘', 'phone-keypad', { value: 'phone', attrs: 'type="button"' })}${button('同局域网手机输入', 'phone-scan', { value: 'phone', attrs: 'type="button"' })}</div>` : ''}<div class="field"><label for="code">验证码</label><span class="verification"><input class="field-input ui-input" id="code" inputmode="numeric" autocomplete="off" value="${code}" placeholder="输入演示验证码 000000" maxlength="6" required aria-describedby="code-error account-code-state" />${button(demo.codeState === 'sent' ? '重新获取' : demo.codeState === 'wait' ? '等待后重试' : '获取验证码', 'account-code-send', { attrs: `type="button" ${demo.codeState === 'wait' ? 'disabled' : ''}` })}</span></div>${state.mode === 'tv' ? `<div class="account-input-tools">${button('验证码键盘', 'phone-keypad', { value: 'code', attrs: 'type="button"' })}${button('手机输入验证码', 'phone-scan', { value: 'code', attrs: 'type="button"' })}</div>` : ''}<p id="account-code-state" class="small ${demo.codeState === 'failed' ? 'error-text' : 'muted'}" role="status">${codeStatus}</p><p class="small muted">App 验证码仅在红果返回“可用”时适用；否则使用短信验证码。此处统一用 000000 演示。</p><p id="code-error" class="small error-text" role="alert"></p><button type="submit" class="ui-button btn primary account-wide-action">登录演示账号</button></form>${review(`${button('需要额外短信验证', 'account-mfa-open')}${button('验证码获取失败', 'account-code-state', { value: 'failed' })}${button('等待后重试', 'account-code-state', { value: 'wait' })}${button('重置验证码状态', 'account-code-state', { value: '' })}`)}</section>`;
   let body = `${tabs(['扫码登录', '手机号登录'], state.loginTab, 'login-tab')}${state.loginTab === '扫码登录' ? scanBody : phoneBody}<p class="small muted account-return-note">登录后回到当前任务，不自动合并历史；收藏、追更和预约仍由你再次确认。</p>`;
   if (demo.view === 'country')
     body = `<section class="account-login-step"><h3>选择国家或地区</h3><div class="account-country-list">${countries.map(([value, name]) => button(`${name} ${value}`, 'account-country-select', { value, attrs: `aria-pressed="${demo.country === value}"` })).join('')}</div>${button('返回手机号登录', 'account-input-return')}</section>`;
@@ -1249,11 +1272,43 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 function refreshPreservingFocus() {
-  const focus = focusKey(document.activeElement);
+  const origin = document.activeElement;
+  const focus = focusKey(origin);
+  const rows = $$('.media-row', content);
+  const index = rows.indexOf(origin?.closest('.media-row'));
+  const neighbors =
+    index < 0
+      ? []
+      : [...rows.slice(index + 1), ...rows.slice(0, index).reverse()].map((row) =>
+          focusKey($('[data-action]', row) || $('button', row)),
+        );
   const scroll = window.scrollY;
   render();
   window.scrollTo(0, scroll);
-  restoreFocus(focus);
+  if (!restoreFocus(focus) && index >= 0 && !neighbors.some(restoreFocus)) {
+    const target = $('button:not(:disabled)', content) || content;
+    target.focus({ preventScroll: true });
+  }
+}
+function previewTVVolume(range) {
+  range.setAttribute('aria-valuetext', `${range.value}%`);
+  $('#tv-volume-status').textContent = `预览音量 ${range.value}% · 确认应用，返回取消`;
+}
+function beginTVVolume(range) {
+  range.dataset.committed = String(state.volume);
+  range.dataset.editing = 'true';
+  previewTVVolume(range);
+}
+function cancelTVVolume(range) {
+  if (range?.dataset.editing !== 'true') return;
+  range.value = range.dataset.committed;
+  delete range.dataset.editing;
+  HongguoComponents.syncRange(range);
+  range.setAttribute('aria-valuetext', `${range.value}%`);
+  $('#tv-volume-status').textContent = `音量 ${range.value}% · 已取消调整`;
+}
+function cancelTVVolumeOnBlur() {
+  if (state.mode === 'tv') cancelTVVolume($('#volume', overlay));
 }
 
 function toggleSet(name, id, added, removed) {
@@ -1364,9 +1419,11 @@ function handleAction(action, value, source) {
         scan: 'waiting',
         codeState: '',
       });
+      const previousView = demo.view;
       if (action === 'phone-keypad' || action === 'phone-scan') {
         if (value !== 'phone' && value !== 'code') break;
         if (demo.view === 'login') {
+          demo.returnFocus = focusKey(source || document.activeElement);
           const draftCode = $('#code', overlay)?.value;
           if (typeof draftCode === 'string' && /^[0-9]{0,8}$/.test(draftCode))
             demo.digits.code = draftCode;
@@ -1379,6 +1436,7 @@ function handleAction(action, value, source) {
         demo.scan = 'waiting';
         demo.inputError = '';
       } else if (action === 'account-country') {
+        demo.returnFocus = focusKey(source || document.activeElement);
         demo.view = 'country';
       } else if (action === 'account-country-select') {
         if (
@@ -1463,6 +1521,15 @@ function handleAction(action, value, source) {
         break;
       }
       loginDialog();
+      if (action === 'account-mfa-cancel') $('#code', overlay)?.focus();
+      if (previousView !== demo.view) {
+        if (demo.view === 'login') restoreFocus(demo.returnFocus);
+        else if (demo.view === 'keypad')
+          $('[data-action="account-keypad-digit"]', overlay)?.focus();
+        else if (demo.view === 'scan') $('[data-action="account-scan-complete"]', overlay)?.focus();
+        else if (demo.view === 'country')
+          $('[data-action="account-country-select"][aria-pressed="true"]', overlay)?.focus();
+      }
       break;
     }
     case 'player-panel':
@@ -1956,6 +2023,7 @@ function handleAction(action, value, source) {
     case 'mute':
       state.volume = state.volume ? 0 : 60;
       refreshPreservingFocus();
+      if (state.mode === 'tv' && overlay.open) tvMoreDialog();
       break;
     case 'fullscreen': {
       const target = $('.cinema');
@@ -2136,6 +2204,7 @@ document.addEventListener('focusin', (event) => {
   if (event.target.id === 'search') updateSearchSuggestions();
 });
 document.addEventListener('focusout', (event) => {
+  if (state.mode === 'tv' && event.target.id === 'volume') cancelTVVolume(event.target);
   if (event.target.closest('#search-form') && !event.relatedTarget?.closest('#search-form'))
     hideSearchSuggestions();
 });
@@ -2152,13 +2221,37 @@ document.addEventListener('submit', (event) => {
 });
 document.addEventListener('input', (event) => {
   HongguoComponents.syncRange(event.target);
+  if (event.target.id === 'code' && state.accountDemo) {
+    state.accountDemo.digits.code = event.target.value;
+    event.target.removeAttribute('aria-invalid');
+    $('#code-error').textContent = '';
+  }
   if (event.target.id === 'search') updateSearchSuggestions();
   if (event.target.id === 'position') {
     state.position = Number(event.target.value);
     rememberPlayback();
     $('#time-label').textContent = `${formatTime(state.position)} / 01:42`;
   }
-  if (event.target.id === 'volume') state.volume = Number(event.target.value);
+  if (event.target.id === 'volume') {
+    if (state.mode === 'tv') previewTVVolume(event.target);
+    else state.volume = Number(event.target.value);
+  }
+});
+window.addEventListener('blur', cancelTVVolumeOnBlur);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) cancelTVVolumeOnBlur();
+});
+document.addEventListener('pointerdown', (event) => {
+  if (
+    state.mode === 'tv' &&
+    event.target.id === 'volume' &&
+    !event.target.disabled &&
+    event.target.dataset.editing !== 'true'
+  )
+    beginTVVolume(event.target);
+});
+document.addEventListener('pointercancel', (event) => {
+  if (state.mode === 'tv' && event.target.id === 'volume') cancelTVVolume(event.target);
 });
 document.addEventListener('change', (event) => {
   const target = event.target;
@@ -2213,9 +2306,22 @@ overlay.addEventListener('cancel', (event) => {
 });
 overlay.addEventListener('close', () => {
   closeUpdateSystemStep();
-  if (lastFocus?.isConnected) lastFocus.focus({ preventScroll: true });
+  cancelTVVolumeOnBlur();
+  const demo = state.accountDemo;
+  if ($('#dialog-title')?.textContent === '登录账号' && demo && demo.view !== 'login') {
+    if (['keypad', 'scan'].includes(demo.view) && demo.inputBefore)
+      demo.digits = { ...demo.inputBefore };
+    demo.view = 'login';
+  }
+  if (lastFocus?.isConnected && !lastFocus.disabled && lastFocus.getClientRects().length)
+    lastFocus.focus({ preventScroll: true });
   else if (restoreFocus(lastFocusKey)) return;
-  else if (state.mode === 'tv') focusTVInitial();
+  else if (['history', 'favorites', 'following', 'library'].includes(state.route)) {
+    const target = $('.media-row button:not(:disabled)', content) || $('.fb-empty button', content);
+    if (target) target.focus({ preventScroll: true });
+    else if (state.mode === 'tv') focusTVInitial();
+    else content.focus({ preventScroll: true });
+  } else if (state.mode === 'tv') focusTVInitial();
   else content.focus({ preventScroll: true });
 });
 overlay.addEventListener('click', (event) => {
@@ -2269,6 +2375,31 @@ document.addEventListener('keydown', (event) => {
   if (handleSearchSuggestionKey(event)) return;
   const target = event.target;
   const editing = target.matches('input, textarea, select');
+  if (state.mode === 'tv' && target.id === 'volume') {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (target.dataset.editing === 'true') {
+        state.volume = Number(target.value);
+        target.dataset.committed = target.value;
+        delete target.dataset.editing;
+        target.setAttribute('aria-valuetext', `${target.value}%`);
+        $('#tv-volume-status').textContent = `音量 ${target.value}% · 确认调整`;
+      } else beginTVVolume(target);
+      return;
+    }
+    if (target.dataset.editing === 'true') {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelTVVolume(target);
+      } else if (['ArrowUp', 'ArrowDown', 'Tab'].includes(event.key)) event.preventDefault();
+      return;
+    }
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      event.preventDefault();
+      moveSpatialFocus(event.key);
+      return;
+    }
+  }
   if (state.mode === 'tv' && editing) {
     if (event.isComposing) return;
     const select = target.tagName === 'SELECT';

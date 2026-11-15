@@ -1,19 +1,19 @@
 /* Desktop presentation. Shared demo state and actions are owned by app.js. */
 function desktopHome() {
   const history = state.history.map(dramaById);
-  return `<div class="page-head"><h1>首页</h1>${button('刷一部短剧', 'feed', { image: 'play' })}</div>
+  return `<h1 class="sr-only">首页</h1>
     ${
       history.length
         ? `<section aria-labelledby="continue-title"><div class="section-head first-section"><h2 id="continue-title">继续观看</h2>${routeButton('全部记录', 'history', 'forward')}</div><div class="continue-grid">${history
             .slice(0, 2)
             .map(
-              (d) =>
-                `<article class="continue-card content-continue"><button class="continue-cover content-continue-cover" data-detail="${d.id}" aria-label="查看${d.title}详情">${posterImage(d)}</button><div class="continue-copy content-continue-body"><h3>${d.title}</h3><p class="muted small">第 ${d.episode} 集 · 看到 ${formatTime(d.position || 0)}</p><div class="progress content-watch-progress"><span style="width:${Math.round(((d.position || 0) / 102) * 100)}%"></span></div>${button(`继续第 ${d.episode} 集`, 'resume', { value: d.id, image: 'play' })}</div></article>`,
+              (d, index) =>
+                `<article class="continue-card content-continue ${index === 0 ? 'content-continue-featured' : ''}"><button class="continue-cover content-continue-cover" data-detail="${d.id}" aria-label="查看${d.title}详情">${posterImage(d)}</button><div class="continue-copy content-continue-body"><h3>${d.title}</h3><p class="muted small">第 ${d.episode} 集 · 看到 ${formatTime(d.position || 0)}</p><div class="progress content-watch-progress"><span style="width:${Math.round(((d.position || 0) / 102) * 100)}%"></span></div>${button(`继续第 ${d.episode} 集`, 'resume', { value: d.id, image: 'play', variant: index === 0 ? 'primary' : 'quiet' })}</div></article>`,
             )
             .join('')}</div></section>`
         : ''
     }
-    <section><div class="section-head"><h2>为你推荐</h2>${button('换一批', 'shuffle', { image: 'refresh', variant: 'quiet' })}</div>${statusContent() || posters()}</section>
+    <section><div class="section-head"><h2>为你推荐</h2><div class="actions">${button('刷一部短剧', 'feed', { image: 'play', variant: 'quiet' })}${button('换一批', 'shuffle', { image: 'refresh', variant: 'quiet' })}</div></div>${statusContent() || posters()}</section>
     <section class="release-preview"><div><h2>春山不负 · 第三季</h2><p class="muted small">明天 18:00 上线</p></div><div class="actions">${reservationButton('spring-third')}${routeButton('上新日历', 'new', 'forward')}</div></section>`;
 }
 function episodePicker(d = current(), { tv = false } = {}) {

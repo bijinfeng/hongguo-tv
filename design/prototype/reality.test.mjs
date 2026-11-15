@@ -26,7 +26,7 @@ function prototype() {
     return nodes.get(selector);
   };
   const context = vm.createContext({
-    window: { scrollY: 0, scrollTo() {} },
+    window: { scrollY: 0, scrollTo() {}, addEventListener() {} },
     document: { querySelector, addEventListener() {} },
     setTimeout,
     clearTimeout,

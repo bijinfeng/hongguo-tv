@@ -13,9 +13,9 @@ const actionAttrs = (value, name) =>
 function posterCard(item, { focus = false, missing = false } = {}) {
   return `<article class="content-poster"><button class="content-poster-button ${focus ? 'force-focus' : ''}" ${actionAttrs(`detail:${item.id}`, `查看${item.title}详情`)}><span class="content-poster-cover ${missing ? 'content-cover-missing' : ''}">${missing ? '<span>封面暂不可用</span>' : cover(item)}<span class="content-cover-label">${item.count}</span></span><strong>${item.title}</strong><span class="content-meta">${item.tags}</span></button></article>`;
 }
-function continueCard(ctx, item, { unknownDuration = false } = {}) {
+function continueCard(ctx, item, { unknownDuration = false, featured = false } = {}) {
   const { button } = ctx;
-  return `<article class="content-continue"><button class="content-continue-cover" ${actionAttrs(`detail:${item.id}`, `查看${item.title}详情`)}>${cover(item)}</button><div class="content-continue-body"><h3>${item.title}</h3><p>第 12 集 · 看到 00:36</p>${unknownDuration ? '' : '<div class="content-watch-progress" role="progressbar" aria-label="本集观看进度" aria-valuemin="0" aria-valuemax="120" aria-valuenow="36" aria-valuetext="看到 00:36，共 02:00"><span style="width:30%"></span></div>'}${button('继续第 12 集', { glyph: 'play', action: 'content-demo', extra: `data-value="resume:${item.id}"` })}</div></article>`;
+  return `<article class="content-continue ${featured ? 'content-continue-featured' : ''}"><button class="content-continue-cover" ${actionAttrs(`detail:${item.id}`, `查看${item.title}详情`)}>${cover(item)}</button><div class="content-continue-body"><h3>${item.title}</h3><p>第 12 集 · 看到 00:36</p>${unknownDuration ? '' : '<div class="content-watch-progress" role="progressbar" aria-label="本集观看进度" aria-valuemin="0" aria-valuemax="120" aria-valuenow="36" aria-valuetext="看到 00:36，共 02:00"><span style="width:30%"></span></div>'}${button('继续第 12 集', { variant: featured ? 'primary' : '', glyph: 'play', action: 'content-demo', extra: `data-value="resume:${item.id}"` })}</div></article>`;
 }
 function resultRow(ctx, item, { manage = false, selected = false, disabled = false } = {}) {
   const { button } = ctx;
@@ -39,9 +39,13 @@ export function contentSheet(ctx) {
     section(
       '继续观看',
       row(
-        'ContinueCard',
-        `<div class="content-continue-samples">${sample('已知本集时长', continueCard(ctx, examples[0]))}${sample('没有时长时不画比例', continueCard(ctx, examples[1], { unknownDuration: true }))}</div>`,
-      ),
+        '主续播入口',
+        `<div class="content-featured-sample">${continueCard(ctx, examples[0], { featured: true })}</div>`,
+      ) +
+        row(
+          'ContinueCard',
+          `<div class="content-continue-samples">${sample('已知本集时长', continueCard(ctx, examples[0]))}${sample('没有时长时不画比例', continueCard(ctx, examples[1], { unknownDuration: true }))}</div>`,
+        ),
     ) +
     section(
       '结果与列表',

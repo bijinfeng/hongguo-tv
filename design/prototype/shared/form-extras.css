@@ -1,4 +1,10 @@
 /* Composite fields own one boundary and one focus ring. */
+.search-form:has(> .field) {
+  align-items: flex-end;
+}
+.input-with-icon:has(.ui-input:placeholder-shown) [data-action='clear-query'] {
+  display: none;
+}
 .input-with-icon:focus-within {
   outline: none;
 }

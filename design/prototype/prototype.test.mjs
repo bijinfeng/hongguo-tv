@@ -17,10 +17,13 @@ function prototype() {
     querySelector() {
       return this;
     },
+    querySelectorAll() {
+      return [];
+    },
     focus() {},
   };
   const context = vm.createContext({
-    window: { scrollY: 0, scrollTo() {} },
+    window: { scrollY: 0, scrollTo() {}, addEventListener() {} },
     document: {
       querySelector: () => node,
       addEventListener: (name, listener) => (listeners[name] = listener),

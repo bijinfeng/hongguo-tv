@@ -30,7 +30,7 @@
   #desktop-shell .app-header {
     height: 88px;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 28px;
+    margin-bottom: 16px;
   }
   #desktop-shell .search-form {
     width: min(520px, 100%);
@@ -38,7 +38,7 @@
     border-color: transparent;
   }
   #desktop-shell main {
-    max-width: 1440px;
+    max-width: 1280px;
     padding: 0 40px 64px;
   }
   #desktop-shell main:focus-visible {
@@ -49,8 +49,8 @@
   }
   #desktop-shell .poster-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 28px;
-    max-width: 1100px;
+    gap: 24px;
+    max-width: 1000px;
   }
   #desktop-shell .poster-art {
     aspect-ratio: 2 / 2.7;
@@ -72,10 +72,11 @@
     margin-top: 0;
   }
   #desktop-shell .section-head {
-    margin-top: 32px;
+    margin-top: 20px;
+    max-width: 1100px;
   }
   #desktop-shell .section-head h2 {
-    font-size: 20px;
+    font-size: var(--section-title);
   }
   #desktop-shell .section-head > button[data-route],
   .release-preview button[data-route] {
@@ -85,11 +86,14 @@
   }
   #desktop-shell .first-section.section-head {
     margin-top: 0;
+    margin-bottom: 12px;
   }
   .continue-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
     gap: 24px;
+    max-width: 1100px;
+    align-items: center;
   }
   .continue-card {
     --content-width: 100%;
@@ -401,9 +405,6 @@
     }
   }
   @media (max-width: 1250px) {
-    #desktop-shell main {
-      padding-inline: 28px;
-    }
     .watch-layout {
       grid-template-columns: minmax(0, 1fr) 280px;
       gap: 16px;
