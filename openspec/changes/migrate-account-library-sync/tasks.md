@@ -27,13 +27,13 @@
 
 ## 5. HTTP/native 与共享状态（适配负责人；依赖 4）
 
-- [ ] 5.1 HTTP、native bridge、Web／Desktop／TV 宿主装配同一服务与 worker 生命周期，保留 origin／private data／注销边界；运行 account/library adapter parity 与取消／重复销毁用例，执行 pnpm codegen 并提交可再生 OpenAPI／generated.ts，pnpm codegen:check 无漂移。
-- [ ] 5.2 core-client、library-writer、library-state/store 复用同一注册写队列处理 favorite，捕获 owner epoch，同步刷新不被旧 read／receipt 覆盖；测试 lost receipt、切季 exact series、A→B→A、后台及更新／关机排空，保持现有 checkpoint／历史管理回归通过；更新相应包 API 说明。
+- [x] 5.1 HTTP、native bridge、Web／Desktop／TV 宿主装配同一服务与 worker 生命周期，保留 origin／private data／注销边界；运行 account/library adapter parity 与取消／重复销毁用例，执行 pnpm codegen 并提交可再生 OpenAPI／generated.ts，pnpm codegen:check 无漂移。
+- [x] 5.2 core-client、library-writer、library-state/store 复用同一注册写队列处理 favorite，捕获 owner epoch，同步刷新不被旧 read／receipt 覆盖；测试 lost receipt、切季 exact series、A→B→A、后台及更新／关机排空，保持现有 checkpoint／历史管理回归通过；更新相应包 API 说明。
 
 ## 6. 正式 UI 与动效（共享 UI 负责人；依赖 5）
 
-- [ ] 6.1 账号页接同步／失败重试、可导入数量和安全确认／部分结果，历史与收藏入口明确当前 owner；按 design 动效清单用现有共享控件，测试无自动合并、拒绝重复提交、离页后结果对账和焦点回源；维护就近动效说明，不新增技术标签墙。
-- [ ] 6.2 在正式详情接当前 series 收藏；沿用 history 路由建立片库“观看记录／收藏”共享 Tabs 和虚拟列表、单项取消／本机清空确认。验证只收藏不生成历史、离线待同步、封面失败、未确认回执、切季、返回锚点及邻项焦点；复用历史管理，不复制 desktop／TV 业务实现。
+- [x] 6.1 账号页接同步／失败重试、可导入数量和安全确认／部分结果，历史与收藏入口明确当前 owner；按 design 动效清单用现有共享控件，测试无自动合并、拒绝重复提交、离页后结果对账和焦点回源；维护就近动效说明，不新增技术标签墙。
+- [x] 6.2 在正式详情接当前 series 收藏；沿用 history 路由建立片库“观看记录／收藏”共享 Tabs 和虚拟列表、单项取消／本机清空确认。验证只收藏不生成历史、离线待同步、封面失败、未确认回执、切季、返回锚点及邻项焦点；复用历史管理，不复制 desktop／TV 业务实现。
 - [ ] 6.3 三端分别 check 和 build，运行相关共享状态／NSH 用例；在真实 Web、Desktop native、Android TV 宿主观察浅深、窄窗／大字、键盘／DPAD、减少动态、长列表与弹窗层级，逐项检查 design 动效清单并保存实际证据。未观察的平台／物理TV保留未验，修复不得放宽身份与断言。
 
 ## 7. 授权真实数据与批次收尾（集成／验收负责人；依赖 6）
@@ -44,4 +44,4 @@
 
 ## Workflow follow-up
 
-- 主代理另行分配 apply；本次仅规划。实施与真实证据满足后再处理主规范同步／归档，不自动关闭本批或其他活跃变更。
+- 已实施并记录实际通过范围；剩余真实操作与平台验收继续按上述未勾任务推进。实施与真实证据满足后再处理主规范同步／归档，不自动关闭本批或其他活跃变更。

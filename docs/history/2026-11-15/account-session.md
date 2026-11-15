@@ -12,6 +12,9 @@
 | `desktop-native-authorized-retry-2026-11-15/`           | 真实扫码确认成功，Dialog 自动关闭；销毁／重开后恢复账号成功。观看记录步骤等待固定旧搜索结果 ID 超时，整轮失败。finally 已退出，随后只读 SQLite 确认 `payload IS NULL`，文件权限0600。 |
 | `public-media-probe-2026-11-15/`                        | 修正 driver 为当前真实搜索首卡后，游客搜索、详情、播放从0增长到3秒、历史可见通过。只证明游客公开路径，不能代证账号隔离。                                                              |
 | `desktop-native-authorized-current-results-2026-11-15/` | 二维码等待手机确认150秒超时，未建立账号，退出后凭据仍为空；未执行本轮重启／账号观看。                                                                                                 |
+| `desktop-native-authorized-correct-app-2026-11-15/` | 再次等待手机确认150秒超时；未建立账号，保留登录过期／服务暂不可用提示，不据此断定二维码协议故障。 |
+| `desktop-native-authorized-human-ready-2026-11-15/` | 用户确认方便后真实扫码成功、Dialog自动关闭、同库重开恢复成功、真实搜索成功；播放计时等待30秒未前进，整轮失败。finally退出成功；随后只读SQLite确认凭据为空、权限0600。本轮为片库v4集成工作树，无worker／云写。 |
+| `public-media-probe-diagnostic-2026-11-15.log` | 随后独立游客正式入口／真实首卡复查，在媒体准备阶段返回409 `PLAYBACK_IDENTITY_MISMATCH`，未重试取绿灯。此结果说明未登录路径也受影响，但不能解释上一轮计时停滞；两类失败分别保留。 |
 | `desktop-native-dialog-review-2026-11-15/`              | 真实二维码获取与取消，空手机号表单和取消后账号页，浅深色四图通过独立视觉复核。输入／相邻按钮44px同高，单层边框，Tabs 选中线完整。未发短信，不把截图当完整账号功能验收。               |
 
 键盘／焦点补验保存以下独立结果：
