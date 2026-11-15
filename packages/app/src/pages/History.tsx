@@ -37,14 +37,26 @@ export function HistoryItem(props: {
   disabled?: boolean;
   select?: (id: string, checked: boolean) => void;
   remove?: (entry: Entry) => void;
-  controlRef?: (key: string, ref: ViewRef) => void;
+  controlRef?: (key: string, ref?: ViewRef, previous?: ViewRef) => void;
 }) {
   let ref: ViewRef | undefined;
+  const selectRef = signal<ViewRef | undefined>(undefined);
+  const removeRef = signal<ViewRef | undefined>(undefined);
   effect(() => {
     const id = props.entry.drama.series_id;
     if (ref) props.register?.(id, ref);
     const owned = ref;
     cleanup(() => props.register?.(id, undefined, owned));
+  });
+  effect(() => {
+    const id = props.entry.drama.series_id;
+    const nodes = props.managing ? { select: selectRef(), remove: removeRef() } : {};
+    for (const [kind, node] of Object.entries(nodes))
+      if (node) props.controlRef?.(`${kind}:${id}`, node);
+    cleanup(() => {
+      for (const [kind, node] of Object.entries(nodes))
+        if (node) props.controlRef?.(`${kind}:${id}`, undefined, node);
+    });
   });
   return (
     <ResultCard
@@ -92,7 +104,7 @@ export function HistoryItem(props: {
             testID={`history-select-${props.entry.drama.series_id}`}
             checked={props.checked ?? false}
             disabled={props.disabled}
-            controlRef={(node) => props.controlRef?.(`select:${props.entry.drama.series_id}`, node)}
+            controlRef={selectRef.set}
             onChange={(event) => props.select?.(props.entry.drama.series_id, event.checked)}
           />
         </If>
@@ -120,9 +132,7 @@ export function HistoryItem(props: {
               displayLabel="移除"
               testID={`history-remove-${props.entry.drama.series_id}`}
               disabled={props.disabled}
-              buttonRef={(node) =>
-                props.controlRef?.(`remove:${props.entry.drama.series_id}`, node)
-              }
+              buttonRef={removeRef.set}
               onPress={() => props.remove?.(props.entry)}
             />
           </View>
@@ -193,11 +203,19 @@ export function History(props: { store: Store }) {
   let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
   let waiting: typeof returnSource;
   const refs = new Map<string, ViewRef>();
-  const detailRefs = new Map<string, Set<ViewRef>>();
+  const rowRefs = new Map<string, Set<ViewRef>>();
   const focusGuard = () => {
     const version = focusEpoch;
+    const pageEpoch = epoch;
+    const pageOwner = owner();
     const owns = props.store.focusGuard();
-    return () => version === focusEpoch && lifecycle() !== 'background' && owns();
+    return () =>
+      present() &&
+      pageEpoch === epoch &&
+      pageOwner === owner() &&
+      version === focusEpoch &&
+      lifecycle() !== 'background' &&
+      owns();
   };
   const owner = () => props.store.library()?.owner_id ?? '';
   const present = () => !disposed && props.store.activePage('history');
@@ -234,7 +252,7 @@ export function History(props: { store: Store }) {
         waiting = undefined;
         return;
       }
-      const candidates = detailRefs.get(plan.key);
+      const candidates = rowRefs.get(plan.key);
       let ref = refs.get(plan.key);
       if (candidates) {
         ref = undefined;
@@ -271,7 +289,7 @@ export function History(props: { store: Store }) {
     });
   };
   const queueFocus = (key: string, owns = focusGuard()) => {
-    if (!present()) return;
+    if (!present() || !owns()) return;
     waiting = { key, owner: owner(), epoch, owns };
     const id = key.split(':')[1];
     const index = props.store.entries().findIndex((entry) => entry.drama.series_id === id);
@@ -282,10 +300,38 @@ export function History(props: { store: Store }) {
     refs.set(key, ref);
     if (waiting?.key === key) reveal();
   };
-  const restoreAnchor = () => {
-    if (!anchor) return;
-    const index = props.store.entries().findIndex((entry) => entry.drama.series_id === anchor!.id);
-    if (index >= 0) list?.scrollToIndex({ index, viewOffset: -anchor.offset, animated: false });
+  const registerRow = (key: string, ref?: ViewRef, previous?: ViewRef) => {
+    const candidates = rowRefs.get(key) ?? new Set<ViewRef>();
+    if (ref) candidates.add(ref);
+    else if (previous) candidates.delete(previous);
+    // Recycling may briefly register the same identity in multiple cells.
+    if (candidates.size) {
+      rowRefs.set(key, candidates);
+      register(key, candidates.values().next().value!);
+    } else {
+      rowRefs.delete(key);
+      refs.delete(key);
+    }
+  };
+  const restoreAnchor = (position = anchor, owns = focusGuard()) => {
+    if (!position || !owns()) return;
+    const index = props.store.entries().findIndex((entry) => entry.drama.series_id === position.id);
+    if (index >= 0) list?.scrollToIndex({ index, viewOffset: -position.offset, animated: false });
+  };
+  const toggleManaging = async () => {
+    props.store.noteFocusIntent();
+    const owns = focusGuard();
+    const snapshot = props.store.library();
+    const entries = props.store.entries();
+    const position = await list?.measureScrollPosition();
+    if (!owns() || !enabled() || snapshot !== props.store.library()) return;
+    const entry = position && entries[position.index];
+    if (entry && position) anchor = { id: entry.drama.series_id, offset: position.offset };
+    const saved = anchor;
+    managing.set(!managing());
+    selected.set(new Set());
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => restoreAnchor(saved, owns));
   };
   const close = () => {
     const current = confirmation();
@@ -385,6 +431,7 @@ export function History(props: { store: Store }) {
     }
   };
   let previousOwner: string | undefined;
+  let previousActive = false;
   effect(() => {
     if (lifecycle() !== 'background') return;
     focusEpoch++;
@@ -411,14 +458,18 @@ export function History(props: { store: Store }) {
       localError.set('');
       cancelAnimationFrame(frame);
     }
+    if (active && !previousActive) {
+      const owns = focusGuard();
+      frame = requestAnimationFrame(() => restoreAnchor(anchor, owns));
+    }
     previousOwner = currentOwner;
-    if (active) frame = requestAnimationFrame(restoreAnchor);
+    previousActive = active;
   });
   cleanup(() => {
     disposed = true;
     cancelAnimationFrame(frame);
     refs.clear();
-    detailRefs.clear();
+    rowRefs.clear();
   });
   return (
     <View
@@ -440,11 +491,7 @@ export function History(props: { store: Store }) {
           label={managing() ? '完成' : '管理'}
           buttonRef={(ref) => register('manage', ref)}
           disabled={!enabled() || (!managing() && !props.store.entries().length)}
-          onPress={() => {
-            props.store.noteFocusIntent();
-            managing.set(!managing());
-            selected.set(new Set());
-          }}
+          onPress={() => void toggleManaging()}
         />
       </View>
       <If when={managing()}>
@@ -527,9 +574,18 @@ export function History(props: { store: Store }) {
         }}
         onScroll={() => {
           if (!props.store.activePage('history')) return;
+          const snapshot = props.store.library();
+          const entries = props.store.entries();
+          const pageEpoch = epoch;
           void list?.measureScrollPosition().then((position) => {
-            const entry = position && props.store.entries()[position.index];
-            if (props.store.activePage('history') && entry && position)
+            const entry = position && entries[position.index];
+            if (
+              present() &&
+              epoch === pageEpoch &&
+              snapshot === props.store.library() &&
+              entry &&
+              position
+            )
               anchor = { id: entry.drama.series_id, offset: position.offset };
           });
         }}
@@ -564,20 +620,9 @@ export function History(props: { store: Store }) {
                 `remove:${item.drama.series_id}`,
               )
             }
-            controlRef={register}
+            controlRef={registerRow}
             register={(id, ref, previous) => {
-              const key = `detail:${id}`;
-              const candidates = detailRefs.get(key) ?? new Set<ViewRef>();
-              if (ref) candidates.add(ref);
-              else if (previous) candidates.delete(previous);
-              // Recycling may briefly register the same identity in multiple cells.
-              if (candidates.size) {
-                detailRefs.set(key, candidates);
-                register(key, candidates.values().next().value!);
-              } else {
-                detailRefs.delete(key);
-                refs.delete(key);
-              }
+              registerRow(`detail:${id}`, ref, previous);
             }}
             restore={(id) => queueFocus(`detail:${id}`)}
           />

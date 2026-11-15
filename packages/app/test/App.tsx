@@ -63,6 +63,45 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
   registerCategoryTests();
   registerFeedTests();
   registerFeedUiTests(target, entry);
+  test('Escape cancels history confirmation before page navigation and preserves its source', async () => {
+    const network = (request: StubRequest) => {
+      if (new URL(request.url).pathname === '/api/v1/library')
+        return ok({
+          owner_id: '',
+          entries: [{ drama, episode: 1, position: 3, duration: 60, last_played_at: 1 }],
+        });
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      width: 1440,
+      height: 1000,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': network, 'POST *': network },
+    });
+    await app.press('id:nav-history');
+    await app.waitFor('id:history-123');
+    await app.press('id:history-manage');
+    for (const source of ['history-remove-123', 'history-clear']) {
+      await app.press(`id:${source}`);
+      await app.waitFor('id:history-confirm');
+      await app.keyboard.press('escape');
+      await app.waitFor('id:history-confirm', { state: 'gone' });
+      expect(app.shows('id:history-page')).toBe(true);
+      await app.wait(80);
+      await app.keyboard.press('enter');
+      await app.waitFor('id:history-confirm');
+      await app.keyboard.press('escape');
+      await app.waitFor('id:history-confirm', { state: 'gone' });
+    }
+    expect(app.requests().filter(libraryWrite)).toEqual([]);
+    if (target === 'desktop') {
+      await app.keyboard.press('escape');
+      expect(app.shows('id:history-page')).toBe(false);
+      expect(app.shows('id:home-scroll')).toBe(true);
+    }
+  });
   test('typed suggestions validate Unicode, debounce composition, cancel superseded/dismissed/inactive/disposed reads and retry', async () => {
     const app = await open('./SuggestionsStatePreview.tsx', { clock: {} });
     await app.press('验证输入');

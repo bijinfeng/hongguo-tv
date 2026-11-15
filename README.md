@@ -99,6 +99,8 @@ HTTP preview 开发会启动电脑 API（TV 使用并清理本次 reverse）；n
 
 观看记录主链使用 `node tooling/src/live-history-host.mjs macos --anonymous-live`：正式 Web App 实际播放当前真实短剧形成记录，检查取消、单删、再次播放、两条记录跨 Rust API／应用重启保留、选择删除及清空后的持久结果。每段结束后由 Node 读取真实 SQLite API 快照，产品响应不注入合成数据。改用 `web --anonymous-live` 可在 macOS 上的 Chromium 中执行相同真实流程，并在导航前严格配置实际 Origin；浏览器已完成浅深各 9 段真实主链，删除后保留项的详情亦已完整加载。此前间歇失败、完整焦点和后台等剩余范围继续记录。macOS 目标只覆盖该宿主中的 Web／HTTP 入口；原生桌面与 TV 等其余范围见 [游客历史管理](docs/guest-history-management.md)。
 
+当前 runner 增加三类确认的键盘取消／回源、全选／清选择和退出管理检查，每色共 10 段。真实播放明确失败时最多点击一次现有“重试”，保留原错误和截图；即使后续流程完成，只要发生过播放错误，整轮仍 `passed=false`。最新浅深 20 段已走完但深色播放经一次重试才恢复，因此未记为整轮通过，详见 VALIDATION。
+
 ## 目录与依赖
 
 ```text

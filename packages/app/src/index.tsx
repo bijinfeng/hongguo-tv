@@ -186,9 +186,16 @@ function Pages(props: { store: Store; updates?: Updates }) {
         <NavPage
           class="flex-1 bg-background"
           headerVisible={false}
-          popOnBack={route.name !== 'player'}
+          popOnBack={
+            route.name !== 'player' &&
+            !(route.name === 'browse' && props.store.target === 'desktop')
+          }
           onBackPress={() => {
-            if (route.name === 'player') props.store.back();
+            if (
+              route.name === 'player' ||
+              (route.name === 'browse' && props.store.target === 'desktop')
+            )
+              props.store.back();
           }}
           animation={props.store.target === 'tv' || reduceMotion() ? 'none' : 'default'}
         >
@@ -395,7 +402,6 @@ export function App(props: {
         return true;
       }),
     );
-  keymap.bind('escape', store.back, { when: 'notEditing' });
   keymap.bind(
     { tab: store.noteFocusIntent, 'shift+tab': store.noteFocusIntent },
     { when: 'always', passThrough: true },

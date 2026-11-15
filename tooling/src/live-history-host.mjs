@@ -47,6 +47,7 @@ const evidence = {
   directHistoryWrites: false,
   manualClock: false,
   apiReads: [],
+  playbackFailures: [],
   passed: false,
   sourceHead: output('git', ['rev-parse', 'HEAD']),
   runtimeBeforeSha256: hash(previous),
@@ -183,6 +184,13 @@ async function runHost(file, colorScheme, deadline) {
       const record = JSON.parse(line.slice(index + marker.length));
       if (record.colorScheme !== colorScheme || !/^[a-z0-9-]+$/.test(record.stage))
         throw new Error('Invalid host evidence identity');
+      if (record.stage.endsWith('-playback-error'))
+        evidence.playbackFailures.push({
+          colorScheme,
+          stage: record.stage,
+          at: record.at,
+          ...record.details,
+        });
       await writeFile(
         resolve(artifacts, `${record.stage}-${record.colorScheme}.json`),
         JSON.stringify(record, null, 2) + '\n',
@@ -420,7 +428,14 @@ test(${JSON.stringify(identity)},async()=>{
   if(app.shows('id:detail-episodes-error'))throw new Error('Real detail failed for '+seriesId+': '+app.texts().join(' | '));
   await capture(name+'-detail-ready');record(name+'-detail-ready',{texts:app.texts()});
   await app.press('id:detail-start');record(name+'-start-pressed');
-  await app.waitFor('id:player-video',{timeout:budget(35000)});
+  for(let attempt=0;attempt<2;attempt++){
+   await app.waitUntil(()=>app.shows('text:播放遇到问题')||(app.shows('id:player-video')&&clock()>=0&&app.enabled('播放进度')),{timeout:budget(35000)});
+   if(!app.shows('text:播放遇到问题'))break;
+   await capture(name+'-playback-error-'+attempt);
+   record(name+'-playback-error',{series_id:seriesId,attempt,texts:app.texts()});
+   if(attempt===1)throw new Error('Real playback failed after one explicit UI retry: '+seriesId);
+   await app.press('label:重试');record(name+'-retry-pressed',{series_id:seriesId});
+  }
   await capture(name+'-player');record(name+'-player-opened');
   await app.waitUntil(()=>clock()>=0&&app.enabled('播放进度'),{timeout:budget()});
   record(name+'-media-ready');
@@ -489,7 +504,11 @@ test(${JSON.stringify(identity)},async()=>{
       `
   await manage();const before=app.requests().length;
   await app.press('id:history-remove-'+first);await app.waitFor('id:history-confirm-cancel',{timeout:budget()});
-  await capture('cancel-single-confirm');await app.press('id:history-confirm-cancel');
+  await capture('cancel-single-confirm');await app.keyboard.press('enter');
+  await app.waitUntil(()=>!app.shows('id:history-confirm-cancel'),{timeout:budget()});
+  await capture('cancel-single-source');await app.keyboard.press('enter');
+  await app.waitFor('id:history-confirm-cancel',{timeout:budget()});
+  await app.keyboard.press('escape');
   await app.waitUntil(()=>!app.shows('id:history-confirm-cancel'),{timeout:budget()});
   await app.wait(Math.min(600,budget()));
   expect(app.requests().slice(before).filter(request=>request.method==='POST'&&new URL(request.url).pathname.startsWith('/api/v1/library')).length).toBe(0);
@@ -538,6 +557,45 @@ test(${JSON.stringify(identity)},async()=>{
       JSON.stringify(populated)
     )
       throw new Error('Reopening the formal app changed real populated history in ' + colorScheme);
+    await stage(
+      'keyboard-management',
+      colorScheme,
+      deadline,
+      `
+  await manage();const before=app.requests().length;
+  await app.keyboard.press('tab');await capture('keyboard-select-all-focus');
+  await app.keyboard.press('space');await app.waitFor('text:删除所选（2）',{timeout:budget()});
+  await app.keyboard.press('space');await app.waitFor('text:删除所选（0）',{timeout:budget()});
+  const cancelScope=async(name:string,title:string)=>{
+   await app.keyboard.press('enter');await app.waitFor('id:history-confirm',{timeout:budget()});
+   expect(app.texts()).toContain(title);await capture(name+'-default-cancel');
+   await app.keyboard.press('enter');await app.waitFor('id:history-confirm',{state:'gone',timeout:budget()});
+   await capture(name+'-source');await app.keyboard.press('enter');
+   await app.waitFor('id:history-confirm',{timeout:budget()});expect(app.texts()).toContain(title);
+   await app.keyboard.press('escape');await app.waitFor('id:history-confirm',{state:'gone',timeout:budget()});
+   await capture(name+'-escape-source');
+  };
+  await app.keyboard.press('tab');
+  await cancelScope('keyboard-clear','清空本机观看记录？');
+  await app.keyboard.press('tab');await app.keyboard.press('space');
+  await app.waitFor('text:删除所选（1）',{timeout:budget()});await capture('keyboard-row-selected');
+  await app.keyboard.press('shift+tab');await app.keyboard.press('shift+tab');
+  await cancelScope('keyboard-selected','删除所选观看记录？');
+  await app.keyboard.press('tab');await app.keyboard.press('tab');await app.keyboard.press('tab');
+  await cancelScope('keyboard-single',${JSON.stringify(`移除《${populated.entries[0].drama.title}》的观看记录？`)});
+  for(let step=0;step<5;step++)await app.keyboard.press('shift+tab');
+  await app.keyboard.press('enter');await app.waitFor('id:history-select-all',{state:'gone',timeout:budget()});
+  await capture('keyboard-finished');await app.keyboard.press('enter');
+  await app.waitFor('id:history-select-all',{timeout:budget()});
+  await app.waitFor('text:删除所选（0）',{timeout:budget()});
+  expect(app.requests().slice(before).filter(request=>request.method==='POST'&&new URL(request.url).pathname.startsWith('/api/v1/library')).length).toBe(0);
+  record('keyboard-management-no-writes',{texts:app.texts()});`,
+    );
+    if (
+      JSON.stringify(await library('keyboard-unchanged-' + colorScheme, [first, second])) !==
+      JSON.stringify(populated)
+    )
+      throw new Error('Keyboard cancellation changed real persistent history in ' + colorScheme);
     await stage(
       'selected-remove',
       colorScheme,
@@ -620,6 +678,11 @@ test(${JSON.stringify(identity)},async()=>{
   evidence.selectedDeletionVerified = true;
   evidence.uiReopenThemes = ['light', 'dark'];
   ensureActive();
+  evidence.journeyCompleted = true;
+  if (evidence.playbackFailures.length)
+    throw new Error(
+      'Journey completed with recorded playback failures; no uninterrupted acceptance',
+    );
   evidence.passed = true;
 } catch (error) {
   evidence.error = error.message;

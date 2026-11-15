@@ -902,3 +902,25 @@ OpenSpec `wire-guest-history-management` 已启动，仅任务 1.1 完成。新�
 独立代码审查发现上一版清理在成功前清空 host，进程组 EPERM 可跳过单进程终止、丢失重试句柄并覆盖原阶段错误。已提取 `stopLiveHost`，group TERM、子进程 stop、group KILL 各自尝试／收集错误；只有全部清理成功才释放所属句柄，并发调用共享同一等待。runHost 保留主阶段错误，清理错误始终进入最终 cleanupErrors，后来重试成功也不抹去先前失败。三项真实 detached 子进程受控故障测试分别覆盖正常退出、group EPERM 后继续终止和单进程停止失败后最终强制终止，属于退出边界测试；独立复审无新的明确阻断，不扩写为全部信号／并发路径通过。
 
 本批产品与回归源码与上一段完整 verify 相同，三端 check／build、Rust 244／244、Web 173／173、Desktop／TV 各 175／175 的门禁证据继续适用。随后只新增清理辅助函数／3 项工具测试、强化 runner 与更新文档；当前 `pnpm test:tooling` 58／58、格式、lint 和严格 OpenSpec 另行通过，不将旧工具 55 项写为最终 58 项的完整 verify。无依赖变化，既有安全门禁仍开放。继续执行 E1 完整焦点／虚拟长列表、真实后台、Desktop native／当前 TV 包；2.3、3.1–3.3、4.2–4.3 未勾完，E1 与完整 MVP 不因浏览器主链通过而完成。
+
+## E1 真实键盘取消与阅读锚点增量 · 2026-11-15（仍为 7／13）
+
+本批修复回收行选择／移除 ref 仅按首次身份注册的问题；三类行目标共用带所有权的注册、实际 viewport 几何筛选及异步后复查。取消回源在滚动前验证页面、owner、生命周期和更新输入；library 快照发布不再自动滚动，只有返回页面和切换管理密度时恢复稳定 ID／偏移。管理切换异步测量按同一 Library 快照校验，过期测量不覆盖当前阅读锚点。独立源码复审未发现新增明确阻断，不据此代替宿主验收。
+
+合成边界单列：`artifacts/guest-history-state/logs/history-focus-boundaries.log` 16／16；`history-scroll-macos.log` 在实际 macOS 前台分别执行后段取消回源和管理密度切换，两项均通过。`scroll-macos-2026-11-15T08-15-09-329Z/` 的 scope 明确 syntheticData／manualClock／reducedMotion=true、functionAcceptance=false。独立实际看浅深共 8 图：普通态前后列表区域 `(56,333)-(1374,1020)` 像素完全一致；管理时列表顶由 333 变为 393、行高 166→192，保留同一段记录，不能称管理期间像素位置不变。较后第 14 条的移除来源四边焦点完整可见；headless 的 shows 包含预挂载行，单凭该断言不能证明几何。
+
+正式 App 的真实新增运行先发现了合成 History 页面夹具漏掉的导航问题，失败证据均保留：
+
+- `artifacts/live-history/2026-11-15T08-15-59-265Z/` 首次真实播放后，确认内 Escape 被全局页面返回绑定抢先处理，误离开历史。已移除该全局绑定，由 NSH 顶层弹层优先关闭；桌面 browse 根经 NavPage 返回请求调用原页面导航，深层页面、播放器与 TV BackHandler 保留各自路径。
+- 共享正式 App 合成回归覆盖单条／清空 Escape 关闭、来源 Enter 重开、零删除写入及桌面无弹层 Escape 返回首页。`history-escape-before.log` 在历史页断言处失败，最终 `history-escape-after.log` 通过。它是对真实缺陷的边界回归，不是功能验收。
+- `artifacts/live-history/2026-11-15T08-21-31-073Z/` 真实取消复验已通过，单删后重播显示“播放遇到问题／播放失败，请重试”，整体失败。没有取得原失败响应体，根因未定，不归因于网络、上游或解码；之前成功轮不覆盖本批源码。
+
+最终真实补验 `artifacts/live-history/2026-11-15T08-29-22-483Z/`（日志 `live-browser-keyboard-recovery.log`）使用正式 `apps/web/App.tsx`、实际 Chromium、当前 Rust HTTP、精确 Origin、独立真实 SQLite 和 live 网络。没有合成响应、直接历史写入或手动播放时钟。浅深各 10 段均走完，分别用时 131.776／162.500 秒，963 项源码 manifest 前后无漂移；两部真实短剧仍为 `7705305581673794585` 和 `7682645700781296665`，6 次播放都有实际时钟增长及保存记录。
+
+从管理入口开始，实际 Tab／Space 验证全选 2→0、跳过禁用删除、单选及 mixed、完成／重进管理清选择；三类确认均验证默认 Enter 取消、来源 Enter 重开同一范围、Escape 取消回源。两色管理阶段均零 library POST，Node 读取键盘前后完整持久快照相等；双记录跨 API／应用重启、精确选择删除、保留邻项详情、清空后重启及搜索词保留也重新核对，34 次只读 GET 均成功。
+
+**这一轮不是整体验收通过。** 深色第二部首次播放明确失败，runner 保存 `second-play-playback-error-0-dark.png`、错误正文和请求记录，点击一次现有“重试”后才实际播放成功并完成后续管理。`playbackFailures` 保留该次失败；最终 `journeyCompleted=true`、`passed=false`、进程 exit 1，`cleanupErrors=[]`，配置字节恢复。重试最多一次，失败恢复不能变为无故障通过；不继续反复重跑取代故障定位。该结果仅证明所列真实管理操作及本次显式恢复路径，不能证明播放稳定性、原生桌面、TV 或整个 E1／MVP 已验收。
+
+独立实际打开浅深各 12 张 keyboard 图和各最终重新管理图，共 26 张，以及深色失败／重试恢复／暂停后的 3 张真实播放图。所看状态的圆角、字级、间距／对齐、浅深表面、公共控件、mixed／禁用／焦点外框未见新增阻断；三类确认取消后分别回到单行移除、删除所选和清空来源。全选 2→0 只有实际按键与断言，没有保存勾选全选时的截图，不称该状态已视觉审过。失败页当前季仍标“播放中”的文案不一致保留为待修正项。没有验证 hover／pressed、逐帧动效、真实减少动态、读屏、人工键盘／系统前台焦点、多尺寸／大字或原生 Desktop／TV；合成 macOS 长列表的 8 图不并入本轮真实证据。E1 的其余任务继续开放，仍 7／13。
+
+本批最终产品／回归／runner 源码的完整 `pnpm verify`（`artifacts/guest-history-state/logs/verify-history-focus-final.log`）exit 0：工具 58／58、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 176／176、Desktop／TV 各 178／178，三端 check／build、格式、lint、codegen:check 和版本门禁通过。既有建议框 Escape、播放器全屏两层返回等回归仍通过；Desktop／TV headless 摘要各有 1 条 warning，受控失败用例仍有预期告警。复用既有 Rust 缓存且关闭增量编译，没有在临时目录实现源码。随后仅补文档，最终格式／diff 检查和严格 OpenSpec 另过；独立范围审查未发现新的明确阻断。未增依赖，未重跑 security，既有安全阻塞保持开放。工程通过与上面的真实整轮失败分别记录，不据此关闭 E1／完整 MVP，也不推送、归档或发行。

@@ -1,7 +1,11 @@
 import { expect, open, test, type OpenOptions } from 'nsh/test';
 import type { ProductTarget } from '@hongguo/ui';
 
-export function registerHistoryManagementTests(entry: string, target: ProductTarget) {
+export function registerHistoryManagementTests(
+  entry: string,
+  target: ProductTarget,
+  artifacts?: string,
+) {
   const options: OpenOptions = {
     platform: 'macos',
     width: target === 'tv' ? 1920 : 1440,
@@ -12,6 +16,14 @@ export function registerHistoryManagementTests(entry: string, target: ProductTar
   };
   const first = '9007199254740992';
   const second = '9007199254740993';
+  const capture = async (app: Awaited<ReturnType<typeof open>>, name: string) => {
+    if (!artifacts) return;
+    for (const theme of ['light', 'dark'] as const) {
+      await app.setColorScheme(theme);
+      await app.screenshot(`${artifacts}/${name}-${theme}.png`);
+    }
+    await app.setColorScheme('light');
+  };
   test('single removal keeps exact identity and cancel is the default safe action', async () => {
     const app = await open(entry, options);
     await app.press('id:history-manage');
@@ -153,6 +165,45 @@ export function registerHistoryManagementTests(entry: string, target: ProductTar
     expect(
       app.texts().includes('synthetic · mode:interrupt · active:true · count:13 · opened:none'),
     ).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
+  test('cancelling a recycled row restores its exact remove action without deleting', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-manage');
+    for (let step = 0; step < 7 && !app.shows('id:history-remove-8013'); step++) {
+      await app.scroll('id:history-list', 600);
+      await app.wait(80);
+    }
+    await app.scroll('id:history-list', 600);
+    await app.press('id:history-remove-8013');
+    await app.back();
+    await app.waitFor('id:history-confirm', { state: 'gone' });
+    await app.wait(80);
+    await capture(app, 'recycled-row-cancel-source');
+    await app.keyboard.press('enter');
+    await app.waitFor('id:history-confirm');
+    expect(app.texts()).toContain('移除《合成观看记录14》的观看记录？');
+    expect(app.texts()).toContain('calls:');
+    await app.back();
+    expect(app.requests()).toEqual([]);
+  });
+  test('switching management density preserves a middle reading context without writes', async () => {
+    const app = await open(entry, options);
+    await app.scroll('id:history-list', target === 'tv' ? 1200 : 900);
+    await app.wait(80);
+    expect(app.shows('id:history-8006')).toBe(true);
+    await capture(app, 'reading-before-management');
+    await app.press('id:history-manage');
+    await app.waitFor('id:history-select-all');
+    await app.wait(80);
+    expect(app.shows('id:history-select-8006')).toBe(true);
+    await capture(app, 'reading-during-management');
+    await app.press('id:history-manage');
+    await app.waitFor('id:history-select-all', { state: 'gone' });
+    await app.wait(80);
+    expect(app.shows('id:history-8006')).toBe(true);
+    await capture(app, 'reading-after-management');
+    expect(app.texts()).toContain('calls:');
     expect(app.requests()).toEqual([]);
   });
   test('mixed selection selects all, all selection clears, and committed snapshot removal prunes selection', async () => {
