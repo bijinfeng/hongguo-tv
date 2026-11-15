@@ -323,7 +323,13 @@ export function CinemaStageAction(props: {
       class="absolute inset-0 items-center justify-center bg-transparent focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4"
     >
       <If when={props.showPlay && !props.disabled}>
-        <View class="w-16 h-16 rounded-full bg-cinema/60 items-center justify-center">
+        <View
+          class="rounded-full bg-cinema/60 items-center justify-center"
+          style={{
+            width: Product() === 'tv' ? tvUnit(96) : 64,
+            height: Product() === 'tv' ? tvUnit(96) : 64,
+          }}
+        >
           <Icon name="play" color={token('cinema-foreground')} />
         </View>
       </If>
@@ -345,9 +351,10 @@ export function CinemaSettingRow(props: { label: string; children?: JSX.Element 
 export function EpisodeRail(props: { children?: JSX.Element }) {
   return (
     <View
-      class="bg-card border border-border rounded-(--radius) overflow-hidden"
+      class="shrink-0 bg-card border border-border rounded-(--radius) overflow-hidden"
       style={{
         width: Math.min(Product() === 'tv' ? tvUnit(640) : 316, windowSize().width),
+        minWidth: Math.min(Product() === 'tv' ? tvUnit(520) : 280, windowSize().width),
         height: Math.min(Product() === 'tv' ? tvUnit(720) : 552, windowSize().height),
         borderRadius: controlMetrics().radius,
       }}
