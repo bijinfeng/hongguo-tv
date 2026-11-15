@@ -37,11 +37,22 @@ export function tvBuildType(env = process.env) {
 
 // The upstream AAR is immutable and checked before extracting its embedding classes.
 const archiveHash = '4e0c943c75c4618e84a0139394719068de341f5c4386714502a2fb1cba802d7f';
+
+/** The custom Android host consumes the same icon as NSH's other packages. */
+export async function prepareTvBranding(metadata, appDirectory, generated) {
+  if (typeof metadata.icon !== 'string' || !metadata.icon.trim())
+    throw new Error('TV app metadata must name its shared PNG icon');
+  const drawables = resolve(generated, 'res/drawable-nodpi');
+  await mkdir(drawables, { recursive: true });
+  await cp(resolve(appDirectory, metadata.icon), resolve(drawables, 'app_icon.png'));
+}
+
 export async function packageTvHost() {
   const buildType = tvBuildType();
   const toolchain = JSON.parse(await readFile(resolve(root, 'tooling/tv-toolchain.json'), 'utf8'));
   const metadata = JSON.parse(await readFile(resolve(root, 'apps/tv/nsh.json'), 'utf8'));
   const generated = resolve(root, 'apps/tv/.nsh/android-host');
+  await prepareTvBranding(metadata, resolve(root, 'apps/tv'), generated);
   const cache = resolve(root, '.local/tools/nsh-embed-android.zip');
   await mkdir(resolve(root, '.local/tools'), { recursive: true });
   if (!existsSync(cache)) {
@@ -93,7 +104,7 @@ export async function packageTvHost() {
   ]) {
     const tokens = theme.cssVars[mode];
     await mkdir(resolve(generated, 'res', folder), { recursive: true });
-    const colors = ['background', 'primary', 'primary-foreground', 'ring']
+    const colors = ['background', 'ring']
       .map((token) => `<color name="tv_${token.replaceAll('-', '_')}">${tokens[token]}</color>`)
       .join('\n');
     await writeFile(

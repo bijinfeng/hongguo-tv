@@ -1,6 +1,7 @@
 {
   "name": "红果",
   "id": "dev.hongguo.desktop",
+  "icon": "../../packages/ui/assets/brand/app-icon.png",
   "version": "0.1.0",
   "build": 1,
   "rust": "native",

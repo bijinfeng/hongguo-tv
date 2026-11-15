@@ -22,6 +22,7 @@ android {
     defaultConfig {
         buildConfigField 'String', 'UPDATE_CERTIFICATE_SHA256', '"' + releasePolicy.tv.signingCertificateSha256 + '"'
         applicationId appMetadata.id
+        resValue 'string', 'app_name', appMetadata.name
         minSdk toolchain.android.minSdk
         targetSdk toolchain.android.targetSdk
         versionCode appMetadata.build
