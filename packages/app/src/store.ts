@@ -18,11 +18,11 @@ import {
   type Drama,
   type Episode,
   type HistoryChange,
-  type Library,
   type SearchResult,
   type SearchDiscovery,
 } from '@hongguo/core-client';
 import { createRecentSearches } from './recent-searches';
+import { createLibraryState } from './library-state';
 import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
@@ -173,7 +173,8 @@ export function createStore(
       }
     }
   };
-  const library = resource(({ signal }) => request<Library>('/api/v1/library', signal));
+  const history = createLibraryState(request);
+  const library = history.library;
   const account = resource(({ signal }) => request<Account>('/api/v1/account', signal));
   const entries = () =>
     (library()?.entries ?? [])
@@ -210,9 +211,7 @@ export function createStore(
   );
   const searchFailure = signal<{ raw: string; message: string } | undefined>(undefined);
   const searchError = () => (searchFailure()?.raw === draft() ? searchFailure()!.message : '');
-  const warning = signal('');
-  let writes = Promise.resolve();
-  const failedProgress = new Map<string, HistoryChange>();
+  const warning = history.warning;
   const restoreFocus = () => {
     const owned = focusIntent;
     cancelAnimationFrame(frame);
@@ -255,22 +254,20 @@ export function createStore(
         if (playerCheckpoint === handler) playerCheckpoint = undefined;
       };
     },
-    shutdown() {
+    async shutdown() {
       playerCheckpoint?.();
-      return Promise.all([writes, recent.drain()]).then(() => {});
+      await recent.drain();
+      await history.drain();
     },
     async prepareUpdate() {
       playerCommand?.('pause');
       playerCheckpoint?.();
-      await writes;
-      // Failed checkpoints must be retried, not silently discarded by the ordinary UI queue.
-      for (const [key, change] of failedProgress) {
-        const next = await request<Library>('/api/v1/library', undefined, change);
-        if ((library()?.owner_id ?? '') === change.owner_id) library.mutate(next);
-        failedProgress.delete(key);
-      }
-      warning.set('');
+      await history.drain();
+      // Retry inside the same queue; an update cannot bypass uncommitted progress.
+      await history.retryFailed();
       await recent.drain();
+      await history.drain();
+      history.assertSaved();
     },
     registerPlayerBack(handler: () => void) {
       playerBack = handler;
@@ -428,20 +425,7 @@ export function createStore(
         duration,
         completed,
       };
-      const key = `${owner}:${drama.series_id}`;
-      writes = writes.then(async () => {
-        try {
-          const next = await request<Library>('/api/v1/library', undefined, change);
-          if ((library()?.owner_id ?? '') === owner) library.mutate(next);
-          failedProgress.delete(key);
-          warning.set('');
-        } catch (error) {
-          failedProgress.set(key, change);
-          console.warn('观看进度写入失败', error);
-          warning.set(errorMessage(error, '观看进度未保存'));
-        }
-      });
-      return writes;
+      return history.save(change);
     },
   };
 }

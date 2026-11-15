@@ -1,4 +1,4 @@
-import { cleanup, host, signal, Text, View, type ImageAsset } from 'nsh';
+import { cleanup, effect, host, signal, Text, untracked, View, type ImageAsset } from 'nsh';
 import { Button } from '@hongguo/ui';
 import type { NativeSession } from '@hongguo/core-client/native';
 import { configureTransport } from '@hongguo/core-client';
@@ -117,9 +117,16 @@ function StoreDrainFixture() {
       void store.save(drama, episode, position, duration, completed);
     });
     store.registerPlayerCheckpoint(progress.save);
-    // The earlier write blocks; the actual viewed five-second checkpoint waits behind it.
-    void store.save(drama, episode, 1, 60);
-    progress.update(5, 60, true);
+    let started = false;
+    effect(() => {
+      if (started || store.library.state() !== 'ready') return;
+      started = true;
+      untracked(() => {
+        // Begin viewing with a confirmed owner; the earlier write still blocks the final checkpoint.
+        void store.save(drama, episode, 1, 60);
+        progress.update(5, 60, true);
+      });
+    });
     cleanup(() => {
       void store.shutdown().finally(() => record('closed'));
     });

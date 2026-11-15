@@ -14,6 +14,7 @@
     "./testing/native-startup": "./test/NativeStartup.tsx",
     "./testing/search-state": "./test/SearchState.tsx",
     "./testing/recent-search-state": "./test/RecentSearchState.tsx",
+    "./testing/library-state": "./test/LibraryState.tsx",
     "./testing/focused-removal-state": "./test/FocusedRemovalState.tsx",
     "./testing/discovery-state": "./test/DiscoveryState.tsx",
     "./testing/card-controls-state": "./test/CardControlsState.tsx",

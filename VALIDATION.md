@@ -771,3 +771,30 @@ TV `02-48-33-386Z/` 中阅读停靠、Enter 无动作、100 字全文和相关�
 保留此前失败：`03-26-04-779Z` 的宿主文件写入能力错误、`03-31-12-381Z` 的不存在 close API、`03-36-07-152Z` 的详情二次读取尚未稳定／标题读取时机错误均为 runner 失败；`03-27-24-527Z` 真实推荐为空时未覆盖正向流程；`03-40-56-063Z` 真实搜索 HTTP 504 明确失败。`03-33-01-855Z` 的旧正常通过存在 Enter 断言偏弱，不能替代最后加强版。失败目录和日志未删除，不隐藏网络错误，不自动用合成结果替换。推荐内容随实际请求变化，因此正向验收从正式页面读取当前可见标题，再核对实际目的身份，不冻结预取推荐列表作为页面必然结果。
 
 本次只完成上述真实正向部分。所查真实详情没有演员区，`actorActionsAccepted=false`；演员入口仍待真实数据验证，不从四个空样本断言全站无演员，也不注入姓名凑通过。真实切季、较后相关条目、780 窄窗、浏览器 Web、Desktop native、TV、媒体、账号、读屏、物理电视、安全与正式发行仍分别待验。功能实现、合成边界回归与部分真实流程均不能单独代表详情整项或首期 MVP 已验收。
+
+## 详情真实切季与跨断点回源修复 · 2026-11-15
+
+真实流程继续使用正式 `apps/web/App.tsx` 在 macOS 可见宿主、当前 Rust HTTP 服务与独立 SQLite，未注入合成响应。runner 现在只操作当前“重生”搜索的首条来源，不因无演员、无相关或无可播其他季而生成替代数据。新增真实季列表预读只提供实际身份；窗口仍必须点击真实存在的季按钮，并观察精确详情请求与标题。
+
+- `artifacts/live-discovery/2026-11-15T04-04-25-978Z/` 的浅深 2／2 完成来源第三季 `7705305581673794585`（138 集）→第一季 `7683432711033211928`（73 集）→缓存恢复第三季，以及 nova `7699513062054710296` 的相关进入、返回、780 窄窗再 Enter 和 1440 恢复。独立功能复核确认季请求／目的身份、逐层返回、无观看／媒体写入；但独立视觉复核 12 张发现 780 浅深相关外圈的顶部被裁。原先“窄窗完整外圈通过”的功能审查判断已撤回，该批不能作为该视觉项通过的证据。
+- `DetailExtras` 的相关来源统一改用居中揭示再聚焦；演员继续 nearest，既有身份、回收、collection／focusGuard 和新输入优先级保留，不修改公共卡片外观或按宿主复制页面。新图 `artifacts/live-discovery/2026-11-15T04-24-55-839Z/` 浅深 2／2，基于该修复及本轮 library 状态接线；独立复核 12 张（每色 narrow／wide-related-return、原详情、season-detail、season-return、related-detail）确认窄窗上／下／左／右外圈完整、两列／四列正确、长标题和 596 集元数据、真实封面、73／138 集切季恢复与 nova 详情正常。深色 season-detail 的单张图未显示相关段，不从瞬时截图推断请求错误；后续实际相关进入及返回已完成。
+- 最新 result passed=true、interrupted=false、cleanupErrors 空，runtime 配置字节回核且所属进程结束；library-after 仍为空，search-history-after 含经 UI 提交的“重生”。本批只写关键词，不准备媒体或写观看记录。`source-manifest.json` 绑定 633 个实际运行输入，明确包含尚未提交的 library-state／薄测试入口等源码，不把 HEAD 独自作为全部运行输入身份。
+- 保留真实失败：`04-02-37-450Z/` 在预查四个候选中的第四个季列表时 HTTP 502，未进入图形流程；随后将预查收敛为本次实际操作的首条来源。`04-22-13-445Z/` 为居中修复后的官网搜索 HTTP 504，未进入图形流程，未用合成成功替换。成功重跑另有目录，失败证据不删除。
+
+这只补齐一次真实切季、首张相关作品和 780／1440 跨断点回源。演员、较后真实相关条目、浏览器 Web、Desktop NativeApp、TV 真实业务、媒体、账号、读屏、物理电视与发行继续各自开放；详情任务 3.1 仍不关闭。圆角、字体、间距、对齐、浅深颜色和所见状态有上述截图观察；本轮没有逐项验证全部 hover／pressed、逐帧动效或辅助技术。居中揭示为即时布局／焦点恢复，不新增滚动动画。
+
+共用 TV 输入边界回归：`artifacts/rankings-ui/android-real-adapter/2026-11-15T04-27-38-342Z/` 使用生产 MainActivity／TvRemote 和共享 TSX 的独立 API34 验收包、显式合成 HTTP；浅／深各 53 项、大字 54 项通过。restoration 的三组 passed／nativePassed 均 true，11 项清理全部成功、errors 空，生产 APK 路径／SHA256、主题、字号、前台与 reverse 初末一致，独立验收包已卸载。它是居中修复与 library 接线后的合成输入回归，不代证 TV 正式入口真实内容或原生安装业务。
+
+## E1 游客历史状态基础 · 2026-11-15（1／13，管理功能未验收）
+
+OpenSpec `wire-guest-history-management` 已启动，仅任务 1.1 完成。新增生产模块 `packages/app/src/library-state.ts` 拥有统一提交快照、读取 revision／owner 围栏和写 tail；store 的读取、entries、resume、save、shutdown、prepareUpdate 保持原边界。失败刷新保留可用快照；未知／foreign owner 零派发；播放保存和更新重试进入同一队列，失败不阻断后续，关键词排空后最后等待稳定 tail。公开接线、排空接纳边界及缺口见[游客历史管理](docs/guest-history-management.md)。新增测试文件只注册合成边界夹具，不是新的产品页面。
+
+定向 `artifacts/guest-history-state/logs/state-final.log` 7／7，包含原详情到库请求边界及六项状态回归：迟到 GET、不丢失败刷新快照、等待 tail 的读取被新 mutation 失效、未知／foreign owner 零派发、更新重试与新保存串行、初读失败后的显式恢复。通过生产 store 证明 library／entries／resume 使用同一提交数据；它们不是实际播放或 SQLite 的功能验收。独立源码复核未发现本范围阻断。
+
+保留失败：`state-first.log` 的五项失败来自临时定向 runner 将 open 路径解析到 `.nsh`，补测试薄入口后 `state-second.log` 6／6；之后补初读失败场景，最终为上述 7／7。完整 `verify-first.log` 的 Rust／工具已通过、Web 141／142；唯一失败是旧 `StoreDrainFixture` 在构造期间、owner 尚未确认时直接 seed progress。现夹具以 ready owner 为观看前提，原生关闭回归的 writing-1→committed-1→writing-5→committed-5→closed 以及原 transport／无 foreign 断言完整保留，定向 `native-drain-fixed.log` 1／1；新增未知 owner 测试防止以默认 guest 绕过。未放宽持久化、关闭顺序或等待条件。
+
+删除序号 supersession、原派发终结屏障、单条／所选／清空 job、确认、管理 UI／虚拟焦点，以及正式入口真实播放形成历史后的管理／重启主验收尚未实施。任务 1.2 虽已迁入共同队列，仍缺 progress→remove 的跨管理验证，保持未完成；其余任务同样不因状态测试通过而关闭。没有 Rust DTO 或依赖变化，不新增 codegen 结果、不重跑 security，也不解除既有安全阻塞。
+
+最终 `artifacts/guest-history-state/logs/verify-final.log` 的完整 `pnpm verify` 已结束，exit 0，包含工具 39／39、Rust 236／236（另一个显式联网 probe 默认跳过）、Web 142／142、Desktop 与 TV 各 144／144，以及三端 check／build、格式、lint、契约和发行版本检查。633 个运行输入逐项回核，与本轮真实流程和门禁的 source-manifest 均一致。该门禁包含合成回归，不将工程检查通过写成 E1 或完整 MVP 验收通过。已有 NSH／SDK 与测试预期失败 warning 不表述为零 warning。
+
+居中版 TV 独立静态补审实际看 9 张：三档各 related-source-return、read-only-actor、only-read-only-actor。340–343 整行、343 四边焦点外圈、短名及 100 字姓名阅读区域完整；大字号换行正常。对应 dump 的精确 343／阅读区域确实持焦，条目底边在真实 detail-scroll 内。该补审与前述 restoration 相符，只证明 API34 合成边界回归，没有扩写为 TV 真实业务或管理 UI 验收。
