@@ -118,6 +118,72 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       expect(app.shows('id:home-scroll')).toBe(true);
     }
   });
+
+  test('watch statistics reset and close return focus to their triggers', async () => {
+    const today = new Date();
+    const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const revision = 'a'.repeat(32);
+    const empty = () => ({
+      version: 1,
+      since: day,
+      reset_at_ms: 2,
+      revision: 'b'.repeat(32),
+      days: [],
+    });
+    const stats = (request: StubRequest): StubResponse => {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/v1/account')
+        return ok({
+          logged_in: false,
+          owner_id: '',
+          owner_epoch: 'guest-epoch',
+          sync: { state: 'local', pending: 0 },
+          qr_login_available: true,
+        });
+      if (url.pathname === '/api/v1/watch-statistics')
+        return request.method === 'DELETE'
+          ? ok(empty())
+          : ok({
+              version: 1,
+              since: day,
+              reset_at_ms: 1,
+              revision,
+              days: [
+                {
+                  day,
+                  duration_ms: 60_000,
+                  content_types: [{ key: 'real', duration_ms: 60_000 }],
+                  genres: [],
+                },
+              ],
+            });
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      width: 1440,
+      height: 1000,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': stats, 'POST *': stats, 'DELETE *': stats },
+    });
+    await app.press('id:nav-history');
+    await app.waitFor('id:history-page');
+    await app.press('id:history-statistics');
+    await app.waitFor('id:watch-statistics-panel');
+    await app.waitFor('text:1 分钟');
+    await app.press('id:watch-statistics-reset');
+    await app.waitFor('id:watch-statistics-reset-confirm');
+    await app.press('id:watch-statistics-reset-confirm-cancel');
+    await app.keyboard.press('enter');
+    await app.waitFor('id:watch-statistics-reset-confirm');
+    await app.press('id:watch-statistics-reset-confirm-cancel');
+    await app.press('id:watch-statistics-close');
+    await app.keyboard.press('enter');
+    await app.waitFor('id:watch-statistics-panel');
+    await app.press('id:watch-statistics-close');
+    expect(app.requests().filter((request) => request.method === 'POST')).toEqual([]);
+  });
   test('typed suggestions validate Unicode, debounce composition, cancel superseded/dismissed/inactive/disposed reads and retry', async () => {
     const app = await open('./SuggestionsStatePreview.tsx', { clock: {} });
     await app.press('验证输入');

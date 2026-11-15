@@ -23,6 +23,8 @@
 - `pnpm check --target web`、`desktop`、`tv` 通过并完成对应 Rust crate build。
 - `cargo test -p hongguo-core watch_statistics`、HTTP/native 定向回归通过；`cargo test -p hongguo-native-bridge --lib` 48/48 通过。
 - `pnpm test --target web` 的 tooling/app 142/142 通过，Rust 并行阶段出现 1 个原生目录别名生命周期用例偶发失败（352/353），随后该 native crate 全量隔离重跑 48/48 通过；该一次性并发失败保留为诊断，不据此宣称完整 `pnpm verify` 已通过。
+- 统计采集器回归已注册到 Web／Desktop／TV 三端入口；三端各 3 项 collector 回归通过。共享 History 的重置／收起焦点回归三端各 1 项通过，覆盖取消后回到“重置统计”与收起后回到“观看统计”触发按钮；macOS 可见宿主浅深色截图复核通过，截图只使用受控统计响应，不作为真实累计验收。
+- 冻结完整 `pnpm verify` 通过：Rust nextest 405/405（1 skipped），Web／Desktop／TV 检查、构建与应用回归均通过；最终三端 app 回归分别 240/240（Web）、240/240（Desktop）、240/240（TV），`codegen:check`、`fmt:check` 和 tooling 也通过。
 
 ## 未验收
 

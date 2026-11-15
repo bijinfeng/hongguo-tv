@@ -214,7 +214,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
   const resetOpen = signal(false);
   const resetBusy = signal(false);
   const localError = signal('');
-  let closeRef: ViewRef | undefined;
+  let resetRef: ViewRef | undefined;
   const state = () => props.store.watchStatistics;
   effect(() => {
     if (props.open) void state().ensure();
@@ -265,14 +265,10 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
               testID="watch-statistics-reset"
               label="重置统计"
               disabled={state().loading() || !state().snapshot()}
+              buttonRef={(ref) => (resetRef = ref)}
               onPress={() => resetOpen.set(true)}
             />
-            <Button
-              testID="watch-statistics-close"
-              label="收起"
-              buttonRef={(ref) => (closeRef = ref)}
-              onPress={props.onClose}
-            />
+            <Button testID="watch-statistics-close" label="收起" onPress={props.onClose} />
           </View>
         </View>
         <If when={state().loading()}>
@@ -375,7 +371,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
         onOpenChange={(event) => {
           if (!event.open && !resetBusy()) resetOpen.set(false);
         }}
-        returnFocus={() => closeRef?.focus()}
+        returnFocus={() => resetRef?.focus()}
         onConfirm={reset}
         confirmLabel="重置统计"
       />
@@ -400,6 +396,7 @@ export function History(props: { store: Store }) {
   const confirmation = signal<Confirmation | undefined>(undefined);
   const localError = signal('');
   let list: ListRef | undefined;
+  let statisticsRef: ViewRef | undefined;
   const anchors: Partial<Record<LibraryKind, { id: string; offset: number }>> = {};
   let frame = 0;
   let disposed = false;
@@ -416,6 +413,12 @@ export function History(props: { store: Store }) {
   const favorites = () => category() === 'favorites';
   const entries = (): LibraryItem[] =>
     favorites() ? props.store.favorites() : props.store.entries();
+  const closeStatistics = () => {
+    statisticsOpen.set(false);
+    requestAnimationFrame(() => {
+      if (props.store.activePage('history')) statisticsRef?.focus();
+    });
+  };
   const management = () =>
     favorites() ? props.store.favoritesManagement : props.store.historyManagement;
   const scope = () => JSON.stringify([owner(), props.store.account()?.owner_epoch ?? '']);
@@ -802,9 +805,11 @@ export function History(props: { store: Store }) {
           <Button
             testID="history-statistics"
             label={statisticsOpen() ? '收起统计' : '观看统计'}
+            buttonRef={(ref) => (statisticsRef = ref)}
             onPress={() => {
               props.store.noteFocusIntent();
-              statisticsOpen.update((value) => !value);
+              if (statisticsOpen()) closeStatistics();
+              else statisticsOpen.set(true);
             }}
           />
           <Button
@@ -830,11 +835,7 @@ export function History(props: { store: Store }) {
           props.store.libraryKind.set(event.value === 'favorites' ? 'favorites' : 'history');
         }}
       />
-      <WatchStatisticsPanel
-        store={props.store}
-        open={statisticsOpen()}
-        onClose={() => statisticsOpen.set(false)}
-      />
+      <WatchStatisticsPanel store={props.store} open={statisticsOpen()} onClose={closeStatistics} />
       <LibrarySyncNotice store={props.store} active={present()} testID="history-library-sync" />
       <If when={managing()}>
         <View class="flex-row flex-wrap items-center gap-3">

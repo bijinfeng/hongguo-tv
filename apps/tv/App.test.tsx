@@ -4,6 +4,7 @@ import {
   registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
+  registerWatchStatisticsTests,
   registerNativeStartupTests,
 } from '@hongguo/app/testing';
 import { expect, open, test } from 'nsh/test';
@@ -27,6 +28,7 @@ test('TV T0 mixed bridge calls, cancels owner work and releases classes', async 
 registerApplicationTests('tv', './HttpFixture.tsx');
 registerLibraryTests();
 registerPlaybackTests();
+registerWatchStatisticsTests();
 
 registerBrowsingTests('tv', './HttpFixture.tsx');
 

@@ -4,12 +4,14 @@ import {
   registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
+  registerWatchStatisticsTests,
   registerNativeStartupTests,
 } from '@hongguo/app/testing';
 
 registerApplicationTests();
 registerLibraryTests();
 registerPlaybackTests();
+registerWatchStatisticsTests();
 
 registerBrowsingTests();
 
