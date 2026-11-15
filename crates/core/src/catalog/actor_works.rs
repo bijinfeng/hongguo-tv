@@ -95,7 +95,7 @@ fn count(row: &Value) -> Option<u32> {
             .filter(|n| *n > 0)
     })
 }
-pub(super) fn summary(row: &Value) -> Option<Drama> {
+pub(crate) fn summary(row: &Value) -> Option<Drama> {
     let row = row.get("video_data").unwrap_or(row);
     let id = ["series_id_str", "series_id", "seriesId", "book_id", "id"]
         .iter()
@@ -130,6 +130,7 @@ pub(super) fn summary(row: &Value) -> Option<Drama> {
         cover,
         intro: first(row, &["series_intro", "video_desc", "description"], 1024).unwrap_or_default(),
         episode_count: count(row),
+        series_status: super::parse::series_status(row),
         content_type,
         tags: (!tags.is_empty()).then_some(tags),
         episodes: None,

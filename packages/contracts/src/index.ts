@@ -2,6 +2,7 @@ import type { components } from './generated';
 
 export type Episode = components['schemas']['Episode'];
 export type Drama = components['schemas']['Drama'];
+export type SeriesStatus = components['schemas']['SeriesStatus'];
 export type SeriesDetail = components['schemas']['SeriesDetail'];
 export type SeriesActor = components['schemas']['SeriesActor'];
 export type SearchHistory = components['schemas']['SearchHistory'];
@@ -37,6 +38,11 @@ export type LibraryOperation = components['schemas']['LibraryOperation'];
 export type PlayInfo = components['schemas']['PlayInfo'];
 
 export type Account = components['schemas']['Account'];
+export type FollowQuery = components['schemas']['FollowQuery'];
+export type FollowItem = components['schemas']['FollowItem'];
+export type FollowSnapshot = components['schemas']['FollowSnapshot'];
+export type FollowMutationRequest = components['schemas']['FollowMutationRequest'];
+export type FollowMutationResult = components['schemas']['FollowMutationResult'];
 export type AccountSyncState = components['schemas']['AccountSyncState'];
 export type AccountSyncStatus = components['schemas']['AccountSyncStatus'];
 export type GuestHistoryStatus = components['schemas']['GuestHistoryStatus'];

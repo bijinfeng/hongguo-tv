@@ -21,6 +21,7 @@ pub(crate) enum CloudError {
     Passport(PassportError),
     Rejected,
     IncompleteHistory,
+    IncompleteFollow,
     MetadataIdentity,
 }
 impl CloudError {
@@ -29,6 +30,7 @@ impl CloudError {
             Self::Passport(error) => error.code(),
             Self::Rejected => "ACCOUNT_CLOUD_REJECTED",
             Self::IncompleteHistory => "ACCOUNT_CLOUD_HISTORY_INCOMPLETE",
+            Self::IncompleteFollow => "ACCOUNT_FOLLOW_INCOMPLETE",
             Self::MetadataIdentity => "ACCOUNT_CLOUD_METADATA_IDENTITY",
         }
     }
@@ -79,7 +81,7 @@ pub(crate) struct CloudLibrary {
 }
 
 #[derive(Clone, Copy)]
-enum Endpoint {
+pub(super) enum Endpoint {
     History,
     Favorites,
     Progress,
@@ -87,6 +89,8 @@ enum Endpoint {
     UploadHistory,
     UploadProgress,
     SetFavorite,
+    FollowList,
+    SetFollow,
 }
 impl Endpoint {
     fn path(self) -> &'static str {
@@ -98,11 +102,13 @@ impl Endpoint {
             Self::UploadHistory => "/reading/bookapi/read_history/update/v",
             Self::UploadProgress => "/reading/bookapi/read_progress/upload/v",
             Self::SetFavorite => "/reading/bookapi/bookshelf/video/update/v",
+            Self::FollowList => "/reading/user/subscribe/list/v1/",
+            Self::SetFollow => "/reading/user/subscribe/delete/v",
         }
     }
     fn method(self) -> Method {
         match self {
-            Self::History | Self::Favorites => Method::GET,
+            Self::History | Self::Favorites | Self::FollowList => Method::GET,
             _ => Method::POST,
         }
     }
@@ -110,7 +116,7 @@ impl Endpoint {
 
 impl PassportClient {
     /// This transport has no caller-selectable URL, signature mode or arbitrary headers.
-    async fn cloud_request(
+    pub(super) async fn cloud_request(
         &mut self,
         endpoint: Endpoint,
         params: BTreeMap<String, String>,
@@ -565,6 +571,7 @@ impl PassportClient {
                         cover_fallback: None,
                         intro,
                         episode_count: (count > 0).then_some(count),
+                        series_status: crate::catalog::series_status(&Value::Object(raw.clone())),
                         content_type: (!content_type.is_empty()).then_some(content_type),
                         episodes: None,
                         tags,
@@ -648,7 +655,7 @@ impl PassportClient {
 
 fn validate_envelope(payload: &Value) -> Result<(), CloudError> {
     let code = payload.get("code").ok_or(PassportError::InvalidResponse)?;
-    if number(code) != Some(0) {
+    if number(code).ok_or(PassportError::InvalidResponse)? != 0 {
         return Err(CloudError::Rejected);
     }
     for code in [
@@ -658,7 +665,7 @@ fn validate_envelope(payload: &Value) -> Result<(), CloudError> {
     .into_iter()
     .flatten()
     {
-        if number(code) != Some(0) {
+        if number(code).ok_or(PassportError::InvalidResponse)? != 0 {
             return Err(CloudError::Rejected);
         }
     }

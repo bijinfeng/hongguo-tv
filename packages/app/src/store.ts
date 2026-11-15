@@ -26,6 +26,7 @@ import {
 } from '@hongguo/core-client';
 import { createRecentSearches } from './recent-searches';
 import { createLibraryState } from './library-state';
+import { createFollowState } from './follow-state';
 import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
@@ -38,7 +39,15 @@ import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } f
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
 
-export type Section = 'home' | 'feed' | 'discover' | 'search' | 'calendar' | 'rankings' | 'history';
+export type Section =
+  | 'home'
+  | 'feed'
+  | 'discover'
+  | 'search'
+  | 'calendar'
+  | 'rankings'
+  | 'history'
+  | 'following';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -65,6 +74,7 @@ export function createStore(
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
   let focusIntent = 0;
+  let pendingPrimary: { name: Section; intent: number; epoch?: string } | undefined;
   const hostFocus = signal('');
   if (subscribeFocus)
     cleanup(
@@ -199,6 +209,13 @@ export function createStore(
     latestAccount = next;
     account.mutate(next);
   };
+  const follow = createFollowState(
+    request,
+    account,
+    () =>
+      lifecycle() === 'active' &&
+      (activePage('following') || nav.routes().at(-1)?.name === 'detail'),
+  );
   let accountTail = Promise.resolve();
   const cancelledAccountCommand = () => new CoreError('账号操作已取消。', 'CORE_CANCELLED', 499);
   const accountCommandResult = (
@@ -361,13 +378,17 @@ export function createStore(
   const warning = history.warning;
   const restoreFocus = () => {
     const owned = focusIntent;
+    pendingPrimary = undefined;
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
         if (owned !== focusIntent) return;
         const source = sources.get(nav.routes().length);
         if (source) source();
-        else if (nav.routes().length === 1) primary.get(section())?.focus();
+        else if (nav.routes().length === 1) {
+          pendingPrimary = { name: section(), intent: owned, epoch: account()?.owner_epoch };
+          primary.get(section())?.focus();
+        }
       });
     });
   };
@@ -376,6 +397,7 @@ export function createStore(
     historyManagement: history.management,
     favoritesManagement: history.favoritesManagement,
     favoriteOperation: history.favoriteOperation,
+    follow,
     retryFavorite: history.retryFavorite,
     hostFocus,
     hostOwnsFocus: !!subscribeFocus,
@@ -411,6 +433,7 @@ export function createStore(
       };
     },
     async shutdown() {
+      follow.dispose();
       const finish = history.beginShutdown(() => playerCheckpoint?.());
       try {
         await recent.drain();
@@ -503,6 +526,18 @@ export function createStore(
     },
     primaryRef(name: Section, ref: ViewRef) {
       primary.set(name, ref);
+    },
+    primaryReady(name: Section) {
+      const plan = pendingPrimary;
+      if (!plan || plan.name !== name) return;
+      pendingPrimary = undefined;
+      if (
+        plan.intent === focusIntent &&
+        plan.epoch === account()?.owner_epoch &&
+        activePage(name) &&
+        lifecycle() === 'active'
+      )
+        primary.get(name)?.focus();
     },
     noteFocusIntent() {
       focusIntent++;

@@ -139,10 +139,26 @@ fn normalize(data: &Value) -> Option<Drama> {
         cover,
         intro: first(data, &["series_intro", "video_desc", "description"]).unwrap_or_default(),
         episode_count,
+        series_status: series_status(data),
         content_type,
         tags: (!tags.is_empty()).then_some(tags),
         episodes: None,
     })
+}
+pub(crate) fn series_status(data: &Value) -> Option<super::SeriesStatus> {
+    let value = data
+        .get("series_status")
+        .filter(|v| !v.is_null())
+        .or_else(|| data.get("series_episode_info")?.get("series_status"));
+    match value.and_then(text).as_deref() {
+        Some("0" | "ongoing" | "serial" | "updating" | "连载" | "更新中") => {
+            Some(super::SeriesStatus::Ongoing)
+        }
+        Some(
+            "1" | "ended" | "finished" | "complete" | "completed" | "已完结" | "完结" | "已结束",
+        ) => Some(super::SeriesStatus::Ended),
+        _ => None,
+    }
 }
 pub(super) fn cover_fallback(cover: &str) -> Option<String> {
     let url = reqwest::Url::parse(cover).ok()?;

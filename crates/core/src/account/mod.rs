@@ -4,6 +4,9 @@ mod persistence;
 mod service;
 
 pub use service::AccountService;
+pub use service::follow::{
+    FollowItem, FollowMutationRequest, FollowMutationResult, FollowQuery, FollowSnapshot,
+};
 
 use crate::library::Library;
 use serde::{Deserialize, Serialize};
@@ -282,6 +285,18 @@ pub enum AccountError {
     Library,
     /// Explicit import cannot fit any new progress in the durable cloud queue.
     LibrarySyncQueueFull,
+    /// Follow reads and writes require the current authenticated account.
+    FollowLoginRequired,
+    /// A bounded follow pull could not establish complete membership.
+    FollowIncomplete,
+    /// Upstream definitively rejected the requested follow operation.
+    FollowRejected,
+    /// Follow transport or a required local step is unavailable.
+    FollowUnavailable,
+    /// A dispatched mutation has no reliable acknowledgement; read before retrying.
+    FollowUncertain,
+    /// Another explicit follow mutation is still admitted.
+    FollowBusy,
 }
 impl AccountError {
     /// Stable code without upstream response data.
@@ -299,6 +314,12 @@ impl AccountError {
             Self::IdentityMismatch => "ACCOUNT_IDENTITY_MISMATCH",
             Self::Library => "ACCOUNT_LIBRARY_UNAVAILABLE",
             Self::LibrarySyncQueueFull => "LIBRARY_SYNC_QUEUE_FULL",
+            Self::FollowLoginRequired => "ACCOUNT_FOLLOW_LOGIN_REQUIRED",
+            Self::FollowIncomplete => "ACCOUNT_FOLLOW_INCOMPLETE",
+            Self::FollowRejected => "ACCOUNT_FOLLOW_REJECTED",
+            Self::FollowUnavailable => "ACCOUNT_FOLLOW_UNAVAILABLE",
+            Self::FollowUncertain => "ACCOUNT_FOLLOW_UNCERTAIN",
+            Self::FollowBusy => "ACCOUNT_FOLLOW_BUSY",
         }
     }
 }
@@ -317,6 +338,12 @@ impl fmt::Display for AccountError {
             Self::IdentityMismatch => "登录身份未能确认，请重新登录",
             Self::Library => "观看记录尚未准备好，请先重试保存或读取",
             Self::LibrarySyncQueueFull => "待同步记录已满，请先同步后重试",
+            Self::FollowLoginRequired => "登录后查看和操作追更",
+            Self::FollowIncomplete => "追更列表未能完整读取，请刷新重试",
+            Self::FollowRejected => "追更操作未被接受，请刷新状态后重试",
+            Self::FollowUnavailable => "追更服务暂不可用，请稍后重试",
+            Self::FollowUncertain => "追更结果待确认，请先刷新状态",
+            Self::FollowBusy => "追更操作尚未结束，请稍候",
         })
     }
 }

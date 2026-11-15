@@ -516,6 +516,162 @@ async fn account_http_native_scope_state_and_structured_history_contract_match()
     assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
 }
 
+#[tokio::test]
+async fn follow_http_native_guest_scope_and_strict_request_boundaries_match_without_cloud_work() {
+    let mut fixture = Fixture::new(false).await;
+    let account = hongguo_core::account::AccountService::open(
+        &fixture.dir,
+        fixture.session.services.library.clone(),
+    )
+    .await
+    .unwrap();
+    let services = Services {
+        account: Some(account.clone()),
+        ..fixture.session.services.clone()
+    };
+    let _previous = std::mem::replace(
+        &mut fixture.session,
+        Session::with_services(services)
+            .await
+            .unwrap_or_else(|_| panic!("guest follow session")),
+    );
+    let app = hongguo_http_api::router_with_account(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        Some(fixture.session.services.library.clone()),
+        None,
+        None,
+        Some(account.clone()),
+    );
+    let original = account.snapshot().await;
+    let query = format!(
+        "/api/v1/follow?owner_id=&owner_epoch={}",
+        original.owner_epoch
+    );
+    let intent = json!({"owner_id":"","owner_epoch":original.owner_epoch,"series_id":"9999999999999999999","enabled":true});
+    let mut cases = vec![
+        (query.clone(), None, 401, "ACCOUNT_FOLLOW_LOGIN_REQUIRED"),
+        (
+            format!("{query}&url=https://secret.invalid"),
+            None,
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+        (
+            format!("{query}&owner_id=123"),
+            None,
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+        (
+            "/api/v1/follow".into(),
+            None,
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+        (
+            format!(
+                "/api/v1/follow?owner_id=123&owner_epoch={}",
+                original.owner_epoch
+            ),
+            None,
+            409,
+            "ACCOUNT_OWNER_CHANGED",
+        ),
+        (
+            "/api/v1/follow?owner_id=&owner_epoch=old".into(),
+            None,
+            409,
+            "ACCOUNT_OWNER_CHANGED",
+        ),
+        (
+            "/api/v1/follow".into(),
+            Some(intent.clone()),
+            401,
+            "ACCOUNT_FOLLOW_LOGIN_REQUIRED",
+        ),
+        (
+            query.clone(),
+            Some(intent.clone()),
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+    ];
+    for (key, value, status, code) in [
+        ("owner_id", json!("123"), 409, "ACCOUNT_OWNER_CHANGED"),
+        ("owner_epoch", json!("old"), 409, "ACCOUNT_OWNER_CHANGED"),
+        (
+            "series_id",
+            json!("not-a-series"),
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+        ("series_id", json!(123), 400, "ACCOUNT_REQUEST_INVALID"),
+        ("enabled", json!("true"), 400, "ACCOUNT_REQUEST_INVALID"),
+        (
+            "url",
+            json!("https://secret.invalid"),
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+    ] {
+        let mut body = intent.clone();
+        body[key] = value;
+        cases.push(("/api/v1/follow".into(), Some(body), status, code));
+    }
+    for (path, payload, expected_status, code) in cases {
+        let body = payload.as_ref().map(Value::to_string);
+        let native = fixture.call(&path, body.as_deref()).await;
+        let request = axum::http::Request::builder()
+            .uri(&path)
+            .method(if body.is_some() { "POST" } else { "GET" })
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .body(body.map_or(Body::empty(), Body::from))
+            .unwrap();
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status().as_u16(), expected_status, "{path}");
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        let http: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            (native.status, native.body),
+            (expected_status, http.clone())
+        );
+        assert_eq!(http["code"], code);
+        assert!(http.get("data").is_none());
+        assert!(!http.to_string().contains("secret.invalid"));
+    }
+    let pending = fixture
+        .session
+        .start("/api/v1/follow", Some(&intent.to_string()));
+    pending.cancel();
+    let cancelled = pending.inner.result().await;
+    assert_eq!(cancelled.status, 499);
+    assert_eq!(cancelled.body["code"], "CORE_CANCELLED");
+    for (category, status) in [
+        (
+            hongguo_core::account::AccountError::FollowLoginRequired,
+            401,
+        ),
+        (hongguo_core::account::AccountError::FollowIncomplete, 502),
+        (hongguo_core::account::AccountError::FollowRejected, 502),
+        (hongguo_core::account::AccountError::FollowUnavailable, 502),
+        (hongguo_core::account::AccountError::FollowUncertain, 502),
+        (hongguo_core::account::AccountError::FollowBusy, 409),
+    ] {
+        let reply = account_error(category);
+        assert_eq!(reply.status, status);
+        assert_eq!(
+            reply.body,
+            json!({"ok":false,"code":category.code(),"error":category.to_string()})
+        );
+    }
+    assert_eq!(account.snapshot().await, original);
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
 impl Fixture {
     async fn new(stalled: bool) -> Self {
         Self::with_radar(stalled, false).await

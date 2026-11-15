@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["read_follow"];
+        put?: never;
+        post: operations["set_follow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library": {
         parameters: {
             query?: never;
@@ -791,6 +807,8 @@ export interface components {
             intro: string;
             /** @description Exact series identifier. */
             series_id: string;
+            /** @description Actual upstream completion state, never inferred from episode counts. */
+            series_status?: components["schemas"]["SeriesStatus"];
             /** @description Genre labels. */
             tags?: string[];
             /** @description Display title. */
@@ -905,6 +923,89 @@ export interface components {
             next_offset: number;
             /** @description Opaque continuation session. */
             session_id: string;
+        };
+        /** @description Remote membership survives missing or unsupported playable card metadata. */
+        FollowItem: {
+            /** @description Supported compact card, without episodes or invented playback progress. */
+            drama?: components["schemas"]["Drama"];
+            /**
+             * Format: int64
+             * @description Exact upstream update timestamp when supplied; no unit inference.
+             */
+            follow_update_time?: number;
+            /** @description Whether the upstream explicitly reports the account caught up. */
+            has_watched_latest_episode?: boolean;
+            /**
+             * Format: int32
+             * @description Actual remote latest-watched index; not a local resume checkpoint.
+             */
+            latest_watched_episode?: number;
+            /** @description Exact series identity, never a reservation ID or episode VID. */
+            series_id: string;
+            /** @description Actual upstream completion state when known. */
+            series_status?: components["schemas"]["SeriesStatus"];
+            /** @description Actual bounded update label, never a generated schedule. */
+            show_update_frequency?: string;
+        };
+        /** @description One explicit online desired state, not a toggle or durable offline operation. */
+        FollowMutationRequest: {
+            /** @description True to add, false to cancel. */
+            enabled: boolean;
+            /** @description Expected current generation. */
+            owner_epoch: string;
+            /** @description Expected current authenticated UID. */
+            owner_id: string;
+            /** @description Exact decimal series identity. */
+            series_id: string;
+        };
+        /** @description Acknowledged online intent; confirmation also requires complete readback. */
+        FollowMutationResponse: {
+            /** @description The exact acknowledged intent and any complete observation. */
+            data: components["schemas"]["FollowMutationResult"];
+            /** @description Always true; inspect data.confirmed for observed membership. */
+            ok: boolean;
+        };
+        /** @description Returned only after a valid remote ACK; confirmation also requires complete observation. */
+        FollowMutationResult: {
+            /** @description Always true on this success type; failures use AccountError. */
+            acknowledged: boolean;
+            /** @description True only when a same-scope complete snapshot observes the desired state. */
+            confirmed: boolean;
+            /** @description Desired state sent to the remote service. */
+            enabled: boolean;
+            /** @description Exact generation that owned this request. */
+            owner_epoch: string;
+            /** @description Account that owned this request. */
+            owner_id: string;
+            /** @description Stable safe error code for failed readback, never upstream data. */
+            reconciliation_error?: string;
+            /** @description Exact mutated series identity. */
+            series_id: string;
+            /** @description Complete observation when readback succeeded, even if it disagrees with the intent. */
+            snapshot?: components["schemas"]["FollowSnapshot"];
+        };
+        /** @description Preconditions for the active authenticated account, never an account selector. */
+        FollowQuery: {
+            /** @description Opaque generation from the current account snapshot. */
+            owner_epoch: string;
+            /** @description Exact active account UID. */
+            owner_id: string;
+        };
+        /** @description Complete remote membership for the current authenticated scope. */
+        FollowResponse: {
+            /** @description Complete validated membership. */
+            data: components["schemas"]["FollowSnapshot"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Complete validated remote membership for one current owner and epoch. */
+        FollowSnapshot: {
+            /** @description Unique members in upstream order, including unavailable cards. */
+            items: components["schemas"]["FollowItem"][];
+            /** @description Scope under which all pages were read. */
+            owner_epoch: string;
+            /** @description Active authenticated UID. */
+            owner_id: string;
         };
         /** @description Counts belonging to one confirmed import result, never reconstructed after a lost response. */
         GuestHistoryImportResult: {
@@ -1490,6 +1591,11 @@ export interface components {
             /** @description Unique ordered public seasons, including unavailable and upcoming entries. */
             items: components["schemas"]["SeriesSeason"][];
         };
+        /**
+         * @description Actual upstream completion state; absence remains unknown.
+         * @enum {string}
+         */
+        SeriesStatus: "ongoing" | "ended";
         /** @description Successful status result using the shared response envelope. */
         StatusResponse: {
             /** @description Core state. */
@@ -1790,6 +1896,181 @@ export interface operations {
                 };
             };
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    read_follow: {
+        parameters: {
+            query: {
+                /** @description Expected authenticated owner */
+                owner_id: string;
+                /** @description Expected current account generation */
+                owner_epoch: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    set_follow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowMutationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowMutationResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

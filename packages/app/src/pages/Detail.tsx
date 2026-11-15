@@ -8,6 +8,7 @@ import { SeasonPicker } from '../SeasonPicker';
 import { DetailExtras } from '../DetailExtras';
 import { createDetailFavorite } from '../detail-favorite';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
+import { FollowAction, FollowNotice } from '../FollowAction';
 
 export function Detail(props: { drama: Drama; store: Store; active?: boolean }) {
   const active = () => props.active !== false;
@@ -128,6 +129,15 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
                     }}
                   />
                   <FavoriteButton favorite={favorite} />
+                  <FollowAction
+                    store={props.store}
+                    drama={
+                      browse.summary()?.series_id === seasons.selectedId()
+                        ? browse.summary()
+                        : undefined
+                    }
+                    active={active() && lifecycle() === 'active'}
+                  />
                 </View>
               </View>
             </View>
@@ -156,9 +166,23 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
                 }}
               />
               <FavoriteButton favorite={favorite} />
+              <FollowAction
+                store={props.store}
+                drama={
+                  browse.summary()?.series_id === seasons.selectedId()
+                    ? browse.summary()
+                    : undefined
+                }
+                active={active() && lifecycle() === 'active'}
+              />
             </View>
           </StoryFeature>
         </If>
+        <FollowNotice
+          store={props.store}
+          active={active() && lifecycle() === 'active'}
+          testID="detail-follow-state"
+        />
         <LibrarySyncNotice store={props.store} active={active()} testID="detail-library-sync" />
         <If when={favorite.message()}>
           <View class="gap-3">

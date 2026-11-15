@@ -11,3 +11,7 @@ Rust Range 测试的首批固定输入与预期来自 `upstream.lock.json` 固�
 搜索详情与官网分页已完成本地样本验证；后续行为验收顺序：签名/设备向量 → 播放 URL → CTR/MP4/Range/ETag/取消 → 账号与持久进度。尚未把这些旧测试转成 Rust 的项目，不列为 Rust 已通过。
 
 游客历史仅支持 action=progress/remove/clear；remove/clear 的 kind 只能为 history。owner_id 缺省或空表示游客，非空返回 409；参数错误 400，数据库错误 500，均使用稳定且脱敏的 code/error。library 响应 no-store，32 KiB/精确 Host/Origin 边界不变。Entry 的展示与进度字段保持兼容可选性；实际保存必须提交有效剧集、视频、集数与有限秒数，数据库只存紧凑摘要。capabilities.history 仅在宿主接入存储后为 true，不代表 account/playback 可用。
+
+追更 GET／POST `/api/v1/follow` 共用 Rust 账号用例和生成 DTO。GET 的 `FollowQuery` 必须携带当前 `owner_id/owner_epoch`，仅返回完整 `FollowSnapshot`；POST 的 `FollowMutationRequest` 加上精确十进制 `series_id` 与显式 `enabled`。未知字段、POST query 参数、非 JSON 和超大载荷沿用既有拒绝规则，来源策略不变。`FollowItem` 缺摘要仍保留成员身份，可选完结状态为 `ongoing/ended`，缺失不推算。没有分页游标、上游地址或签名参数对外入口。
+
+成功 `FollowMutationResult` 一定 `acknowledged=true`；只有完整同 scope 快照观察到目标状态才 `confirmed=true`。ACK 后读失败／成员暂不一致保留未确认，未知网络结果走安全 error envelope，客户端先 GET 恢复，不自动重发 POST。游客401、错 owner／epoch或并发写409、参数400、完整性／拒绝／不可用／未知502；真实云往返与正式宿主验收单独记录，不由生成或合成测试代证。

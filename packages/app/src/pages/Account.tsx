@@ -137,6 +137,16 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
             </View>
           </View>
           <AccountLibrary store={props.store} />
+          <View class="self-start">
+            <Button
+              label="查看追更"
+              testID="account-following"
+              onPress={() => {
+                props.store.navigate('following');
+                props.store.restoreFocus();
+              }}
+            />
+          </View>
           <If when={failure() && !dialogOpen()}>
             <Notice
               error

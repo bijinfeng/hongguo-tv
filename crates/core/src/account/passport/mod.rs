@@ -3,6 +3,7 @@ mod client;
 mod cloud;
 mod crypto;
 mod device;
+mod follow;
 mod phone;
 mod qr;
 mod sign;
@@ -195,7 +196,7 @@ pub(crate) enum MfaResult {
     Ticket(String),
 }
 
-fn valid_id(value: &str) -> bool {
+pub(crate) fn valid_id(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 32
         && value.bytes().all(|b| b.is_ascii_digit())
@@ -224,5 +225,7 @@ fn now_millis() -> Result<u64, PassportError> {
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use follow::tests as follow_fixture;
 #[cfg(test)]
 pub(crate) use tests::verified_fixture;

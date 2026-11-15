@@ -313,6 +313,10 @@ pub fn router_with_account(
             axum::routing::post(library::operation),
         )
         .route("/api/v1/account", get(account::read_account))
+        .route(
+            "/api/v1/follow",
+            get(account::read_follow).post(account::set_follow),
+        )
         .route("/api/v1/account/state", get(account::state))
         .route(
             "/api/v1/account/command",
@@ -348,6 +352,8 @@ pub fn router_with_account(
         account::read_account,
         account::state,
         account::command,
+        account::read_follow,
+        account::set_follow,
         radar::get,
         catalog::search,
         catalog::discovery,
@@ -379,6 +385,14 @@ pub fn router_with_account(
         ApiError,
         account::AccountResponse,
         account::AccountStateResponse,
+        account::FollowResponse,
+        account::FollowMutationResponse,
+        hongguo_core::account::FollowQuery,
+        hongguo_core::account::FollowItem,
+        hongguo_core::account::FollowSnapshot,
+        hongguo_core::account::FollowMutationRequest,
+        hongguo_core::account::FollowMutationResult,
+        hongguo_core::catalog::SeriesStatus,
         hongguo_core::account::Account,
         hongguo_core::account::AccountProfile,
         hongguo_core::account::AccountLogin,

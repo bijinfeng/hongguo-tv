@@ -2,6 +2,7 @@ import type { Drama, Episode, PlayInfo, SearchResult } from '@hongguo/contracts'
 export type * from '@hongguo/contracts';
 export { createLibraryWriter, LibraryWriteError, validLibrarySnapshot } from './library-writer';
 export type { LibraryWriteRequest, LibraryWriteResult } from './library-writer';
+export { readFollow, setFollow, validFollowSnapshot, validFollowMutationResult } from './follow';
 
 /** One host-owned transport; shared pages never import native modules. */
 export interface CoreTransport {
@@ -43,12 +44,12 @@ export function configureClient(origin: string) {
 
 /** Stable core error category alongside the human recovery message. */
 export class CoreError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public status: number,
-  ) {
+  code: string;
+  status: number;
+  constructor(message: string, code: string, status: number) {
     super(message);
+    this.code = code;
+    this.status = status;
   }
 }
 

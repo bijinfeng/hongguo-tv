@@ -1,7 +1,9 @@
 use axum::{extract::Query, http::Uri};
 use hongguo_core::{
     CoreStatus,
-    account::{AccountCommandRequest, AccountError, AccountService},
+    account::{
+        AccountCommandRequest, AccountError, AccountService, FollowMutationRequest, FollowQuery,
+    },
     catalog::{
         ActorQuery, CatalogClient, CatalogError, CategoryParams, CategoryQuery, FeedParams,
         FeedQuery, SearchQuery, SuggestionQuery,
@@ -123,6 +125,8 @@ pub(crate) enum Request {
     Account,
     AccountState,
     AccountCommand(AccountCommandRequest),
+    Follow(FollowQuery),
+    SetFollow(FollowMutationRequest),
     Change(HistoryChange),
     LibraryWriteSession(LibraryWriteSessionRequest),
     LibraryOperation(LibraryOperationIdentity, HistoryChange),
@@ -303,6 +307,17 @@ impl Request {
                     token(&p.path)
                         .ok_or_else(|| playback_error(PlaybackError::InvalidInput))?
                         .to_owned(),
+                ))
+            }
+            ("/api/v1/follow", None) => Ok(Self::Follow(
+                query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?,
+            )),
+            ("/api/v1/follow", Some(body)) => {
+                let _: NoParams =
+                    query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?;
+                Ok(Self::SetFollow(
+                    serde_json::from_str(body)
+                        .map_err(|_| account_error(AccountError::InvalidInput))?,
                 ))
             }
             ("/api/v1/account", None) => {
@@ -505,6 +520,30 @@ impl Request {
                     "此功能尚未开放",
                 )),
             },
+            Self::Follow(query) => match &services.account {
+                Some(account) => account
+                    .follow_snapshot(query)
+                    .await
+                    .map(Reply::success)
+                    .map_err(account_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
+            Self::SetFollow(request) => match &services.account {
+                Some(account) => account
+                    .set_follow(request)
+                    .await
+                    .map(Reply::success)
+                    .map_err(account_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
             Self::AccountState => match &services.account {
                 Some(account) => account
                     .state()
@@ -622,10 +661,17 @@ pub(crate) fn account_error(error: AccountError) -> Reply {
         AccountError::AttemptExpired
         | AccountError::Busy
         | AccountError::OwnerChanged
-        | AccountError::LibrarySyncQueueFull => 409,
+        | AccountError::LibrarySyncQueueFull
+        | AccountError::FollowBusy => 409,
+        AccountError::FollowLoginRequired => 401,
         AccountError::Limited => 429,
         AccountError::Storage | AccountError::InvalidSession | AccountError::Library => 500,
-        AccountError::Upstream | AccountError::IdentityMismatch => 502,
+        AccountError::Upstream
+        | AccountError::IdentityMismatch
+        | AccountError::FollowIncomplete
+        | AccountError::FollowRejected
+        | AccountError::FollowUnavailable
+        | AccountError::FollowUncertain => 502,
     };
     Reply::failure(status, error.code(), &error.to_string())
 }

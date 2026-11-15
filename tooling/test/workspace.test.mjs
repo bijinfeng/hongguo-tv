@@ -258,7 +258,13 @@ test('commit rules accept conventional commits and hooks never change partial st
 test('installed hook wrapper never hides unstaged content or creates a stash', () =>
   temp(async (dir) => {
     const exec = (command, args, valid = true) => {
-      const result = spawnSync(command, args, { cwd: dir, env: isolatedGitEnv, encoding: 'utf8' });
+      const result = spawnSync(command, args, {
+        cwd: dir,
+        // This fixture borrows installed tools, not their manifest. Never let pnpm
+        // repair the deliberately mismatched dependency directory during a hook.
+        env: { ...isolatedGitEnv, pnpm_config_verify_deps_before_run: 'warn' },
+        encoding: 'utf8',
+      });
       assert.equal(result.status === 0, valid, result.stdout + result.stderr);
       return result.stdout;
     };

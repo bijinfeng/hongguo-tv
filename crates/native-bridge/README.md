@@ -8,11 +8,13 @@ C 批基础切片。Desktop／TV 生产入口默认已装配原生会话；Web �
 
 ## 调用与所有权
 
-- `session.start(path, body)` 只接受既有目录／游客历史／播放／状态／未开放账号路由；`null` body 为读，JSON string 为写。请求体最多 32 KiB、路径最多 8 KiB，禁止绝对 URL、fragment 和双斜线路径。业务直接调用 core，路径只是兼容现有共享客户端的操作选择器。
+- `session.start(path, body)` 只接受既有目录／片库／播放／状态／账号及追更路由；`null` body 为读，JSON string 为写。请求体最多 32 KiB、路径最多 8 KiB，禁止绝对 URL、fragment 和双斜线路径。业务直接调用 core，路径只是兼容现有共享客户端的操作选择器。
 - 每个会话最多八个未接收调用；播放核心仍保留自己的两项准备上限。`call.result()` 返回 `{ status, body: { ok, data | code/error } }` JSON；domain DTO 与 HTTP 一致，不创建另一套剧集或历史模型。
 - 成功准备的媒体仍由 call 持有。TS adapter 验证未关闭／未取消和响应成功后同步 `accept()`，才把媒体交给共享 Player。`cancel()`、`dispose()`、丢失调用方或未接收的迟到完成会释放资源；accept 后取消 call 不影响 Player 的媒体，Player 继续用既有 release 路由操作释放。
 - `session.close()` 幂等取消所有未接收调用、关闭播放媒体并通知本机监听退出；原生 class drop 同样执行。调用任务意外退出会提供明确失败，避免无限等待。SQLite 已进入阻塞事务的写入不承诺因 UI 取消而回滚；已提交记录保持持久。
 - `createNativeTransport(session)` 位于平台无关 core-client，不导入 NSH。App 入口负责创建、注入、关闭；共享页面和 UI 不接触原生 class。
+
+`/api/v1/follow` 的读写分别复用 HTTP 的 `FollowQuery`／`FollowMutationRequest` 和 `AccountService::follow_snapshot`／`set_follow`。owner／epoch 是当前账号前置条件，不是任意账号选择器；未知 query／JSON 字段拒绝。远端 ACK 与完整读取确认分别为 `acknowledged`／`confirmed`，不借用收藏回执或 outbox。取消 call 不承诺撤回已派发的远端请求；service 保持顺序闸门，后续同 scope 完整读取用于观察恢复。游客401、错 scope409、明确拒绝／不完整／服务不可用／未知结果502，消息均来自固定安全错误。
 
 ## 媒体边界
 
@@ -33,7 +35,6 @@ pnpm verify
 另有四项 `real_mixed` 测试，使用锁定 `nsh-engine` 的公开 Engine／Bundle／HostChannel，在真实 QuickJS 中调用同一注册函数导出的三个 class/module。覆盖宿主应用目录与 SQLite 重开、缺目录／损坏库明确失败且保留字节、pending result 的 cancel／call.dispose／session.dispose，以及未 accept 媒体释放／accept 后保留／close 后释放。测试专用 BridgeFixture 只在 cfg(test) 注册，用于合成 loopback 上游；生产 NativeCore.open 不接受上游或存储路径注入。
 
 Desktop mixed 与 TV 现有 native crate 只调用共享 register；各端 `pnpm check` 生成的声明验证其真实导出签名。C2.1 切片时生产页面仍经 HTTP；C2.2 之后由 NativeApp 选择模式并装配。真实 engine 测试不等同两端安装包、官网、宿主销毁或物理设备验收。新增 engine 测试依赖的安全结果单独记录于 VALIDATION，不因功能测试通过宣称安全门禁通过。
-
 
 ## 应用装配
 

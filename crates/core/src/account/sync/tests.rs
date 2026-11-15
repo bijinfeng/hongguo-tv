@@ -405,6 +405,63 @@ async fn round_pulls_before_double_upload_and_persists_exact_ack_credentials_and
 }
 
 #[tokio::test]
+async fn sync_refresh_does_not_overwrite_newer_same_epoch_online_credentials() {
+    let gate = Arc::new(Semaphore::new(0));
+    let blocked = gate.clone();
+    let fixture = Fixture::new(move |request| {
+        let mut response = Response::normal(request);
+        if request.path == HISTORY {
+            response.gate = Some(blocked.clone());
+        }
+        response
+    })
+    .await;
+    let temp = Temp::new();
+    let service = temp.open().await;
+    switch(&service, UID).await;
+    let (sender, task) = start(&service, &fixture).await;
+    wait(|| fixture.count(HISTORY) == 1).await;
+    {
+        let mut state = service.state.lock().await;
+        let mut saved = state.saved.as_ref().unwrap().clone();
+        let mut value = serde_json::to_value(&saved.credential).unwrap();
+        value["token"] = json!("newer-online-refresh");
+        saved.credential = serde_json::from_value(value).unwrap();
+        service.storage.replace(Some(saved.clone())).await.unwrap();
+        state.saved = Some(saved);
+    }
+    gate.add_permits(1);
+    assert_eq!(settled(&service).await.sync.state, AccountSyncState::Idle);
+    assert_eq!(
+        service
+            .state
+            .lock()
+            .await
+            .saved
+            .as_ref()
+            .unwrap()
+            .credential
+            .fixture_token(),
+        "newer-online-refresh"
+    );
+    stop(&service, sender, task).await;
+    drop(service);
+    let reopened = temp.open().await;
+    assert_eq!(
+        reopened
+            .state
+            .lock()
+            .await
+            .saved
+            .as_ref()
+            .unwrap()
+            .credential
+            .fixture_token(),
+        "newer-online-refresh"
+    );
+}
+
+#[tokio::test]
 async fn either_double_write_failure_keeps_pending_and_never_marks_success() {
     for failed in [UPLOAD, PROGRESS] {
         let temp = Temp::new();

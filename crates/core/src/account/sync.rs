@@ -170,6 +170,7 @@ impl AccountService {
     /// Already-admitted SQLite work can finish; cancellation never claims a rollback.
     pub fn stop_sync(&self) {
         self.sync.stop();
+        self.follow.stop();
     }
 
     /// Run once per service lifetime, explicitly spawned and awaited by the owning host.
@@ -265,6 +266,7 @@ impl AccountService {
         }
         self.stop_sync();
         // A graceful host shutdown drains admitted work before the worker reports completion.
+        self.follow.drain().await;
         self.state.lock().await.syncing = false;
         Ok(())
     }
@@ -319,6 +321,8 @@ impl AccountService {
                 Ok((session, local, boundary))
             })
             .await?;
+        let original_credential =
+            serde_json::to_vec(&session.credential).map_err(|_| AccountError::InvalidSession)?;
         let mut client = self.sync.client(session.credential)?;
         let remote = client.pull_library(&scope.owner, &to_cloud(local)?).await?;
         self.scoped(scope, move |state| async move {
@@ -370,15 +374,23 @@ impl AccountService {
                 .as_ref()
                 .ok_or(AccountError::IdentityMismatch)?
                 .clone();
-            saved.credential = credential;
-            saved.validate()?;
-            #[cfg(test)]
-            runtime.save_started.notify_one();
-            storage.replace(Some(saved.clone())).await?;
+            // A concurrent online action may already have refreshed this same account's credentials.
+            if serde_json::to_vec(&saved.credential).map_err(|_| AccountError::InvalidSession)?
+                == original_credential
+            {
+                saved.credential = credential;
+                saved.validate()?;
+                #[cfg(test)]
+                runtime.save_started.notify_one();
+                storage.replace(Some(saved.clone())).await?;
+                if !runtime.current(&owned) {
+                    return Err(AccountError::OwnerChanged);
+                }
+                state.saved = Some(saved);
+            }
             if !runtime.current(&owned) {
                 return Err(AccountError::OwnerChanged);
             }
-            state.saved = Some(saved);
             let stamp = i64::try_from(now_millis()?).map_err(|_| AccountError::Storage)?;
             state
                 .library

@@ -23,6 +23,8 @@ use std::{
 };
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
+#[path = "follow.rs"]
+pub(super) mod follow;
 #[path = "sync.rs"]
 mod sync;
 
@@ -33,6 +35,7 @@ pub struct AccountService {
     storage: SessionStore,
     directory: PathBuf,
     sync: Arc<sync::SyncRuntime>,
+    follow: Arc<follow::FollowRuntime>,
 }
 struct State {
     saved: Option<SavedSession>,
@@ -195,6 +198,7 @@ impl AccountService {
             storage,
             directory: directory.to_owned(),
             sync: Arc::new(sync::SyncRuntime::default()),
+            follow: Arc::new(follow::FollowRuntime::default()),
         })
     }
 
@@ -214,6 +218,7 @@ impl AccountService {
 
     /// Reconcile account and library together after a lost mutation response.
     pub async fn state(&self) -> Result<AccountCommandResult, AccountError> {
+        self.follow.drain().await;
         let mut state = self.state.lock().await;
         state.expire();
         if !self.sync.is_running() {
@@ -725,6 +730,7 @@ impl AccountService {
         let epoch = random_id()?;
         let runtime = self.sync.clone();
         runtime.interrupt();
+        self.follow.interrupt();
         state.syncing = false;
         // Once admitted, persistence and publication retain the coordinator even if the caller disappears.
         tokio::spawn(async move {

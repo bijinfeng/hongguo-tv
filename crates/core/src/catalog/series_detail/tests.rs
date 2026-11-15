@@ -14,6 +14,26 @@ fn page(page: Value) -> Vec<u8> {
 fn drama() -> Value {
     json!({"series_id":ID,"vid_list":["11","22"]})
 }
+
+#[test]
+fn completion_state_comes_only_from_actual_series_status() {
+    for (value, expected) in [
+        (json!(0), Some(super::super::SeriesStatus::Ongoing)),
+        (json!("1"), Some(super::super::SeriesStatus::Ended)),
+        (json!("unknown"), None),
+        (Value::Null, None),
+    ] {
+        let mut row = drama();
+        row["series_episode_info"] = json!({"series_status":value});
+        let detail = parse_series_detail(&page(json!({"seriesDetail":row})), ID).unwrap();
+        assert_eq!(detail.drama.series_status, expected);
+    }
+    let mut row = drama();
+    row["episode_cnt"] = json!(2);
+    row["status"] = json!(1);
+    let detail = parse_series_detail(&page(json!({"seriesDetail":row})), ID).unwrap();
+    assert!(detail.drama.series_status.is_none());
+}
 fn deferred_page(value: Value, loader: &str, name: &str) -> String {
     let args = json!([loader,[{"key":"recommendations","routerDataFnName":"p","routerDataFnArgs":[value.to_string()]}]]);
     format!(

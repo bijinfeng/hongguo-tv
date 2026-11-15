@@ -21,6 +21,7 @@ import { Actor } from './pages/Actor';
 import { Detail } from './pages/Detail';
 import { Player } from './pages/Player';
 import { History } from './pages/History';
+import { Following } from './pages/Following';
 import { Account } from './pages/Account';
 import { Home } from './pages/Home';
 import { Feed } from './pages/Feed';
@@ -94,9 +95,23 @@ function Navigation(props: { store: Store }) {
         variant="navigation"
         icon={props.store.target === 'desktop' ? 'history' : undefined}
         label={props.store.target === 'tv' ? '我的' : '片库'}
-        selected={props.store.activePage('history')}
+        selected={
+          props.store.activePage('history') ||
+          (props.store.target === 'tv' && props.store.activePage('following'))
+        }
         onPress={() => props.store.navigate('history')}
       />
+      <If when={props.store.target === 'desktop'}>
+        <Button
+          testID="nav-following"
+          buttonRef={(ref) => props.store.primaryRef('following', ref)}
+          variant="navigation"
+          icon="bell"
+          label="追更"
+          selected={props.store.activePage('following')}
+          onPress={() => props.store.navigate('following')}
+        />
+      </If>
     </CardControls>
   );
 }
@@ -131,6 +146,13 @@ function Browse(props: { store: Store }) {
         disabled={props.store.section() !== 'history'}
       >
         <History store={props.store} />
+      </View>
+      <View
+        class={props.store.section() === 'following' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'following'}
+        disabled={props.store.section() !== 'following'}
+      >
+        <Following store={props.store} />
       </View>
       <View
         class={props.store.section() === 'calendar' ? 'flex-1' : 'hidden'}

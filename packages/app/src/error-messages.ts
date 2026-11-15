@@ -13,6 +13,11 @@ const reasons: Record<string, string> = {
   SEARCH_HISTORY_DATABASE_INVALID: '搜索记录无法读取，请保留本机数据并检查版本或备份',
   LIBRARY_STORAGE_UNAVAILABLE: '记录暂时无法读写，请检查可用空间和访问权限后重试',
   SEARCH_HISTORY_STORAGE_UNAVAILABLE: '搜索记录暂时无法读写，请检查可用空间和访问权限后重试',
+  ACCOUNT_FOLLOW_INCOMPLETE: '追更列表未完整读取，请刷新状态',
+  ACCOUNT_FOLLOW_REJECTED: '追更服务未接受此次操作，请刷新后再试',
+  ACCOUNT_FOLLOW_BUSY: '另一项追更操作尚未结束，请稍后刷新状态',
+  ACCOUNT_FOLLOW_UNCERTAIN: '追更操作结果尚未确认，请刷新状态',
+  ACCOUNT_FOLLOW_RESPONSE_INVALID: '追更响应无法确认，请刷新状态',
 };
 
 /** Maps stable error categories; arbitrary service messages never become product copy. */

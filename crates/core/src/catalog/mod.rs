@@ -1,5 +1,6 @@
 //! Anonymous website catalog with bounded, cancellable requests and stable wire DTOs.
 mod actor_works;
+pub(crate) use actor_works::summary as card_summary;
 pub(crate) mod calendar;
 mod category;
 pub use calendar::{
@@ -37,6 +38,7 @@ pub use rankings::{
     RankEntry, RankItem, RankOption, RankPanel, RankParams, RankQuery, RankResult, parse_rankings,
 };
 
+pub(crate) use parse::series_status;
 pub use parse::{parse_detail, parse_search};
 use serde::{Deserialize, Serialize};
 pub use series_detail::{SeriesActor, SeriesDetail, parse_series_detail};
@@ -58,6 +60,16 @@ pub struct Episode {
     pub locked: bool,
 }
 
+/// Actual upstream completion state; absence remains unknown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SeriesStatus {
+    /// Explicitly reported as updating.
+    Ongoing,
+    /// Explicitly reported as completed.
+    Ended,
+}
+
 /// Shared drama summary; detail adds ordered episodes without leaking upstream payloads.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct Drama {
@@ -77,6 +89,10 @@ pub struct Drama {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     pub episode_count: Option<u32>,
+    /// Actual upstream completion state, never inferred from episode counts.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub series_status: Option<SeriesStatus>,
     /// Content family; creator albums are outside this service.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]

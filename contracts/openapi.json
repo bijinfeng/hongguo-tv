@@ -417,6 +417,216 @@
         }
       }
     },
+    "/api/v1/follow": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "read_follow",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "description": "Expected authenticated owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_epoch",
+            "in": "query",
+            "description": "Expected current account generation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "set_follow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library": {
       "get": {
         "tags": [
@@ -3252,6 +3462,10 @@
             "type": "string",
             "description": "Exact series identifier."
           },
+          "series_status": {
+            "$ref": "#/components/schemas/SeriesStatus",
+            "description": "Actual upstream completion state, never inferred from episode counts."
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -3469,6 +3683,203 @@
           "session_id": {
             "type": "string",
             "description": "Opaque continuation session."
+          }
+        }
+      },
+      "FollowItem": {
+        "type": "object",
+        "description": "Remote membership survives missing or unsupported playable card metadata.",
+        "required": [
+          "series_id"
+        ],
+        "properties": {
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Supported compact card, without episodes or invented playback progress."
+          },
+          "follow_update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Exact upstream update timestamp when supplied; no unit inference.",
+            "minimum": 0
+          },
+          "has_watched_latest_episode": {
+            "type": "boolean",
+            "description": "Whether the upstream explicitly reports the account caught up."
+          },
+          "latest_watched_episode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Actual remote latest-watched index; not a local resume checkpoint.",
+            "minimum": 0
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Exact series identity, never a reservation ID or episode VID."
+          },
+          "series_status": {
+            "$ref": "#/components/schemas/SeriesStatus",
+            "description": "Actual upstream completion state when known."
+          },
+          "show_update_frequency": {
+            "type": "string",
+            "description": "Actual bounded update label, never a generated schedule."
+          }
+        }
+      },
+      "FollowMutationRequest": {
+        "type": "object",
+        "description": "One explicit online desired state, not a toggle or durable offline operation.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "series_id",
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "True to add, false to cancel."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Expected current generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Expected current authenticated UID."
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Exact decimal series identity."
+          }
+        },
+        "additionalProperties": false
+      },
+      "FollowMutationResponse": {
+        "type": "object",
+        "description": "Acknowledged online intent; confirmation also requires complete readback.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FollowMutationResult",
+            "description": "The exact acknowledged intent and any complete observation."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true; inspect data.confirmed for observed membership."
+          }
+        }
+      },
+      "FollowMutationResult": {
+        "type": "object",
+        "description": "Returned only after a valid remote ACK; confirmation also requires complete observation.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "series_id",
+          "enabled",
+          "acknowledged",
+          "confirmed"
+        ],
+        "properties": {
+          "acknowledged": {
+            "type": "boolean",
+            "description": "Always true on this success type; failures use AccountError."
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "True only when a same-scope complete snapshot observes the desired state."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Desired state sent to the remote service."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Exact generation that owned this request."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Account that owned this request."
+          },
+          "reconciliation_error": {
+            "type": "string",
+            "description": "Stable safe error code for failed readback, never upstream data."
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Exact mutated series identity."
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/FollowSnapshot",
+            "description": "Complete observation when readback succeeded, even if it disagrees with the intent."
+          }
+        }
+      },
+      "FollowQuery": {
+        "type": "object",
+        "description": "Preconditions for the active authenticated account, never an account selector.",
+        "required": [
+          "owner_id",
+          "owner_epoch"
+        ],
+        "properties": {
+          "owner_epoch": {
+            "type": "string",
+            "description": "Opaque generation from the current account snapshot."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Exact active account UID."
+          }
+        },
+        "additionalProperties": false
+      },
+      "FollowResponse": {
+        "type": "object",
+        "description": "Complete remote membership for the current authenticated scope.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FollowSnapshot",
+            "description": "Complete validated membership."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "FollowSnapshot": {
+        "type": "object",
+        "description": "Complete validated remote membership for one current owner and epoch.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowItem"
+            },
+            "description": "Unique members in upstream order, including unavailable cards."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Scope under which all pages were read."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Active authenticated UID."
           }
         }
       },
@@ -5034,6 +5445,14 @@
             "description": "Unique ordered public seasons, including unavailable and upcoming entries."
           }
         }
+      },
+      "SeriesStatus": {
+        "type": "string",
+        "description": "Actual upstream completion state; absence remains unknown.",
+        "enum": [
+          "ongoing",
+          "ended"
+        ]
       },
       "StatusResponse": {
         "type": "object",
