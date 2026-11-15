@@ -9,8 +9,10 @@
     "./preview/date-choice": "./dev/CalendarChoices.tsx",
     "./preview/ranking-card": "./dev/RankingRows.tsx",
     "./preview/season-choice": "./dev/SeasonChoices.tsx",
+    "./preview/radar-table": "./dev/RadarTables.tsx",
     "./testing/ranking-card": "./test/ranking-card.tsx",
     "./testing/season-choice": "./test/season-choice.tsx",
+    "./testing/radar-table": "./test/radar-table.tsx",
     "./testing": "./test/index.tsx"
   }
 }

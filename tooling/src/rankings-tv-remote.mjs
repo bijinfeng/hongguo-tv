@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, rm, statfs, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { rankingsFixture } from './rankings-fixture.mjs';
+import { radarFixture } from './radar-fixture.mjs';
 import { playerFixture } from './player-fixture.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
 import { executable, nshVersion, output, root, rustEnvironment } from './process.mjs';
@@ -10,6 +11,26 @@ import { tvHostEnvironment } from './tv-host.mjs';
 
 // Server-side evidence complements native keyboard assertions: selectors remain opaque IDs.
 function verifyRequests(requests, suite) {
+  if (suite === 'radar') {
+    const urls = requests.map(({ url }) => new URL(url, 'http://fixture'));
+    const snapshots = urls.filter((url) => url.pathname === '/api/v1/radar');
+    assert(snapshots.length >= 3, 'Radar must exercise independent partial and stale refresh');
+    assert(
+      snapshots.every((url) => url.search === ''),
+      'Radar refresh must not invent parameters',
+    );
+    for (const id of ['101', '540'])
+      assert(
+        urls.some(
+          (url) =>
+            url.pathname === '/api/v1/series/detail' && url.searchParams.get('series_id') === id,
+        ),
+        `Exact radar detail ${id} must be read`,
+      );
+    assert(!urls.some((url) => /\/play\//.test(url.pathname)));
+    assert(requests.every((entry) => entry.method === 'GET'));
+    return { suite, passed: true, snapshotReads: snapshots.length, exactDetail: true };
+  }
   if (suite === 'player') {
     const urls = requests.map(({ url }) => new URL(url, 'http://fixture'));
     for (const vid of ['456', '457'])
@@ -120,12 +141,13 @@ const suiteNames = [
   'newer-focus',
   'later',
   'dense',
+  'radar',
 ];
 const flags = new Map();
 for (let index = 0; index < args.length; index += 2) {
   if (!['--suite', '--profile'].includes(args[index]) || !args[index + 1] || flags.has(args[index]))
     throw new Error(
-      'Expected prepare|run [--suite all|identity|selectors|pagination|newer-selector|newer-focus|later|dense|player] [--profile all|light|dark|large-text]',
+      'Expected prepare|run [--suite all|identity|selectors|pagination|newer-selector|newer-focus|later|dense|radar|player] [--profile all|light|dark|large-text]',
     );
   flags.set(args[index], args[index + 1]);
 }
@@ -300,7 +322,7 @@ if (mode === 'prepare') {
   await mkdir(artifacts, { recursive: true });
   console.log(`Rankings real TV adapter artifacts: ${artifacts}`);
   try {
-    fixture = await rankingsFixture();
+    fixture = selectedSuite === 'radar' ? await radarFixture() : await rankingsFixture();
     port = new URL(fixture.origin).port;
     if (initial.reverse.split('\n').some((line) => line.split(/\s+/).includes(`tcp:${port}`)))
       throw new Error('Fixture reverse mapping already owned');
@@ -352,8 +374,18 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
       await Promise.all(
         [
           'packages/app/src/pages/Rankings.tsx',
+          'packages/app/src/index.tsx',
+          'packages/app/src/store.ts',
           'packages/app/src/rankings.ts',
           'packages/ui/src/ranking-card.tsx',
+          'packages/app/src/radar.ts',
+          'packages/app/src/pages/Radar.tsx',
+          'packages/ui/src/radar-table.tsx',
+          'packages/ui/src/button.tsx',
+          'packages/ui/src/foundation.ts',
+          'packages/ui/src/typography.ts',
+          'packages/ui/theme.json',
+          'tooling/src/radar-fixture.mjs',
           'tooling/src/rankings-fixture.mjs',
           'tooling/fixtures/rankings-tv/RankingsAcceptance.java',
           'tooling/src/player-fixture.mjs',
@@ -426,7 +458,9 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
         fixture =
           suite === 'player'
             ? await playerFixture({ port: Number(port) })
-            : await rankingsFixture({ port: Number(port), terminalDelayMs: 2400 });
+            : suite === 'radar'
+              ? await radarFixture({ port: Number(port) })
+              : await rankingsFixture({ port: Number(port), terminalDelayMs: 2400 });
         device(['shell', 'cmd', 'uimode', 'night', profile.night]);
         device(['shell', 'settings', 'put', 'system', 'font_scale', profile.font]);
         if (
@@ -465,7 +499,12 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
         const external = `/sdcard/Android/data/${appId}/files`;
         for (const file of device(['shell', 'ls', external])
           .split(/\s+/)
-          .filter((file) => file.endsWith(`-${name}.png`) || file.endsWith(`-${name}.json`)))
+          .filter(
+            (file) =>
+              file.endsWith(`-${name}.png`) ||
+              file.endsWith(`-${name}.json`) ||
+              file.endsWith(`-${name}-accessibility.json`),
+          ))
           await command(adb, [
             '-s',
             serial,

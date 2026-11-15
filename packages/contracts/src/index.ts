@@ -51,3 +51,11 @@ export type RankItem = components['schemas']['RankItem'];
 export type RankOption = components['schemas']['RankOption'];
 export type RankPanel = components['schemas']['RankPanel'];
 export type RankResult = components['schemas']['RankResult'];
+
+export type RadarSnapshot = components['schemas']['RadarSnapshot'];
+export type RadarRanks = components['schemas']['RadarRanks'];
+export type RadarRankBucket = components['schemas']['RadarRankBucket'];
+export type RadarRankItem = components['schemas']['RadarRankItem'];
+export type RadarGrowth = components['schemas']['RadarGrowth'];
+export type RadarGrowthItem = components['schemas']['RadarGrowthItem'];
+export type RadarKind = components['schemas']['RadarKind'];

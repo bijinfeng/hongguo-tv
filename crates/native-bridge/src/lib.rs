@@ -1,10 +1,14 @@
 //! Shared in-process native business session. UI and host assembly stay outside this crate.
 mod request;
 
-use hongguo_core::{catalog::CatalogClient, library::LibraryStore, playback::PlaybackService};
+use hongguo_core::{
+    catalog::CatalogClient, library::LibraryStore, playback::PlaybackService, radar::RadarService,
+};
 use hongguo_http_api::{DevPolicy, media_router};
 use nsh_core::prelude::*;
-use request::{Reply, Request, Services, catalog_error, library_error, playback_error, token};
+use request::{
+    Reply, Request, Services, catalog_error, library_error, playback_error, radar_error, token,
+};
 use std::{
     collections::HashMap,
     path::Path,
@@ -126,10 +130,12 @@ impl Session {
             .map_err(library_error)?;
         let catalog = CatalogClient::new().map_err(catalog_error)?;
         let playback = PlaybackService::new(dir).map_err(playback_error)?;
+        let radar = RadarService::open(dir).map_err(radar_error)?;
         Self::with_services(Services {
             catalog,
             library,
             playback,
+            radar: Some(radar),
         })
         .await
     }

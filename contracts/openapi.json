@@ -1100,6 +1100,88 @@
         }
       }
     },
+    "/api/v1/radar": {
+      "get": {
+        "tags": [
+          "radar"
+        ],
+        "operationId": "get_radar",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/search": {
       "get": {
         "tags": [
@@ -2914,6 +2996,343 @@
           "video_id": {
             "type": "string",
             "description": "Nonzero decimal video ID, up to 32 digits."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RadarGrowth": {
+        "type": "object",
+        "description": "Growth measurements at their actual source sampling interval.",
+        "required": [
+          "date",
+          "items"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Source sampling date in YYYY-MM-DD."
+          },
+          "gap": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Positive source sampling interval; no daily normalization is synthesized."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RadarGrowthItem"
+            },
+            "description": "Validated rows in source order, or stable descending d_hot order for growth."
+          },
+          "prev_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Previous source sampling date, when provided."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RadarGrowthItem": {
+        "type": "object",
+        "description": "Growth measurements; signed 64-bit counters use canonical decimal strings for JavaScript.",
+        "required": [
+          "id",
+          "title",
+          "type"
+        ],
+        "properties": {
+          "d7_fav": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source seven-day favorite delta as a canonical signed decimal string."
+          },
+          "d7_hot": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source seven-day heat delta as a canonical signed decimal string."
+          },
+          "d_fav": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source favorite delta as a canonical signed decimal string."
+          },
+          "d_hot": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source heat delta as a canonical signed decimal string."
+          },
+          "fav": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source favorite counter as a canonical signed decimal string."
+          },
+          "gap": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Positive source sampling interval; no daily normalization is synthesized."
+          },
+          "hot": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source heat counter as a canonical signed decimal string."
+          },
+          "id": {
+            "type": "string",
+            "description": "Exact nonzero decimal catalog identity, at most 32 digits."
+          },
+          "r_hot": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Finite source heat change ratio, when provided."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Up to eight source tags, each at most 80 characters."
+          },
+          "title": {
+            "type": "string",
+            "description": "Trimmed display title, at most 400 Unicode characters."
+          },
+          "type": {
+            "$ref": "#/components/schemas/RadarKind",
+            "description": "Validated source content classification."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RadarKind": {
+        "type": "string",
+        "description": "The source content classification whitelist.",
+        "enum": [
+          "real",
+          "ai",
+          "comic",
+          "unknown"
+        ]
+      },
+      "RadarRankBucket": {
+        "type": "object",
+        "description": "One ranking category at a source sampling date.",
+        "required": [
+          "rank_date",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RadarRankItem"
+            },
+            "description": "Validated rows in source order, or stable descending d_hot order for growth."
+          },
+          "prev_rank_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Previous source ranking date, when provided."
+          },
+          "rank_date": {
+            "type": "string",
+            "description": "Source ranking date in YYYY-MM-DD."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RadarRankItem": {
+        "type": "object",
+        "description": "A validated identity and optional ranking measurements.",
+        "required": [
+          "id",
+          "title"
+        ],
+        "properties": {
+          "badge": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional source badge, at most 80 characters."
+          },
+          "best_rank": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Positive best source rank, when provided."
+          },
+          "delta": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Signed source rank movement, when provided."
+          },
+          "id": {
+            "type": "string",
+            "description": "Exact nonzero decimal catalog identity, at most 32 digits."
+          },
+          "rank": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Positive source rank; missing or nonpositive ranks are absent."
+          },
+          "status_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Up to eight source status tags, each at most 80 characters."
+          },
+          "streak": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Nonnegative source streak, when provided."
+          },
+          "title": {
+            "type": "string",
+            "description": "Trimmed display title, at most 400 Unicode characters."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RadarRanks": {
+        "type": "object",
+        "description": "All four required ranking buckets from one source document.",
+        "required": [
+          "hot",
+          "real",
+          "ai",
+          "comic"
+        ],
+        "properties": {
+          "ai": {
+            "$ref": "#/components/schemas/RadarRankBucket",
+            "description": "AI ranking bucket."
+          },
+          "comic": {
+            "$ref": "#/components/schemas/RadarRankBucket",
+            "description": "Comic ranking bucket."
+          },
+          "hot": {
+            "$ref": "#/components/schemas/RadarRankBucket",
+            "description": "Overall heat ranking bucket."
+          },
+          "real": {
+            "$ref": "#/components/schemas/RadarRankBucket",
+            "description": "Live action ranking bucket."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RadarResponse": {
+        "type": "object",
+        "description": "Independent third-party ranking and growth snapshots with their actual cache state.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RadarSnapshot",
+            "description": "Available snapshots; missing metrics remain absent."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "RadarSnapshot": {
+        "type": "object",
+        "description": "Independent ranking and growth branches, including source freshness and commit outcome.",
+        "required": [
+          "ranks_stale",
+          "growth_stale",
+          "cache_write_failed"
+        ],
+        "properties": {
+          "cache_write_failed": {
+            "type": "boolean",
+            "description": "Fresh response data could not be committed; a later offline request uses the last durable snapshot."
+          },
+          "growth": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RadarGrowth",
+                "description": "Validated growth document, absent until one source succeeds."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "growth_fetched_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "UTC RFC3339 time of the last successful growth fetch."
+          },
+          "growth_stale": {
+            "type": "boolean",
+            "description": "The growth refresh failed or exceeded the network deadline."
+          },
+          "ranks": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RadarRanks",
+                "description": "Validated ranking document, absent until one source succeeds."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ranks_fetched_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "UTC RFC3339 time of the last successful ranking fetch."
+          },
+          "ranks_stale": {
+            "type": "boolean",
+            "description": "The ranking refresh failed or exceeded the network deadline."
           }
         },
         "additionalProperties": false

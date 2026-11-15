@@ -22,6 +22,13 @@ export * from './overlay';
 export * from './frequent';
 export { DateChoice, type DateChoiceProps } from './date-choice';
 export { RankingCard, type RankingCardProps } from './ranking-card';
+export {
+  RadarTable,
+  type RadarTableProps,
+  type RadarTableRef,
+  type RadarTableColumn,
+  type RadarTableRow,
+} from './radar-table';
 export { SeasonChoice, type SeasonChoiceProps } from './season-choice';
 export {
   Cover,

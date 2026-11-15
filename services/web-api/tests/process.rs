@@ -83,6 +83,7 @@ fn binary_serves_real_loopback_requests_and_exits() {
         ("/healthz", "200 OK"),
         ("/api/v1/status", "200 OK"),
         ("/api/v1/play/info", "400 Bad Request"),
+        ("/api/v1/radar?refresh=1", "400 Bad Request"),
     ] {
         let mut socket = TcpStream::connect(address).unwrap();
         socket
@@ -207,5 +208,21 @@ fn storage_failure_never_publishes_ready_or_overwrites_corrupt_data() {
     assert!(!output.status.success());
     assert!(output.stdout.is_empty());
     assert_eq!(std::fs::read(path).unwrap(), b"private corrupt database");
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("private corrupt"));
+}
+
+#[test]
+fn corrupt_radar_cache_never_publishes_ready_or_overwrites_original_data() {
+    let temp = Temp::new();
+    let path = temp.0.join("radar-v1.json");
+    std::fs::write(&path, b"private corrupt radar cache").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+        .arg("--data-dir")
+        .arg(&temp.0)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    assert_eq!(std::fs::read(path).unwrap(), b"private corrupt radar cache");
     assert!(!String::from_utf8_lossy(&output.stderr).contains("private corrupt"));
 }

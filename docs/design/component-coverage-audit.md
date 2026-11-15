@@ -105,3 +105,20 @@
 ### RankingCard 实施契约（2026-11-15）
 
 `packages/ui/src/ranking-card.tsx` 提供同一受控榜位媒体行：真实正整数榜位、缺失时保留空 lane，演员复用 Avatar lg，剧目复用 Cover；同一行只有一个动作与焦点目标，selected 和焦点独立。动态菜单、actor/drama 身份、分页与来源恢复属于 app，不为 UI 样例创建业务数据。桌面／TV 仅适配公共尺寸表与输入宿主，不拆 package 或业务控制器。公开 API、尺寸与无障碍职责见 [UI 包说明](../../packages/ui/README.md#rankingcard)；宿主通过范围以 VALIDATION 的榜单批次记录为准，样例和测试源码存在不代表验收已通过。
+
+### RadarTable 工程与状态覆盖（2026-11-15）
+
+只读比较表由 `packages/ui/src/radar-table.tsx` 统一承载，公开命名 Props、对象事件及外部受控的 selected／pending；产品经包根消费，dev／test 通过独立开发入口装配，不加入 Gallery 或业务路由。榜单请求、指标连接／格式化、来源日期、独立分支失败、空表说明与详情导航仍归 app。公开契约见 [UI 包说明](../../packages/ui/README.md#radartable)。
+
+| 覆盖面             | 合成样例与行为回归                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| 受控动作和准确身份 | 接受／拒绝／外部选择；两个仅末位不同的大 ID；对象事件和来源身份不数值化；读取中保留完整标题名称                |
+| 内容与列           | 长标题、缺失值、零、负数和 int64 极值字符串；宽列／紧凑列切换、可见横向按钮；空表后恢复原数据                  |
+| 焦点与虚拟行       | 32 行中的较后行重复返回；首行／后段行往返；inactive 或 `owns()` 失效时禁止恢复偷焦                             |
+| 端型与隔离         | 同一 RadarTables／registerRadarTableTests 由三端薄入口装配，Product 负责密度；无网络、历史、账号或媒体业务依赖 |
+
+入口为三端 `RadarTablePreview.tsx` 及相邻 `.test.tsx`，共享源码为 `packages/ui/dev/RadarTables.tsx` 与 `packages/ui/test/radar-table.tsx`。表头横向 Scroll 与纵向虚拟 List 是兄弟视口，行以 `translateX` 同步偏移；标题复用公共 Button 的两行 `labelLines`，保留完整可访问名称。三端独立表格 check／build／各 3／3 通过，公共 UI check／test 各 16／16、原型 28／28 通过，见 `artifacts/radar-ui/logs/{table-three-targets-current,ui-three-targets-current,prototype-current}.log`。独立表格结果早于最后的数值列宽修复，不能代证新列宽最终通过。
+
+当前数值列宽的 Web 与前台 macOS 真实 HTTP 两尺寸浅深各 4／4，日志 `web-host-width-final.log`／`macos-host-width-final.log`。TV 三档基线各 48 项及官方榜身份各 21 项通过且设备恢复回读成功；新列宽 TV 全组另以 `tv-all-width-final.log` 重跑，同三档各 48 项通过，最终恢复 11 项成功、errors 为空。最终完整 verify 已通过，含三端正式入口 check／build 与新列宽表格每端 3 项回归；独立 preview 也已完成最终三端 build，见 `verify-final.log`／`table-build-warning-final.log`。功能覆盖精确 ID／受控动作、独立分支状态、重试与迟到拒绝、列切换、较后虚拟行来源返回，不从组件样例推定真实上游或业务发行通过。
+
+独立视觉复核实际查看 14 张 TV 浅／深／1.3 字号代表图，以及新列宽桌面 1180×780 浅色 5 张。所看圆角、字级、间距、列对齐、主题配对、状态换行与来源可见性未发现阻断；旧列宽 TV 图保留其源码范围，新桌面完整 i64 已单行。顶层 Tab hover 覆盖选中下划线仍为轻微未解决发现，选中文字可读。未将全部 finishing 项标为通过：完整 hover／pressed 时序、所有动效／减少动态、横向滚轮、读屏、物理 TV／观看距离及长列表性能仍需相应验收；详细证据与边界见 VALIDATION 雷达段。

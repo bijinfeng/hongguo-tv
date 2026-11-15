@@ -4,6 +4,7 @@ mod http;
 pub mod library;
 pub mod media;
 pub mod playback;
+pub mod radar;
 
 use serde::Serialize;
 use utoipa::ToSchema;

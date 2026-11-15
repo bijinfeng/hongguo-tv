@@ -126,7 +126,7 @@ const state = {
   rankPanel: '全部',
   radarView: '官方快照',
   radarCategory: '综合',
-  radarMetric: '热度日增',
+  radarMetric: '热度增量',
   radarType: '全部',
   radarScenario: '正常',
   newMode: '上新日历',
@@ -798,7 +798,7 @@ function radarPage() {
   const snapshot = state.radarView === '官方快照';
   const missing = state.radarScenario === (snapshot ? '快照失败' : '增长失败');
   const stale = state.radarScenario === '使用缓存';
-  const metric = { 热度日增: 'd_hot', 收藏日增: 'd_fav', 热度增长率: 'r_hot' }[state.radarMetric];
+  const metric = { 热度增量: 'd_hot', 收藏增量: 'd_fav', 热度增长率: 'r_hot' }[state.radarMetric];
   const type = snapshot ? state.radarCategory : state.radarType;
   const growthMissing = state.radarScenario === '增长失败';
   const rows = prototypeRadarRows
@@ -806,8 +806,8 @@ function radarPage() {
     .slice();
   if (!snapshot) rows.sort((a, b) => (b[metric] ?? -Infinity) - (a[metric] ?? -Infinity));
   const headings = snapshot
-    ? ['名次', '变化', '短剧', '类型', '热度', '热度日增', '收藏日增', '连续在榜']
-    : ['排序', '短剧', '类型', '热度', '热度日增', '增长率', '收藏日增', '7日热度增量'];
+    ? ['名次', '变化', '短剧', '类型', '热度', '热度增量', '收藏增量', '连续在榜']
+    : ['排序', '短剧', '类型', '热度', '热度增量', '增长率', '收藏增量', '7日热度增量'];
   const table = `<div class="reality-table-scroll" role="region" aria-label="${state.radarView}数据" tabindex="0"><table class="reality-table"><thead><tr>${headings.map((label) => `<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${rows
     .map((row, index) => {
       const drama = dramaById(row.id);
@@ -840,7 +840,7 @@ function radarPage() {
       return `<tr>${cells.map((cell) => (cell.startsWith('<th') ? cell : `<td>${cell}</td>`)).join('')}</tr>`;
     })
     .join('')}</tbody></table></div>`;
-  return `<section aria-label="榜单雷达" class="reality-radar"><div class="section-head"><h2>榜单雷达</h2>${button('刷新', 'radar-refresh', { image: 'refresh' })}</div><p class="small muted">2026年11月13日 · 数据演示 · 来源：hongguo-radar 外部聚合</p>${tabs(['官方快照', '飙升榜'], state.radarView, 'radar-view')}<div class="reality-controls">${snapshot ? chips(['综合', '真人', 'AI', '漫剧'], state.radarCategory, 'radar-category') : `${chips(['热度日增', '收藏日增', '热度增长率'], state.radarMetric, 'radar-metric')}${chips(['全部', '真人', 'AI', '漫剧', '未知'], state.radarType, 'radar-type')}`}</div>${stale ? '<p class="status-line notice" role="status">刷新失败，显示最近成功数据 · 获取于11月13日18:00（演示）</p>' : state.radarScenario === '快照失败' || growthMissing ? `<p class="status-line notice" role="status">${state.radarScenario === '快照失败' ? '官方快照' : '增长数据'}暂不可用，另一分支可继续查看。</p>` : ''}${statusContent() || (missing ? `<div class="empty-state fb-empty"><h3>${snapshot ? '暂无官方快照' : '暂无增长数据'}</h3>${button('重新读取', 'radar-refresh')}</div>` : rows.length ? table : '<p class="muted" role="status">当前分类暂无数据。</p>')}<p class="small muted">热度为来源分值；日增按采样间隔折算。缺失值以 — 表示。</p><details class="reality-review"><summary>数据状态演示</summary>${chips(['正常', '使用缓存', '快照失败', '增长失败'], state.radarScenario, 'radar-scenario')}</details></section>`;
+  return `<section aria-label="榜单雷达" class="reality-radar"><div class="section-head"><h2>榜单雷达</h2>${button('刷新', 'radar-refresh', { image: 'refresh' })}</div><p class="small muted">2026年11月13日 · 数据演示 · 来源：hongguo-radar 外部聚合</p>${tabs(['官方快照', '飙升榜'], state.radarView, 'radar-view')}<div class="reality-controls">${snapshot ? chips(['综合', '真人', 'AI', '漫剧'], state.radarCategory, 'radar-category') : `${chips(['热度增量', '收藏增量', '热度增长率'], state.radarMetric, 'radar-metric')}${chips(['全部', '真人', 'AI', '漫剧', '未知'], state.radarType, 'radar-type')}`}</div>${stale ? '<p class="status-line notice" role="status">刷新失败，显示最近成功数据 · 获取于11月13日18:00（演示）</p>' : state.radarScenario === '快照失败' || growthMissing ? `<p class="status-line notice" role="status">${state.radarScenario === '快照失败' ? '官方快照' : '增长数据'}暂不可用，另一分支可继续查看。</p>` : ''}${statusContent() || (missing ? `<div class="empty-state fb-empty"><h3>${snapshot ? '暂无官方快照' : '暂无增长数据'}</h3>${button('重新读取', 'radar-refresh')}</div>` : rows.length ? table : '<p class="muted" role="status">当前分类暂无数据。</p>')}<p class="small muted">热度、增量与增长率采用来源值；缺失值以 — 表示。</p><details class="reality-review"><summary>数据状态演示</summary>${chips(['正常', '使用缓存', '快照失败', '增长失败'], state.radarScenario, 'radar-scenario')}</details></section>`;
 }
 function newPageKey(branch = 'recommend') {
   return branch === 'recommend'

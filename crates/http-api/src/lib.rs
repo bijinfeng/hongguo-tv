@@ -2,6 +2,7 @@
 mod catalog;
 mod library;
 mod playback;
+mod radar;
 mod search_history;
 
 use axum::{
@@ -17,6 +18,7 @@ use hongguo_core::{
     catalog::{CatalogClient, CatalogError},
     library::LibraryStore,
     playback::PlaybackService,
+    radar::RadarService,
 };
 use serde::Serialize;
 use utoipa::{OpenApi, ToSchema};
@@ -195,6 +197,7 @@ pub(crate) struct ApiState {
     catalog: CatalogClient,
     library: Option<LibraryStore>,
     playback: Option<PlaybackService>,
+    radar: Option<RadarService>,
 }
 impl FromRef<ApiState> for CatalogClient {
     fn from_ref(state: &ApiState) -> Self {
@@ -244,9 +247,21 @@ pub fn router_with_playback(
     library: Option<LibraryStore>,
     playback: Option<PlaybackService>,
 ) -> Router {
+    router_with_radar(policy, catalog, library, playback, None)
+}
+
+/// Attach the independent ranking snapshot service without changing existing fixtures.
+pub fn router_with_radar(
+    policy: DevPolicy,
+    catalog: CatalogClient,
+    library: Option<LibraryStore>,
+    playback: Option<PlaybackService>,
+    radar: Option<RadarService>,
+) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/api/v1/status", get(status))
+        .route("/api/v1/radar", get(radar::get))
         .route("/api/v1/search", get(catalog::search))
         .route("/api/v1/search/discovery", get(catalog::discovery))
         .route("/api/v1/search/suggestions", get(catalog::suggestions))
@@ -290,6 +305,7 @@ pub fn router_with_playback(
             catalog,
             library,
             playback,
+            radar,
         })
         .layer(middleware::from_fn_with_state(policy, boundary))
 }
@@ -299,6 +315,7 @@ pub fn router_with_playback(
     paths(
         status,
         health,
+        radar::get,
         catalog::search,
         catalog::discovery,
         catalog::suggestions,
@@ -325,6 +342,14 @@ pub fn router_with_playback(
         CoreStatus,
         hongguo_core::Capabilities,
         ApiError,
+        radar::RadarResponse,
+        hongguo_core::radar::RadarSnapshot,
+        hongguo_core::radar::RadarRanks,
+        hongguo_core::radar::RadarRankBucket,
+        hongguo_core::radar::RadarRankItem,
+        hongguo_core::radar::RadarGrowth,
+        hongguo_core::radar::RadarGrowthItem,
+        hongguo_core::radar::RadarKind,
         catalog::SearchResponse,
         catalog::DiscoveryResponse,
         catalog::SuggestionsResponse,

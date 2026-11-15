@@ -117,3 +117,38 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 - 完整工程仍运行 `pnpm verify`；依赖变化运行 `pnpm security`。缺工具必须失败。
 
 还原度检查比较原设计与宿主中的颜色、字级、几何、对齐、状态、图标及动效；完整度检查逐项映射公共导出、样例、状态和行为证据。编译通过或 headless 通过均不能替代视觉与真机。待验收项如读屏、系统大字、真实遥控、输入法、物理电视必须明确记录。
+
+### RadarTable
+
+包根导出 `RadarTable`、`RadarTableProps`、`RadarTableColumn`、`RadarTableRow` 和 `RadarTableRef`。它是只读比较表，不是可编辑网格；桌面与 TV 共用列、标题动作、受控状态与恢复契约，仅通过 Product 调整尺寸。标题是唯一的行内动作，完整标题保留为无障碍名称，视觉摘要不改变 ID；数值列靠右，其余列靠左。横向按钮始终可见，不依赖拖动或 hover 才能查看后面的列。
+
+内部由独立的表头水平 `Scroll` 和垂直虚拟 `List` 组成，二者为兄弟节点。表头真实横向滚动的 offset 同步到各行宽内容的 `translateX`；行外框保持列表视口宽度，表头与行共用列宽和两侧 inset，所有宿主共用此结构。NSH 0.5.0 的 `DataTable` 自定义行位于零尺寸原点容器之下，在 Android 原生树可见而 Accessibility 树无法到达；把虚拟 List 放入水平 Scroll 又出现后续行子树零尺寸，因此列表直接拥有独立垂直视口。这里使用公开原语保留真实标题按钮，不修改引擎或绕过可访问性验收。纵向仍按稳定字符串 ID 回查当前索引，回收行的事件始终读取 `item()`；后段恢复使用 `ListRef.scrollToIndex`，横向恢复只移动到完整显示标题列的位置。该替换仍需实际 check／build、行为与宿主回归验证。
+
+`columns` 提供稳定 key、标题与 `numeric`，`rows` 提供稳定且唯一的字符串 `id`、完整 `title` 和已格式化的字符串 `cells`。组件不解析、排序、连接或补造业务指标；缺失 cell 显示“—”，调用方传入的“0”、负数及超出 JavaScript 安全整数范围的字符串原样显示。`selected` 与 `pending` 由同一外部 owner 提供；`onOpen({ id })` 只报告打开请求，`onSource({ id })` 只报告获得焦点的准确身份，外部拒绝请求不会改变 selected。读取中改变标题的视觉文案，完整可访问名称仍保留。
+
+```tsx
+<RadarTable
+  collection={collectionKey()}
+  columns={columns()}
+  rows={rows()}
+  selected={selected()}
+  pending={pending()}
+  active={active()}
+  tableRef={(ref) => {
+    table = ref;
+  }}
+  onOpen={({ id }) => requestOpen(id)}
+  onSource={({ id }) => rememberSource(id)}
+  onNavigate={() => markNewIntent()}
+/>
+```
+
+`tableRef` 取得的 `restore(id, owns)` 会定位标题列与目标行；调用时和异步挂载后都核对 `active` 与 `owns()`，拒绝缺失行、失效 owner、已卸载或非活动表格的恢复。`active` 仅约束焦点恢复，不等同 disabled；业务宿主仍负责隐藏／禁用非活动页面并拒绝后台请求。`onNavigate()` 通知调用方横向操作或读取期间的焦点变化，取消读取及较新输入意图归调用方。数据日期、来源、错误、空表说明及详情返回路径也归 app，基础包不导入业务服务。
+
+可选 `collection` 标识当前比较集合（例如榜单维度、类型和列集）；它变化时回到首行、首列并撤销旧的等待恢复，受控 `selected` 不变，也不产生打开请求。同一集合的刷新或 `pending` 文案变化保持滚动位置。独立样例传入 `wide`／`compact`，行为测试在后段行验证读取文案仍可见，再验证切换集合后首行重新可见；这些可见性断言不替代真实宿主的滚动坐标与焦点检查。
+
+标题复用 `Button` 的可选 `labelLines={2}`，在父容器宽度内两行省略，完整 `label` 仍是无障碍名称。普通按钮不传此属性时保持原布局。返回在可行范围居中显示目标行，保留相邻上下文和焦点安全区；横向列按钮、表头原生滚动条与正文横向滚轮共用列偏移。
+
+独立样例 `dev/RadarTables.tsx` 经 `@hongguo/ui/preview/radar-table` 导出；测试经 `@hongguo/ui/testing/radar-table` 导出。三端显式入口为 `apps/*/RadarTablePreview.tsx` 及相邻 `.test.tsx`，不进入产品路由或 Gallery。样例提供 32 条合成数据、外部接受／拒绝、相邻大 ID、完整长标题、缺失／零／负数／极值、读取中、空表、列集切换、横向按钮与可重复的后段行恢复；不发请求、不写历史或媒体状态。样例不增加动效，沿用基础按钮状态和表格原有滚动行为。
+
+运行每端的 `nsh check`、`nsh build RadarTablePreview.tsx` 与 `nsh test RadarTablePreview.test.tsx`。测试覆盖受控动作、精确 ID／来源、列集及空表切换，以及 inactive／过期 owner 的恢复围栏；真实宿主的表格对齐、长标题、横滚、浅深主题、大字号与遥控仍须单独观察。文件存在不表示还原度或宿主验收已通过。

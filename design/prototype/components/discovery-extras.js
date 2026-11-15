@@ -159,7 +159,7 @@ function snapshotTable(ctx, current) {
   }${
     failed
       ? `<div class="dx-empty" role="status"><strong>榜单快照暂不可用</strong>${actionButton(ctx, '重新读取', 'snapshot-refresh', 'retry')}</div>`
-      : `<div class="dx-table-scroll" role="region" aria-label="榜单快照数据，可横向滚动" tabindex="0" data-scroll-id="dx-snapshot"><table class="dx-table"><thead><tr>${['名次', '变化', '短剧', '类型', '热度', '热度日增', '收藏日增', '连续在榜'].map((label) => `<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${rows
+      : `<div class="dx-table-scroll" role="region" aria-label="榜单快照数据，可横向滚动" tabindex="0" data-scroll-id="dx-snapshot"><table class="dx-table"><thead><tr>${['名次', '变化', '短剧', '类型', '热度', '热度增量', '收藏增量', '连续在榜'].map((label) => `<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${rows
           .map((values) => {
             const cells = values.slice(0, 8).map((value, index) => {
               if (index === 2)

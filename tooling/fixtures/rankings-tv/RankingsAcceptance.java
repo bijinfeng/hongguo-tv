@@ -218,6 +218,27 @@ public final class RankingsAcceptance extends Instrumentation {
         try (FileOutputStream out = new FileOutputStream(new File(directory, name + "-" + appearance + ".json"))) {
             out.write(tree[0].getBytes(StandardCharsets.UTF_8));
         }
+        try (FileOutputStream out = new FileOutputStream(new File(directory, name + "-" + appearance + "-accessibility.json"))) {
+            out.write(describeAccessibility(root()).toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private JSONObject describeAccessibility(AccessibilityNodeInfo node) throws Exception {
+        JSONObject value = new JSONObject();
+        if (node == null) return value;
+        Rect rect = new Rect();
+        node.getBoundsInScreen(rect);
+        value.put("class", node.getClassName());
+        value.put("id", node.getViewIdResourceName());
+        value.put("text", node.getText());
+        value.put("label", node.getContentDescription());
+        value.put("visible", node.isVisibleToUser());
+        value.put("bounds", rect.toShortString());
+        JSONArray children = new JSONArray();
+        for (int index = 0; index < node.getChildCount(); index++)
+            children.put(describeAccessibility(node.getChild(index)));
+        value.put("children", children);
+        return value;
     }
 
     private void enterRankings() throws Exception {
@@ -399,6 +420,87 @@ public final class RankingsAcceptance extends Instrumentation {
         check("dense retry advances without losing results", () -> hasText("加载更多") && enabled("ranking-more") && has("ranking-drama:901"));
     }
 
+    private boolean completeRadar(String id) {
+        Rect item = bounds(id);
+        Rect viewport = bounds("radar-table");
+        return !item.isEmpty() && !viewport.isEmpty()
+            && item.left >= viewport.left + 4 && item.right <= viewport.right - 4
+            && item.top >= viewport.top + 4 && item.bottom <= viewport.bottom - 4;
+    }
+
+    private void radar() throws Exception {
+        activate("ranking-view-radar");
+        check("radar uses independent snapshot source", () -> has("radar-entry-101"));
+        check("subsequent radar rows are laid out and accessible", () -> has("radar-entry-102"));
+        check("both source dates remain visible", () -> hasText("快照日期 2026-11-13 · 指标日期 2026-11-14 · 来源：hongguo-radar 外部聚合"));
+        capture("radar-snapshot");
+        activate("radar-columns-next");
+        check("remote column control reveals the final metric", () -> has("radar-column-streak"));
+        capture("radar-last-columns");
+        activate("radar-columns-prev");
+        check("remote column control restores title column", () -> has("radar-entry-101"));
+        capture("radar-first-columns");
+        focus("radar-entry-101");
+        key(KeyEvent.KEYCODE_DPAD_DOWN);
+        check("table arrow moves to the next title", () -> focused("radar-entry-102"));
+        confirm();
+        check("mismatched detail cannot navigate", () -> has("radar-detail-retry") && !has("episode-1011"));
+        capture("radar-wrong-identity");
+        activate("radar-detail-retry");
+        check("detail failure remains recoverable", () -> has("radar-detail-retry") && !has("episode-1021"));
+        activate("radar-detail-retry");
+        check("exact detail retry opens actual series", () -> has("episode-1021"));
+        back();
+        check("detail returns to exact table title", () -> focused("radar-entry-102") && completeRadar("radar-entry-102"));
+        activate("radar-entry-101");
+        check("first radar title opens actual detail", () -> has("episode-1011"));
+        back();
+        check("first radar title returns with visible ring", () -> focused("radar-entry-101") && completeRadar("radar-entry-101"));
+        walk("radar-entry-540", KeyEvent.KEYCODE_DPAD_DOWN, 95);
+        check("later virtual row remains fully visible", () -> completeRadar("radar-entry-540"));
+        capture("radar-later-source");
+        confirm();
+        check("later exact ID opens its own detail", () -> has("episode-5401"));
+        back();
+        check("later table return preserves exact ID and full focus ring", () -> focused("radar-entry-540") && completeRadar("radar-entry-540"));
+        capture("radar-later-return");
+        confirm();
+        check("restored later title remains activatable", () -> has("episode-5401"));
+        back();
+        check("second table return preserves identity", () -> focused("radar-entry-540"));
+        activate("radar-view-growth");
+        check("growth is a separate shared table", () -> has("radar-type-trigger") && has("radar-metric-trigger") && has("radar-entry-102"));
+        capture("radar-growth");
+        activate("radar-type-trigger");
+        key(KeyEvent.KEYCODE_DPAD_DOWN);
+        confirm();
+        check("native type selector applies real source kind", () -> text(find(root(), "radar-type-trigger"), "真人") && has("radar-entry-101") && !has("radar-entry-102"));
+        activate("radar-type-trigger");
+        back();
+        check("native selector Back restores its trigger", () -> focused("radar-type-trigger"));
+        activate("radar-metric-trigger");
+        key(KeyEvent.KEYCODE_DPAD_DOWN);
+        confirm();
+        check("native growth metric selector changes the shared sort", () -> text(find(root(), "radar-metric-trigger"), "收藏增量"));
+        capture("radar-filtered-growth");
+        activate("radar-view-snapshot");
+        check("snapshot selection survives growth browsing", () -> has("radar-entry-101"));
+        activate("radar-refresh");
+        check("partial refresh keeps ranks and identifies stale joined growth", () -> has("radar-entry-101") && has("radar-growth-status"));
+        capture("radar-partial");
+        activate("radar-refresh");
+        check("independent cached branch and failed save are visible", () -> has("radar-stale") && has("radar-cache-warning") && has("radar-entry-101"));
+        capture("radar-cached");
+        activate("radar-refresh");
+        check("refresh failure keeps readable prior content", () -> has("radar-retry") && has("radar-entry-101"));
+        capture("radar-refresh-error");
+        activate("radar-retry");
+        check("refresh retry recovers without invented write", () -> !has("radar-retry") && !has("radar-stale") && has("radar-entry-101"));
+        activate("ranking-view-official");
+        check("official actor and drama ranking remain intact", () -> has("ranking-drama:101") && has("ranking-actor:101"));
+        capture("radar-official-return");
+    }
+
     @Override public void onStart() {
         if ("player".equals(arguments.getString("suite"))) {
             new PlayerAcceptance(this, appearance).run();
@@ -419,6 +521,7 @@ public final class RankingsAcceptance extends Instrumentation {
                 case "newer-focus": newerFocus(); break;
                 case "later": later(); break;
                 case "dense": dense(); break;
+                case "radar": radar(); break;
                 default: throw new AssertionError("Unknown suite");
             }
             result.putString("stream", "Rankings real TV adapter: " + checks + " checks passed\n");

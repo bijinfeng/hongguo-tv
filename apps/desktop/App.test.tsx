@@ -25,3 +25,5 @@ registerCalendarBackTests();
 
 import { registerRankingsTests } from '@hongguo/app/testing';
 registerRankingsTests();
+import { registerRadarTests } from '@hongguo/app/testing/radar';
+registerRadarTests();

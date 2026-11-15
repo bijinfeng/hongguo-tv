@@ -10,7 +10,7 @@ use hongguo_core::{
     media::{ByteRange, MediaStore},
     playback::PlaybackClient,
 };
-use hongguo_http_api::router_with_playback;
+use hongguo_http_api::{router_with_playback, router_with_radar};
 use serde_json::{Value, json};
 use std::{
     path::PathBuf,
@@ -34,6 +34,7 @@ struct Upstream {
     seasons_reply: Arc<Mutex<(StatusCode, &'static str)>>,
     calendar_reply: Arc<Mutex<(StatusCode, &'static str)>>,
     new_reply: Arc<Mutex<(StatusCode, &'static str)>>,
+    radar_status: Arc<AtomicUsize>,
 }
 async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Response {
     state.calls.fetch_add(1, Ordering::SeqCst);
@@ -45,12 +46,35 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
         && (path.starts_with("/reading/")
             || path == "/api/search/result"
             || path == "/incent_resource/suggestion"
+            || path == "/ranks_latest.json"
+            || path == "/growth_latest.json"
             || path.starts_with("/character/"))
     {
         state.started.add_permits(1);
         state.gate.acquire().await.unwrap().forget();
     }
     match path {
+        "/ranks_latest.json" | "/growth_latest.json" => {
+            let status =
+                StatusCode::from_u16(state.radar_status.load(Ordering::SeqCst) as u16).unwrap();
+            if status != StatusCode::OK {
+                return (
+                    status,
+                    "private upstream diagnostics https://secret.invalid",
+                )
+                    .into_response();
+            }
+            let bucket = json!({"rank_date":"2026-11-14","prev_rank_date":"2026-11-13",
+                "items":[{"id":"1234567890123456789","title":"合成榜单","rank":1,"delta":0}]});
+            let value = if path == "/ranks_latest.json" {
+                json!({"hot":bucket,"real":bucket,"ai":bucket,"comic":bucket})
+            } else {
+                json!({"date":"2026-11-14","prev_date":"2026-11-13","gap":1,
+                    "items":[{"id":"1234567890123456789","title":"合成增长","type":"real",
+                        "hot":i64::MAX,"fav":0,"d_hot":i64::MIN}]})
+            };
+            axum::Json(value).into_response()
+        }
         "/reading/bookapi/plan/v" => {
             let reply = *state.seasons_reply.lock().unwrap();
             reply.into_response()
@@ -155,6 +179,9 @@ struct Fixture {
 }
 impl Fixture {
     async fn new(stalled: bool) -> Self {
+        Self::with_radar(stalled, false).await
+    }
+    async fn with_radar(stalled: bool, radar: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let origin = format!("http://{}/", listener.local_addr().unwrap());
         let upstream = Upstream {
@@ -163,6 +190,7 @@ impl Fixture {
             stalled,
             calls: Arc::new(AtomicUsize::new(0)),
             discovery_status: Arc::new(AtomicUsize::new(200)),
+            radar_status: Arc::new(AtomicUsize::new(200)),
             seasons_reply: Arc::new(Mutex::new((
                 StatusCode::OK,
                 include_str!("../../../contracts/fixtures/seasons/selector.input.json"),
@@ -200,6 +228,11 @@ impl Fixture {
         });
         let dir = temp_dir();
         let services = Services {
+            radar: if radar {
+                Some(RadarService::for_loopback_tests(&dir, &origin, &origin).unwrap())
+            } else {
+                None
+            },
             catalog: CatalogClient::for_loopback_tests(&origin).unwrap(),
             library: LibraryStore::open(dir.join("guest.sqlite3")).await.unwrap(),
             playback: PlaybackService::with_services(
@@ -2605,4 +2638,204 @@ async fn rankings_encoded_request_budget_is_equal_at_native_and_http_boundaries(
         );
         assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), calls);
     }
+}
+
+#[tokio::test]
+async fn radar_http_native_strict_inputs_and_snapshot_contract_match() {
+    let fixture = Fixture::with_radar(false, true).await;
+    let app = router_with_radar(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+        fixture.session.services.radar.clone(),
+    );
+    let mut paths = vec![
+        ("/api/v1/radar?url=http://private.invalid".to_owned(), 400),
+        ("/api/v1/radar?x=1&x=2".to_owned(), 400),
+        ("/api/v1/radar?refresh=1".to_owned(), 400),
+        ("/api/v1/radar/".to_owned(), 404),
+        ("/api/v1/%72adar".to_owned(), 404),
+    ];
+    for (len, status) in [(8192, 400), (8193, 413)] {
+        let prefix = "/api/v1/radar?x=";
+        paths.push((
+            format!("{prefix}{}", "x".repeat(len - prefix.len())),
+            status,
+        ));
+    }
+    for (path, status) in paths {
+        let native = fixture.call(&path, None).await;
+        let http = app
+            .clone()
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri(&path)
+                    .header("host", "127.0.0.1:8080")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(native.status, status, "{path}");
+        assert_eq!(http.status().as_u16(), status, "{path}");
+        assert_eq!(http.headers()["cache-control"], "no-store");
+        let bytes = axum::body::to_bytes(http.into_body(), 32768).await.unwrap();
+        assert_eq!(
+            native.body,
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        );
+    }
+    for body in ["", "{}"] {
+        assert_eq!(fixture.call("/api/v1/radar", Some(body)).await.status, 405);
+    }
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+    let native = fixture.call("/api/v1/radar", None).await;
+    assert_eq!(native.status, 200, "{}", native.body);
+    let http = app
+        .oneshot(
+            axum::http::Request::builder()
+                .uri("/api/v1/radar")
+                .header("host", "127.0.0.1:8080")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(http.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(http.into_body(), 32768).await.unwrap();
+    let mut http: Value = serde_json::from_slice(&bytes).unwrap();
+    let mut native_data = native.body.clone();
+    for value in [&mut native_data, &mut http] {
+        for key in ["ranks_fetched_at", "growth_fetched_at"] {
+            let at = value["data"][key].as_str().unwrap();
+            assert!(at.contains('T') && at.ends_with('Z'), "{at}");
+            value["data"].as_object_mut().unwrap().remove(key);
+        }
+    }
+    assert_eq!(native_data, http);
+    let item = &native.body["data"]["growth"]["items"][0];
+    assert_eq!(item["hot"], i64::MAX.to_string());
+    assert_eq!(item["d_hot"], i64::MIN.to_string());
+    assert_eq!(item["fav"], "0");
+    assert!(item["d_fav"].is_null());
+    assert!(
+        fixture
+            .session
+            .services
+            .library
+            .snapshot()
+            .await
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    let response = client()
+        .get(format!("{}/api/v1/radar", fixture.session.origin))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), 404);
+}
+
+#[tokio::test]
+async fn radar_failures_are_sanitized_and_absence_is_explicit() {
+    let absent = Fixture::new(false).await;
+    assert_eq!(
+        absent.call("/api/v1/radar", None).await.body["code"],
+        "CORE_NOT_IMPLEMENTED"
+    );
+    let fixture = Fixture::with_radar(false, true).await;
+    fixture.upstream.radar_status.store(503, Ordering::SeqCst);
+    let native = fixture.call("/api/v1/radar", None).await;
+    let app = router_with_radar(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+        fixture.session.services.radar.clone(),
+    );
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .uri("/api/v1/radar")
+                .header("host", "127.0.0.1:8080")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), native.status);
+    let bytes = axum::body::to_bytes(response.into_body(), 32768)
+        .await
+        .unwrap();
+    assert_eq!(
+        native.body,
+        serde_json::from_slice::<Value>(&bytes).unwrap()
+    );
+    assert_eq!(native.status, 502);
+    assert_eq!(native.body["code"], "RADAR_UNAVAILABLE");
+    for secret in ["secret.invalid", "private upstream", "127.0.0.1"] {
+        assert!(!native.body.to_string().contains(secret));
+    }
+}
+
+#[tokio::test]
+async fn radar_cancel_and_close_stop_pending_network_without_late_cache_or_history() {
+    for close in [false, true] {
+        let fixture = Fixture::with_radar(true, true).await;
+        let call = fixture.session.start("/api/v1/radar", None);
+        timeout(
+            Duration::from_secs(5),
+            fixture.upstream.started.acquire_many(2),
+        )
+        .await
+        .unwrap()
+        .unwrap()
+        .forget();
+        let before = fixture.upstream.calls.load(Ordering::SeqCst);
+        if close {
+            fixture.session.close();
+        } else {
+            call.cancel();
+        }
+        let reply = timeout(Duration::from_secs(5), call.inner.result())
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 499);
+        assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+        fixture.upstream.gate.add_permits(8);
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), before);
+        assert!(!fixture.dir.join("radar-v1.json").exists());
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .snapshot()
+                .await
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert_eq!(call.inner.result().await.status, 499);
+    }
+}
+
+#[tokio::test]
+async fn native_corrupt_radar_cache_is_preserved_and_never_opens_a_session() {
+    let dir = temp_dir();
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("radar-v1.json");
+    std::fs::write(&path, b"private corrupt radar cache").unwrap();
+    let error = match Session::open(&dir).await {
+        Ok(_) => panic!("invalid radar cache must fail startup"),
+        Err(error) => error,
+    };
+    assert_eq!(error.status, 500);
+    assert_eq!(error.body["code"], "RADAR_CACHE_INVALID");
+    assert!(!error.body.to_string().contains("private corrupt"));
+    assert_eq!(std::fs::read(path).unwrap(), b"private corrupt radar cache");
+    std::fs::remove_dir_all(dir).unwrap();
 }

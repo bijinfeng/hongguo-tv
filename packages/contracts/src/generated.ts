@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/radar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_radar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -785,6 +801,131 @@ export interface components {
             position: number;
             /** @description Nonzero decimal video ID, up to 32 digits. */
             video_id: string;
+        };
+        /** @description Growth measurements at their actual source sampling interval. */
+        RadarGrowth: {
+            /** @description Source sampling date in YYYY-MM-DD. */
+            date: string;
+            /**
+             * Format: int32
+             * @description Positive source sampling interval; no daily normalization is synthesized.
+             */
+            gap?: number | null;
+            /** @description Validated rows in source order, or stable descending d_hot order for growth. */
+            items: components["schemas"]["RadarGrowthItem"][];
+            /** @description Previous source sampling date, when provided. */
+            prev_date?: string | null;
+        };
+        /** @description Growth measurements; signed 64-bit counters use canonical decimal strings for JavaScript. */
+        RadarGrowthItem: {
+            /** @description Source seven-day favorite delta as a canonical signed decimal string. */
+            d7_fav?: string | null;
+            /** @description Source seven-day heat delta as a canonical signed decimal string. */
+            d7_hot?: string | null;
+            /** @description Source favorite delta as a canonical signed decimal string. */
+            d_fav?: string | null;
+            /** @description Source heat delta as a canonical signed decimal string. */
+            d_hot?: string | null;
+            /** @description Source favorite counter as a canonical signed decimal string. */
+            fav?: string | null;
+            /**
+             * Format: int32
+             * @description Positive source sampling interval; no daily normalization is synthesized.
+             */
+            gap?: number | null;
+            /** @description Source heat counter as a canonical signed decimal string. */
+            hot?: string | null;
+            /** @description Exact nonzero decimal catalog identity, at most 32 digits. */
+            id: string;
+            /**
+             * Format: double
+             * @description Finite source heat change ratio, when provided.
+             */
+            r_hot?: number | null;
+            /** @description Up to eight source tags, each at most 80 characters. */
+            tags?: string[];
+            /** @description Trimmed display title, at most 400 Unicode characters. */
+            title: string;
+            /** @description Validated source content classification. */
+            type: components["schemas"]["RadarKind"];
+        };
+        /**
+         * @description The source content classification whitelist.
+         * @enum {string}
+         */
+        RadarKind: "real" | "ai" | "comic" | "unknown";
+        /** @description One ranking category at a source sampling date. */
+        RadarRankBucket: {
+            /** @description Validated rows in source order, or stable descending d_hot order for growth. */
+            items: components["schemas"]["RadarRankItem"][];
+            /** @description Previous source ranking date, when provided. */
+            prev_rank_date?: string | null;
+            /** @description Source ranking date in YYYY-MM-DD. */
+            rank_date: string;
+        };
+        /** @description A validated identity and optional ranking measurements. */
+        RadarRankItem: {
+            /** @description Optional source badge, at most 80 characters. */
+            badge?: string | null;
+            /**
+             * Format: int32
+             * @description Positive best source rank, when provided.
+             */
+            best_rank?: number | null;
+            /**
+             * Format: int32
+             * @description Signed source rank movement, when provided.
+             */
+            delta?: number | null;
+            /** @description Exact nonzero decimal catalog identity, at most 32 digits. */
+            id: string;
+            /**
+             * Format: int32
+             * @description Positive source rank; missing or nonpositive ranks are absent.
+             */
+            rank?: number | null;
+            /** @description Up to eight source status tags, each at most 80 characters. */
+            status_tags?: string[];
+            /**
+             * Format: int32
+             * @description Nonnegative source streak, when provided.
+             */
+            streak?: number | null;
+            /** @description Trimmed display title, at most 400 Unicode characters. */
+            title: string;
+        };
+        /** @description All four required ranking buckets from one source document. */
+        RadarRanks: {
+            /** @description AI ranking bucket. */
+            ai: components["schemas"]["RadarRankBucket"];
+            /** @description Comic ranking bucket. */
+            comic: components["schemas"]["RadarRankBucket"];
+            /** @description Overall heat ranking bucket. */
+            hot: components["schemas"]["RadarRankBucket"];
+            /** @description Live action ranking bucket. */
+            real: components["schemas"]["RadarRankBucket"];
+        };
+        /** @description Independent third-party ranking and growth snapshots with their actual cache state. */
+        RadarResponse: {
+            /** @description Available snapshots; missing metrics remain absent. */
+            data: components["schemas"]["RadarSnapshot"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Independent ranking and growth branches, including source freshness and commit outcome. */
+        RadarSnapshot: {
+            /** @description Fresh response data could not be committed; a later offline request uses the last durable snapshot. */
+            cache_write_failed: boolean;
+            growth?: components["schemas"]["RadarGrowth"] | null;
+            /** @description UTC RFC3339 time of the last successful growth fetch. */
+            growth_fetched_at?: string | null;
+            /** @description The growth refresh failed or exceeded the network deadline. */
+            growth_stale: boolean;
+            ranks?: components["schemas"]["RadarRanks"] | null;
+            /** @description UTC RFC3339 time of the last successful ranking fetch. */
+            ranks_fetched_at?: string | null;
+            /** @description The ranking refresh failed or exceeded the network deadline. */
+            ranks_stale: boolean;
         };
         /** @description Tagged content prevents actor IDs being passed to drama playback. */
         RankEntry: {
@@ -1725,6 +1866,81 @@ export interface operations {
                 };
             };
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_radar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

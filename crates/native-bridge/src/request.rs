@@ -7,6 +7,7 @@ use hongguo_core::{
     },
     library::{HistoryChange, LibraryError, LibraryStore, SearchHistoryChange, SearchHistoryError},
     playback::{PlaybackError, PlaybackRequest, PlaybackService},
+    radar::{RadarError, RadarService},
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
@@ -16,6 +17,7 @@ pub(crate) struct Services {
     pub catalog: CatalogClient,
     pub library: LibraryStore,
     pub playback: PlaybackService,
+    pub radar: Option<RadarService>,
 }
 
 #[derive(Clone, Serialize)]
@@ -98,6 +100,7 @@ struct Release {
 
 pub(crate) enum Request {
     Status,
+    Radar,
     Search(SearchQuery),
     Discovery,
     Suggestions(SuggestionQuery),
@@ -142,6 +145,12 @@ impl Request {
             return Err(Reply::failure(400, "CORE_REQUEST_INVALID", "请求地址无效"));
         }
         match (uri.path(), body) {
+            ("/api/v1/radar", None) => {
+                if uri.query().is_some_and(|q| !q.is_empty()) {
+                    return Err(Reply::failure(400, "RADAR_INVALID_INPUT", "榜单请求无效"));
+                }
+                Ok(Self::Radar)
+            }
             ("/api/v1/series/seasons" | "/api/v1/series/next-season", None) => {
                 let params = query::<hongguo_core::catalog::SeriesParams>(&uri)
                     .map_err(|_| catalog_error(CatalogError::InvalidInput))?;
@@ -284,6 +293,7 @@ impl Request {
             }
             (
                 "/api/v1/status"
+                | "/api/v1/radar"
                 | "/api/v1/search"
                 | "/api/v1/search/discovery"
                 | "/api/v1/search/suggestions"
@@ -310,6 +320,18 @@ impl Request {
     }
     pub async fn execute(self, services: &Services) -> Reply {
         let result = match self {
+            Self::Radar => match &services.radar {
+                Some(radar) => radar
+                    .snapshot()
+                    .await
+                    .map(Reply::success)
+                    .map_err(radar_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
             Self::SeriesSeasons(query) => services
                 .catalog
                 .series_seasons(&query)
@@ -486,4 +508,8 @@ pub(crate) fn search_history_error(error: SearchHistoryError) -> Reply {
         error.code(),
         &error.to_string(),
     )
+}
+
+pub(crate) fn radar_error(error: RadarError) -> Reply {
+    Reply::failure(error.status(), error.code(), error.message())
 }

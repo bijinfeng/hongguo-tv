@@ -6,6 +6,7 @@ import {
   effect,
   platform,
   signal,
+  untracked,
   type ListRef,
   type ViewRef,
 } from 'nsh';
@@ -15,6 +16,7 @@ import {
   ContentArrival,
   Notice,
   RankingCard,
+  Tabs,
   UiText,
   tvUnit,
   controlMetrics,
@@ -22,9 +24,14 @@ import {
 } from '@hongguo/ui';
 import type { Drama, RankItem } from '@hongguo/core-client';
 import { rankingIdentity, type RankingChoices, type RankingsController } from '../rankings';
+import type { RadarController } from '../radar';
+import { Radar } from './Radar';
 
 export type RankingsProps = {
   rankings: RankingsController;
+  radar?: RadarController;
+  view?: 'official' | 'radar';
+  onView?: (view: 'official' | 'radar') => void;
   target: ProductTarget;
   active: boolean;
   onOpen: (drama: Drama, restore: () => void) => void;
@@ -336,7 +343,7 @@ function RankingCollection(props: RankingsProps) {
   );
 }
 
-export function Rankings(props: RankingsProps) {
+function OfficialRankings(props: RankingsProps) {
   const availableHeight = signal(0);
   const selectorHeights = signal<Record<string, number>>({});
   const filterGap = () => (props.target === 'tv' ? tvUnit(4) : 4);
@@ -411,10 +418,9 @@ export function Rankings(props: RankingsProps) {
     <View
       testID="rankings-page"
       onLayout={({ bounds }) => availableHeight.set(bounds.size.height)}
-      class={`flex-1 gap-7 ${props.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
+      class="flex-1 min-h-0 gap-7"
+      style={props.target === 'tv' ? { gap: tvUnit(28) } : undefined}
     >
-      <UiText role="page">排行榜</UiText>
       <Scroll testID="ranking-filters" style={{ height: filterHeight(), flexShrink: 0 }}>
         <View style={{ gap: filterGap() }}>
           <Each of={props.rankings.groups()} key={(group) => group.id}>
@@ -493,6 +499,75 @@ export function Rankings(props: RankingsProps) {
             onFocusedRemoval={platform.os === 'macos' ? terminalFocus : undefined}
           />
         </View>
+      </If>
+    </View>
+  );
+}
+
+export function Rankings(props: RankingsProps) {
+  let disposed = false;
+  cleanup(() => {
+    disposed = true;
+  });
+  const ownsSource = (view: 'official' | 'radar') =>
+    !disposed && props.active && (props.view ?? 'official') === view;
+  const rememberSource = (view: 'official' | 'radar', restore: () => void) => {
+    if (!ownsSource(view)) return;
+    props.onSource(() => {
+      if (ownsSource(view)) restore();
+    });
+  };
+  const primaries = signal<Partial<Record<'official' | 'radar', ViewRef>>>({});
+  const rememberPrimary = (view: 'official' | 'radar', ref: ViewRef) =>
+    untracked(() => primaries.update((prior) => ({ ...prior, [view]: ref })));
+  effect(() => {
+    const ref = primaries()[props.view ?? 'official'];
+    if (props.active && ref) props.onPrimary(ref);
+  });
+  return (
+    <View
+      class={`flex-1 min-h-0 gap-7 ${props.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      style={props.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
+    >
+      <UiText role="page">排行榜</UiText>
+      <If when={props.radar}>
+        <Tabs
+          label="榜单来源"
+          testID="ranking-view"
+          value={props.view ?? 'official'}
+          options={[
+            { value: 'official', label: '红果榜' },
+            { value: 'radar', label: '榜单雷达' },
+          ]}
+          onChange={({ value }) => {
+            props.onNavigate();
+            props.onView?.(value as 'official' | 'radar');
+          }}
+        />
+      </If>
+      <View
+        class={props.view === 'radar' ? 'hidden' : 'flex-1 min-h-0'}
+        disabled={props.view === 'radar'}
+        accessibilityElementsHidden={props.view === 'radar'}
+      >
+        <OfficialRankings
+          {...props}
+          active={props.active && props.view !== 'radar'}
+          onSource={(restore) => rememberSource('official', restore)}
+          onPrimary={(ref) => rememberPrimary('official', ref)}
+        />
+      </View>
+      <If when={props.radar && props.view === 'radar'}>
+        <Radar
+          radar={props.radar!}
+          target={props.target}
+          active={props.active && props.view === 'radar'}
+          onOpen={props.onOpen}
+          onSource={(restore) => rememberSource('radar', restore)}
+          onNavigate={props.onNavigate}
+          focusGuard={props.focusGuard}
+          onPrimary={(ref) => rememberPrimary('radar', ref)}
+        />
       </If>
     </View>
   );

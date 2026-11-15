@@ -156,6 +156,9 @@ function Browse(props: { store: Store }) {
       >
         <Rankings
           rankings={props.store.rankings}
+          radar={props.store.radar}
+          view={props.store.rankingView()}
+          onView={props.store.selectRankingView}
           target={props.store.target}
           active={props.store.activePage('rankings')}
           onOpen={props.store.open}

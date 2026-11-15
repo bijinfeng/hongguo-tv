@@ -21,6 +21,8 @@ export interface ButtonProps {
   icon?: IconName;
   iconOnly?: boolean;
   displayLabel?: string;
+  /** Bound a long action label within its parent while retaining its full accessible name. */
+  labelLines?: 1 | 2;
   testID?: string;
   buttonRef?: (ref: ViewRef) => void;
   /** Internal Select adapter; preserves the existing macOS keyboard boundary. */
@@ -80,6 +82,7 @@ export function Button(props: ButtonProps) {
               : 48
           : size().height,
         minWidth: props.iconOnly ? size().height : undefined,
+        maxWidth: props.labelLines ? '100%' : undefined,
         borderRadius: size().radius,
         borderWidth: Product() === 'tv' ? tvUnit(1) : 1,
         paddingHorizontal: props.iconOnly ? size().gap : size().paddingHorizontal,
@@ -119,7 +122,8 @@ export function Button(props: ButtonProps) {
             style={{
               fontSize:
                 variant() === 'navigation' && Product() === 'tv' ? tvUnit(24) : size().fontSize,
-              flexShrink: props.selectOpen !== undefined ? 1 : undefined,
+              flexShrink: props.selectOpen !== undefined || props.labelLines ? 1 : undefined,
+              numberOfLines: props.labelLines ?? 0,
             }}
             class={`${variant() === 'primary' || props.selected ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : props.selected ? 'text-accent-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : 'text-foreground'}`}
           >

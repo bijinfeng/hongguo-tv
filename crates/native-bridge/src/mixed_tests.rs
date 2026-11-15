@@ -13,6 +13,7 @@ impl BridgeFixture {
         let dir = data_dir().ok_or("test data directory missing")?;
         let task = background(async move {
             let services = Services {
+                radar: None,
                 catalog: CatalogClient::for_loopback_tests(&origin).map_err(catalog_error)?,
                 library: LibraryStore::open(dir.join("guest.sqlite3"))
                     .await

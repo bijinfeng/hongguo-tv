@@ -689,3 +689,30 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 早轮格式与旧 fixture 未声明精确空系列路由的问题已修；旧夹具仍拒绝未知身份、参数与写入，新增兼容与证据自检未放宽门禁。图形早轮另出现一次 Chrome 启动 SIGBUS 和一次截图 ENOSPC，保留原失败日志，清理明确可再生构建后重新通过；这些失败与 UI 裁切、续播取消及 TV 焦点缺陷分别记录。
 
 边界：图形宿主使用真实 HTTP、本地自制 mp4 与合成游客记录；不证明当前官网所有系列、真实账号／预约、macOS 独立官网 C3.2、物理电视或正式安装发行通过。正常／减少动态效果路径有终态观察，不代表逐帧动效、帧率、全量长标题、人工 IME 或读屏验收。本批无依赖变化，未重跑 security，既有安全阻塞保留。保留基础组件并行改动；仅本切片本地提交，不推送、发布或归档，完整 MVP 尚未完成。
+
+## 第三方榜单雷达 · 2026-11-15（集成验收进行中）
+
+交付源码、夹具与后续修改均在主项目目录。Rust 独立读取固定快照／增长来源并持久化产品私有 `radar-v1.json`，经同一严格 GET 契约供 HTTP/native 消费；共享 app 拥有分类、指标、独立日期／分支状态、精确 ID 详情和来源恢复。指标保持十进制字符串，缺失／零／负值分别表达，不把采样间隔增量改写为每日增量，不伪造 Drama、媒体或历史。正式入口与独立测试导出、缓存所有权和布局预算见 [雷达交接](docs/radar-snapshots.md)。
+
+已有实际结果，日志默认位于 ignored `artifacts/radar-ui/logs/`：
+
+- `rust-radar-final.log`：`cargo test --workspace radar` 共 27 项通过，core 19、HTTP 3、native 4、web-api 真实进程 1；显式联网 probe 默认 ignored。`clippy-final.log` 的 `cargo clippy --workspace --all-targets -- -D warnings` 与 `codegen-check-final.log` 的 `pnpm codegen:check` 通过。
+- `core-live-probe.log`：固定生产来源的显式只读 probe 1／1。四桶各 100 项，rank_date 为 2026-11-14、prev_rank_date 为 2026-11-13；增长 760 项，date／prev_date 同为上述两日。两分支非 stale、缓存成功落盘且可重新打开；只记录聚合，不把此时点数据或服务探针当作持续可用、全部源地址逐个成功或 App 详情闭环证明。
+- `table-three-targets-current.log`：三端独立 RadarTable check、build、每端 3／3 测试通过，覆盖外部受控选择、精确大 ID、列切换／空表、较后虚拟行反复恢复及失效 owner 拒绝。结果早于最后的数值列宽修复，不能视为最终新列宽证据。`ui-three-targets-current.log` 的 UI check／test 三端各 16／16，包含当前公共 Button `labelLines`；`prototype-current.log` 原型 28／28。mixed headless runner 有 NSH 汇总但未展开的 warning，不称零警告。
+- 新列宽的 `web-host-width-final.log` 为 Web 4／4，`macos-host-width-final.log` 为 macOS 4／4，均覆盖 1180×780／1440×1000 浅深；macOS 以 `--foreground` 运行。生产 App 注入真实本地 HTTP，覆盖精确身份详情／错误重试、迟到详情拒绝、分支保留与 stale／写缓存失败、快照／增长和列切换、较后 540 返回／再次激活、官方榜切回及只读请求边界。它们不是完整官网或原生独立业务验收。
+- TV 列宽修复前基线：`artifacts/rankings-ui/android-real-adapter/2026-11-15T00-48-36-570Z/` 中浅色 1.0／深色 1.0／深色 1.3 各 48 项通过；官方榜身份回归 `2026-11-15T00-51-02-363Z/` 同三档各 21 项通过，保留演员／剧目身份和原来源。两次设备恢复均成功回读。使用生产 MainActivity／TvRemote 适配源码的独立 API34 宿主；它们不代证最后数值列宽源码或正式生产安装包。
+- 新列宽最终 TV 全组：`tv-all-width-final.log` 的同三档各 48 项通过，证据 `artifacts/rankings-ui/android-real-adapter/2026-11-15T01-02-08-666Z/`。独立核实 `restoration.json` 三组 passed／nativePassed 均为 true、11 项 cleanup 全部成功、errors 为空；生产 APK 路径／SHA、字号、主题、前台、reverse 回读与初始一致，独立验收包已卸载。该结果补齐最后列宽源码的 TV 合成输入范围，仍不代表物理电视或原生生产业务。
+
+验收发现与已审完整度：原 DataTable 的 Android 绝对定位祖先为零尺寸，行虽绘制却无法由无障碍／遥控遍历；现三端统一改为独立横向表头 Scroll 与兄弟纵向虚拟 List，行 `translateX` 同步列偏移，不修改 NSH 或放宽可达断言。TV 多状态先前挤压正文，现筛选和全部反馈共用限高滚动区，提示紧凑换行并按页面预算预留完整数据行。桌面窄尺寸曾出现 i64 末位换行，最后扩大对应数值列宽；旧通过不能关闭这项缺陷，新 Web／macOS 结果及下述静图属于修复后源码。
+
+独立截图审查实际看过 14 张 TV 代表图：`00-47-23-422Z/light-radar/` 的 snapshot、cached、wrong-identity、last-columns、later-source、later-return、growth、refresh-error 8 张；`00-48-36-570Z/` 的 dark-radar 与 large-text-radar 各 cached、last-columns、later-return 3 张（完整目录前缀均为 `artifacts/rankings-ui/android-real-adapter/2026-11-15T`）。所看圆角／表面、字级、间距、列对齐、浅深配对、状态换行、完整行和长标题来源焦点未见阻断；大字 cached 仍有完整首行，返回行 44 的两行省略和外圈可见。该结论只归列宽修复前 TV 源码。
+
+数值列宽修复后另看 `artifacts/radar-ui/web/desktop/` 的 snapshot、hover-title、last-columns、stale、later-return 五张 `1180-light`：完整 i64 已单行，正负增量／天数与表头对齐，stale 状态换行后保留两完整行，hover 标题没有改变行几何，较后行仍可见。保留一项轻微未解决视觉发现：顶层“榜单雷达”Tab 的灰色 hover 背景似覆盖选中下划线，仅余边角红色，移开指针恢复；选中文字依旧可读。桌面返回截图为指针终态，只证明 selected 与来源可见，不据此声称独立键盘焦点环已被截图验证。
+
+主任务另实际查看 macOS `1180-dark` 的 later-return 与 `1440-light` 的 stale：焦点与极值单行可读。该补充不扩写为已独立审完全部桌面主题截图。
+
+最终门禁：`pnpm verify` exit 0，工程工具 37／37、Rust nextest 224／224（1 项显式联网 probe 默认跳过，已另行运行）、Web 126／126、Desktop／TV 各 128／128；包含三端正式入口 check／build、Clippy、契约检查及新列宽 RadarTable 各 3 项回归。独立表格最终三端 preview build 通过，见 `table-build-warning-final.log`；Desktop／TV 各用 `-v` 展开 headless runner warning，均为 macOS linker 的 `__eh_frame` 超过 compact unwind 编码上限，单项定向回归各 1／1，见前述日志及 `table-tv-warning-final.log`，不称零警告、不修改 NSH。严格 OpenSpec 校验通过，见 `openspec-final.log`。
+
+源码绑定：`artifacts/radar-ui/source-manifest.json` 记录主项目绝对路径及 609 个源码／契约／测试输入的 SHA256，最终 TV `restoration.json` 的输入哈希均与当前主仓相符。独立终审另查看新列宽 8 张关键图：TV 浅色 cached／filtered-growth、深色 last-columns、大字 cached／later-return，macOS 1180-dark later-return／1440-light stale，以及 Web 1180-light hover-title。完整数值／状态换行／长标题／当前行焦点外圈可读，未见新增视觉阻断；已知 Tab hover 下划线问题保留。
+
+上述功能／还原度审查不把 NSH finishing 全部标为通过。全部 hover／pressed 时序、逐帧动效／减少动态、完整横向滚轮行为、读屏、人工 IME、物理电视／遥控／观看距离、官网完整数据与真实账号、媒体、原生独立业务 C3.2、安全及正式发行继续开放；既有安全阻塞没有被定向通过改写。本段保留此前历史结果，不把雷达切片记作完整 D 或 MVP 完成。
