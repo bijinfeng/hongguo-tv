@@ -15,4 +15,4 @@
 ## 4. Integration acceptance
 
 - [x] 4.1 Run final three-target check and build, relevant regression tests, pnpm verify and strict OpenSpec validation; retain failure evidence and bind results to current main-workspace sources.
-- [ ] 4.2 Inspect real Web/macOS and production-adapter TV input in light/dark/large text, review function and visual fidelity/completeness, record actual motion/accessibility/physical-device limits and restoration evidence, update ledger/roadmap/validation and make a feature-only local commit without push.
+- [x] 4.2 Inspect real Web/macOS and production-adapter TV input in light/dark/large text, review function and visual fidelity/completeness, record actual motion/accessibility/physical-device limits and restoration evidence, update ledger/roadmap/validation and make a feature-only local commit without push.
