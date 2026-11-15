@@ -1,5 +1,11 @@
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 
+const libraryWrite = (request: StubRequest) =>
+  request.method === 'POST' &&
+  ['/api/v1/library', '/api/v1/library/session', '/api/v1/library/operation'].includes(
+    new URL(request.url).pathname,
+  );
+
 export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
   test(`feed ${target}: approved entry, episode ownership, details return, channels, recovery and login gate`, async () => {
     let failed = false;
@@ -123,9 +129,7 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
     await app.waitFor('登录后查看关注');
     expect(app.count('id:player-video')).toBe(0);
     expect(app.requests().some((r) => r.url.includes('channel=45'))).toBe(false);
-    expect(app.requests().some((r) => r.method === 'POST' && r.url.endsWith('/library'))).toBe(
-      false,
-    );
+    expect(app.requests().some(libraryWrite)).toBe(false);
     await app.back();
     expect(app.shows('id:feed-page')).toBe(false);
   });
@@ -234,11 +238,7 @@ export function registerFeedUiTests(target: 'desktop' | 'tv', entry: string) {
           ),
         ).toBe(false);
         expect(app.requests().some((request) => request.url.includes('/next-season'))).toBe(false);
-        expect(
-          app
-            .requests()
-            .some((request) => request.method === 'POST' && request.url.endsWith('/library')),
-        ).toBe(false);
+        expect(app.requests().some(libraryWrite)).toBe(false);
       } finally {
         app.dispose();
       }

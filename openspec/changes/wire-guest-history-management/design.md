@@ -78,4 +78,4 @@ progress、整个所选 job、clear 和失败 checkpoint 重试共用写 tail，
 
 ## Acceptance and readiness review · 2026-11-15
 
-按最新用户约束，主验收必须使用正式入口、真实内容实际播放产生的历史及真实 SQLite／重启结果；合成条目仅用于长列表、部分失败和竞态等边界回归，不能单独关闭 E1。独立源码审查已确认读取令牌需在等待 tail 前捕获、owner 不猜测、失败 checkpoint 保留原序号、所有写路径共用序列。上述 unresolved 原操作完成边界尚待实施验证，不把 GET 或幂等本身当成完成屏障；13 项任务仍未实施，整体 MVP 不缩减。
+按最新用户约束，主验收必须使用正式入口、真实内容实际播放产生的历史及真实 SQLite／重启结果；合成条目仅用于长列表、部分失败和竞态等边界回归，不能单独关闭 E1。独立源码审查已确认读取令牌需在等待 tail 前捕获、owner 不猜测、失败 checkpoint 保留原序号、所有写路径共用序列。原操作完成边界以新增 session／operation 身份及精确终态回执实现，按任务 1.4 同步生成契约；Library／HistoryChange 载荷不变。GET 或幂等本身仍不是客户端完成证明，实际实施与验证进度以 tasks 和 VALIDATION 为准，整体 MVP 不缩减。

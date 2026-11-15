@@ -27,7 +27,7 @@ const reads = (app: App, endpoint: string, id?: string) =>
 const details = (app: App, id?: string) => reads(app, '/api/v1/series/detail', id);
 const preparations = (app: App) => reads(app, '/api/v1/play/info');
 const progress = (app: App) =>
-  reads(app, '/api/v1/library').filter((request) => request.method === 'POST');
+  reads(app, '/api/v1/library/operation').filter((request) => request.method === 'POST');
 const readonly = (app: App) => {
   expect(preparations(app).length).toBe(0);
   expect(progress(app).length).toBe(0);

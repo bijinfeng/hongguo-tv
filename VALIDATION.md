@@ -798,3 +798,40 @@ OpenSpec `wire-guest-history-management` 已启动，仅任务 1.1 完成。新�
 最终 `artifacts/guest-history-state/logs/verify-final.log` 的完整 `pnpm verify` 已结束，exit 0，包含工具 39／39、Rust 236／236（另一个显式联网 probe 默认跳过）、Web 142／142、Desktop 与 TV 各 144／144，以及三端 check／build、格式、lint、契约和发行版本检查。633 个运行输入逐项回核，与本轮真实流程和门禁的 source-manifest 均一致。该门禁包含合成回归，不将工程检查通过写成 E1 或完整 MVP 验收通过。已有 NSH／SDK 与测试预期失败 warning 不表述为零 warning。
 
 居中版 TV 独立静态补审实际看 9 张：三档各 related-source-return、read-only-actor、only-read-only-actor。340–343 整行、343 四边焦点外圈、短名及 100 字姓名阅读区域完整；大字号换行正常。对应 dump 的精确 343／阅读区域确实持焦，条目底边在真实 detail-scroll 内。该补审与前述 restoration 相符，只证明 API34 合成边界回归，没有扩写为 TV 真实业务或管理 UI 验收。
+
+## E1 写入屏障与顺序管理 job · 2026-11-15（6／13，主验收待运行）
+
+继本地提交 `211c52f`（真实详情跨尺寸焦点修复）、`c29e90e`（历史状态基础）后继续实施，均未推送。当前任务 1.1–1.4、2.1–2.2 已完成实现及范围回归。新增会话与操作回执契约并运行 `pnpm codegen` 成功；原 Library／HistoryChange 载荷不变，正式共享应用的全部 progress／remove／clear 经过同一连续身份协议，不回退旧 POST。旧接口及跨进程外部写入不参与本协议顺序保证。模块和恢复约定见[游客历史管理](docs/guest-history-management.md)。
+
+- `state-management-final.log`：15／15，延迟合成 transport 经过生产 store。覆盖 progress→remove、更新期间新增写入、删除只失效同范围旧 checkpoint、clear、真实新观看所产生的后续进度事件、四项删除中第三项失败只重试剩余，以及提交成功／失败回执丢失后的显式确认。这里的“后续进度事件”是受控输入，不等同实际视频播放。独立只读审查未发现确定顺序或 owner 阻断，建议的原失败回执解析及 partial 后新进度 cutoff 两项已补入最终 15 项。
+- `rust-library-management.log`：真实 SQLite 的 core／HTTP／native 历史专项 25／25（workspace 其余 220 项未选，不算已运行）；内容输入仍为受控样本。新增原操作执行不受 waiter 取消影响、精确回执、冲突／旧序号拒绝、封旧 session 等终结，以及同规范路径重开等待原 worker。公开 snapshot 等待其捕获的已注册 tail，不能被客户端当成精确操作完成回执。
+- `native-drain-management.log`：既有关闭排空专项 1／1，原 writing-1→committed-1→writing-5→committed-5→closed 和 transport 所有权断言保留。`update-management-desktop.log`：更新保存保护 1／1，旧失败 checkpoint 不覆盖较新集数。此前 `update-management.log` 在 Web 入口过滤得到 0 项，不作为覆盖；正确 Desktop 入口另行执行。
+- `check-management-first.log`：Web `nsh check` exit 0；`clippy-management.log`：整个 Rust workspace／all-targets Clippy exit 0。UI 仍并行实施中，以上不代表三端最终 check／build／verify 已完成。
+
+保留首轮 `state-management-first.log` 的 5／13：扩充状态夹具后，按钮被单列测试布局挤出可见区域，未放宽断言；改为并列诊断与换行操作区后 `state-management-second.log` 13／13，再补两项审查建议，最终为 15／15。它是测试夹具布局问题，不归因于上游网络或真实管理 UI。正式入口实际播放、管理、重启、三端宿主与最终源码门禁仍待执行，不以这些受控回归关闭 E1 或完整 MVP。
+
+### 生命周期与管理 UI 补审（真实主验收仍开放）
+
+独立审查发现已接纳但尚未派发的旧保存可在 controller 卸载后懒建写 session；任务 1.4 因此临时回退为未完成，当前进度应以 tasks 勾选为准。现增加同 VM controller token、writer 在 session 前／await 后复查派发许可，以及正常关闭同步取得的 drain lease；关闭收集最后 checkpoint 后封闭新接纳。另修正共享 App 的 optional callback：没有 `onShutdown` 的正式 Web／HTTP preview 也必须无条件调用 `store.shutdown()`。这不扩展为跨活跃 VM、多进程或系统强杀时的 JS 排空保证。
+
+- `lifecycle-final.log`：三项 controller 合成回归 3／3，覆盖同 turn 卸载零 session／零写、正常卸载后严格 1→5 排空、新 controller 清空后旧队列不复活。`writer-final.log`：11／11，包含懒 session await 后撤销许可时零 operation 派发。
+- `state-lifecycle-final.log` 只筛选标题包含 library 的 7 项，不把它计为全部 15 项状态复验。`native-lifecycle-final.log` 使用正确的 final viewing checkpoint 标题过滤，1／1；先前错误过滤得到 0 项的调用不计覆盖。实际共享 App 无 `onShutdown` 时正在播放中卸载的专门媒体回归尚未实跑。
+- `history-ui-final.log`：共享生产 History 的 Web 合成交互边界 7／7；首轮 `history-ui-first.log` 为 3／5，发现 pending 呈现的 dialogJob 未响应、夹具试图点击应禁用的非 guest 管理按钮。现 dialogJob 改 signal，禁用场景检查 disabled 与零调用，新增尾部回收行删除／空态回焦及较新焦点意图回归。它们不能作为正式入口真实内容的管理验收。
+- `rust-library-management-final.log`：真实 SQLite 专项 25／25，补原 HTTP/native 测试中的 remove 保留另一条、clear、重开持久、关键词保留、foreign 拒绝不耗 ID，以及 SQLite trigger 确定失败回执与新 ID 恢复；内容为受控输入。
+- `check-management-final.log` 与 `build-management-final.log`：上述生产关闭修复后的 Web check 和 build 均 exit 0；不是三端最终完整门禁。
+
+真实主验收首次运行 `artifacts/live-history/2026-11-15T05-33-00-479Z/`，正式 App 的真实 HTTP 初读正常，但验收脚本所在测试运行域不支持全局 fetch，其只读检查报 `this host has no network stack`，浅深 0／2，result passed=false。失败归于验收脚本，不能据此判定历史管理通过或产品真实媒体失败；尚未进入播放。独立 SQLite 保留，配置字节已恢复、所属进程已结束，cleanupErrors 为空；后续将只读检查移到 Node 父进程，产品网络仍为 live，禁止以合成响应替代。
+
+## E1 真实播放与历史管理主链 · 2026-11-15（7／13，部分真实验收）
+
+`artifacts/live-history/2026-11-15T05-51-59-248Z/` 使用正式 `apps/web/App.tsx`、macOS 可见 NSH 宿主、当前 Rust HTTP API、独立真实 SQLite 与 live 网络，没有合成响应、直接历史写入或手动时钟。实际搜索“重生”，在《重生，他只做创一代第三季》`7705305581673794585` 的第一集观看 0→3 秒；浅／深各完成首次播放→取消单删→确认单删→再次实际播放→清空→Rust API 重启及正式应用重开，共 12 段宿主流程，全部 exit 0。
+
+- 每段后的权威快照由 Node 只读 API 检查并保存，22 次 GET 全部 HTTP 200。浅色首次／重播 position 为 3.172421139／3.18244224，深色为 3.172497389／3.186799672；duration 均为 88.60554875283447。取消整段零 POST，前后快照文件字节一致。单删、clear 各仅派发 session 与对应 operation；删除后为空，实际重播后重新建档，清空后再次为空。
+- 每色清空后真正停／启 Rust API，端口改变，再重开正式应用；UI 与只读 API 确认空历史，搜索词“重生”仍在。最终 SQLite 只读复核 history=0、recent_searches=[“重生”]。本批证明清空结果和关键词跨 API 重启，不扩写为有记录状态跨 API 重启的新增验收。
+- 独立功能审查确认全部 12 段日志、API／SQLite、精确身份与源文件证据一致。独立视觉复核实际查看浅深各 9 张，共 18 张：首次 history、取消确认／取消后、单删确认／空态、重播 history、清空确认／空态、重开空态。公共 Checkbox／Button／ConfirmDialog／Notice、间距、对齐、字体、浅深边界、真实封面与标题换行无视觉阻断；主任务另查看深色真实 history。截图未显示键盘焦点环，不据此判定完整焦点外框通过。
+- result passed=true、interrupted=false、cleanupErrors 为空；运行前后完整 manifest 一致，共 959 项，记录 API binary、12 个生成脚本与 runtime 身份。配置原字节恢复，所属进程结束。窗口均 visible=true、focused=false，实际步骤由 NSH native driver 发往宿主，不声称已通过前台人工键盘输入。后续文档／任务状态更新不计为运行时源码。
+- `verify-management-final.log` 的完整 `pnpm verify` exit 0：工具 53／53，Rust 244／244（显式联网 probe 另跳过 1 项），Web 160／160、Desktop／TV 各 162／162，以及三端 check／build、格式、lint、契约和版本检查。此后只调整真实验收 runner 与记录，产品／状态／回归实现未变；runner 已实际完成上述 12 段，最终格式／lint 与 `codegen-management-final.log` 的契约无漂移另通过。未新增依赖，不重跑 security 或解除既有安全阻塞。
+
+其余失败完整保留：`05-36-18-197Z/` 的测试域读取 ACK 被 capabilities.fs.read 拒绝，未进播放；最终改成独立宿主分段后由 Node 读取，不增加产品文件权限。`05-45-22-383Z/` 的前台 focused 条件 60 秒未成立，未进播放；现记录真实 window state，明确前台／键盘限制。`05-49-38-255Z/` 已进入真实 Player，但脚本在初始缓冲时查询尚不存在的“暂停”而提前抛错；现复用既有 PlayerMediaHost 的播放进度可用等待。四个失败目录均为 passed=false，清理和配置恢复成功，不删除、不改成成功，也不归因于上游故障。
+
+生命周期围栏修复后任务 1.4 恢复完成，真实 SQLite／HTTP／native 与 generated 契约专项满足任务 4.1，当前为 7／13。管理 UI 已实现，但 2.3、3.1–3.3、4.2–4.3 仍开放：两条真实记录选择删除、长列表完整焦点、浏览器 Web、Desktop native、TV 主流程、辅助技术和多尺寸／大字号等未由本批覆盖。状态／合成 UI 回归只补边界，不能替代这些真实验收；E1、C3.2、完整 MVP、安全、物理电视与正式发行均未宣布通过。

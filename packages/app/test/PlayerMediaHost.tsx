@@ -20,13 +20,65 @@ export function registerPlayerMediaHost(
       ],
     };
     const writes: { position: number; completed: boolean; video_id: string }[] = [];
+    let librarySession = 0;
+    let nextLibraryOperation = 1;
+    const receipts = new Map<string, { payload: string; response: StubResponse }>();
     const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
+    const rejected = (): StubResponse => ({
+      status: 409,
+      body: { ok: false, error: 'Unexpected media fixture library operation' },
+    });
     const fixture = (request: StubRequest): StubResponse => {
       const url = new URL(request.url);
-      if (url.pathname.endsWith('/library')) {
-        if (request.method === 'POST') writes.push(JSON.parse(request.body!));
+      if (url.pathname === '/api/v1/library' && request.method === 'GET')
         return ok({ owner_id: '', entries: [] });
+      if (url.pathname === '/api/v1/library/session' && request.method === 'POST') {
+        if (url.search || request.body !== JSON.stringify({ owner_id: '' })) return rejected();
+        librarySession++;
+        nextLibraryOperation = 1;
+        receipts.clear();
+        return ok({ session_id: librarySession.toString(16).padStart(32, '0') });
       }
+      if (url.pathname === '/api/v1/library/operation' && request.method === 'POST') {
+        const session = librarySession.toString(16).padStart(32, '0');
+        const id = url.searchParams.get('operation_id') ?? '';
+        if (
+          !librarySession ||
+          url.searchParams.get('session_id') !== session ||
+          url.searchParams.getAll('session_id').length !== 1 ||
+          url.searchParams.getAll('operation_id').length !== 1 ||
+          [...url.searchParams.keys()].length !== 2
+        )
+          return rejected();
+        const payload = request.body ?? '';
+        const prior = receipts.get(id);
+        if (prior) return prior.payload === payload ? prior.response : rejected();
+        if (id !== String(nextLibraryOperation)) return rejected();
+        let change;
+        try {
+          change = JSON.parse(payload);
+        } catch {
+          return rejected();
+        }
+        if (
+          change?.action !== 'progress' ||
+          change.drama?.series_id !== drama.series_id ||
+          change.drama.episodes !== undefined ||
+          !['456', '457'].includes(change.video_id) ||
+          (change.owner_id ?? '') !== ''
+        )
+          return rejected();
+        writes.push(change);
+        nextLibraryOperation++;
+        const response = ok({
+          session_id: session,
+          operation_id: id,
+          outcome: { status: 'committed', library: { owner_id: '', entries: [] } },
+        });
+        receipts.set(id, { payload, response });
+        return response;
+      }
+      if (url.pathname.startsWith('/api/v1/library')) return rejected();
       if (url.pathname.endsWith('/account'))
         return ok({ logged_in: false, qr_login_available: false });
       if (url.pathname.endsWith('/search')) return ok({ items: [drama], has_more: false });

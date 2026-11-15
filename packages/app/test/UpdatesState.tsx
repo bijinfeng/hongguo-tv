@@ -170,10 +170,17 @@ function SaveFixture() {
   configureTransport({
     mediaOrigin: 'http://127.0.0.1:18765',
     async request<T>(path: string, _abort?: AbortSignal, body?: unknown): Promise<T> {
-      if (path === '/api/v1/library' && body) {
+      if (path === '/api/v1/library/session') return { session_id: 'a'.repeat(32) } as T;
+      if (path.startsWith('/api/v1/library/operation?') && body) {
         const change = body as Extract<HistoryChange, { action: 'progress' }>;
         events.update((all) => [...all, `episode-${change.episode}`]);
-        if (fail) throw new Error('合成写入失败');
+        return {
+          session_id: 'a'.repeat(32),
+          operation_id: new URL(path, 'http://fixture').searchParams.get('operation_id'),
+          outcome: fail
+            ? { status: 'failed', code: 'LIBRARY_STORAGE_UNAVAILABLE', error: '合成写入失败' }
+            : { status: 'committed', library: { entries: [], owner_id: '' } },
+        } as T;
       }
       return { entries: [], owner_id: '', items: [], logged_in: false } as T;
     },

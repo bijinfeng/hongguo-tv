@@ -97,14 +97,20 @@ function StoreDrainFixture() {
   const record = (value: string) => events.update((all) => [...all, value]);
   configureTransport({
     mediaOrigin: 'http://127.0.0.1:18765',
-    request(_path, _signal, body) {
+    request(path, _signal, body) {
+      if (path === '/api/v1/library/session')
+        return Promise.resolve({ session_id: 'a'.repeat(32) });
       if (!body) return Promise.resolve({ entries: [], owner_id: '' });
       const position = (body as { position: number }).position;
       record(`writing-${position}`);
       return new Promise((resolve) => {
         finish = () => {
           record(`committed-${position}`);
-          resolve({ entries: [], owner_id: '' });
+          resolve({
+            session_id: 'a'.repeat(32),
+            operation_id: new URL(path, 'http://fixture').searchParams.get('operation_id'),
+            outcome: { status: 'committed', library: { entries: [], owner_id: '' } },
+          });
         };
       });
     },

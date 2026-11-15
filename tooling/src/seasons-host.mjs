@@ -173,7 +173,7 @@ registerSeasonsHostTests(${JSON.stringify(cases)}, ${JSON.stringify(artifacts)},
           `${suffix}: the automatic successor detail must actually be pending before cancellation`,
         );
         const progress = fixture.writes.filter(
-          (write) => new URL(write.url, fixture.origin).pathname === '/api/v1/library',
+          (write) => new URL(write.url, fixture.origin).pathname === '/api/v1/library/operation',
         );
         assert(progress.some((write) => write.body.video_id === '1002' && write.body.completed));
         assert(
@@ -186,12 +186,18 @@ registerSeasonsHostTests(${JSON.stringify(cases)}, ${JSON.stringify(artifacts)},
       for (const write of fixture.writes) {
         const path = new URL(write.url, fixture.origin).pathname;
         assert(
-          ['/api/v1/library', '/api/v1/play/release', '/api/v1/search/history'].includes(path),
+          [
+            '/api/v1/library/session',
+            '/api/v1/library/operation',
+            '/api/v1/play/release',
+            '/api/v1/search/history',
+          ].includes(path),
           `${suffix}: unexpected write`,
         );
         if (path === '/api/v1/search/history')
           assert.deepEqual(write.body, { action: 'add', query: '春山' });
-        if (path === '/api/v1/library') {
+        if (path === '/api/v1/library/session') assert.deepEqual(write.body, { owner_id: '' });
+        if (path === '/api/v1/library/operation') {
           assert.equal(write.body.action, 'progress');
           assert(['101', '201'].includes(write.body.drama.series_id));
           assert(['1001', '1002', '2001', '2002'].includes(write.body.video_id));

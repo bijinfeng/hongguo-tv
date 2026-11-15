@@ -1,13 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { playerFixture } from '../src/player-fixture.mjs';
+import { createLibraryWriter } from '../../packages/core-client/src/library-writer.ts';
 
 test('player acceptance fixture serves original byte ranges and records only explicit progress', async () => {
   const fixture = await playerFixture();
   try {
     const json = (path, options) =>
       fetch(fixture.origin + path, options).then((response) => response.json());
-    assert.equal((await json('/api/v1/series/detail?series_id=123')).data.intro, '');
+    const { episodes: _episodes, ...drama } = (await json('/api/v1/series/detail?series_id=123'))
+      .data;
+    assert.equal(drama.intro, '');
     assert.deepEqual(await json('/api/v1/series/seasons?series_id=123'), {
       ok: true,
       data: { items: [] },
@@ -35,11 +38,48 @@ test('player acceptance fixture serves original byte ranges and records only exp
       String(bytes.length),
     );
     assert.deepEqual(fixture.writes, []);
-    const write = { position: 2, duration: 12, video_id: '456', completed: false };
-    await json('/api/v1/library', { method: 'POST', body: JSON.stringify(write) });
+    const writer = createLibraryWriter(async (path, _abort, body) => {
+      const result = await json(path, {
+        method: body === undefined ? 'GET' : 'POST',
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.data;
+    });
+    const write = {
+      action: 'progress',
+      drama,
+      episode: 1,
+      position: 2,
+      duration: 12,
+      video_id: '456',
+      completed: false,
+    };
+    const saved = await writer.write(write);
     assert.deepEqual(fixture.writes, [write]);
-    const bad = await fetch(fixture.origin + '/api/v1/library', { method: 'POST', body: '{' });
+    const path = `/api/v1/library/operation?session_id=${saved.session_id}&operation_id=1`;
+    const replay = await json(path, { method: 'POST', body: JSON.stringify(write) });
+    assert.deepEqual(replay.data.outcome.library, saved.library);
+    assert.equal(
+      (
+        await fetch(fixture.origin + path, {
+          method: 'POST',
+          body: JSON.stringify({ ...write, position: 3 }),
+        })
+      ).status,
+      409,
+    );
+    const bad = await fetch(fixture.origin + path, { method: 'POST', body: '{' });
     assert.equal(bad.status, 400);
+    assert.equal(
+      (
+        await fetch(fixture.origin + '/api/v1/library', {
+          method: 'POST',
+          body: JSON.stringify(write),
+        })
+      ).status,
+      409,
+    );
     assert.equal(fixture.writes.length, 1);
   } finally {
     await fixture.close();

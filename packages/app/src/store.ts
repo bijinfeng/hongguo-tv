@@ -226,6 +226,7 @@ export function createStore(
   };
   return {
     target,
+    historyManagement: history.management,
     hostFocus,
     hostOwnsFocus: !!subscribeFocus,
     nav,
@@ -255,9 +256,13 @@ export function createStore(
       };
     },
     async shutdown() {
-      playerCheckpoint?.();
-      await recent.drain();
-      await history.drain();
+      const finish = history.beginShutdown(() => playerCheckpoint?.());
+      try {
+        await recent.drain();
+        await history.drain();
+      } finally {
+        finish();
+      }
     },
     async prepareUpdate() {
       playerCommand?.('pause');

@@ -15,6 +15,7 @@
     "./testing/search-state": "./test/SearchState.tsx",
     "./testing/recent-search-state": "./test/RecentSearchState.tsx",
     "./testing/library-state": "./test/LibraryState.tsx",
+    "./testing/library-lifecycle": "./test/LibraryLifecycle.tsx",
     "./testing/focused-removal-state": "./test/FocusedRemovalState.tsx",
     "./testing/discovery-state": "./test/DiscoveryState.tsx",
     "./testing/card-controls-state": "./test/CardControlsState.tsx",
@@ -43,7 +44,9 @@
     "./testing/season-detail-state": "./test/SeasonDetail.tsx",
     "./testing/season-detail": "./test/season-detail.tsx",
     "./testing/detail-extras-state": "./test/DetailExtrasState.tsx",
-    "./testing/detail-extras-state-tests": "./test/detail-extras-state.tsx"
+    "./testing/detail-extras-state-tests": "./test/detail-extras-state.tsx",
+    "./testing/history-management-state": "./test/HistoryManagementState.tsx",
+    "./testing/history-management": "./test/history-management.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

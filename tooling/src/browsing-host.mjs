@@ -55,8 +55,28 @@ try {
   );
   if (suite === 'feed') {
     const writes = fixture.requests.filter(
-      (request) => request.method === 'POST' && request.url === '/api/v1/library',
+      (request) =>
+        request.method === 'POST' &&
+        new URL(request.url, fixture.origin).pathname === '/api/v1/library/operation',
     );
+    for (const request of fixture.requests.filter((request) => request.method === 'POST')) {
+      const path = new URL(request.url, fixture.origin).pathname;
+      if (
+        ![
+          '/api/v1/library/session',
+          '/api/v1/library/operation',
+          '/api/v1/play/release',
+          '/api/v1/search/history',
+        ].includes(path) ||
+        request.status !== 200
+      )
+        throw new Error('Unexpected or rejected feed write');
+      if (
+        path === '/api/v1/library/session' &&
+        JSON.stringify(request.body) !== JSON.stringify({ owner_id: '' })
+      )
+        throw new Error('Feed history must use a guest write session');
+    }
     for (const video of ['1058', '1001'])
       if (
         !writes.some(

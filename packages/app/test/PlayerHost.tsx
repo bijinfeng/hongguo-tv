@@ -86,7 +86,13 @@ export function registerPlayerHost(
       expect(
         app
           .requests()
-          .some((request) => request.method === 'POST' && request.url.endsWith('/library')),
+          .some(
+            (request) =>
+              request.method === 'POST' &&
+              ['/api/v1/library', '/api/v1/library/session', '/api/v1/library/operation'].includes(
+                new URL(request.url).pathname,
+              ),
+          ),
       ).toBe(false);
     });
   }

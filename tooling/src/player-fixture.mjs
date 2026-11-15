@@ -10,6 +10,10 @@ export async function playerFixture({ port = 0 } = {}) {
   );
   const requests = [];
   const writes = [];
+  let librarySession = 0n;
+  let nextLibraryOperation = 1n;
+  let entries = [];
+  const libraryReceipts = new Map();
   const drama = {
     series_id: '123',
     title: '自制媒体验收',
@@ -63,21 +67,76 @@ export async function playerFixture({ port = 0 } = {}) {
       response.end(request.method === 'HEAD' ? undefined : sample.subarray(start, end + 1));
       return;
     }
-    if (url.pathname === '/api/v1/library') {
-      if (request.method === 'POST') {
-        let body = '';
-        for await (const chunk of request) {
-          body += chunk;
-          if (body.length > 65536) return reply('Fixture request too large', 413);
-        }
-        try {
-          writes.push(JSON.parse(body));
-        } catch {
-          return reply('Invalid fixture JSON', 400);
-        }
+    if (
+      ['/api/v1/library/session', '/api/v1/library/operation'].includes(url.pathname) &&
+      request.method === 'POST'
+    ) {
+      let body = '';
+      for await (const chunk of request) {
+        body += chunk;
+        if (body.length > 65536) return reply('Fixture request too large', 413);
       }
-      return reply({ owner_id: '', entries: [] });
+      let change;
+      try {
+        change = JSON.parse(body);
+      } catch {
+        return reply('Invalid fixture JSON', 400);
+      }
+      if (url.pathname === '/api/v1/library/session') {
+        if (url.search || JSON.stringify(change) !== JSON.stringify({ owner_id: '' }))
+          return reply('Invalid fixture guest session', 400);
+        librarySession++;
+        nextLibraryOperation = 1n;
+        libraryReceipts.clear();
+        return reply({ session_id: librarySession.toString(16).padStart(32, '0') });
+      }
+      const session = librarySession.toString(16).padStart(32, '0');
+      const operation = url.searchParams.get('operation_id');
+      if (
+        !librarySession ||
+        url.searchParams.get('session_id') !== session ||
+        url.searchParams.getAll('session_id').length !== 1 ||
+        url.searchParams.getAll('operation_id').length !== 1 ||
+        [...url.searchParams.keys()].length !== 2 ||
+        !/^[1-9][0-9]*$/.test(operation ?? '')
+      )
+        return reply('Invalid fixture operation identity', 409);
+      const payload = JSON.stringify(change);
+      const previous = libraryReceipts.get(operation);
+      if (previous)
+        return previous.payload === payload
+          ? reply(previous.receipt)
+          : reply('Conflicting fixture operation payload', 409);
+      if (operation !== String(nextLibraryOperation))
+        return reply('Non-continuous fixture operation identity', 409);
+      if (
+        change?.action !== 'progress' ||
+        (change.owner_id ?? '') !== '' ||
+        change.drama?.series_id !== drama.series_id ||
+        change.drama.episodes !== undefined ||
+        !drama.episodes.some(
+          (episode) =>
+            !episode.locked &&
+            episode.index === change.episode &&
+            episode.video_id === change.video_id,
+        )
+      )
+        return reply('Player fixture accepts compact matching guest progress only', 400);
+      writes.push(change);
+      nextLibraryOperation++;
+      const { action: _action, owner_id: _ownerId, ...entry } = change;
+      entries = [{ ...entry, last_played_at: Date.now() }];
+      const receipt = {
+        session_id: session,
+        operation_id: operation,
+        outcome: { status: 'committed', library: { owner_id: '', entries } },
+      };
+      libraryReceipts.set(operation, { payload, receipt });
+      return reply(receipt);
     }
+    if (url.pathname === '/api/v1/library' && request.method === 'GET')
+      return reply({ owner_id: '', entries });
+    if (url.pathname.startsWith('/api/v1/library')) return reply('Unexpected library write', 409);
     if (url.pathname === '/api/v1/search/history') return reply({ items: [] });
     if (url.pathname === '/api/v1/search/suggestions') return reply({ items: [] });
     if (url.pathname === '/api/v1/search/discovery') return reply({ guesses: [], boards: [] });

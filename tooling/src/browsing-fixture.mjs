@@ -20,6 +20,9 @@ export async function browsingFixture({
   const categoryRetries = new Set();
   const feedRetries = new Set();
   const writes = [];
+  let librarySession = 0n;
+  let nextLibraryOperation = 1n;
+  const libraryReceipts = new Map();
   const unknown = [];
   const media = [];
   const samples = feed
@@ -268,23 +271,74 @@ export async function browsingFixture({
         qualities: ['720P'],
       });
     if (feed && url.pathname === '/api/v1/play/release') return reply({ released: true });
-    if (feed && url.pathname === '/api/v1/library' && req.method === 'POST') {
+    if (
+      feed &&
+      ['/api/v1/library/session', '/api/v1/library/operation'].includes(url.pathname) &&
+      req.method === 'POST'
+    ) {
       let body = '';
       for await (const chunk of req) {
         body += chunk;
         if (body.length > 65536) return reply('Fixture request too large', 413);
       }
+      let change;
       try {
-        const change = JSON.parse(body);
+        change = JSON.parse(body);
         record.body = change;
-        writes.push(change);
       } catch {
         return reply('Invalid fixture JSON', 400);
       }
-      return reply({
-        owner_id: '',
-        entries: writes.slice(-1).map((entry) => ({ ...entry, last_played_at: Date.now() / 1000 })),
-      });
+      if (url.pathname === '/api/v1/library/session') {
+        if (url.search || JSON.stringify(change) !== JSON.stringify({ owner_id: '' }))
+          return reply('Invalid fixture guest session', 400);
+        librarySession++;
+        nextLibraryOperation = 1n;
+        libraryReceipts.clear();
+        return reply({ session_id: librarySession.toString(16).padStart(32, '0') });
+      }
+      const session = librarySession.toString(16).padStart(32, '0');
+      const operation = url.searchParams.get('operation_id');
+      if (
+        !librarySession ||
+        url.searchParams.get('session_id') !== session ||
+        url.searchParams.getAll('session_id').length !== 1 ||
+        url.searchParams.getAll('operation_id').length !== 1 ||
+        [...url.searchParams.keys()].length !== 2 ||
+        !/^[1-9][0-9]*$/.test(operation ?? '')
+      )
+        return reply('Invalid fixture operation identity', 409);
+      const payload = JSON.stringify(change);
+      const previous = libraryReceipts.get(operation);
+      if (previous)
+        return previous.payload === payload
+          ? reply(previous.receipt)
+          : reply('Conflicting fixture operation payload', 409);
+      if (operation !== String(nextLibraryOperation))
+        return reply('Non-continuous fixture operation identity', 409);
+      if (
+        change?.action !== 'progress' ||
+        (change.owner_id ?? '') !== '' ||
+        !change.drama ||
+        change.drama.episodes !== undefined ||
+        change.drama.comments !== undefined
+      )
+        return reply('Feed fixture accepts compact guest progress only', 400);
+      writes.push(change);
+      nextLibraryOperation++;
+      const { action: _action, owner_id: _ownerId, ...entry } = change;
+      const receipt = {
+        session_id: session,
+        operation_id: operation,
+        outcome: {
+          status: 'committed',
+          library: {
+            owner_id: '',
+            entries: [{ ...entry, last_played_at: Date.now() }],
+          },
+        },
+      };
+      libraryReceipts.set(operation, { payload, receipt });
+      return reply(receipt);
     }
     if (url.pathname === '/api/v1/category') {
       if (req.method !== 'GET' || url.searchParams.has('q'))

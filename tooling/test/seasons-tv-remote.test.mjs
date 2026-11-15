@@ -29,6 +29,13 @@ test('TV series traffic evidence requires exact retry and rejects browsing side 
       await fetch(fixture.origin + detail('201'));
       await fetch(fixture.origin + detail('201'));
       assert.equal(verifySeasonRequests(fixture, suite).passed, true);
+      await fetch(fixture.origin + '/api/v1/library/session', {
+        method: 'POST',
+        body: JSON.stringify({ owner_id: '' }),
+      });
+      assert.throws(() => verifySeasonRequests(fixture, suite), /Browsing must not/);
+      fixture.requests.pop();
+      fixture.writes.pop();
       await fetch(fixture.origin + detail('301'));
       assert.throws(() => verifySeasonRequests(fixture, suite), /Upcoming selection/);
       fixture.requests.pop();
@@ -52,19 +59,29 @@ test('TV player series evidence allows only two confirmed media identities and c
     await fetch(fixture.origin + detail('201'));
     await fetch(fixture.origin + info('201', '2001'));
     const { episodes: _episodes, ...drama } = fixture.dramas['101'];
-    await fetch(fixture.origin + '/api/v1/library', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'progress',
-        drama,
-        episode: 1,
-        video_id: '1001',
-        position: 1,
-        duration: 12,
-        completed: false,
-      }),
-    });
+    const session = await (
+      await fetch(fixture.origin + '/api/v1/library/session', {
+        method: 'POST',
+        body: JSON.stringify({ owner_id: '' }),
+      })
+    ).json();
+    await fetch(
+      fixture.origin +
+        `/api/v1/library/operation?session_id=${session.data.session_id}&operation_id=1`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'progress',
+          drama,
+          episode: 1,
+          video_id: '1001',
+          position: 1,
+          duration: 12,
+          completed: false,
+        }),
+      },
+    );
     assert.equal(verifySeasonRequests(fixture, 'player-browse').preparations, 2);
     fixture.writes.at(-1).body.drama.episodes = [];
     assert.throws(

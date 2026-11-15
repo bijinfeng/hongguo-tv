@@ -24,3 +24,6 @@ import { registerRankingsTests } from '@hongguo/app/testing';
 registerRankingsTests();
 import { registerRadarTests } from '@hongguo/app/testing/radar';
 registerRadarTests();
+
+import { registerLibraryLifecycleTests } from '@hongguo/app/testing';
+registerLibraryLifecycleTests();

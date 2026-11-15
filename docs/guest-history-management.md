@@ -8,16 +8,52 @@
 
 仅成功读取的 guest 快照允许派发播放进度；未加载成功、未知或非 guest 所有者会明确失败，派发前再次检查 owner。兼容契约的成功快照可省略 owner_id，不能把“完全没有快照”当作省略字段。失败 checkpoint 保留在应用所有者中，后续显式更新重试仍需经过实际 owner 检查。
 
-播放保存和更新重试共用唯一 tail，每项成功直接发布提交响应，失败不会毒化后续队列。错误记录在任务内部更新，drain 等待的是包括该记账步骤的任务。更新先暂停、收集 checkpoint、排空既有写入，再把失败重试排入同一队列；关键词排空后再次等待直到 tail 稳定，并检查是否仍有保存失败。关闭收集 checkpoint、排空关键词，再以相同规则等待 library。接纳边界是最后一次稳定 tail 检查；返回后新派发的工作属于下一次排空，不承诺跨调用的全局冻结。
+播放保存和更新重试共用唯一 tail，每项成功直接发布提交响应，失败不会毒化后续队列。错误记录在任务内部更新，drain 等待的是包括该记账步骤的任务。更新先暂停、收集 checkpoint、排空既有写入，再把失败重试排入同一队列；关键词排空后再次等待直到 tail 稳定，并检查是否仍有保存失败。更新返回前以稳定 tail 检查确定此次接纳边界，返回后新增工作属于下一次排空。
 
-## 尚未接入
+正常关闭通过同步 `beginShutdown(checkpoint)` 取得排空许可，收集最后 checkpoint 后立即封闭新工作接纳，依次排空关键词和已接纳的 library 工作，再释放许可。共享 App 无论是否提供宿主关闭回调，都调用 `store.shutdown()`；原生宿主另外等待其 Promise 后释放核心。直接卸载而未取得许可的旧 controller 不允许懒建 session 或派发排队写入；同一引擎 VM 的新 controller 使旧 token 失效，writer 在 session 请求前和 await 返回后均复查 token／许可。已在 Rust 注册的操作仍独立完成，不因 JS 卸载宣称撤销。这只保证当前单主引擎路径，不承诺多个仍活跃 VM 或跨进程的全局写入顺序；系统强杀不保证执行 JS 清理。
 
-本轮是 E1 状态基础，尚无管理／选择／移除／清空 UI。删除的序号失效、顺序 job、确认、部分失败和焦点交接继续按 OpenSpec 实施。当前失败 checkpoint 还没有删除 supersession 语义，不得据此接入删除按钮。
+## 确认范围与删除顺序
 
-HTTP 断连或 native cancel 不等于 SQLite 回滚。现有 spawn_blocking 与 Mutex 只能保证互斥，不能证明原派发终结。E1 任务 1.4 仍需共享 core 的操作身份与去重完成屏障或等效的可验证方案；单次 GET、延时或再次幂等删除均不足以消除未决写入。未解决前不声称游客历史管理已验收。
+`store.historyManagement` 公开 `operation()`、`remove(ids)`、`clear()` 和 `retry(operationId)`。确认时按当前显示顺序捕获去重精确 ID 与 guest owner；在途／未完成 job 阻止重复创建，不因页面选择变化扩大范围。所选删除在同一 tail 中顺序执行，每项成功立即发布；首次失败停止，已完成项不回滚，显式重试只处理剩余项。清空只影响观看历史，关键词另行保存。
+
+progress 在接纳时取得单调序号，失败后保留原序号。成功 remove 只废除同 owner／series 的较旧 checkpoint，clear 废除该 owner 的全部较旧 checkpoint。重试派发前再次核对当前失败项与范围边界；真正的新观看可正常建立记录。业务删除重试取得新的序号边界；若只确认原派发成功，则保留原派发边界，避免误伤之后的新进度。
+
+operation 的 `pending` 表示当前排队或执行，`partial` 表示已取得确定失败终态且仍有剩余项，`unresolved` 表示原操作结果尚未确认，`complete` 才表示全部完成。关闭确认呈现不撤销已确认 job。未决范围阻止旧 checkpoint 穿越，更新仍受未决写入或保存失败阻止；job 内不得等待自己的 drain。
+
+## History 页面交互与稳定目标
+
+正式共享页面为 `packages/app/src/pages/History.tsx`。普通模式保留封面、进度和“查看详情”；只有进入“管理”后才显示单条复选框、单条“移除”、全选、删除所选和清空本机记录。“管理”要求已有 guest 快照且存在记录；未知／非 guest owner 的按钮禁用。未完成 job 禁用新的选择和删除，仍可“完成”管理。全选和计数使用完整可用记录集合，精确字符串 ID 的选择不依赖已挂载的虚拟行，已移除记录从选择中剔除。完成管理、离开 History 或 owner 改变会清除页面选择；已经确认的 job 继续由应用所有者执行，返回页面可见相同 owner 的剩余工作。
+
+三类删除均使用共享 `ConfirmDialog`，说明本机记录与已保存观看位置的删除范围，初始焦点为“取消”。未提交时取消／Back 不写入；提交后不乐观关闭，确认按钮处于 pending，安全动作改为“关闭”，仅关闭呈现。`partial` 显示已完成与剩余数量，动作是“重试剩余（n）”；`unresolved` 的动作是“确认删除结果”，先确认原派发终态，不能把这次点击解释为必然重新删除。只有 `complete` 才关闭仍属于本次操作的确认呈现，已关闭或离页的旧 job 不夺回焦点。
+
+源码焦点顺序为：取消回到仍存在的来源；来源消失时回到管理入口或空态行动。成功删除后，取确认时首个目标在列表中的位置，优先聚焦该位置的下一存活记录，越过尾部时聚焦前一条，无记录时聚焦“去找剧”。清空到空态且确认呈现仍由本次操作持有时，同时退出管理。虚拟行先按精确 ID 找到当前位置并滚到中心，等待 ref／layout，再 `reveal(center)` 后聚焦详情按钮；旧 ref 清理仅移除仍属于它的映射。恢复同时检查页面是否活动、owner、页面 epoch 和 `focusGuard`；更新输入、离页、owner 改变或卸载会使旧恢复失效。普通详情返回使用页面活动许可，guest 删除另用更严格的管理许可。
+
+以下 `testID` 是自动化稳定目标；`{seriesId}` 始终使用原始字符串，不转换为 Number。`history-{seriesId}` 保持“查看详情”动作的既有边界，复选框和移除是独立控件。
+
+| 目标                               | testID                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| 页面与虚拟列表                     | `history-page`、`history-list`                                                 |
+| 管理／完成、全选                   | `history-manage`、`history-select-all`                                         |
+| 查看详情、选择、单条移除           | `history-{seriesId}`、`history-select-{seriesId}`、`history-remove-{seriesId}` |
+| 删除所选、清空本机记录             | `history-delete-selected`、`history-clear`                                     |
+| 确认弹窗、安全动作、确认／重试动作 | `history-confirm`、`history-confirm-cancel`、`history-confirm-confirm`         |
+| 操作反馈、显式恢复                 | `history-operation`、`history-operation-retry`                                 |
+| 空态去找剧                         | `history-empty-discover`                                                       |
+
+`HistoryManagementStatePreview.test.tsx` 三端薄入口共用生产 History 与显式合成端口。当前 Web 合成交互测试 7/7 通过，覆盖精确 ID、安全取消、离屏全选与部分完成、未知结果确认、pending 关闭和离页、owner 禁用、尾行删除／清空回焦及较新焦点意图。这只补充受控边界，不是正式入口真实内容、实际播放、SQLite 持久化、重启或真实宿主的 E1 验收证据；其余端的执行结果也不能由 Web 合成通过推定。
+
+## 原派发完成边界
+
+生产 progress／remove／clear 均由 `createLibraryWriter` 发送：先按需创建 `POST /api/v1/library/session`，再通过 `POST /api/v1/library/operation?session_id=…&operation_id=…` 提交原 generated `HistoryChange`。新增 session／operation DTO 已生成；Library 与 HistoryChange 的载荷保持原样。序号以连续十进制字符串传输，精确匹配身份的回执才证明原派发终结。
+
+HTTP 断连或 native cancel 不等于 SQLite 回滚。Rust 在同步注册和启动后独立完成事务；相同身份和载荷只等待／返回原终态，不重新执行，旧序号和冲突载荷拒绝。显式确认使用原身份；若得到原失败回执，先转 partial，再由新的业务重试取得新身份。失败回执丢失、普通 HTTP 错误或单次 GET 都不被当作完成证明，不自动新建 session 绕过未决操作。
+
+同进程对同一规范 SQLite 路径共享在途注册表；新 session 先封闭旧 session，再等待已注册操作终结。重开后的公开快照等待其读取时已注册的 tail，事务内部同步快照不等待自身。这不承诺跨进程或旧直接写接口的全局顺序；旧 API 仅保留兼容，正式共享应用的全部历史写入使用新协议。
 
 ## 验证范围
 
-`registerLibraryTests` 的延迟合成 transport 只覆盖迟到读取、读取失败保留快照、读取等 tail 时被新 mutation 失效、未知／foreign owner 零派发，以及更新重试／新进度共用写序列。夹具经生产 store 读取同一快照；它不证明真实播放、SQLite、native 或管理 UI 验收。三端薄测试入口均复用同一夹具。
+`registerLibraryTests` 的延迟合成 transport 覆盖读取所有权、统一写顺序、删除范围／clear 失效、部分成功、丢失的成功／失败回执、更新阻止及新观看进度；三端薄测试入口复用同一夹具。这些测试不证明实际视频播放或管理 UI 验收。Rust／HTTP／native 专项使用真实 SQLite，内容仍为受控输入，持久化证据与正式入口的真实内容流程分开记录。
 
-E1 主验收仍须从正式入口搜索真实内容并实际播放形成记录，核对持久数据后完成管理、取消、顺序删除与重启；合成长列表和部分失败只补边界。实际运行、源码身份和限制统一记录在 VALIDATION，完整 MVP 的其他功能继续开放。
+显式运行 `node tooling/src/live-history-host.mjs macos --anonymous-live`，从正式 Web 入口搜索当前真实内容、实际播放形成记录，再取消／单删、真实重播、清空并重启 Rust API 和应用。只读持久结果由 Node 在各宿主阶段之间读取；产品网络保持 live，不注入响应或直接写入历史。2026-11-15 的浅深两组主链通过，独立功能与 18 张真实截图复核见 VALIDATION。
+
+这只覆盖 macOS 可见宿主中的正式 Web／HTTP 主链。两条真实记录的选择删除、完整虚拟焦点、浏览器 Web、Desktop native 与 TV 主流程继续待验；清空状态和关键词跨 Rust 重启已验证，本批不证明有记录状态跨 API 重启。合成长列表和部分失败只补边界，不据此关闭 E1；完整 MVP 的其他功能继续开放。

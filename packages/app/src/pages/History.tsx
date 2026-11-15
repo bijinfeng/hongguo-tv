@@ -1,5 +1,14 @@
-import { List, Text, View, effect, cleanup, type ListRef, type ViewRef } from 'nsh';
-import { Button, Cover, Notice, Progress, ResultCard, tvUnit } from '@hongguo/ui';
+import { List, Text, View, effect, cleanup, signal, type ListRef, type ViewRef } from 'nsh';
+import {
+  Button,
+  Checkbox,
+  ConfirmDialog,
+  Cover,
+  Notice,
+  Progress,
+  ResultCard,
+  tvUnit,
+} from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { playbackTime } from '../format';
@@ -11,14 +20,21 @@ export const historyLabel = (entry: Entry) =>
 export function HistoryItem(props: {
   entry: Entry;
   store: Store;
-  register?: (id: string, ref?: ViewRef) => void;
+  register?: (id: string, ref?: ViewRef, previous?: ViewRef) => void;
   restore?: (id: string) => void;
+  managing?: boolean;
+  checked?: boolean;
+  disabled?: boolean;
+  select?: (id: string, checked: boolean) => void;
+  remove?: (entry: Entry) => void;
+  controlRef?: (key: string, ref: ViewRef) => void;
 }) {
   let ref: ViewRef | undefined;
   effect(() => {
     const id = props.entry.drama.series_id;
     if (ref) props.register?.(id, ref);
-    cleanup(() => props.register?.(id));
+    const owned = ref;
+    cleanup(() => props.register?.(id, undefined, owned));
   });
   return (
     <ResultCard
@@ -49,13 +65,27 @@ export function HistoryItem(props: {
           class="w-full h-full"
         />
       </View>
-      <View class="flex-1 justify-center gap-2">
-        <Text
-          style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
-          class={`${props.store.target === 'tv' ? 'text-xl' : 'text-base'} font-semibold text-foreground`}
+      <View class="flex-1 min-w-0 justify-center gap-2">
+        <If
+          when={props.managing}
+          else={
+            <Text
+              style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+              class={`${props.store.target === 'tv' ? 'text-xl' : 'text-base'} font-semibold text-foreground`}
+            >
+              {props.entry.drama.title}
+            </Text>
+          }
         >
-          {props.entry.drama.title}
-        </Text>
+          <Checkbox
+            label={props.entry.drama.title}
+            testID={`history-select-${props.entry.drama.series_id}`}
+            checked={props.checked ?? false}
+            disabled={props.disabled}
+            controlRef={(node) => props.controlRef?.(`select:${props.entry.drama.series_id}`, node)}
+            onChange={(event) => props.select?.(props.entry.drama.series_id, event.checked)}
+          />
+        </If>
         <Text
           style={props.store.target === 'tv' ? { fontSize: tvUnit(20) } : undefined}
           class="text-sm text-muted-foreground"
@@ -73,11 +103,25 @@ export function HistoryItem(props: {
             本集已看完
           </Text>
         </If>
+        <If when={props.managing}>
+          <View class="flex-row">
+            <Button
+              label={`移除${props.entry.drama.title}的观看记录`}
+              displayLabel="移除"
+              testID={`history-remove-${props.entry.drama.series_id}`}
+              disabled={props.disabled}
+              buttonRef={(node) =>
+                props.controlRef?.(`remove:${props.entry.drama.series_id}`, node)
+              }
+              onPress={() => props.remove?.(props.entry)}
+            />
+          </View>
+        </If>
       </View>
     </ResultCard>
   );
 }
-export function LibraryStatus(props: { store: Store }) {
+export function LibraryStatus(props: { store: Store; emptyRef?: (ref: ViewRef) => void }) {
   return (
     <If
       when={
@@ -101,6 +145,8 @@ export function LibraryStatus(props: { store: Store }) {
           <Notice message="看过的短剧会保存在这里。" />
           <Button
             label="去找剧"
+            testID="history-empty-discover"
+            buttonRef={props.emptyRef}
             primary
             onPress={() => {
               props.store.navigate('discover');
@@ -112,37 +158,301 @@ export function LibraryStatus(props: { store: Store }) {
     </If>
   );
 }
+type Confirmation = {
+  kind: 'single' | 'selected' | 'clear';
+  ids: string[];
+  title: string;
+  source: string;
+  index: number;
+  owner: string;
+};
+
 export function History(props: { store: Store }) {
+  const managing = signal(false);
+  const selected = signal<ReadonlySet<string>>(new Set());
+  const confirmation = signal<Confirmation | undefined>(undefined);
+  const localError = signal('');
   let list: ListRef | undefined;
   let anchor: { id: string; offset: number } | undefined;
   let frame = 0;
+  let disposed = false;
+  let epoch = 0;
+  let submitting = false;
+  const dialogJob = signal<number | undefined>(undefined);
+  let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
+  let waiting: typeof returnSource;
   const refs = new Map<string, ViewRef>();
-  cleanup(() => cancelAnimationFrame(frame));
-  const restore = () => {
+  const owner = () => props.store.library()?.owner_id ?? '';
+  const present = () => !disposed && props.store.activePage('history');
+  const enabled = () => present() && !!props.store.library() && owner() === '';
+  const operation = () => {
+    const job = props.store.historyManagement.operation();
+    return job?.ownerId === owner() ? job : undefined;
+  };
+  const busy = () => !!operation() && operation()!.status !== 'complete';
+  const available = () => enabled() && !busy();
+  const selectedIds = () =>
+    props.store
+      .entries()
+      .map((entry) => entry.drama.series_id)
+      .filter((id) => selected().has(id));
+  const retryLabel = () =>
+    operation()?.status === 'unresolved'
+      ? '确认删除结果'
+      : `重试剩余（${operation()?.remainingIds.length ?? 0}）`;
+  const operationMessage = () => {
+    const job = operation();
+    if (!job || job.status === 'complete') return '';
+    if (job.status === 'pending')
+      return `正在删除观看记录（${job.completedIds.length}/${job.ids.length}）…`;
+    if (job.status === 'unresolved') return '删除结果尚未确认，请确认结果后再继续管理。';
+    return `已删除 ${job.completedIds.length} 条，还有 ${job.remainingIds.length} 条未删除。`;
+  };
+  const reveal = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const plan = waiting;
+      if (!plan) return;
+      if (!present() || owner() !== plan.owner || epoch !== plan.epoch || !plan.owns()) {
+        waiting = undefined;
+        return;
+      }
+      const ref = refs.get(plan.key);
+      if (!ref) return; // Recycled cells retry on registration/layout.
+      waiting = undefined;
+      ref.reveal({ vertical: 'center', horizontal: 'nearest', animated: false });
+      ref.focus();
+    });
+  };
+  const queueFocus = (key: string, owns = props.store.focusGuard()) => {
+    if (!present()) return;
+    waiting = { key, owner: owner(), epoch, owns };
+    const id = key.split(':')[1];
+    const index = props.store.entries().findIndex((entry) => entry.drama.series_id === id);
+    if (index >= 0) list?.scrollToIndex({ index, viewPosition: 0.5, animated: false });
+    reveal();
+  };
+  const register = (key: string, ref: ViewRef) => {
+    refs.set(key, ref);
+    if (waiting?.key === key) reveal();
+  };
+  const restoreAnchor = () => {
     if (!anchor) return;
     const index = props.store.entries().findIndex((entry) => entry.drama.series_id === anchor!.id);
     if (index >= 0) list?.scrollToIndex({ index, viewOffset: -anchor.offset, animated: false });
   };
+  const close = () => {
+    const current = confirmation();
+    if (!current) return;
+    returnSource = {
+      key: current.source,
+      owner: current.owner,
+      epoch,
+      owns: props.store.focusGuard(),
+    };
+    confirmation.set(undefined);
+    localError.set('');
+  };
+  const restoreDialogSource = () => {
+    const source = returnSource;
+    returnSource = undefined; // Native close and the shared close frame may both call us.
+    if (!source || source.owner !== owner() || source.epoch !== epoch) return;
+    const sourceId = source.key.split(':')[1];
+    const sourceExists =
+      !sourceId || props.store.entries().some((entry) => entry.drama.series_id === sourceId);
+    const key =
+      sourceExists && refs.has(source.key)
+        ? source.key
+        : props.store.entries().length
+          ? 'manage'
+          : 'empty';
+    queueFocus(key, source.owns);
+  };
+  const ask = (kind: Confirmation['kind'], ids: string[], title: string, source: string) => {
+    if (!available() || !ids.length) return;
+    props.store.noteFocusIntent();
+    waiting = undefined;
+    returnSource = undefined;
+    dialogJob.set(undefined);
+    localError.set('');
+    confirmation.set({
+      kind,
+      ids: [...ids],
+      title,
+      source,
+      index: Math.max(
+        0,
+        props.store.entries().findIndex((entry) => ids.includes(entry.drama.series_id)),
+      ),
+      owner: owner(),
+    });
+  };
+  const run = async (retry = false) => {
+    const current = confirmation();
+    if (submitting || !enabled() || (current && current.owner !== owner())) return;
+    if (!retry && (!current || !available())) return;
+    const job = operation();
+    if (retry && (!job || !['partial', 'unresolved'].includes(job.status))) return;
+    submitting = true;
+    localError.set('');
+    const ownedEpoch = epoch;
+    const owns = props.store.focusGuard();
+    try {
+      const result = retry
+        ? props.store.historyManagement.retry(job!.id)
+        : current!.kind === 'clear'
+          ? props.store.historyManagement.clear()
+          : props.store.historyManagement.remove(current!.ids);
+      dialogJob.set(props.store.historyManagement.operation()?.id);
+      await result;
+      const settled = operation();
+      if (settled?.status !== 'complete' || settled.id !== dialogJob()) return;
+      selected.set(new Set(selectedIds()));
+      if (!current || confirmation() !== current || ownedEpoch !== epoch || !enabled()) return;
+      const entries = props.store.entries();
+      const survivor = entries[Math.min(current.index, entries.length - 1)];
+      if (!entries.length) managing.set(false);
+      returnSource = undefined;
+      confirmation.set(undefined);
+      // Wait for the native dialog to release focus, then restore only if no newer input won.
+      frame = requestAnimationFrame(() => {
+        if (epoch === ownedEpoch && owns())
+          queueFocus(survivor ? `detail:${survivor.drama.series_id}` : 'empty', owns);
+      });
+    } catch (cause) {
+      if (ownedEpoch === epoch) localError.set(errorMessage(cause, '暂时无法删除观看记录'));
+    } finally {
+      submitting = false;
+    }
+  };
+  let previousOwner: string | undefined;
   effect(() => {
-    if (props.store.activePage('history')) frame = requestAnimationFrame(restore);
+    const current = selected();
+    const ids = new Set(props.store.entries().map((entry) => entry.drama.series_id));
+    const next = new Set([...current].filter((id) => ids.has(id)));
+    if (next.size !== current.size) selected.set(next);
+  });
+  effect(() => {
+    const active = props.store.activePage('history');
+    const currentOwner = props.store.library() ? owner() : undefined;
+    if (!active || previousOwner !== currentOwner) {
+      epoch++;
+      managing.set(false);
+      selected.set(new Set());
+      confirmation.set(undefined);
+      waiting = undefined;
+      returnSource = undefined;
+      localError.set('');
+      cancelAnimationFrame(frame);
+    }
+    previousOwner = currentOwner;
+    if (active) frame = requestAnimationFrame(restoreAnchor);
+  });
+  cleanup(() => {
+    disposed = true;
+    cancelAnimationFrame(frame);
+    refs.clear();
   });
   return (
     <View
+      testID="history-page"
       class={`flex-1 gap-4 ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
       style={props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : undefined}
     >
-      <Text
-        role="header"
-        accessibilityLevel={1}
-        style={props.store.target === 'tv' ? { fontSize: tvUnit(44) } : { fontSize: 32 }}
-        class={`${props.store.target === 'tv' ? 'text-4xl' : 'text-3xl'} font-semibold text-foreground`}
-      >
-        继续观看
-      </Text>
-      <LibraryStatus store={props.store} />
+      <View class="flex-row flex-wrap items-center justify-between gap-4">
+        <Text
+          role="header"
+          accessibilityLevel={1}
+          style={props.store.target === 'tv' ? { fontSize: tvUnit(44) } : { fontSize: 32 }}
+          class={`${props.store.target === 'tv' ? 'text-4xl' : 'text-3xl'} font-semibold text-foreground`}
+        >
+          继续观看
+        </Text>
+        <Button
+          testID="history-manage"
+          label={managing() ? '完成' : '管理'}
+          buttonRef={(ref) => register('manage', ref)}
+          disabled={!enabled() || (!managing() && !props.store.entries().length)}
+          onPress={() => {
+            props.store.noteFocusIntent();
+            managing.set(!managing());
+            selected.set(new Set());
+          }}
+        />
+      </View>
+      <If when={managing()}>
+        <View class="flex-row flex-wrap items-center gap-3">
+          <Checkbox
+            label="全选"
+            testID="history-select-all"
+            checked={
+              !!props.store.entries().length &&
+              selectedIds().length === props.store.entries().length
+            }
+            indeterminate={
+              selectedIds().length > 0 && selectedIds().length < props.store.entries().length
+            }
+            disabled={!available() || !props.store.entries().length}
+            onChange={(event) => {
+              props.store.noteFocusIntent();
+              selected.set(
+                new Set(
+                  event.checked ? props.store.entries().map((entry) => entry.drama.series_id) : [],
+                ),
+              );
+            }}
+          />
+          <Button
+            testID="history-delete-selected"
+            label={`删除所选（${selectedIds().length}）`}
+            disabled={!available() || !selectedIds().length}
+            buttonRef={(ref) => register('selected', ref)}
+            onPress={() => ask('selected', selectedIds(), '删除所选观看记录？', 'selected')}
+          />
+          <Button
+            testID="history-clear"
+            label="清空本机记录"
+            disabled={!available() || !props.store.entries().length}
+            buttonRef={(ref) => register('clear', ref)}
+            onPress={() =>
+              ask(
+                'clear',
+                props.store.entries().map((entry) => entry.drama.series_id),
+                '清空本机观看记录？',
+                'clear',
+              )
+            }
+          />
+        </View>
+      </If>
+      <If when={operationMessage() || localError()}>
+        <View testID="history-operation" class="gap-3">
+          <Notice
+            message={localError() || operationMessage()}
+            error={!!localError() || operation()?.status !== 'pending'}
+          />
+          <If when={operation()?.status === 'partial' || operation()?.status === 'unresolved'}>
+            <View class="flex-row">
+              <Button
+                testID="history-operation-retry"
+                label={retryLabel()}
+                disabled={!enabled()}
+                onPress={() => {
+                  props.store.noteFocusIntent();
+                  void run(true);
+                }}
+              />
+            </View>
+          </If>
+        </View>
+      </If>
+      <LibraryStatus store={props.store} emptyRef={(ref) => register('empty', ref)} />
       <List
         ref={(ref) => {
           list = ref;
+        }}
+        onLayout={() => {
+          if (waiting) reveal();
         }}
         onScroll={() => {
           if (!props.store.activePage('history')) return;
@@ -155,29 +465,85 @@ export function History(props: { store: Store }) {
         testID="history-list"
         each={props.store.entries()}
         keyExtractor={(entry) => entry.drama.series_id}
-        estimatedItemSize={props.store.target === 'tv' ? tvUnit(202) : 154}
+        estimatedItemSize={
+          props.store.target === 'tv' ? tvUnit(managing() ? 270 : 202) : managing() ? 210 : 154
+        }
         class="flex-1"
-        contentStyle={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}
+        contentStyle={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12, padding: 8 }}
       >
         {(entry) => (
           <HistoryItem
             entry={entry()}
             store={props.store}
-            register={(id, ref) => {
-              if (ref) refs.set(id, ref);
-              else refs.delete(id);
+            managing={managing()}
+            checked={selected().has(entry().drama.series_id)}
+            disabled={!available()}
+            select={(id, checked) => {
+              props.store.noteFocusIntent();
+              const next = new Set(selected());
+              if (checked) next.add(id);
+              else next.delete(id);
+              selected.set(next);
             }}
-            restore={(id) => {
-              restore();
-              frame = requestAnimationFrame(() => {
-                const ref = refs.get(id);
-                if (ref) ref.focus();
-                else props.store.focusPrimary();
-              });
+            remove={(item) =>
+              ask(
+                'single',
+                [item.drama.series_id],
+                `移除《${item.drama.title}》的观看记录？`,
+                `remove:${item.drama.series_id}`,
+              )
+            }
+            controlRef={register}
+            register={(id, ref, previous) => {
+              const key = `detail:${id}`;
+              if (ref) register(key, ref);
+              else if (refs.get(key) === previous) refs.delete(key);
             }}
+            restore={(id) => queueFocus(`detail:${id}`)}
           />
         )}
       </List>
+      <ConfirmDialog
+        testID="history-confirm"
+        open={!!confirmation()}
+        title={confirmation()?.title ?? '删除观看记录？'}
+        description={
+          confirmation()?.kind === 'single'
+            ? '仅删除本机观看记录和已保存的观看位置，再次播放会重新记录。'
+            : `将删除本机 ${confirmation()?.ids.length ?? 0} 条观看记录和已保存的观看位置，再次播放会重新记录。`
+        }
+        destructive
+        pending={operation()?.id === dialogJob() && operation()?.status === 'pending'}
+        cancelLabel={
+          operation()?.id === dialogJob() && operation()?.status === 'pending' ? '关闭' : '取消'
+        }
+        confirmLabel={
+          operation()?.id === dialogJob() &&
+          ['partial', 'unresolved'].includes(operation()?.status ?? '')
+            ? retryLabel()
+            : confirmation()?.kind === 'clear'
+              ? '清空本机记录'
+              : confirmation()?.kind === 'single'
+                ? '移除记录'
+                : '删除记录'
+        }
+        error={
+          localError() ||
+          (operation()?.id === dialogJob() && operation()?.status !== 'pending'
+            ? operation()?.error
+            : '')
+        }
+        onOpenChange={(event) => {
+          if (!event.open) close();
+        }}
+        returnFocus={restoreDialogSource}
+        onConfirm={() =>
+          void run(
+            operation()?.id === dialogJob() &&
+              ['partial', 'unresolved'].includes(operation()?.status ?? ''),
+          )
+        }
+      />
     </View>
   );
 }

@@ -34,6 +34,9 @@ export async function seasonsFixture({ port = 0 } = {}) {
     timers = new Map();
   let entries = [];
   let keywords = [];
+  let librarySession = 0n;
+  let nextLibraryOperation = 1n;
+  const libraryReceipts = new Map();
   let origin;
   const drama = (id) => ({
     series_id: id,
@@ -83,7 +86,12 @@ export async function seasonsFixture({ port = 0 } = {}) {
     const params = url.searchParams;
     if (
       request.method === 'OPTIONS' &&
-      ['/api/v1/library', '/api/v1/play/release', '/api/v1/search/history'].includes(url.pathname)
+      [
+        '/api/v1/library/session',
+        '/api/v1/library/operation',
+        '/api/v1/play/release',
+        '/api/v1/search/history',
+      ].includes(url.pathname)
     )
       return { status: 204 };
     if (request.method === 'POST') {
@@ -114,12 +122,33 @@ export async function seasonsFixture({ port = 0 } = {}) {
         mediaPaths.includes(change.path)
       )
         return ok({ released: true });
+      if (url.pathname === '/api/v1/library/session' && !url.search) {
+        if (JSON.stringify(change) !== JSON.stringify({ owner_id: '' }))
+          return invalid(record, 'Unexpected fixture session owner');
+        librarySession++;
+        nextLibraryOperation = 1n;
+        libraryReceipts.clear();
+        return ok({ session_id: librarySession.toString(16).padStart(32, '0') });
+      }
+      const session = librarySession.toString(16).padStart(32, '0');
+      const operation = params.get('operation_id');
       if (
-        url.pathname !== '/api/v1/library' ||
-        url.search ||
+        url.pathname !== '/api/v1/library/operation' ||
+        !librarySession ||
+        !exact(params, ['session_id', 'operation_id']) ||
+        params.get('session_id') !== session ||
+        !/^[1-9][0-9]*$/.test(operation ?? '') ||
         (change.owner_id != null && change.owner_id !== '')
       )
         return invalid(record, 'Unexpected fixture write or owner');
+      const payload = JSON.stringify(change);
+      const previous = libraryReceipts.get(operation);
+      if (previous)
+        return previous.payload === payload
+          ? ok(clone(previous.receipt))
+          : invalid(record, 'Conflicting fixture operation payload');
+      if (operation !== String(nextLibraryOperation))
+        return invalid(record, 'Non-continuous fixture operation identity');
       if (change.action === 'progress') {
         const id = change.drama?.series_id;
         const episode = change.episode;
@@ -172,7 +201,14 @@ export async function seasonsFixture({ port = 0 } = {}) {
         entries = entries.filter((row) => row.drama.series_id !== change.series_id);
       } else if (change.action === 'clear' && change.kind === 'history') entries = [];
       else return invalid(record, 'Unsupported fixture history mutation');
-      return ok(snapshot());
+      nextLibraryOperation++;
+      const receipt = {
+        session_id: session,
+        operation_id: operation,
+        outcome: { status: 'committed', library: snapshot() },
+      };
+      libraryReceipts.set(operation, { payload, receipt });
+      return ok(clone(receipt));
     }
     if (!['GET', 'HEAD'].includes(request.method)) return invalid(record, 'Unexpected method');
     const media = mediaPaths.indexOf(url.pathname);
@@ -464,14 +500,21 @@ export async function seasonsFixtureSelfcheck() {
       duration: 6,
     };
     delete progress.drama.episodes;
+    const session = await (
+      await get('/api/v1/library/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner_id: '' }),
+      })
+    ).json();
     const saved = await (
-      await get('/api/v1/library', {
+      await get(`/api/v1/library/operation?session_id=${session.data.session_id}&operation_id=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(progress),
       })
     ).json();
-    assert.equal(saved.data.entries[0].drama.series_id, '201');
+    assert.equal(saved.data.outcome.library.entries[0].drama.series_id, '201');
     assert.equal((await (await get('/api/v1/library')).json()).data.entries.length, 1);
     assert.throws(() => fixture.assertReadOnly());
     assert.deepEqual(fixture.unknown, []);

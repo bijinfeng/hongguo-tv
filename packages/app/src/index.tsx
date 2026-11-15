@@ -381,7 +381,10 @@ export function App(props: {
 }) {
   const store = createStore(props.target, props.subscribePlayerCommands, props.subscribeFocus);
   const updates = props.updates ? createUpdates(props.updates, store.prepareUpdate) : undefined;
-  cleanup(() => props.onShutdown?.(store.shutdown()));
+  cleanup(() => {
+    const drained = store.shutdown();
+    props.onShutdown?.(drained);
+  });
   // The Web runtime does not expose native back listeners.
   if (typeof BackHandler?.on === 'function')
     cleanup(

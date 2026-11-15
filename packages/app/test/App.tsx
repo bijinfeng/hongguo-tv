@@ -20,6 +20,11 @@ const drama = {
   ],
 };
 const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
+const libraryWrite = (request: StubRequest) =>
+  request.method === 'POST' &&
+  ['/api/v1/library', '/api/v1/library/session', '/api/v1/library/operation'].includes(
+    new URL(request.url).pathname,
+  );
 function fixture(request: StubRequest): StubResponse {
   const url = new URL(request.url);
   if (url.pathname === '/api/v1/search/history') return ok({ items: [] });
@@ -1114,11 +1119,7 @@ export function registerApplicationTests(
     await app.waitFor('id:player-video');
     expect(app.requests().filter((request) => request.url.includes('/play/info')).length).toBe(2);
     // Neither a resolved representation nor lifecycle recovery counts as watching.
-    expect(
-      app
-        .requests()
-        .some((request) => request.method === 'POST' && request.url.endsWith('/library')),
-    ).toBe(false);
+    expect(app.requests().some(libraryWrite)).toBe(false);
     await app.back();
     if (target === 'tv') await app.back();
     await app.waitFor('开始观看');
@@ -1155,9 +1156,7 @@ export function registerApplicationTests(
     await app.waitFor('重生之后');
     expect(app.value('id:search-input')).toBe('重生');
     expect(app.requests().filter((r) => r.url.includes('/search?')).length).toBe(1);
-    expect(app.requests().some((r) => r.method === 'POST' && r.url.endsWith('/library'))).toBe(
-      false,
-    );
+    expect(app.requests().some(libraryWrite)).toBe(false);
   });
 
   test('failed search can retry and a superseded response cannot replace the newest search', async () => {

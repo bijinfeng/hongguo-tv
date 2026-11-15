@@ -52,7 +52,7 @@ export function verifySeasonRequests(fixture, suite) {
     assert(detail('201')[0].index < media[1].index);
     assert(
       fixture.writes.some(
-        (row) => new URL(row.url, 'http://fixture').pathname === '/api/v1/library',
+        (row) => new URL(row.url, 'http://fixture').pathname === '/api/v1/library/operation',
       ),
       'Actual playback must checkpoint progress',
     );
@@ -72,8 +72,19 @@ export function verifySeasonRequests(fixture, suite) {
   }
   for (const write of fixture.writes) {
     const path = new URL(write.url, 'http://fixture').pathname;
-    assert(['/api/v1/library', '/api/v1/play/release', '/api/v1/search/history'].includes(path));
-    if (path === '/api/v1/library') {
+    assert(
+      [
+        '/api/v1/library/session',
+        '/api/v1/library/operation',
+        '/api/v1/play/release',
+        '/api/v1/search/history',
+      ].includes(path),
+    );
+    if (path === '/api/v1/library/session') {
+      assert.equal(suite, 'player-browse');
+      assert.deepEqual(write.body, { owner_id: '' });
+    }
+    if (path === '/api/v1/library/operation') {
       assert.equal(suite, 'player-browse');
       assert.equal(write.body.action, 'progress');
       assert.equal(write.body.owner_id ?? '', '');
