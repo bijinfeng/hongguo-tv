@@ -1,4 +1,14 @@
-import { List, Text, View, effect, cleanup, signal, type ListRef, type ViewRef } from 'nsh';
+import {
+  List,
+  Text,
+  View,
+  effect,
+  cleanup,
+  lifecycle,
+  signal,
+  type ListRef,
+  type ViewRef,
+} from 'nsh';
 import {
   Button,
   Checkbox,
@@ -177,12 +187,18 @@ export function History(props: { store: Store }) {
   let frame = 0;
   let disposed = false;
   let epoch = 0;
+  let focusEpoch = 0;
   let submitting = false;
   const dialogJob = signal<number | undefined>(undefined);
   let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
   let waiting: typeof returnSource;
   const refs = new Map<string, ViewRef>();
   const detailRefs = new Map<string, Set<ViewRef>>();
+  const focusGuard = () => {
+    const version = focusEpoch;
+    const owns = props.store.focusGuard();
+    return () => version === focusEpoch && lifecycle() !== 'background' && owns();
+  };
   const owner = () => props.store.library()?.owner_id ?? '';
   const present = () => !disposed && props.store.activePage('history');
   const enabled = () => present() && !!props.store.library() && owner() === '';
@@ -254,7 +270,7 @@ export function History(props: { store: Store }) {
       ref.focus();
     });
   };
-  const queueFocus = (key: string, owns = props.store.focusGuard()) => {
+  const queueFocus = (key: string, owns = focusGuard()) => {
     if (!present()) return;
     waiting = { key, owner: owner(), epoch, owns };
     const id = key.split(':')[1];
@@ -278,7 +294,7 @@ export function History(props: { store: Store }) {
       key: current.source,
       owner: current.owner,
       epoch,
-      owns: props.store.focusGuard(),
+      owns: focusGuard(),
     };
     confirmation.set(undefined);
     localError.set('');
@@ -338,7 +354,7 @@ export function History(props: { store: Store }) {
     submitting = true;
     localError.set('');
     const ownedEpoch = epoch;
-    const owns = props.store.focusGuard();
+    const owns = focusGuard();
     try {
       const result = retry
         ? props.store.historyManagement.retry(job!.id)
@@ -369,6 +385,13 @@ export function History(props: { store: Store }) {
     }
   };
   let previousOwner: string | undefined;
+  effect(() => {
+    if (lifecycle() !== 'background') return;
+    focusEpoch++;
+    waiting = undefined;
+    returnSource = undefined;
+    cancelAnimationFrame(frame);
+  });
   effect(() => {
     const current = selected();
     const ids = new Set(props.store.entries().map((entry) => entry.drama.series_id));

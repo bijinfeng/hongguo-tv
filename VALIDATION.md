@@ -853,3 +853,23 @@ OpenSpec `wire-guest-history-management` 已启动，仅任务 1.1 完成。新�
 最终诊断脚本复跑 `06-34-50-262Z/` 的浅色 9 段通过；深色首次准备播放日志出现“视频来源数据无效，请重试”，随后宿主阶段超时，整次 result.passed=false，runtime 恢复、cleanupErrors=[]。不把该次标为通过，也不以合成内容替代。与前一完整成功证据相比，仅验收 runner 文件改变，产品／回归源码 hash 一致。
 
 任务 2.3、3.1–3.3、4.2–4.3 继续开放：精确滚动上下文、完整虚拟焦点／外框、后台生命周期、多尺寸／大字／减少动态／读屏、浏览器 Web、Desktop native 与当前 TV 安装包真实主流程仍有缺口。TV 缓存 APK 的 bundle 与当前源码不同，现有业务 runner 又会覆盖已装包与私有数据，不能复用旧包充当本轮验收；需要隔离当前包与数据再验证。E1、C3.2、完整 MVP、安全、物理电视和正式发行均未关闭。
+
+## E1 Chromium 真实补验与后台焦点边界 · 2026-11-15（仍为 7／13）
+
+主验收 `artifacts/live-history/2026-11-15T06-59-13-463Z/`：正式 `apps/web/App.tsx`、真实 Chromium／Rust HTTP／独立 SQLite／live 网络，零合成响应、零直接历史写入、无手动时钟。预检只读取真实搜索结果及详情，本次两条均有开放选集；正式 UI 仍独立加载、实际播放。浅色 9 段全部通过；深色首播、取消、单删 3 段通过；第 13 段深色重播在详情显示“内容服务连接超时，请重试”后失败，尚无 play/info，不记为媒体解码或 CORS 故障。整次 passed=false，不以部分成功或后续边界测试覆盖失败。
+
+- 真实内容：《重生，他只做创一代第三季》`7705305581673794585`、《重生一世，我不再痴恋竹马》`7681951473533471768`。浅色三次播放和深色首播 UI 时钟均 0→3；浅色两条真实 position 为 4.130294／4.135163，duration 为 88.607007／171.549002。两条完整快照在真正 API 重启／正式应用重开后相等；选择删除仅移除首条，第二条完整 entry 保留，Enter 打开相同身份详情。该详情截图仍显示加载失败，只证明身份，不证明完整详情成功。
+- 浅色取消零 POST，快照文件字节相同；clear、空重启、搜索词“重生”保留通过。深色取消零 POST、单删后为空通过；最终 SQLite history=0、recent_searches 只有“重生”。深色双条重启、选择删除与清空本轮未执行。
+- 来源握手使用每段 nonce／NSH 父 PID、单一 loopback 地址、原子 request／ACK 与共享截止；Chrome 用 Node execve 保持 NSH 所属 PID。13 段实际 Origin 正反检查均为允许 200／拒绝 403，没有代理、伪造 Origin 或放宽产品策略。每段精确来源都需在同一 API 端口／独立 SQLite 上重启 API，不能宣称本轮只进行原有两次持久化重启。独立进程组覆盖 Web 宿主／浏览器的异常清理，API／Cargo 不在该组。
+- runtime 原字节恢复、cleanupErrors=[]，结束后未见本次 NSH／API／Chrome 测试进程。失败发生在主流程末尾 manifest 比对之前，没有 source-manifest-after；补充只读 `post-failure-source-audit.json` 核对原 manifest 的 960 个文件，changed=[]。随后仅补工具边界测试、清理所持 host 引用及文档；产品／回归源码没有再变更。
+- 独立功能审查吻合；独立实际查看本批浅色 7 张、深色 5 张共 12 张：两条重开、选一条、所选确认／保留邻项、邻项详情、清空确认／空态，以及深色单条／取消／移除。半径、字级、间距、对齐、浅深表面和公共 Checkbox／Button／ConfirmDialog 未见视觉阻断；没有可见键盘焦点轮廓。hover／pressed 逐帧、完整焦点、动效／减少动态、读屏、前台人工键盘和 TV 不由这些静态图证明。
+
+其他失败保留：`06-51-59-909Z/` 已通过精确 Origin 200／403，但 Chrome 启动退出，未进入 App；该次工具缺少 execve 与完整异常清理。`06-53-51-584Z/` 浅色首播／取消／单删／重播四段通过，第二部详情／系列读取失败后等待超时，整体 passed=false。两次配置均恢复；未用 fixture 替代。现有真实证据只能确认最终详情超时／读取失败，不能推断其网络根因。
+
+独立源码调查确认一个待修缺口：搜索结果无 content_type 时，同一 ID 在季列表补成 1004 后，season-detail 的类型身份变化会取消／重发同一上游详情；目前不能证明它导致本次超时。后续须保留明确类型冲突、切季和来源身份保护，分别覆盖在途／完成后的元数据补全，不能直接删除类型围栏。
+
+补充边界：共享 History 焦点恢复增加生命周期 epoch，background 清除旧等待／来源并取消帧，回 active 不重放；inactive 可见窗口仍可交互。两条合成原生焦点交接回归独立验证生命周期而非更新输入意图，修复前 13／14、修复后 14／14；它们只证明受控边界。启动器另外两项工程边界检查验证 exec PID／参数保留和错误 ACK 拒绝，不属于真实内容验收。真实后台、完整虚拟焦点、浏览器完整浅深、Desktop native／当前 TV 安装包仍开放，E1 与完整 MVP 均未关闭。
+
+本批工程门禁：`verify-browser-lifecycle-cached.log` 的完整 `pnpm verify` exit 0，工具 55／55、Rust 244／244（显式联网 probe 另跳过 1 项）、Web 167／167、Desktop／TV 各 169／169，三端 check／build、格式、lint、codegen:check 与版本门禁通过。NSH Desktop／TV headless 构建摘要各有 1 条 warning，不宣称零告警。产品／回归源码全程不变；最后 runner 只清空已完成的所属 host 引用，避免总 finally 再发旧进程组信号，经过语法／lint、独立只读复核及 `tooling-browser-canonical-final.log` 的公共 `pnpm test:tooling` 55／55。严格 OpenSpec 校验通过。没有依赖变化，既有安全阻塞保持开放。
+
+工程失败分别保留：`verify-browser-lifecycle-final.log` 漏带既定缓存／关闭增量环境，重复构建后 TV 描述程序链接因 errno=28（磁盘不足）失败；清理本轮产生的 85 个增量缓存目录约 1540 MiB 后，使用既定缓存重跑得到上述完整结果。`tooling-browser-cleanup-final.log` 的直接 Node 工具测试 54／55，临时仓库 commit-msg 触发 pnpm install，因无 TTY 拒绝移除 modules 目录；同一源码的公共 pnpm 入口 55／55，原部分暂存／不自动 stash 的断言仍保留。上述环境／启动问题与真实详情超时分开记录，不据工程门禁关闭 E1 或 MVP。

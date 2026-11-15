@@ -37,6 +37,7 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
   const calls = signal<string[]>([]);
   const opened = signal('none');
   const alternatePresses = signal(0);
+  const alternateFocused = signal(false);
   let alternate: ViewRef | undefined;
   let sequence = 0;
   let intent = 0;
@@ -166,9 +167,20 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
             buttonRef={(ref) => {
               alternate = ref;
             }}
+            onFocus={() => alternateFocused.set(true)}
+            onBlur={() => alternateFocused.set(false)}
             onPress={() => {
               intent++;
               alternatePresses.set(alternatePresses() + 1);
+            }}
+          />
+          <Button
+            testID="history-fixture-native-focus"
+            label="合成原生焦点转移"
+            onPress={() => {
+              // Isolate lifecycle ownership from focusGuard's separate newer-input boundary.
+              // This synthetic system handoff deliberately does not increment input intent.
+              alternate?.focus();
             }}
           />
           <Button
@@ -211,6 +223,7 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
         <Text>{`synthetic · mode:${mode()} · active:${active()} · count:${entries().length} · opened:${opened()}`}</Text>
         <Text testID="history-fixture-calls">{`calls:${calls().join('|')}`}</Text>
         <Text>{`alternate:${alternatePresses()}`}</Text>
+        <Text>{`alternate-focused:${alternateFocused()}`}</Text>
         <History store={ports} />
       </View>
     </Product.Provider>

@@ -1,8 +1,9 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { isAbsolute, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
+import { setTimeout as pause } from 'node:timers/promises';
 import { ready, stop } from './dev.mjs';
 import {
   child,
@@ -15,9 +16,14 @@ import {
 } from './process.mjs';
 
 // Opt-in only: genuine media progress and UI mutations against a disposable real SQLite database.
-if (process.platform !== 'darwin' || process.argv.slice(2).join(' ') !== 'macos --anonymous-live')
+const target = process.argv[2];
+if (
+  process.platform !== 'darwin' ||
+  !['macos', 'web'].includes(target) ||
+  process.argv.slice(3).join(' ') !== '--anonymous-live'
+)
   throw new Error(
-    'Expected macos --anonymous-live; requires a real host, upstream and playable media',
+    'Expected macos|web --anonymous-live on macOS; requires a real host, upstream and playable media',
   );
 
 const artifacts = resolve(
@@ -33,7 +39,7 @@ const term = '重生';
 const evidence = {
   startedAt: new Date().toISOString(),
   entry: 'apps/web/App.tsx',
-  host: 'macos',
+  host: target,
   network: 'live',
   term,
   syntheticResponses: false,
@@ -44,8 +50,11 @@ const evidence = {
   sourceHead: output('git', ['rev-parse', 'HEAD']),
   runtimeBeforeSha256: hash(previous),
   scope:
-    'Production Web entry on a visible macOS NSH host through real Rust HTTP API; not Desktop native, browser Web or TV acceptance',
+    target === 'macos'
+      ? 'Production Web entry on a visible macOS NSH host through real Rust HTTP API; not Desktop native, browser Web or TV acceptance'
+      : 'Production Web entry in Chromium with exact origin policy and live browser HTTP/media; not Desktop native, TV or packaged deployment acceptance',
 };
+let authorizeBrowser;
 let api,
   host,
   build,
@@ -57,9 +66,24 @@ const ensureActive = () => {
   if (themeDeadline !== undefined && Date.now() >= themeDeadline)
     throw new Error('Theme exceeded 300 seconds');
 };
+const stopHost = async () => {
+  const ownedHost = host;
+  const signalGroup = (signal) => {
+    if (target !== 'web' || !ownedHost?.pid) return;
+    try {
+      process.kill(-ownedHost.pid, signal);
+    } catch (error) {
+      if (error.code !== 'ESRCH') throw error;
+    }
+  };
+  signalGroup('SIGTERM');
+  await stop(ownedHost);
+  signalGroup('SIGKILL');
+  if (host === ownedHost) host = undefined;
+};
 const onSignal = () => {
   interrupted = true;
-  void stop(host)
+  void stopHost()
     .then(() => stop(api))
     .then(() => stop(build))
     .catch(() => {});
@@ -112,11 +136,36 @@ async function get(origin, path, name) {
 }
 async function runHost(file, colorScheme, deadline) {
   ensureActive();
-  host = child(executable('nsh'), ['test', '.nsh/' + file, '--target', 'macos', '--foreground'], {
-    cwd: resolve(root, 'apps/web'),
-    env: rustEnvironment(),
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const handshake = resolve(artifacts, file + '-browser');
+  const nonce = randomUUID();
+  const handshakeDeadline = Math.min(deadline, Date.now() + 20000);
+  const browser =
+    process.env.HONGGUO_LIVE_BROWSER ||
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  host = child(
+    executable('nsh'),
+    [
+      'test',
+      '.nsh/' + file,
+      '--target',
+      target,
+      ...(target === 'macos'
+        ? ['--foreground']
+        : ['--browser', resolve(root, 'tooling/src/live-browser-wrapper.mjs')]),
+    ],
+    {
+      cwd: resolve(root, 'apps/web'),
+      env: rustEnvironment({
+        ...process.env,
+        HONGGUO_LIVE_HANDSHAKE: handshake,
+        HONGGUO_LIVE_NONCE: nonce,
+        HONGGUO_LIVE_BROWSER: browser,
+        HONGGUO_LIVE_DEADLINE: String(handshakeDeadline),
+      }),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: target === 'web',
+    },
+  );
   let completed = false;
   const consume = async (stream) => {
     for await (const line of createInterface({ input: stream })) {
@@ -137,6 +186,29 @@ async function runHost(file, colorScheme, deadline) {
   };
   let timer;
   try {
+    if (target === 'web') {
+      const limit = handshakeDeadline;
+      let request;
+      while (!request) {
+        if (Date.now() >= limit || host.exitCode !== null || host.signalCode)
+          throw new Error('Browser origin handshake did not start');
+        try {
+          request = JSON.parse(await readFile(handshake + '.request.json', 'utf8'));
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error;
+        }
+        if (!request) await pause(25);
+      }
+      if (
+        request.nonce !== nonce ||
+        request.nshPid !== host.pid ||
+        !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(request.origin)
+      )
+        throw new Error('Browser origin handshake identity differs');
+      await authorizeBrowser(request.origin, file, limit);
+      await writeFile(handshake + '.ack.tmp', JSON.stringify({ nonce, origin: request.origin }));
+      await rename(handshake + '.ack.tmp', handshake + '.ack.json');
+    }
     await Promise.race([
       Promise.all([consume(host.stdout), consume(host.stderr), host.done]),
       api.done.then(() => {
@@ -145,7 +217,7 @@ async function runHost(file, colorScheme, deadline) {
       new Promise((_, reject) => {
         timer = setTimeout(
           () => {
-            void stop(host);
+            void stopHost();
             reject(new Error('Live history host exceeded the stage/theme deadline'));
           },
           Math.max(1, deadline - Date.now()),
@@ -156,7 +228,7 @@ async function runHost(file, colorScheme, deadline) {
     if (!completed) throw new Error('Missing successful stage completion evidence: ' + file);
   } finally {
     clearTimeout(timer);
-    await stop(host);
+    await stopHost();
   }
 }
 
@@ -176,26 +248,98 @@ try {
     'debug/hongguo-web-api',
   );
   evidence.apiBinarySha256 = hash(await readFile(binary));
-  const start = async () => {
+  let allowedOrigin;
+  let apiPort;
+  evidence.apiStarts = [];
+  const start = async (deadline) => {
     ensureActive();
-    api = child(binary, ['--data-dir', resolve(artifacts, 'data')], {
-      stdio: ['ignore', 'pipe', 'inherit'],
-    });
-    return ready(
-      api,
-      Math.min(15000, themeDeadline === undefined ? 15000 : themeDeadline - Date.now()),
+    api = child(
+      binary,
+      [
+        '--data-dir',
+        resolve(artifacts, 'data'),
+        ...(apiPort ? ['--port', apiPort] : []),
+        ...(allowedOrigin ? ['--allow-origin', allowedOrigin] : []),
+      ],
+      {
+        stdio: ['ignore', 'pipe', 'inherit'],
+      },
     );
+    const origin = await ready(
+      api,
+      Math.max(1, Math.min(15000, (deadline ?? themeDeadline ?? Date.now() + 15000) - Date.now())),
+    );
+    evidence.apiStarts.push({ pid: api.pid, origin, allowedOrigin: allowedOrigin ?? null });
+    if (target === 'web') apiPort = new URL(origin).port;
+    return origin;
   };
   let origin = await start();
+  authorizeBrowser = async (nextOrigin, stage, deadline) => {
+    const remaining = () => {
+      const budget = deadline - Date.now();
+      if (budget <= 0) throw new Error('Browser origin authorization timed out');
+      return Math.min(5000, budget);
+    };
+    await stop(api);
+    remaining();
+    allowedOrigin = nextOrigin;
+    const next = await start(deadline);
+    if (next !== origin) throw new Error('Browser API origin changed');
+    const response = await fetch(origin + '/api/v1/library', {
+      headers: { Origin: nextOrigin },
+      signal: AbortSignal.timeout(remaining()),
+    });
+    const denied = await fetch(origin + '/api/v1/library', {
+      headers: { Origin: 'http://127.0.0.1:1' },
+      signal: AbortSignal.timeout(remaining()),
+    });
+    if (
+      response.status !== 200 ||
+      response.headers.get('access-control-allow-origin') !== nextOrigin ||
+      denied.status !== 403
+    )
+      throw new Error('Exact browser origin policy was not enforced');
+    remaining();
+    await writeFile(
+      resolve(artifacts, stage + '-origin-policy.json'),
+      JSON.stringify(
+        { origin: nextOrigin, accepted: response.status, denied: denied.status },
+        null,
+        2,
+      ),
+    );
+  };
   const search = await get(
     origin,
     `/api/v1/search?q=${encodeURIComponent(term)}&source=web`,
     'search',
   );
-  const candidates = search.items.slice(0, 2).map(({ series_id, title }) => ({ series_id, title }));
+  const candidates = [];
+  evidence.candidateChecks = [];
+  for (const item of search.items.slice(0, 8)) {
+    ensureActive();
+    const { series_id, title } = item;
+    if (candidates.some((candidate) => candidate.series_id === series_id)) continue;
+    try {
+      const detail = await get(
+        origin,
+        `/api/v1/series/detail?series_id=${encodeURIComponent(series_id)}&content_type=${encodeURIComponent(item.content_type ?? '')}`,
+        'candidate-' + series_id,
+      );
+      const playable =
+        detail.series_id === series_id &&
+        detail.episodes?.some((episode) => !episode.locked && episode.video_id);
+      evidence.candidateChecks.push({ series_id, title, playable: !!playable });
+      if (playable) candidates.push({ series_id, title });
+    } catch (error) {
+      evidence.candidateChecks.push({ series_id, title, playable: false, error: error.message });
+      ensureActive();
+    }
+    if (candidates.length === 2) break;
+  }
   if (candidates.length !== 2 || candidates[0].series_id === candidates[1].series_id)
     throw new Error(
-      'Real search did not return two distinct leading results; no fabricated replacement',
+      'Real search did not provide two distinct dramas with accessible episodes; no fabricated replacement',
     );
   evidence.candidates = candidates;
   if ((await get(origin, '/api/v1/library', 'library-before')).entries.length)
@@ -203,7 +347,9 @@ try {
   await runtimeConfig('web', origin);
   evidence.runtimeMainSha256 = hash(await readFile(runtime));
   evidence.uncovered = [
-    'Desktop native, browser Web, TV, remote input and packaged installation',
+    target === 'macos'
+      ? 'Desktop native, browser Web, TV, remote input and packaged installation'
+      : 'Desktop native, TV, remote input and packaged deployment',
     'Foreground/key focus and manual keyboard input; native driver steps target the actual host',
   ];
   evidence.generatedStages = [];
@@ -257,7 +403,8 @@ test(${JSON.stringify(identity)},async()=>{
   record(name+'-search-ready');
   await app.press('id:drama-'+seriesId);
   await capture(name+'-detail');record(name+'-detail-opened');
-  await app.waitUntil(()=>app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading'),{timeout:budget()});
+  await app.waitUntil(()=>app.shows('id:detail-episodes-error')||(app.enabled('id:detail-start')&&!app.shows('id:detail-episodes-loading')),{timeout:budget()});
+  if(app.shows('id:detail-episodes-error'))throw new Error('Real detail failed for '+seriesId+': '+app.texts().join(' | '));
   record(name+'-detail-ready');
   await app.press('id:detail-start');await app.waitFor('id:player-video',{timeout:budget()});
   await capture(name+'-player');record(name+'-player-opened');
@@ -281,7 +428,7 @@ test(${JSON.stringify(identity)},async()=>{
  };
  try{
   await app.waitFor('id:nav-history',{timeout:budget(60000)});
-  record(${JSON.stringify(identity + '-window-state')},{window:app.window('main').state(),driverTarget:'macos'});
+  record(${JSON.stringify(identity + '-window-state')},{window:${target === 'macos' ? "app.window('main').state()" : 'null'},driverTarget:${JSON.stringify(target)}});
   expect(app.clock).toBe(null);
   ${steps}
   record(${JSON.stringify(identity + '-complete')},{texts:app.texts()});
@@ -464,7 +611,7 @@ test(${JSON.stringify(identity)},async()=>{
 } finally {
   const failures = [];
   try {
-    await stop(host);
+    await stopHost();
   } catch (error) {
     failures.push(error.message);
   }

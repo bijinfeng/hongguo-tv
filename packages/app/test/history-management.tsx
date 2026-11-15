@@ -270,4 +270,66 @@ export function registerHistoryManagementTests(entry: string, target: ProductTar
     await app.waitFor('text:synthetic · mode:partial · active:true · count:12 · opened:8002');
     expect(app.requests()).toEqual([]);
   });
+  test('a dismissed pending deletion completes in background without taking system-owned focus on reactivation', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-slow');
+    await app.press('id:history-manage');
+    await app.press(`id:history-remove-${second}`);
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('text:关闭');
+    await app.press('id:history-confirm-cancel');
+    await app.wait(80);
+    await app.press('id:history-fixture-native-focus');
+    await app.waitFor('text:alternate-focused:true');
+    await app.setLifecycle('background');
+    await app.waitFor('text:synthetic · mode:slow · active:true · count:13 · opened:none');
+    await app.wait(80);
+    expect(app.texts().includes('alternate-focused:true')).toBe(true);
+    expect(app.texts().includes(`calls:remove:${second}`)).toBe(true);
+    await app.setLifecycle('active');
+    await app.wait(80);
+    expect(app.texts().includes('alternate-focused:true')).toBe(true);
+    expect(app.texts().includes(`calls:remove:${second}`)).toBe(true);
+    await app.keyboard.press('enter');
+    await app.waitFor('text:alternate:1');
+    expect(
+      app.texts().includes('synthetic · mode:slow · active:true · count:13 · opened:none'),
+    ).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
+  test('a page retry completing in background neither restores its neighbor nor replays on reactivation', async () => {
+    const app = await open(entry, options);
+    await app.press('id:history-fixture-partial');
+    await app.press('id:history-manage');
+    await app.press(`id:history-select-${first}`);
+    await app.press(`id:history-select-${second}`);
+    await app.press('id:history-delete-selected');
+    await app.press('id:history-confirm-confirm');
+    await app.waitFor('text:重试剩余（1）');
+    await app.press('id:history-confirm-cancel');
+    await app.wait(80);
+    await app.press('id:history-fixture-slow');
+    await app.press('id:history-operation-retry');
+    await app.press('id:history-fixture-native-focus');
+    await app.waitFor('text:alternate-focused:true');
+    await app.setLifecycle('background');
+    await app.waitFor('text:synthetic · mode:slow · active:true · count:12 · opened:none');
+    await app.wait(80);
+    expect(app.texts().includes('alternate-focused:true')).toBe(true);
+    expect(app.texts().includes(`calls:remove:${first},${second}|retry:partial:${second}`)).toBe(
+      true,
+    );
+    await app.setLifecycle('active');
+    await app.wait(80);
+    expect(app.texts().includes('alternate-focused:true')).toBe(true);
+    expect(app.texts().includes(`calls:remove:${first},${second}|retry:partial:${second}`)).toBe(
+      true,
+    );
+    await app.keyboard.press('enter');
+    await app.waitFor('text:alternate:1');
+    expect(
+      app.texts().includes('synthetic · mode:slow · active:true · count:12 · opened:none'),
+    ).toBe(true);
+    expect(app.requests()).toEqual([]);
+  });
 }

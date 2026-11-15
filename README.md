@@ -97,7 +97,7 @@ HTTP preview 开发会启动电脑 API（TV 使用并清理本次 reverse）；n
 
 真实功能验收以正式入口、当前真实数据和实际使用流程为主，合成数据只补边界回归，不能代替功能或 MVP 验收。显式 `node tooling/src/live-discovery-host.mjs macos --anonymous-live` 会启动当前 Rust API，在 macOS 可见宿主运行正式 Web App 的真实匿名搜索／详情／相关返回，使用独立 SQLite 并恢复配置；需要可用真实网络，失败不替换为合成成功。该命令不代表 Desktop native、浏览器 Web、TV 或演员等未覆盖流程通过；细分记录见 [VALIDATION.md](VALIDATION.md)。
 
-观看记录主链使用 `node tooling/src/live-history-host.mjs macos --anonymous-live`：正式 Web App 实际播放当前真实短剧形成记录，检查取消、单删、再次播放、两条记录跨 Rust API／应用重启保留、选择删除及清空后的持久结果。每段结束后由 Node 读取真实 SQLite API 快照，产品响应不注入合成数据。它同样只覆盖 macOS 宿主中的 Web／HTTP 入口；完整焦点、浏览器 Web、原生桌面与 TV 等其余范围见 [游客历史管理](docs/guest-history-management.md)。
+观看记录主链使用 `node tooling/src/live-history-host.mjs macos --anonymous-live`：正式 Web App 实际播放当前真实短剧形成记录，检查取消、单删、再次播放、两条记录跨 Rust API／应用重启保留、选择删除及清空后的持久结果。每段结束后由 Node 读取真实 SQLite API 快照，产品响应不注入合成数据。改用 `web --anonymous-live` 可在 macOS 上的 Chromium 中执行相同真实流程，并在导航前严格配置实际 Origin；当前浏览器仅有部分真实步骤通过，完整结果仍待验收。macOS 目标只覆盖该宿主中的 Web／HTTP 入口；完整焦点、原生桌面与 TV 等其余范围见 [游客历史管理](docs/guest-history-management.md)。
 
 ## 目录与依赖
 
