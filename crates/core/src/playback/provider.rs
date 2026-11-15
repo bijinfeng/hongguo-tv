@@ -308,6 +308,10 @@ impl PlaybackClient {
                             .is_some_and(|n| n.to_string() == expected)
                 });
                 if !same {
+                    eprintln!(
+                        "{}",
+                        json!({"event":"playback_identity_rejection", "reason":"fallback_media_id"})
+                    );
                     return Err(PlaybackError::IdentityMismatch);
                 }
             }
@@ -317,6 +321,10 @@ impl PlaybackClient {
             if let (Some(expected), Some(actual)) = (duration, actual_duration)
                 && (!actual.is_finite() || (expected - actual).abs() > 0.5)
             {
+                eprintln!(
+                    "{}",
+                    json!({"event":"playback_identity_rejection", "reason":"fallback_duration"})
+                );
                 return Err(PlaybackError::IdentityMismatch);
             }
             let normalized =

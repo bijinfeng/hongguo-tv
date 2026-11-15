@@ -44,3 +44,11 @@
 ## 本轮播放失败仍开放
 
 同一真实剧集从详情继续第 1 集，原生 AX 显示 `00:07 / 02:54`；点击“播放”后观察到 `00:08` 和“重试”入口。`desktop-favorite-restart.log` 同轮包含 `PLAYBACK_IDENTITY_MISMATCH` 409，但日志没有步骤时间或拒绝分支，不能证明这条日志就是随后停止的直接原因，也不能仅凭恢复位置或一秒变化宣称播放／进度上传通过。未重复重试取绿灯；播放准备与媒体停播需分别定位，前序原始失败继续保留。
+
+## 固定原因诊断与正式播放增量
+
+为区分模型／fallback／客户端校验，在五个 Rust 身份拒绝点及客户端响应校验增加固定去敏标识；不输出 ID、URL、正文或凭据，不改变错误码、解析、校验与恢复顺序。`playback-identity-tests.log` 中 44 项定向 Rust 回归通过；本次正式宿主运行期间不并行执行 Cargo／NSH 测试。
+
+`desktop-identity-reason.log` 使用正常 Desktop 入口、原应用私有目录和真实已登录账号，同一部剧第 1 集由已保存 8 秒播放至 87 秒；暂停后观察 87.148 秒，恢复后到 160 秒。SQLite 保存 160.485 秒，显式同步后 outbox 从 1 排空到 0、成功时间增长；证据为 `desktop-isolated-playback-pause.json`、`desktop-isolated-playback-resume.json`、`desktop-isolated-playback-sync.json`。本轮没有新的身份或媒体失败日志。此为实际播放、暂停／恢复、本机进度与同步 ACK 的局部正向证据；未单独核对远端原始进度回读，截图权限不足仍未观察首帧和完整视觉，不宣称账号主链整体验收通过，也不解释旧 409。
+
+随后关闭窗口并从同一正式入口重开，`desktop-progress-restart.log` 在 connected 后记录一次 App 热更新；接着宿主进程仍存活而 AX 窗口数为 0。系统未锁屏，Cmd-Q 未使其退出，最后仅终止该精确开发宿主进程；没有 logout、清除账号或复制凭据。此轮未能观察重开后的续播入口，作为独立窗口／热更新问题继续定位，不能算恢复通过，亦没有证据归因于账号凭证或其他代理的 Rust 修改。

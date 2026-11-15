@@ -10,6 +10,8 @@ Only time spent resolving models consumes the 30-second source budget: video_tab
 
 Failed model and media-preparation attempts emit secret-free JSON to stderr with a fixed phase, provider enum and `PlaybackError.code()`. These attempts may recover through the existing fallback sequence; they do not establish a final playback failure. HTTP `play/info` failures separately log the final API status and stable code. Neither record includes request queries, media URLs, keys, handles, raw errors or filesystem paths; the API status is not the original upstream HTTP status. Readiness remains on stdout.
 
+Identity rejection additionally emits `playback_identity_rejection` with one fixed reason: `outer_episode_key`, `model_episode_id`, `direct_unbound`, `fallback_media_id` or `fallback_duration`. The client emits a separate fixed warning when its prepared response does not match the selected episode; neither diagnostic includes IDs or response content. A host media error is a separate failure and must not be inferred from a preparation error in the same log.
+
 Default tests use loopback sources and synthetic metadata/NIST vectors. An opt-in preparation probe is separate:
 
 ```sh

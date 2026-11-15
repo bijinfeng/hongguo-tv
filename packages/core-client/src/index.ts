@@ -111,8 +111,10 @@ export const play = async (
   };
   try {
     const url = resolvedMediaURL(info.path, owner.mediaOrigin);
-    if (info.vid !== episode.video_id)
+    if (info.vid !== episode.video_id) {
+      console.warn('Playback identity rejected at client response');
       throw new CoreError('视频来源与所选集数不一致，请重试', 'PLAYBACK_IDENTITY_MISMATCH', 409);
+    }
     return { ...info, url, release };
   } catch (error) {
     await release().catch(() => console.warn('Rejected playback resource release failed'));

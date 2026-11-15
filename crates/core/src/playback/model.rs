@@ -158,6 +158,10 @@ pub fn parse_model(body: &[u8], request: &PlaybackRequest) -> Result<PlaybackMod
             .as_object()
             .is_some_and(|rows| rows.values().any(|row| row.get("video_model").is_some()))
         {
+            eprintln!(
+                "{}",
+                serde_json::json!({"event":"playback_identity_rejection", "reason":"outer_episode_key"})
+            );
             return Err(PlaybackError::IdentityMismatch);
         }
         return Err(PlaybackError::EmptySource);
@@ -189,11 +193,19 @@ pub fn parse_model(body: &[u8], request: &PlaybackRequest) -> Result<PlaybackMod
                 && id.bytes().all(|b| b.is_ascii_alphanumeric())
                 && id.bytes().any(|b| b.is_ascii_alphabetic());
             if !keyed_identity || !internal {
+                eprintln!(
+                    "{}",
+                    serde_json::json!({"event":"playback_identity_rejection", "reason":"model_episode_id"})
+                );
                 return Err(PlaybackError::IdentityMismatch);
             }
         }
     }
     if !episode_identity {
+        eprintln!(
+            "{}",
+            serde_json::json!({"event":"playback_identity_rejection", "reason":"direct_unbound"})
+        );
         return Err(PlaybackError::IdentityMismatch);
     }
     let rows: Vec<&Value> = match &model["video_list"] {
