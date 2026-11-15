@@ -31,7 +31,11 @@ const loginStatus: Record<string, string> = {
 };
 
 /** Shared account flow; Product supplies the existing desktop/TV control adaptations. */
-export function Account(props: { store: Store; openUpdates?: (restore: () => void) => void }) {
+export function Account(props: {
+  store: Store;
+  openUpdates?: (restore: () => void) => void;
+  openNotifications?: (restore: () => void) => void;
+}) {
   let updatesRef: ViewRef | undefined;
   let loginRef: ViewRef | undefined;
   let logoutRef: ViewRef | undefined;
@@ -138,6 +142,13 @@ export function Account(props: { store: Store; openUpdates?: (restore: () => voi
           </View>
           <AccountLibrary store={props.store} />
           <View class="flex-row flex-wrap gap-3 self-start">
+            <If when={props.openNotifications}>
+              <Button
+                label="查看更新提醒"
+                testID="account-notifications"
+                onPress={() => props.openNotifications?.(() => undefined)}
+              />
+            </If>
             <Button
               label="查看追更"
               testID="account-following"

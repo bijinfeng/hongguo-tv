@@ -517,6 +517,108 @@ async fn account_http_native_scope_state_and_structured_history_contract_match()
 }
 
 #[tokio::test]
+async fn notifications_http_native_guest_scope_and_lifecycle_boundaries_match() {
+    let mut fixture = Fixture::new(false).await;
+    let account = hongguo_core::account::AccountService::open(
+        &fixture.dir,
+        fixture.session.services.library.clone(),
+    )
+    .await
+    .unwrap();
+    let services = Services {
+        account: Some(account.clone()),
+        ..fixture.session.services.clone()
+    };
+    let _previous = std::mem::replace(
+        &mut fixture.session,
+        Session::with_services(services)
+            .await
+            .unwrap_or_else(|_| panic!("notification native session should open")),
+    );
+    let app = hongguo_http_api::router_with_account(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        Some(fixture.session.services.library.clone()),
+        None,
+        None,
+        Some(account.clone()),
+    );
+    async fn http(app: Router, path: &str, body: Option<Value>) -> (u16, Value) {
+        let request = axum::http::Request::builder()
+            .uri(path)
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .method(if body.is_some() { "POST" } else { "GET" })
+            .body(body.map_or(Body::empty(), |value| Body::from(value.to_string())))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        let status = response.status().as_u16();
+        let bytes = axum::body::to_bytes(response.into_body(), 32768)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&bytes).unwrap())
+    }
+    let original = account.snapshot().await;
+    let query = format!(
+        "/api/v1/notifications?owner_id=&owner_epoch={}",
+        original.owner_epoch
+    );
+    let mark_all = json!({
+        "owner_id":"",
+        "owner_epoch":original.owner_epoch,
+        "all":true
+    });
+    let cases = [
+        (
+            query.clone(),
+            None,
+            401,
+            "ACCOUNT_NOTIFICATION_LOGIN_REQUIRED",
+        ),
+        (
+            format!("{query}&unexpected=1"),
+            None,
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+        (
+            "/api/v1/notifications".to_owned(),
+            None,
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+        (
+            "/api/v1/notifications".to_owned(),
+            Some(mark_all.clone()),
+            400,
+            "ACCOUNT_NOTIFICATION_INVALID_READ",
+        ),
+        (
+            "/api/v1/notifications?owner_id=123".to_owned(),
+            None,
+            400,
+            "ACCOUNT_REQUEST_INVALID",
+        ),
+    ];
+    for (path, payload, expected_status, code) in cases {
+        let body = payload.as_ref().map(Value::to_string);
+        let native = fixture.call(&path, body.as_deref()).await;
+        let (status, http_body) = http(app.clone(), &path, payload).await;
+        assert_eq!(status, expected_status, "{path}");
+        assert_eq!((native.status, native.body), (status, http_body.clone()));
+        assert_eq!(http_body["code"], code);
+        assert!(http_body.get("data").is_none());
+    }
+    let pending = fixture.session.start(&query, None);
+    pending.cancel();
+    let cancelled = pending.inner.result().await;
+    assert_eq!(cancelled.status, 499);
+    assert_eq!(cancelled.body["code"], "CORE_CANCELLED");
+    assert_eq!(account.snapshot().await, original);
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
 async fn follow_http_native_guest_scope_and_strict_request_boundaries_match_without_cloud_work() {
     let mut fixture = Fixture::new(false).await;
     let account = hongguo_core::account::AccountService::open(

@@ -1432,6 +1432,189 @@
         }
       }
     },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "read_notifications",
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "query",
+            "description": "Expected authenticated owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_epoch",
+            "in": "query",
+            "description": "Expected current account generation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "mark_notifications_read",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationMarkReadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/play/info": {
       "get": {
         "tags": [
@@ -4624,6 +4807,185 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "NotificationItem": {
+        "type": "object",
+        "description": "One bounded local notification. It never contains a VID, episode list, URL or credential.",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "message",
+          "created_at",
+          "read"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix seconds when the event was observed.",
+            "minimum": 0
+          },
+          "drama": {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Optional card summary with detail-only fields removed."
+          },
+          "episode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Real episode count when the follow source supplied one.",
+            "minimum": 0
+          },
+          "id": {
+            "type": "string",
+            "description": "Stable event identity used by mark-read and deduplication."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind",
+            "description": "Source transition category."
+          },
+          "message": {
+            "type": "string",
+            "description": "Short user-facing reason, derived locally from the real transition."
+          },
+          "read": {
+            "type": "boolean",
+            "description": "Explicit local read flag."
+          },
+          "reservation_id": {
+            "type": "string",
+            "description": "Real reservation item identity when supplied by the source."
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Real series identity when supplied by the source."
+          },
+          "title": {
+            "type": "string",
+            "description": "Bounded display title."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationKind": {
+        "type": "string",
+        "description": "Stable notification category derived from a real upstream transition.",
+        "enum": [
+          "follow_update",
+          "reservation_online"
+        ]
+      },
+      "NotificationMarkReadRequest": {
+        "type": "object",
+        "description": "Explicit single/all read command. Exactly one of `id` and `all=true` is accepted.",
+        "required": [
+          "owner_id",
+          "owner_epoch"
+        ],
+        "properties": {
+          "all": {
+            "type": "boolean",
+            "description": "Mark every current item read when true."
+          },
+          "id": {
+            "type": "string",
+            "description": "One stable item ID to mark read."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Exact current account generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Exact active account UID."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationQuery": {
+        "type": "object",
+        "description": "Owner precondition for a foreground refresh.",
+        "required": [
+          "owner_id",
+          "owner_epoch"
+        ],
+        "properties": {
+          "owner_epoch": {
+            "type": "string",
+            "description": "Exact current account generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Exact active account UID."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationSnapshot": {
+        "type": "object",
+        "description": "Complete local notification snapshot returned by every query/mutation.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "items",
+          "unread_count",
+          "stale"
+        ],
+        "properties": {
+          "checked_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix seconds of the last successful complete source read.",
+            "minimum": 0
+          },
+          "error": {
+            "type": "string",
+            "description": "Safe retry copy; never raw upstream data."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            },
+            "description": "Newest first, capped at 200 rows."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Current owner generation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Active owner UID."
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "True when the last explicit refresh failed and old rows are being served."
+          },
+          "unread_count": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Count from committed local rows only.",
+            "minimum": 0
+          }
+        }
+      },
+      "NotificationsResponse": {
+        "type": "object",
+        "description": "Local account update notifications and their read state.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NotificationSnapshot",
+            "description": "Committed notification snapshot."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
           }
         }
       },

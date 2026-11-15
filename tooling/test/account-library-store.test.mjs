@@ -42,6 +42,10 @@ const clientPort = port(`
   export const setFollow = () => { throw new Error('Unexpected follow mutation'); };
   export const readReservations = () => { throw new Error('Unexpected reservation read'); };
   export const setReservation = () => { throw new Error('Unexpected reservation mutation'); };
+  export const readNotifications = () => { throw new Error('Unexpected notification read'); };
+  export const markNotificationRead = () => { throw new Error('Unexpected notification mutation'); };
+  export const validNotificationSnapshot = () => false;
+  export const configureTransport = () => {};
   export const reservationMembership = () => undefined;
   export class CoreError extends Error {
     constructor(message, code, status) { super(message); this.code = code; this.status = status; }

@@ -10,8 +10,9 @@ use axum::{
 };
 use hongguo_core::account::{
     Account, AccountCommandRequest, AccountCommandResult, AccountError, FollowMutationRequest,
-    FollowMutationResult, FollowQuery, FollowSnapshot, ReservationMutationRequest,
-    ReservationMutationResult, ReservationQuery, ReservationSnapshot,
+    FollowMutationResult, FollowQuery, FollowSnapshot, NotificationMarkReadRequest,
+    NotificationQuery, NotificationSnapshot, ReservationMutationRequest, ReservationMutationResult,
+    ReservationQuery, ReservationSnapshot,
 };
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -67,6 +68,60 @@ pub struct ReservationMutationResponse {
     pub ok: bool,
     /// Exact acknowledged target and any complete observation.
     pub data: ReservationMutationResult,
+}
+
+/// Local account update notifications and their read state.
+#[derive(Serialize, ToSchema)]
+pub struct NotificationsResponse {
+    /// Always true.
+    pub ok: bool,
+    /// Committed notification snapshot.
+    pub data: NotificationSnapshot,
+}
+
+#[utoipa::path(get, path="/api/v1/notifications",
+    params(("owner_id" = String, Query, description = "Expected authenticated owner"),
+        ("owner_epoch" = String, Query, description = "Expected current account generation")),
+    responses((status=200,body=NotificationsResponse),(status=400,body=ApiError),(status=401,body=ApiError),
+        (status=409,body=ApiError),(status=500,body=ApiError),(status=501,body=ApiError),(status=502,body=ApiError)))]
+pub(crate) async fn read_notifications(
+    State(state): State<ApiState>,
+    params: Result<Query<NotificationQuery>, QueryRejection>,
+) -> Response {
+    let Ok(Query(query)) = params else {
+        return error(AccountError::InvalidInput);
+    };
+    match state.account {
+        Some(service) => match service.notification_snapshot(query).await {
+            Ok(data) => Json(NotificationsResponse { ok: true, data }).into_response(),
+            Err(failure) => error(failure),
+        },
+        None => super::unavailable().await,
+    }
+}
+
+#[utoipa::path(post, path="/api/v1/notifications", request_body=NotificationMarkReadRequest,
+    responses((status=200,body=NotificationsResponse),(status=400,body=ApiError),(status=401,body=ApiError),
+        (status=409,body=ApiError),(status=413,body=ApiError),(status=415,body=ApiError),
+        (status=500,body=ApiError),(status=501,body=ApiError)))]
+pub(crate) async fn mark_notifications_read(
+    State(state): State<ApiState>,
+    params: Result<Query<crate::library::NoParams>, QueryRejection>,
+    payload: Result<Json<NotificationMarkReadRequest>, JsonRejection>,
+) -> Response {
+    if params.is_err() {
+        return error(AccountError::InvalidInput);
+    }
+    let Ok(Json(request)) = payload else {
+        return error(AccountError::InvalidInput);
+    };
+    match state.account {
+        Some(service) => match service.mark_notifications_read(request).await {
+            Ok(data) => Json(NotificationsResponse { ok: true, data }).into_response(),
+            Err(failure) => error(failure),
+        },
+        None => super::unavailable().await,
+    }
 }
 
 #[utoipa::path(get, path="/api/v1/reservations",
@@ -230,9 +285,9 @@ fn error(error: AccountError) -> Response {
         | AccountError::LibrarySyncQueueFull
         | AccountError::FollowBusy
         | AccountError::ReservationBusy => StatusCode::CONFLICT,
-        AccountError::FollowLoginRequired | AccountError::ReservationLoginRequired => {
-            StatusCode::UNAUTHORIZED
-        }
+        AccountError::FollowLoginRequired
+        | AccountError::ReservationLoginRequired
+        | AccountError::NotificationLoginRequired => StatusCode::UNAUTHORIZED,
         AccountError::Limited => StatusCode::TOO_MANY_REQUESTS,
         AccountError::Storage | AccountError::InvalidSession | AccountError::Library => {
             StatusCode::INTERNAL_SERVER_ERROR
@@ -246,7 +301,10 @@ fn error(error: AccountError) -> Response {
         | AccountError::ReservationIncomplete
         | AccountError::ReservationRejected
         | AccountError::ReservationUnavailable
-        | AccountError::ReservationUncertain => StatusCode::BAD_GATEWAY,
+        | AccountError::ReservationUncertain
+        | AccountError::NotificationIncomplete
+        | AccountError::NotificationUnavailable => StatusCode::BAD_GATEWAY,
+        AccountError::NotificationInvalidRead => StatusCode::BAD_REQUEST,
     };
     failure(status, error.code(), &error.to_string())
 }
@@ -270,6 +328,10 @@ mod tests {
             (AccountError::ReservationUnavailable, 502),
             (AccountError::ReservationUncertain, 502),
             (AccountError::ReservationBusy, 409),
+            (AccountError::NotificationLoginRequired, 401),
+            (AccountError::NotificationIncomplete, 502),
+            (AccountError::NotificationUnavailable, 502),
+            (AccountError::NotificationInvalidRead, 400),
         ] {
             let response = error(category);
             assert_eq!(response.status().as_u16(), status);

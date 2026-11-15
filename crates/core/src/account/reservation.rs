@@ -161,7 +161,7 @@ fn read_error(error: CloudError) -> AccountError {
     }
 }
 impl AccountService {
-    async fn read_reservations(
+    pub(super) async fn read_reservations(
         &self,
         scope: &mut OnlineScope,
         client: &mut PassportClient,

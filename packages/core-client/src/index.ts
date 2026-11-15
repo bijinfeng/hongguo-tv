@@ -10,6 +10,18 @@ export {
   validReservationSnapshot,
   validReservationMutationResult,
 } from './reservations';
+export {
+  readNotifications,
+  markNotificationRead,
+  validNotificationSnapshot,
+} from './notifications';
+export type {
+  NotificationItem,
+  NotificationKind,
+  NotificationMarkReadRequest,
+  NotificationQuery,
+  NotificationSnapshot,
+} from '@hongguo/contracts';
 
 /** One host-owned transport; shared pages never import native modules. */
 export interface CoreTransport {

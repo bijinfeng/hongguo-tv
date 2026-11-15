@@ -115,7 +115,7 @@ fn read_error(error: CloudError) -> AccountError {
 }
 
 impl AccountService {
-    async fn read_follow(
+    pub(super) async fn read_follow(
         &self,
         scope: &mut OnlineScope,
         client: &mut PassportClient,

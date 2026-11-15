@@ -7,6 +7,10 @@ pub use service::AccountService;
 pub use service::follow::{
     FollowItem, FollowMutationRequest, FollowMutationResult, FollowQuery, FollowSnapshot,
 };
+pub use service::notifications::{
+    NotificationItem, NotificationKind, NotificationMarkReadRequest, NotificationQuery,
+    NotificationSnapshot,
+};
 pub use service::reservation::{
     ReservationItem, ReservationMutationRequest, ReservationMutationResult, ReservationQuery,
     ReservationSnapshot, ReservationTarget,
@@ -313,6 +317,14 @@ pub enum AccountError {
     ReservationUncertain,
     /// Another online account mutation is still admitted.
     ReservationBusy,
+    /// Update notifications require an authenticated account.
+    NotificationLoginRequired,
+    /// A complete follow or reservation source could not be read.
+    NotificationIncomplete,
+    /// Notification storage or its source transport is unavailable.
+    NotificationUnavailable,
+    /// Notification read request is malformed or names an invalid item.
+    NotificationInvalidRead,
 }
 impl AccountError {
     /// Stable code without upstream response data.
@@ -342,6 +354,10 @@ impl AccountError {
             Self::ReservationUnavailable => "ACCOUNT_RESERVATION_UNAVAILABLE",
             Self::ReservationUncertain => "ACCOUNT_RESERVATION_UNCERTAIN",
             Self::ReservationBusy => "ACCOUNT_RESERVATION_BUSY",
+            Self::NotificationLoginRequired => "ACCOUNT_NOTIFICATION_LOGIN_REQUIRED",
+            Self::NotificationIncomplete => "ACCOUNT_NOTIFICATION_INCOMPLETE",
+            Self::NotificationUnavailable => "ACCOUNT_NOTIFICATION_UNAVAILABLE",
+            Self::NotificationInvalidRead => "ACCOUNT_NOTIFICATION_INVALID_READ",
         }
     }
 }
@@ -372,6 +388,10 @@ impl fmt::Display for AccountError {
             Self::ReservationUnavailable => "预约服务暂不可用，请稍后重试",
             Self::ReservationUncertain => "预约结果待确认，请先刷新状态",
             Self::ReservationBusy => "账号操作尚未结束，请稍候",
+            Self::NotificationLoginRequired => "登录后查看更新提醒",
+            Self::NotificationIncomplete => "更新提醒来源未能完整读取，请刷新重试",
+            Self::NotificationUnavailable => "更新提醒暂不可用，请稍后重试",
+            Self::NotificationInvalidRead => "更新提醒操作无效，请刷新后重试",
         })
     }
 }

@@ -25,6 +25,8 @@ use tokio::sync::{Mutex, OwnedMutexGuard};
 
 #[path = "follow.rs"]
 pub(super) mod follow;
+#[path = "notifications.rs"]
+pub(super) mod notifications;
 #[path = "online.rs"]
 mod online;
 #[path = "reservation.rs"]

@@ -212,6 +212,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["read_notifications"];
+        put?: never;
+        post: operations["mark_notifications_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/play/info": {
         parameters: {
             query?: never;
@@ -1225,6 +1241,88 @@ export interface components {
              */
             current_season: number;
             next?: components["schemas"]["SeriesSeason"] | null;
+        };
+        /** @description One bounded local notification. It never contains a VID, episode list, URL or credential. */
+        NotificationItem: {
+            /**
+             * Format: int64
+             * @description Unix seconds when the event was observed.
+             */
+            created_at: number;
+            /** @description Optional card summary with detail-only fields removed. */
+            drama?: components["schemas"]["Drama"];
+            /**
+             * Format: int32
+             * @description Real episode count when the follow source supplied one.
+             */
+            episode?: number;
+            /** @description Stable event identity used by mark-read and deduplication. */
+            id: string;
+            /** @description Source transition category. */
+            kind: components["schemas"]["NotificationKind"];
+            /** @description Short user-facing reason, derived locally from the real transition. */
+            message: string;
+            /** @description Explicit local read flag. */
+            read: boolean;
+            /** @description Real reservation item identity when supplied by the source. */
+            reservation_id?: string;
+            /** @description Real series identity when supplied by the source. */
+            series_id?: string;
+            /** @description Bounded display title. */
+            title: string;
+        };
+        /**
+         * @description Stable notification category derived from a real upstream transition.
+         * @enum {string}
+         */
+        NotificationKind: "follow_update" | "reservation_online";
+        /** @description Explicit single/all read command. Exactly one of `id` and `all=true` is accepted. */
+        NotificationMarkReadRequest: {
+            /** @description Mark every current item read when true. */
+            all?: boolean;
+            /** @description One stable item ID to mark read. */
+            id?: string;
+            /** @description Exact current account generation. */
+            owner_epoch: string;
+            /** @description Exact active account UID. */
+            owner_id: string;
+        };
+        /** @description Owner precondition for a foreground refresh. */
+        NotificationQuery: {
+            /** @description Exact current account generation. */
+            owner_epoch: string;
+            /** @description Exact active account UID. */
+            owner_id: string;
+        };
+        /** @description Complete local notification snapshot returned by every query/mutation. */
+        NotificationSnapshot: {
+            /**
+             * Format: int64
+             * @description Unix seconds of the last successful complete source read.
+             */
+            checked_at?: number;
+            /** @description Safe retry copy; never raw upstream data. */
+            error?: string;
+            /** @description Newest first, capped at 200 rows. */
+            items: components["schemas"]["NotificationItem"][];
+            /** @description Current owner generation. */
+            owner_epoch: string;
+            /** @description Active owner UID. */
+            owner_id: string;
+            /** @description True when the last explicit refresh failed and old rows are being served. */
+            stale: boolean;
+            /**
+             * Format: int32
+             * @description Count from committed local rows only.
+             */
+            unread_count: number;
+        };
+        /** @description Local account update notifications and their read state. */
+        NotificationsResponse: {
+            /** @description Committed notification snapshot. */
+            data: components["schemas"]["NotificationSnapshot"];
+            /** @description Always true. */
+            ok: boolean;
         };
         /** @description Prepared local resource; never contains upstream addresses, keys or device IDs. */
         PlayInfo: {
@@ -2771,6 +2869,157 @@ export interface operations {
                 };
             };
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    read_notifications: {
+        parameters: {
+            query: {
+                /** @description Expected authenticated owner */
+                owner_id: string;
+                /** @description Expected current account generation */
+                owner_epoch: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    mark_notifications_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationMarkReadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

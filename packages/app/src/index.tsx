@@ -23,6 +23,7 @@ import { Player } from './pages/Player';
 import { History } from './pages/History';
 import { Following } from './pages/Following';
 import { Reservations } from './pages/Reservations';
+import { Notifications } from './pages/Notifications';
 import { Account } from './pages/Account';
 import { Home } from './pages/Home';
 import { Feed } from './pages/Feed';
@@ -99,7 +100,9 @@ function Navigation(props: { store: Store }) {
         selected={
           props.store.activePage('history') ||
           (props.store.target === 'tv' &&
-            (props.store.activePage('following') || props.store.activePage('reservations')))
+            (props.store.activePage('following') ||
+              props.store.activePage('reservations') ||
+              props.store.activePage('notifications')))
         }
         onPress={() => props.store.navigate('history')}
       />
@@ -112,6 +115,15 @@ function Navigation(props: { store: Store }) {
           label="追更"
           selected={props.store.activePage('following')}
           onPress={() => props.store.navigate('following')}
+        />
+        <Button
+          testID="nav-notifications"
+          buttonRef={(ref) => props.store.primaryRef('notifications', ref)}
+          variant="navigation"
+          icon="bell"
+          label="更新提醒"
+          selected={props.store.activePage('notifications')}
+          onPress={() => props.store.navigate('notifications')}
         />
       </If>
     </CardControls>
@@ -162,6 +174,13 @@ function Browse(props: { store: Store }) {
         disabled={props.store.section() !== 'reservations'}
       >
         <Reservations store={props.store} />
+      </View>
+      <View
+        class={props.store.section() === 'notifications' ? 'flex-1' : 'hidden'}
+        accessibilityElementsHidden={props.store.section() !== 'notifications'}
+        disabled={props.store.section() !== 'notifications'}
+      >
+        <Notifications store={props.store} />
       </View>
       <View
         class={props.store.section() === 'calendar' ? 'flex-1' : 'hidden'}
@@ -308,6 +327,10 @@ function Pages(props: { store: Store; updates?: Updates }) {
                       }
                     : undefined
                 }
+                openNotifications={() => {
+                  props.store.navigate('notifications');
+                  props.store.restoreFocus();
+                }}
               />
             </If>
           </View>

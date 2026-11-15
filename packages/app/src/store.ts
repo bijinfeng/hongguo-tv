@@ -28,6 +28,7 @@ import { createRecentSearches } from './recent-searches';
 import { createLibraryState } from './library-state';
 import { createFollowState } from './follow-state';
 import { createReservationState } from './reservation-state';
+import { createNotificationsState } from './notifications-state';
 import { createSearchSuggestions } from './search-suggestions';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
@@ -49,7 +50,8 @@ export type Section =
   | 'rankings'
   | 'history'
   | 'following'
-  | 'reservations';
+  | 'reservations'
+  | 'notifications';
 export type Route =
   | { name: 'browse' }
   | { name: 'detail'; drama: Drama }
@@ -228,6 +230,11 @@ export function createStore(
       (activePage('reservations') ||
         activePage('calendar') ||
         (nav.routes().at(-1)?.name === 'detail' && reservationDetailActive())),
+  );
+  const notifications = createNotificationsState(
+    request,
+    account,
+    () => lifecycle() === 'active' && activePage('notifications'),
   );
   let accountTail = Promise.resolve();
   const cancelledAccountCommand = () => new CoreError('账号操作已取消。', 'CORE_CANCELLED', 499);
@@ -412,6 +419,7 @@ export function createStore(
     favoriteOperation: history.favoriteOperation,
     follow,
     reservations,
+    notifications,
     reservationDetailActive(owner: object, value: boolean) {
       if (value) reservationDetails.add(owner);
       else reservationDetails.delete(owner);
@@ -454,6 +462,7 @@ export function createStore(
     async shutdown() {
       follow.dispose();
       reservations.dispose();
+      notifications.dispose();
       const finish = history.beginShutdown(() => playerCheckpoint?.());
       try {
         await recent.drain();
