@@ -124,6 +124,9 @@ export function CinemaSelect(props: {
 }) {
   const open = signal(false);
   const enabled = CinemaEnabled();
+  effect(() => {
+    if ((props.disabled || !enabled()) && open()) open.set(false);
+  });
   return (
     <Select
       accessibilityLabel={props.label}
@@ -132,11 +135,12 @@ export function CinemaSelect(props: {
       disabled={props.disabled || !enabled()}
       open={open()}
       onOpenChange={({ open: value }) => {
+        if ((props.disabled || !enabled()) && value) return;
         open.set(value);
         props.onOpenChange?.(value);
       }}
       onChange={({ value }) => {
-        if (value !== null) props.onChange(value);
+        if (value !== null && !props.disabled && enabled()) props.onChange(value);
       }}
       trigger={
         <Button
@@ -169,6 +173,14 @@ export function CinemaSelect(props: {
       placement="top"
       popupClass="bg-popover border border-border rounded-(--radius) p-2"
       popupStyle={{ minWidth: Product() === 'tv' ? tvUnit(220) : 120 }}
+      empty={
+        <Text
+          class="px-3 py-2 text-muted-foreground"
+          style={{ fontSize: controlMetrics().fontSize }}
+        >
+          暂无可选项
+        </Text>
+      }
       itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
       itemStyle={{
         minHeight: controlMetrics().height,

@@ -81,6 +81,26 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
     }
     app.dispose();
   });
+  test('select closes and slider rolls back when disabled during an interaction', async () => {
+    const app = await open(entry, settings());
+    await app.press('id:gallery-sheet-forms');
+    await app.press('id:gallery-select-disable-after-open');
+    await app.press('id:gallery-select-trigger');
+    await app.wait(600);
+    expect(app.count('text:古装')).toBe(1);
+    expect(app.enabled('id:gallery-select-trigger')).toBe(false);
+
+    if (options.target === 'tv') {
+      await app.press('id:gallery-slider-reset');
+      await app.press('id:gallery-slider-adjust');
+      await app.keyboard.press('right');
+      await app.press('id:gallery-slider-disable-after-edit');
+      await app.wait(600);
+      await app.waitFor('text:当前 35 · 已确认 35');
+      await app.waitFor('text:调整 2 次 · 确认 0 次 · 取消 1 次');
+    }
+    app.dispose();
+  });
   test('pending and disabled actions cannot activate', async () => {
     const app = await open(entry, settings('dark'));
     await app.press('id:gallery-sheet-controls');

@@ -117,6 +117,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   const mixed = signal(true);
   const enabled = signal(true);
   const selectionDisabled = signal(false);
+  const selectDisabled = signal(false);
   const genre = signal<string | null>('all');
   const choice = signal('all');
   const tab = signal('all');
@@ -125,12 +126,14 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   const sliderPreviews = signal(0);
   const sliderCommits = signal(0);
   const sliderCancels = signal(0);
+  const sliderDisabled = signal(false);
   const accordion = signal<string[]>([]);
   const disclosure = signal(false);
   const chips = signal<RemovableChip[]>(initialChips);
   const dialog = signal(false);
   const confirm = signal(false);
   const pendingConfirm = signal(false);
+  const confirmFailure = signal(false);
   const panel = signal(false);
   const confirmError = signal<string | undefined>(undefined);
   const toasts = signal<ToastMessage[]>([]);
@@ -331,6 +334,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   label="题材"
                   value={genre()}
                   options={options}
+                  disabled={selectDisabled()}
                   onChange={({ value }) => {
                     genre.set(value);
                     result.set(
@@ -338,6 +342,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     );
                   }}
                   testID="gallery-select"
+                />
+                <Button
+                  label="打开后禁用题材选择"
+                  variant="quiet"
+                  testID="gallery-select-disable-after-open"
+                  onPress={() => setTimeout(() => selectDisabled.set(true), 400)}
                 />
                 <View class="flex-row flex-wrap items-center gap-6">
                   <Checkbox
@@ -420,6 +430,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   value={slider()}
                   min={0}
                   max={100}
+                  disabled={sliderDisabled()}
                   onChange={({ value }) => {
                     slider.set(value);
                     sliderPreviews.set(sliderPreviews() + 1);
@@ -430,6 +441,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   }}
                   onCancel={() => sliderCancels.set(sliderCancels() + 1)}
                   testID="gallery-slider"
+                />
+                <Button
+                  label="调整中禁用音量"
+                  variant="quiet"
+                  testID="gallery-slider-disable-after-edit"
+                  onPress={() => setTimeout(() => sliderDisabled.set(true), 400)}
                 />
                 <UiText testID="gallery-slider-state">{`当前 ${slider()} · 已确认 ${sliderCommitted()}`}</UiText>
                 <UiText
@@ -544,6 +561,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   label="确认等待示例"
                   onPress={() => pendingConfirm.set(true)}
                   testID="gallery-open-confirm-pending"
+                />
+                <Button
+                  label={confirmFailure() ? '确认失败已开启' : '切换确认失败'}
+                  selected={confirmFailure()}
+                  onPress={() => confirmFailure.set(!confirmFailure())}
+                  testID="gallery-toggle-confirm-failure"
                 />
                 <Notice
                   message="网络暂时不可用，请稍后重试。"
@@ -754,6 +777,11 @@ export function ComponentGallery(props: ComponentGalleryProps) {
           error={confirmError()}
           onOpenChange={({ open }) => confirm.set(open)}
           onConfirm={() => {
+            if (confirmFailure()) {
+              confirmError.set('演示操作失败，请重试。');
+              confirmFailure.set(false);
+              return;
+            }
             result.set('记录已移除');
             confirm.set(false);
           }}

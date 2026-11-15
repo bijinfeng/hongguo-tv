@@ -98,6 +98,20 @@ export function registerOverlayTests(entry: string, options: OverlayTestOptions 
     app.dispose();
   });
 
+  test('overlay confirmation keeps the dialog open on failure and allows retry', async () => {
+    const app = await open(entry, settings());
+    await app.press('id:gallery-sheet-layers');
+    await app.press('id:gallery-toggle-confirm-failure');
+    await app.press('id:gallery-open-confirm');
+    await app.press('id:gallery-confirm-confirm');
+    await app.waitFor('text:演示操作失败，请重试。');
+    expect(app.shows('id:gallery-confirm')).toBe(true);
+    expect(app.enabled('id:gallery-confirm-confirm')).toBe(true);
+    await app.press('id:gallery-confirm-confirm');
+    await app.waitFor('text:记录已移除');
+    app.dispose();
+  });
+
   test('overlay dialog and side panel dismiss through native back and recover their source', async () => {
     const app = await open(entry, settings());
     await app.press('id:gallery-sheet-layers');

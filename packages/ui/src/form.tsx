@@ -403,6 +403,9 @@ export interface SelectProps {
 /** Styled NSH Select; NSH owns popup placement, choice, keyboard, dismissal and source restoration. */
 export function Select(props: SelectProps) {
   const open = signal(false);
+  effect(() => {
+    if (props.disabled && open()) open.set(false);
+  });
   return (
     <BaseSelect
       testID={props.testID}
@@ -415,15 +418,19 @@ export function Select(props: SelectProps) {
       value={props.value}
       disabled={props.disabled}
       open={open()}
-      onOpenChange={(event) => open.set(event.open)}
-      onChange={props.onChange}
+      onOpenChange={(event) => {
+        if (props.disabled && event.open) return;
+        open.set(event.open);
+      }}
+      onChange={(event) => {
+        if (!props.disabled) props.onChange(event);
+      }}
       trigger={
         <Button
           label={props.label}
           displayLabel={
             props.options.find((option) => option.value === props.value)?.label ??
-            props.placeholder ??
-            props.label
+            (props.value !== null ? '当前选项不可用' : (props.placeholder ?? props.label))
           }
           icon="down"
           disabled={props.disabled}
@@ -435,6 +442,14 @@ export function Select(props: SelectProps) {
       }
       popupClass="bg-popover border border-border rounded-(--radius) p-2"
       popupStyle={{ minWidth: Product() === 'tv' ? tvUnit(240) : 180 }}
+      empty={
+        <Text
+          class="px-3 py-2 text-muted-foreground"
+          style={{ fontSize: controlMetrics().fontSize }}
+        >
+          暂无可选项
+        </Text>
+      }
       itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent disabled:text-muted-foreground"
       itemStyle={{
         minHeight: controlMetrics().height,
@@ -697,7 +712,7 @@ export function Slider(props: SliderProps) {
     }
   };
   effect(() => {
-    if (props.disabled && editing()) editing.set(false);
+    if (props.disabled && editing()) cancel();
   });
   // NSH 0.5 exposes only the slider shell ref, not its thumb: TV owns one stable adjustment stop.
   effect(() => {
