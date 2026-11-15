@@ -27,3 +27,7 @@ See proposal.md for motivation. The fixed Go reference supplies actors and inlin
 ## Migration Plan
 
 Add compatible Rust APIs and generated schema, then update the shared controller/page and explicit test fixtures. Verify codegen, Rust/NSH check/build/tests, real host workflows and independent functionality/visual review before local commits. No persistence migration is needed; no push or release is included.
+
+## Acceptance update · 2026-11-15
+
+Real current anonymous data through the formal entry is the primary acceptance evidence. Synthetic HTTP/state/TV datasets only supplement boundary regressions and cannot establish feature completion. Reopen task 3.1 until the real flows are covered; record absent cast and unavailable services without fabricated replacements. The macOS graphical run of the Web App is separate from browser Web, native Desktop and TV. The opt-in live runner owns a temporary real database, preserves request evidence and restores configuration and processes on completion or interruption.

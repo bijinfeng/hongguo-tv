@@ -11,5 +11,5 @@
 
 ## 3. Integration acceptance and delivery
 
-- [x] 3.1 Exercise shared production pages with explicit HTTP fixtures in Web/macOS and the TV input adapter, covering actor and related layered return, later items, empty/long data and season changes in light/dark and large text; record actual screenshots and limitations with independent functionality and visual review.
+- [ ] 3.1 Accept shared production pages against current real anonymous data through the formal entry, then exercise boundary cases with explicit HTTP fixtures in Web/macOS and the TV input adapter, covering actor and related layered return, later items, empty/long data and season changes in light/dark and large text; record actual screenshots and limitations with independent functionality and visual review.
 - [ ] 3.2 Run strict OpenSpec validation and full project verification, reconcile ledger/roadmap/validation with final evidence, and create scoped local commits while preserving unrelated edits; verify clean task diff and report push state.

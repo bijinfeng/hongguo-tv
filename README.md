@@ -95,6 +95,8 @@ pnpm test:tv-native-business # 原生安装包、官网媒体、SQLite 与进程
 
 HTTP preview 开发会启动电脑 API（TV 使用并清理本次 reverse）；native／t0 只启动宿主并拥有其退出清理。原生启动失败复用现有 Notice 和重试，不清数据、不回退外部服务。正常 UI 卸载先收集最终播放 checkpoint 并排空所属写队列，再关闭原生会话；OS 强杀／引擎直接销毁只保障已提交记录，不承诺执行完 JS 清理。三端自动测试的 HTTP 业务场景使用显式 fixture 入口，不能计为原生业务验收。
 
+真实功能验收以正式入口、当前真实数据和实际使用流程为主，合成数据只补边界回归，不能代替功能或 MVP 验收。显式 `node tooling/src/live-discovery-host.mjs macos --anonymous-live` 会启动当前 Rust API，在 macOS 可见宿主运行正式 Web App 的真实匿名搜索／详情／相关返回，使用独立 SQLite 并恢复配置；需要可用真实网络，失败不替换为合成成功。该命令不代表 Desktop native、浏览器 Web、TV 或演员等未覆盖流程通过；细分记录见 [VALIDATION.md](VALIDATION.md)。
+
 ## 目录与依赖
 
 ```text

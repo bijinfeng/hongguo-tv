@@ -63,3 +63,13 @@ The system SHALL show actors followed by related works after episodes, hide each
 
 - **WHEN** extensions are empty, or contain many items and long names
 - **THEN** empty sections are hidden and all valid entries remain reachable with readable labels and visible focus
+
+### Requirement: Acceptance is based on real data and formal entry flows
+
+The feature SHALL be accepted through actual user flows in the formal application entry against current real anonymous data. Synthetic datasets SHALL only supplement boundary and regression checks, and MUST NOT independently establish feature or MVP acceptance. Missing real data or unavailable services SHALL remain explicitly unaccepted.
+
+#### Scenario: Only synthetic checks pass
+
+- **WHEN** synthetic state and graphical host checks pass but the corresponding real production flow has not been observed
+- **THEN** the feature remains implemented pending real acceptance
+- **AND** the records distinguish real data, synthetic boundaries, engineering gates and platform coverage
