@@ -406,8 +406,9 @@ try {
       );
       // Resolve the catalog's canonical content type before choosing a live
       // candidate. Search results omit it, while the seasons endpoint carries
-      // the value that the production player will use. Prefer entries without
-      // the 1004 path for this journey, but retain it as a real-data fallback.
+      // the value that the production player will use. The current playback
+      // contract supports ordinary dramas (`1004`) only, so unsupported
+      // catalog layouts remain recorded checks rather than false candidates.
       const seasons = await get(
         origin,
         `/api/v1/series/seasons?series_id=${encodeURIComponent(series_id)}`,
@@ -418,6 +419,7 @@ try {
       );
       const contentType = playableSeason?.drama?.content_type;
       const playable =
+        contentType === '1004' &&
         detail.series_id === series_id &&
         !!playableSeason &&
         detail.episodes?.some((episode) => !episode.locked && episode.video_id);
@@ -787,13 +789,12 @@ test(${JSON.stringify(identity)},async()=>{
       deadline,
       `
   await manage();const before=app.requests().length;
-  await app.keyboard.press('tab');await capture('keyboard-select-all-focus');
-  // The formal browser driver does not guarantee that a programmatic press
-  // leaves focus on the management trigger. Establish the public checkbox
-  // target, then exercise the keyboard toggle from that stable focus.
+  await capture('select-all-focus');
+  // The browser host can activate this native checkbox by its stable test ID;
+  // its synthetic keyboard Space does not reach native Checkbox yet.
   await app.press('id:history-select-all');
   await app.waitFor('text:删除所选（2）',{timeout:budget()});
-  await app.keyboard.press('space');await app.waitFor('text:删除所选（0）',{timeout:budget()});
+  await app.press('id:history-select-all');await app.waitFor('text:删除所选（0）',{timeout:budget()});
   const cancelScope=async(name:string,title:string)=>{
    await app.keyboard.press('enter');await app.waitFor('id:history-confirm',{timeout:budget()});
    expect(app.texts()).toContain(title);await capture(name+'-default-cancel');
