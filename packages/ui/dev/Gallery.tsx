@@ -582,7 +582,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     <PosterCard
                       title="春山不负"
                       caption="共 80 集 · 已完结"
-                      width={180}
+                      width={unit(180, 260)}
                       onPress={() => result.set('已选择春山不负')}
                       testID="gallery-poster"
                     />
@@ -591,7 +591,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     <PosterCard
                       title="重返 1998：再一次走过漫长的人生"
                       caption="共 60 集"
-                      width={180}
+                      width={unit(180, 260)}
                       selected
                       onPress={() => result.set('已选择重返 1998')}
                       testID="gallery-poster-selected"

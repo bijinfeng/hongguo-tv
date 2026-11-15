@@ -34,12 +34,15 @@
     "./testing/radar": "./test/radar.tsx",
     "./testing/radar-host": "./test/RadarHost.tsx",
     "./testing/seasons-host": "./test/SeasonsHost.tsx",
+    "./testing/detail-extras-host": "./test/DetailExtrasHost.tsx",
     "./testing/seasons-state": "./test/SeasonsState.tsx",
     "./testing/seasons": "./test/seasons.tsx",
     "./testing/season-picker-state": "./test/SeasonPicker.tsx",
     "./testing/season-picker": "./test/season-picker.tsx",
     "./testing/season-detail-state": "./test/SeasonDetail.tsx",
-    "./testing/season-detail": "./test/season-detail.tsx"
+    "./testing/season-detail": "./test/season-detail.tsx",
+    "./testing/detail-extras-state": "./test/DetailExtrasState.tsx",
+    "./testing/detail-extras-state-tests": "./test/detail-extras-state.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

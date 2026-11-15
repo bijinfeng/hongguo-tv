@@ -96,6 +96,43 @@ fn production_tls_initializes_and_fixture_origins_are_restricted() {
 }
 
 #[tokio::test]
+async fn full_series_detail_uses_the_existing_anonymous_bounded_transport() {
+    let input = include_str!("../../../../../contracts/fixtures/catalog/series-detail.input.html");
+    let mut server = server(vec![
+        response(200, input, "Set-Cookie: private=fixture\r\n"),
+        format!(
+            "HTTP/1.1 200 Test\r\nContent-Length: {}\r\n\r\n",
+            DETAIL_LIMIT + 1
+        ),
+    ])
+    .await;
+    let client = client(&server);
+    assert_eq!(
+        client.series_detail("0", None).await,
+        Err(CatalogError::InvalidInput)
+    );
+    assert_eq!(
+        client.series_detail("1", Some("1003")).await,
+        Err(CatalogError::UnsupportedContent)
+    );
+    assert_eq!(server.count.load(Ordering::SeqCst), 0);
+    let result = client
+        .series_detail("7690163276214176792", None)
+        .await
+        .unwrap();
+    assert_eq!(result.actors.len(), 4);
+    assert_eq!(result.related[0].series_id, "2234567890123456789");
+    let request = server.requests.recv().await.unwrap().to_ascii_lowercase();
+    assert!(request.starts_with("get /detail?series_id=7690163276214176792 http/1.1"));
+    assert!(!request.contains("\r\ncookie:") && !request.contains("\r\nauthorization:"));
+    assert_eq!(
+        client.series_detail("1", None).await,
+        Err(CatalogError::TooLarge)
+    );
+    assert_eq!(server.count.load(Ordering::SeqCst), 2);
+}
+
+#[tokio::test]
 async fn encodes_queries_and_preserves_anonymous_page_and_detail_contracts() {
     let page2 = SEARCH.replace("\"pageNum\": 1", "\"pageNum\": 2");
     let mut server = server(vec![

@@ -390,6 +390,8 @@ pub fn router_with_radar(
         hongguo_core::catalog::DiscoveryBoard,
         hongguo_core::catalog::DiscoveryBoardKind,
         catalog::DetailResponse,
+        hongguo_core::catalog::SeriesDetail,
+        hongguo_core::catalog::SeriesActor,
         hongguo_core::catalog::Drama,
         hongguo_core::catalog::Episode,
         hongguo_core::catalog::SearchResult,

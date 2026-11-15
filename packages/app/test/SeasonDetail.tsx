@@ -1,6 +1,6 @@
 import { cleanup, signal, Text, View } from 'nsh';
 import { Button } from '@hongguo/ui';
-import type { Drama, SeriesSeason } from '@hongguo/core-client';
+import type { Drama, SeriesDetail, SeriesSeason } from '@hongguo/core-client';
 import { createSeasons } from '../src/seasons';
 import { createSeasonDetail } from '../src/season-detail';
 
@@ -27,7 +27,7 @@ const season = (id: string, type = '1'): SeriesSeason => ({
 export function SeasonDetailFixture() {
   const active = signal(false);
   const mounted = signal(true);
-  const source = signal(drama('100'));
+  const source = signal<Drama | SeriesDetail>(drama('100'));
   const events = signal<string[]>([]);
   const log = (event: string) => events.update((all) => [...all, event]);
   let count = 0;
@@ -80,6 +80,26 @@ export function SeasonDetailFixture() {
             .join(',') ?? 'none'
         }`}</Text>
         <Text>{`loading:${browse.loading()}`}</Text>
+        <Text>{`metadata:${browse.detail() ? `${browse.detail()!.actors.length}:${browse.detail()!.related.length}` : 'unread'}`}</Text>
+        <Text>{`actor-ids:${
+          browse
+            .detail()
+            ?.actors.map((actor) => actor.actor_id ?? 'none')
+            .join(',') ?? 'none'
+        }`}</Text>
+        <Text>{`related-ids:${
+          browse
+            .detail()
+            ?.related.map((item) => item.series_id)
+            .join(',') ?? 'none'
+        }`}</Text>
+        <Text>{`actor-avatars:${
+          browse
+            .detail()
+            ?.actors.map((actor) => actor.avatar)
+            .join('|') ?? 'none'
+        }`}</Text>
+        <Text>{`related-episodes:${browse.detail()?.related.some((item) => item.episodes !== undefined) ? 'present' : 'none'}`}</Text>
         <Text>{`error:${browse.error()}`}</Text>
       </View>
     );
@@ -103,7 +123,18 @@ export function SeasonDetailFixture() {
               ? { ...detail, episodes: [{ ...detail.episodes[0], index: 0 }] }
               : mode === 'sparse'
                 ? { ...detail, title: '', cover: '', intro: '' }
-                : detail,
+                : mode === 'extras'
+                  ? {
+                      ...detail,
+                      actors: [
+                        { actor_id: '9007199254740993', name: '演员甲', avatar: '' },
+                        { name: '演员乙', avatar: '' },
+                      ],
+                      related: [drama('9007199254740992')],
+                    }
+                  : mode === 'invalid-extras'
+                    ? { ...detail, actors: null, related: [] }
+                    : detail,
       );
     }
     tasks.delete(requestId);
@@ -122,10 +153,86 @@ export function SeasonDetailFixture() {
         <Button label="更换内容类型" onPress={() => source.set(drama('100', '2'))} />
         <Button
           label="使用已有详情"
+          onPress={() =>
+            source.set({ ...drama('900'), episodes: episodes('900'), actors: [], related: [] })
+          }
+        />
+        <Button
+          label="仅提供已有选集"
           onPress={() => source.set({ ...drama('900'), episodes: episodes('900') })}
+        />
+        <Button label="独立浏览第二季来源" onPress={() => source.set(drama('200'))} />
+        <Button
+          label="提供需归一的完整详情"
+          onPress={() =>
+            source.set({
+              ...drama('900'),
+              episodes: episodes('900'),
+              actors: [
+                {
+                  actor_id: '9007199254740993',
+                  name: '  主演  ',
+                  avatar: 'http://127.0.0.1/private',
+                },
+                { actor_id: '9007199254740993', name: '重复主演', avatar: '' },
+                { actor_id: '0', name: '无编号演员', avatar: '' },
+                { name: '无编号演员', avatar: '' },
+                { name: '名'.repeat(101), avatar: '' },
+                { name: '演员\n姓名', avatar: '' },
+                { name: '配角', avatar: 'x'.repeat(2049) },
+              ],
+              related: [
+                drama('900'),
+                { ...drama('901'), episodes: episodes('901') },
+                drama('901', '7'),
+                drama('902', '1003'),
+                drama('903', '9'),
+                drama('0'),
+                drama('904', '7'),
+              ],
+            })
+          }
+        />
+        <Button
+          label="提供超量演员详情"
+          onPress={() =>
+            source.set({
+              ...drama('900'),
+              episodes: episodes('900'),
+              actors: Array.from({ length: 2049 }, (_, index) => ({
+                name: `演员${index}`,
+                avatar: '',
+              })),
+              related: [],
+            })
+          }
+        />
+        <Button
+          label="提供超量相关详情"
+          onPress={() =>
+            source.set({
+              ...drama('900'),
+              episodes: episodes('900'),
+              actors: [],
+              related: Array.from({ length: 2049 }, (_, index) => drama(String(index + 1000))),
+            })
+          }
+        />
+        <Button
+          label="提供超大相关集数"
+          onPress={() =>
+            source.set({
+              ...drama('900'),
+              episodes: episodes('900'),
+              actors: [],
+              related: [{ ...drama('901'), episode_count: 10001 }],
+            })
+          }
         />
         <Button label="重试详情" onPress={() => retry?.()} />
         <Button label="完成当前详情" onPress={() => complete(count)} />
+        <Button label="完成扩展详情" onPress={() => complete(count, 'extras')} />
+        <Button label="非法扩展详情" onPress={() => complete(count, 'invalid-extras')} />
         <Button label="完成旧详情" onPress={() => complete(1)} />
         <Button label="错误详情身份" onPress={() => complete(count, 'identity')} />
         <Button label="错误内容类型" onPress={() => complete(count, 'type')} />

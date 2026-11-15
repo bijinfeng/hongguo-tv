@@ -89,10 +89,12 @@ async fn search_and_detail_emit_compatible_generated_envelopes() {
         let (status, result) = request(fixture.app.clone(), path, "127.0.0.1:8080", None).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(result["ok"], true);
-        assert_eq!(
-            result["data"],
-            serde_json::from_str::<serde_json::Value>(expected).unwrap()
-        );
+        let mut expected = serde_json::from_str::<serde_json::Value>(expected).unwrap();
+        if path.starts_with("/api/v1/series/detail") {
+            expected["actors"] = serde_json::json!([]);
+            expected["related"] = serde_json::json!([]);
+        }
+        assert_eq!(result["data"], expected);
         assert_eq!(fixture.calls.load(Ordering::SeqCst), 1);
     }
 }
@@ -181,7 +183,13 @@ fn openapi_has_directory_schemas_parameters_and_error_responses() {
             );
         }
     }
-    for name in ["Drama", "Episode", "SearchResult"] {
+    for name in [
+        "Drama",
+        "Episode",
+        "SearchResult",
+        "SeriesDetail",
+        "SeriesActor",
+    ] {
         assert!(schema["components"]["schemas"].get(name).is_some());
     }
     let path = &schema["paths"]["/api/v1/search/suggestions"]["get"];
@@ -193,6 +201,43 @@ fn openapi_has_directory_schemas_parameters_and_error_responses() {
     for name in ["SearchSuggestions", "SearchSuggestion", "SuggestionKind"] {
         assert!(schema["components"]["schemas"].get(name).is_some());
     }
+}
+
+#[tokio::test]
+async fn full_series_detail_returns_flat_extensions_and_keeps_summary_schema_separate() {
+    let fixture = fixture(
+        StatusCode::OK,
+        include_str!("../../../contracts/fixtures/catalog/series-detail.input.html"),
+    )
+    .await;
+    let (status, result) = request(
+        fixture.app.clone(),
+        "/api/v1/series/detail?series_id=7690163276214176792",
+        "127.0.0.1:8080",
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let detail: hongguo_core::catalog::SeriesDetail =
+        serde_json::from_value(result["data"].clone()).unwrap();
+    assert_eq!(detail.actors.len(), 4);
+    assert_eq!(detail.related.len(), 1);
+    assert_eq!(
+        detail.actors[0].actor_id.as_deref(),
+        Some("99999999999999999999999999999999")
+    );
+    assert!(detail.actors[1].actor_id.is_none());
+    assert!(detail.related[0].episodes.is_none());
+    assert!(result["data"].get("reviews").is_none());
+    let schema = serde_json::to_value(hongguo_http_api::openapi()).unwrap();
+    for key in ["actors", "related"] {
+        assert!(
+            schema["components"]["schemas"]["Drama"]["properties"]
+                .get(key)
+                .is_none()
+        );
+    }
+    assert_eq!(fixture.calls.load(Ordering::SeqCst), 1);
 }
 
 #[test]

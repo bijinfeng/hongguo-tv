@@ -102,6 +102,8 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 `availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。TV 沿用既有可用高度与字体缩放规则。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。
 
+父滚动容器中的自然高度网格只传 `width`，不传 `availableHeight`，两端封面均按宽度 × 1.35 生成高度；文字自然换行。独立有限视口继续传入实际 `availableHeight`，TV 沿用既有限高算法。两种布局复用同一 PosterCard，不增加端型组件或自由外观参数；内容验收页同时使用实际端型宽度。
+
 ## 资源与演进
 
 主题唯一源是 `theme.json`。必要控件边界使用 `input`，在浅深色的 background／card／muted／popover 上至少 3:1；装饰分隔使用 `border`。修改主题后运行 `node design/prototype/components/sync-theme.mjs`，同步浏览器共用主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。

@@ -1,10 +1,11 @@
 import { Scroll, Text, View, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { Button, Cover, EpisodeRange, Notice, StoryFeature, tvUnit } from '@hongguo/ui';
+import { Button, Cover, EpisodeRange, Notice, StoryFeature, UiText, tvUnit } from '@hongguo/ui';
 import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
+import { DetailExtras } from '../DetailExtras';
 
 export function Detail(props: { drama: Drama; store: Store; active?: boolean }) {
   const active = () => props.active !== false;
@@ -146,7 +147,7 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
         </If>
         <If when={browse.loading()}>
           <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
-            正在加载选集…
+            {episodes().length ? '正在加载演员与相关作品…' : '正在加载详情与选集…'}
           </Text>
         </If>
         <If when={browse.error()}>
@@ -166,14 +167,7 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
             gap: props.store.target === 'tv' ? tvUnit(24) : 20,
           }}
         >
-          <Text
-            role="header"
-            accessibilityLevel={2}
-            style={props.store.target === 'tv' ? { fontSize: tvUnit(28) } : undefined}
-            class={`${props.store.target === 'tv' ? 'text-2xl' : 'text-xl'} font-semibold text-foreground`}
-          >
-            选集
-          </Text>
+          <UiText role="section">选集</UiText>
           <SeasonPicker
             seasons={seasons}
             resume={props.store.resume}
@@ -249,6 +243,17 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
         <If when={browse.drama() && !episodes().length}>
           <Notice message="暂时没有可观看的选集。" />
         </If>
+        <DetailExtras
+          detail={browse.detail()}
+          collection={JSON.stringify([
+            props.drama.series_id,
+            props.drama.content_type ?? '',
+            seasons.selectedId(),
+            current().content_type ?? '',
+          ])}
+          active={active()}
+          store={props.store}
+        />
       </View>
     </Scroll>
   );

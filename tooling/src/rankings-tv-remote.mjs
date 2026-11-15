@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { rankingsFixture } from './rankings-fixture.mjs';
 import { radarFixture } from './radar-fixture.mjs';
 import { playerFixture } from './player-fixture.mjs';
+import { detailExtrasFixture, verifyDetailExtrasRequests } from './detail-extras-fixture.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
 import { executable, nshVersion, output, root, rustEnvironment } from './process.mjs';
 import { tvHostEnvironment } from './tv-host.mjs';
@@ -142,12 +143,13 @@ const suiteNames = [
   'later',
   'dense',
   'radar',
+  'detail-extras',
 ];
 const flags = new Map();
 for (let index = 0; index < args.length; index += 2) {
   if (!['--suite', '--profile'].includes(args[index]) || !args[index + 1] || flags.has(args[index]))
     throw new Error(
-      'Expected prepare|run [--suite all|identity|selectors|pagination|newer-selector|newer-focus|later|dense|radar|player] [--profile all|light|dark|large-text]',
+      'Expected prepare|run [--suite all|identity|selectors|pagination|newer-selector|newer-focus|later|dense|radar|detail-extras|player] [--profile all|light|dark|large-text]',
     );
   flags.set(args[index], args[index + 1]);
 }
@@ -322,7 +324,12 @@ if (mode === 'prepare') {
   await mkdir(artifacts, { recursive: true });
   console.log(`Rankings real TV adapter artifacts: ${artifacts}`);
   try {
-    fixture = selectedSuite === 'radar' ? await radarFixture() : await rankingsFixture();
+    fixture =
+      selectedSuite === 'detail-extras'
+        ? await detailExtrasFixture()
+        : selectedSuite === 'radar'
+          ? await radarFixture()
+          : await rankingsFixture();
     port = new URL(fixture.origin).port;
     if (initial.reverse.split('\n').some((line) => line.split(/\s+/).includes(`tcp:${port}`)))
       throw new Error('Fixture reverse mapping already owned');
@@ -377,6 +384,15 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
           'packages/app/src/index.tsx',
           'packages/app/src/store.ts',
           'packages/app/src/rankings.ts',
+          'packages/app/src/pages/Detail.tsx',
+          'packages/app/src/DetailExtras.tsx',
+          'packages/app/src/season-detail.ts',
+          'packages/app/src/seasons.ts',
+          'packages/app/src/pages/Actor.tsx',
+          'packages/app/src/PosterCollection.tsx',
+          'packages/ui/src/content.tsx',
+          'tooling/src/detail-extras-fixture.mjs',
+          'tooling/src/browsing-fixture.mjs',
           'packages/ui/src/ranking-card.tsx',
           'packages/app/src/radar.ts',
           'packages/app/src/pages/Radar.tsx',
@@ -458,9 +474,11 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
         fixture =
           suite === 'player'
             ? await playerFixture({ port: Number(port) })
-            : suite === 'radar'
-              ? await radarFixture({ port: Number(port) })
-              : await rankingsFixture({ port: Number(port), terminalDelayMs: 2400 });
+            : suite === 'detail-extras'
+              ? await detailExtrasFixture({ port: Number(port) })
+              : suite === 'radar'
+                ? await radarFixture({ port: Number(port) })
+                : await rankingsFixture({ port: Number(port), terminalDelayMs: 2400 });
         device(['shell', 'cmd', 'uimode', 'night', profile.night]);
         device(['shell', 'settings', 'put', 'system', 'font_scale', profile.font]);
         if (
@@ -496,6 +514,15 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
           resolve(directory, 'requests.json'),
           JSON.stringify(fixture.requests, null, 2) + '\n',
         );
+        if (suite === 'detail-extras')
+          await writeFile(
+            resolve(directory, 'traffic.json'),
+            JSON.stringify(
+              { writes: fixture.writes, media: fixture.media, unknown: fixture.unknown },
+              null,
+              2,
+            ) + '\n',
+          );
         const external = `/sdcard/Android/data/${appId}/files`;
         for (const file of device(['shell', 'ls', external])
           .split(/\s+/)
@@ -527,7 +554,10 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
         runs.push(record);
         if (!record.nativePassed) throw new Error(`Rankings real TV adapter ${name} failed`);
         if (suite !== 'player') fixture.assertReadOnly();
-        const readEvidence = verifyRequests(fixture.requests, suite);
+        const readEvidence =
+          suite === 'detail-extras'
+            ? verifyDetailExtrasRequests(fixture)
+            : verifyRequests(fixture.requests, suite);
         await writeFile(
           resolve(directory, 'request-assertions.json'),
           JSON.stringify(readEvidence, null, 2) + '\n',

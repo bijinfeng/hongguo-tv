@@ -87,6 +87,7 @@ export function PosterCard(props: {
   caption?: string;
   onPress: () => void;
   onFocus?: () => void;
+  onBlur?: () => void;
   selected?: boolean;
   testID: string;
   buttonRef?: (ref: ViewRef) => void;
@@ -98,6 +99,7 @@ export function PosterCard(props: {
       testID={props.testID}
       onPress={props.onPress}
       onFocus={props.onFocus}
+      onBlur={props.onBlur}
       selected={props.selected}
       accessibilityLabel={props.title}
       accessibilityDescription={props.caption}
@@ -112,7 +114,8 @@ export function PosterCard(props: {
         title={props.title}
         class="w-full"
         height={
-          Product() === 'tv'
+          Product() === 'tv' &&
+          !(props.width && props.width > 0 && props.availableHeight === undefined)
             ? Math.max(
                 tvUnit(96),
                 Math.min(

@@ -12,6 +12,7 @@ mod feed;
 mod parse;
 pub(crate) mod rankings;
 pub(crate) mod seasons;
+mod series_detail;
 mod suggestions;
 pub use discovery::{
     DiscoveryBoard, DiscoveryBoardKind, DiscoveryItem, SearchDiscovery, parse_discovery,
@@ -38,6 +39,7 @@ pub use rankings::{
 
 pub use parse::{parse_detail, parse_search};
 use serde::{Deserialize, Serialize};
+pub use series_detail::{SeriesActor, SeriesDetail, parse_series_detail};
 use std::{error::Error, fmt};
 use utoipa::ToSchema;
 

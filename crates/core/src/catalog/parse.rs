@@ -32,6 +32,10 @@ pub fn parse_detail(body: &[u8], series_id: &str) -> Result<Drama, CatalogError>
     super::validate_detail(series_id, None)?;
     let router = router_json(body)?;
     let data = find_object(&router, "seriesDetail").ok_or(CatalogError::InvalidData)?;
+    detail_data(data, series_id)
+}
+
+pub(super) fn detail_data(data: &Value, series_id: &str) -> Result<Drama, CatalogError> {
     let mut drama = normalize(data).ok_or(CatalogError::InvalidData)?;
     if drama.series_id != series_id {
         return Err(CatalogError::InvalidData);

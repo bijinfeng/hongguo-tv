@@ -716,3 +716,39 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 源码绑定：`artifacts/radar-ui/source-manifest.json` 记录主项目绝对路径及 609 个源码／契约／测试输入的 SHA256，最终 TV `restoration.json` 的输入哈希均与当前主仓相符。独立终审另查看新列宽 8 张关键图：TV 浅色 cached／filtered-growth、深色 last-columns、大字 cached／later-return，macOS 1180-dark later-return／1440-light stale，以及 Web 1180-light hover-title。完整数值／状态换行／长标题／当前行焦点外圈可读，未见新增视觉阻断；已知 Tab hover 下划线问题保留。
 
 上述功能／还原度审查不把 NSH finishing 全部标为通过。全部 hover／pressed 时序、逐帧动效／减少动态、完整横向滚轮行为、读屏、人工 IME、物理电视／遥控／观看距离、官网完整数据与真实账号、媒体、原生独立业务 C3.2、安全及正式发行继续开放；既有安全阻塞没有被定向通过改写。本段保留此前历史结果，不把雷达切片记作完整 D 或 MVP 完成。
+
+## 详情演员与相关作品 · 2026-11-15（集成验收完成，真实流程补验另记）
+
+源码在主项目目录。HTTP/native 完整详情改用独立 SeriesDetail，保留旧 Rust Drama API 与摘要／历史边界；固定上游的 inline／deferred JSON 只作有界数据解析，不执行脚本。共享详情补取缺失扩展，保留已有选集、当前季缓存与取消围栏；选集后依次组合公共演员按钮／只读姓名和相关海报，空段隐藏。生产接线、所有权与复现命令见 [详情交接](docs/detail-discovery.md)。
+
+已核实证据：
+
+- `artifacts/detail-extras/logs/`：完整详情 core 9、旧 catalog 5、HTTP 10、native 完整详情 2、原生业务兼容 1，共 27 项定向通过；core／HTTP／native Clippy 与 codegen:check 通过。匿名只读 `series_detail_probe --anonymous-live 7690163276214176792` 本次身份一致、209 集、16 项相关、0 演员，日志为 `artifacts/detail-extras-ui/logs/live-full-detail.log`；不能据此声称真实演员入口或所有官网数据已验收。
+- 初始共享状态回归 12／12；Web 单卡网格版本四组通过，`web/2026-11-15T01-44-29-418Z/`；macOS 同版本四组通过，`macos/2026-11-15T01-49-33-040Z/`（前缀均为 `artifacts/detail-extras-ui/`）。各含 1180×780／1440×1000 浅深、演员作品末项 204、相关末项 343、返回再激活和切季；各 24 次详情／8 次演员读取，writes／media／unknown 均为 0。它们早于下述整行布局修复，不能代证最终布局。
+- 独立审查实际查看上述 Web/macOS 19 张图：原型顺序、统一选集／演员／相关标题、圆角、字级、间距、对齐和浅深表面未见阻断，43 字演员名完整，无 ID 姓名是静态文字；macOS 204／343 与演员返回外圈完整。按钮两行上限及完整可访问名由代码确认，当前图仍是一行，不记实际两行通过。
+
+发现与保留失败：第一次 Web runner 使用巨大负向拖动耗时，已在确认运行进程后终止，改为有界手势；不是产品通过。新增状态测试首次 3／4，一项因固定次数负向滚动超出顶部被 headless 正确拒绝，夹具改用 ScrollRef 回顶后 4／4。首轮 TV `2026-11-15T01-53-15-931Z/` 证实相关末行 340 的 cell 外框正常而应用子树 0×0，遥控跳到 341；共享布局改为整行虚拟化及固定列槽，不修改 NSH、遥控算法或测试期望。第二轮 `02-00-18-960Z/` 已通过 340 精确可达、340–343 完整框及逐层返回，但末条测试把演员可见时屏外的相关区域误判缺失；现分别用 DPAD 到相应段落再断言。两次失败均完成 11 项设备清理与恢复回读，正式生产 APK 字节未改变。最终三档与修复后 Web/macOS、窄窗／尾行和完整门禁仍待本段追加结果。
+
+宿主使用显式合成 HTTP、生产共享页面和独立 TV 输入适配包；相关封面 loopback 被生产公开图片白名单清空，本批该组图仅证明 fallback，不放宽安全。真实推荐封面、完整长姓名边界、全部 hover／pressed 时序、逐帧动效、读屏、物理电视、独立官网 C3.2、账号与发行不从 fixture 或静图推定通过。无依赖变化，既有 security 阻塞保留；本切片不等于完整 D 或首期 MVP 完成。
+
+2026-11-15 最终验收补充（继续进行）：整行回收与断点恢复的共享状态 6／6 headless 通过；Web 两尺寸浅深 4／4，`artifacts/detail-extras-ui/web/2026-11-15T02-38-17-598Z/`，24 次详情／8 次演员读取，writes／media／unknown 为 0。独立复核 24 张图确认宽四列、780 窄窗两列、340–343 完整末行、204 来源、空季／恢复与普通姓名排版；相关作品返回截图只见背景高亮，不凭静图宣称外圈通过。误用 `--target web` 执行 headless-only 的 audio／lifecycle 断言曾失败，按测试 API 要求移除宿主参数后 6／6；正式 HTTP 宿主套件另行完整通过。
+
+TV `02-14-53-028Z/` 的浅深 38／38、大字 39 项曾通过，随后独立视觉审查发现大字姓名被 DPAD 跨过，不能作为最终阅读验收。新增显式短阅读区域后，`02-43-19-467Z/` 的新用例证明普通姓名虽已显示，仍无法进入遥控候选；失败已完成 11 项恢复且生产 APK 不变。实际 embedding 的 A11y／Mounter 反编译与对应 NSH 0.5 Android 源码确认：TSX focusable 未映射原生 View，旧收集逻辑在授予原生焦点之前先要求它可聚焦，形成先后依赖。宿主改为显式 focus-region 标记接受短正文，现代系统仍需精确 region 角色，未放宽普通媒体面板。反编译证据在本批 logs/embedding-*-javap.txt，修复后新三档与共用日历／播放器回归待下段记录。
+
+最终 macOS `artifacts/detail-extras-ui/macos/2026-11-15T02-45-06-254Z/` 两尺寸浅深 4／4，通过真实前台窗口、780 窄窗返回与重新激活；24 次详情／8 次演员读取，writes／media／unknown 为 0。独立复核本批 23 张图，204／343／窄窗 343 及演员来源外圈实际完整可见；这项不扩展为 Web 外圈或全部 hover／pressed 通过。
+
+TV `02-48-33-386Z/` 中阅读停靠、Enter 无动作、100 字全文和相关末行均通过，但旧向上路线从右侧阅读列错过左侧季选择，整套失败；测试调整为先以真实 LEFT 返回 340 所在列再向上，未直接聚焦季选择。`02-51-09-774Z/` 三档均完整通过且 11 项恢复无错误，独立复核浅色 6 张图发现阅读区原生外圈贴近文字。当前已为 TV 阅读区增加 8 参考单位的内侧留白，并新增正文四边距断言；该版最终结果另记，不能把修改前的通过代证新留白版。
+
+最终留白版 TV：`artifacts/rankings-ui/android-real-adapter/2026-11-15T02-54-48-544Z/`，light／dark 各 53 项、large-text 54 项通过；三组 passed／nativePassed 均为 true，11 项清理恢复成功、errors 空，生产 APK 路径及 SHA256 初末一致。包含实际 DPAD 演员→只读阅读→相关→回源、100 字仅姓名详情、Enter 无导航、姓名四边安全区、204／340–343、重复返回和切季。独立功能源码复核确认精确角色／标记 opt-in、非点击阅读与旧输入分支保持，不依据名称把 media／dialog 加入候选。
+
+独立最终视觉审查实际查看本批 69 张（Web 24、macOS 23、最终 TV 22＝浅色 6／深色 6／大字 10）：最终阅读外圈已有留白，不压字；100 字只读姓名实际两行完整；无动作姓名仍无按钮底色；末行与来源、空季和原季恢复无新增阻断。43 字有 ID 演员按钮仍实际单行，labelLines=2 不记为已实际两行；Web 相关／204 返回图只见背景高亮，macOS／TV 对应完整原生外圈确实可见。Finishing 各组的观察与限制见详情交接；未通过的读屏、全部 hover／pressed／逐帧动效及物理电视等保留，不宣称全组或完整 MVP 通过。
+
+共用输入回归：初次日历运行 UI 23 项通过，但 runner 仍把已上线详情的 series/seasons 查询一概禁用，因与现行共享详情及严格夹具不一致而失败；失败目录 `artifacts/calendar-ui/android-real-adapter/2026-11-15T02-58-53-964Z/` 与初始 pipeline 日志保留。现 runner 与 Web 日历验收一致，继续禁媒体／榜单／公告身份及写请求，系列路由只接受夹具明确的已上线 ID 和精确参数；额外参数、公告 ID、未知大 ID 的只读检查均拒绝。修正后 `03-01-19-047Z/` 浅深／大字的普通与长公告六组分别 23／15／19／15／19／15 项通过，包含真实长文滚动、Enter 无动作、退出／回源及旧 API opt-in 策略断言。播放器浅色 24 项通过（`artifacts/rankings-ui/android-real-adapter/2026-11-15T03-02-55-810Z/`），保留合成媒体范围；榜单输入与工程最终结果继续追加。
+
+榜单输入选择器浅色回归 23 项通过（`artifacts/rankings-ui/android-real-adapter/2026-11-15T03-03-44-350Z/`）；与前述播放器浅色回归分别完成 11 项恢复，errors 空，生产 APK 字节保持。仅上述浅色回归，不记三档播放器／选择器已复测。
+
+公共组件最终 `pnpm ui:test` 在当前合并工作树三端各 18／18 通过（`artifacts/detail-extras-ui/logs/ui-test-final.log`）。此前失败在公共组件并行修改的中间态，日志保留为 `ui-test-concurrent-initial.log`；最终验证包含该会话的 Select／Slider／确认失败回归，但这些未暂存的公共组件修改不纳入详情切片提交。`verification-source-manifest.json` 绑定合并工作树，`source-manifest.json` 另保留详情集成验收的 627 个输入，本批暂存运行输入与后者无差异；两者不能混为同一份源码。
+
+最终工程门禁：`artifacts/detail-extras-ui/logs/verify-final.log` 的完整 `pnpm verify` exit 0，工程工具 39／39、Rust nextest 236／236（1 项显式联网 probe 默认跳过，本批详情探针已另行运行）、Web 136／136、Desktop／TV 各 138／138；包含格式、lint、包边界、生成契约、Clippy、三端正式入口 check 和 build、Rust doctest 与发行基础检查。合成失败测试保留预期 warning，mixed headless runner 有 NSH 未展开的构建 warning，不称零警告。验证开始与结束的 627 个合并工作树输入哈希一致。严格 OpenSpec 及最后文档／差异检查见收尾日志。
+
+真实数据覆盖限制：上述大部分 UI 验收为显式合成 HTTP，真实详情探针仅证明该次服务数据，不能代替正式页面的官网搜索→详情→相关作品→返回。本轮根据用户反馈补该真实匿名数据流程，结果另行记录；已有合成 UI 通过不改写为真实全链路通过。账号、物理电视、读屏、独立 macOS 官网观看 C3.2、安全和正式发行仍开放。

@@ -4,7 +4,12 @@ import { resolve } from 'node:path';
 import { root } from './process.mjs';
 
 /** Acceptance-only HTTP fixture; never imported or started by a product entry. */
-export async function browsingFixture({ discovery = 'populated', feed = false } = {}) {
+export async function browsingFixture({
+  discovery = 'populated',
+  feed = false,
+  detailExtras = false,
+  port = 0,
+} = {}) {
   if (!['populated', 'failure-then-empty'].includes(discovery))
     throw new Error('Unknown discovery fixture scenario');
   const requests = [];
@@ -15,6 +20,8 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
   const categoryRetries = new Set();
   const feedRetries = new Set();
   const writes = [];
+  const unknown = [];
+  const media = [];
   const samples = feed
     ? await Promise.all(
         ['a', 'b'].map((name) => readFile(resolve(root, `apps/tv/fixtures/t0-${name}.mp4`))),
@@ -48,6 +55,17 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
       return;
     }
     const url = new URL(req.url, origin);
+    if (detailExtras && req.method !== 'GET') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      record.body = body;
+      record.status = 409;
+      writes.push(record);
+      res
+        .writeHead(409, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify({ ok: false, error: 'Detail browsing must not write' }));
+      return;
+    }
     if (url.pathname.startsWith('/cover/')) {
       const image = ['home', 'night', 'return', 'spring'][Number(url.pathname.at(-1))];
       res.setHeader('Content-Type', 'image/png');
@@ -55,10 +73,110 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
       return;
     }
     const reply = (data, status = 200) => {
+      record.status = status;
       res
         .writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
         .end(JSON.stringify(status === 200 ? { ok: true, data } : { ok: false, error: data }));
     };
+    if (detailExtras) {
+      const reject = (message) => {
+        unknown.push(record);
+        return reply(message, 400);
+      };
+      if (/\/play\/|\/media\/|\/minireel-proxy\//.test(url.pathname)) {
+        media.push(record);
+        return reply('Detail browsing must not prepare or read media', 409);
+      }
+      const exact = (entries) =>
+        JSON.stringify([...url.searchParams].sort()) === JSON.stringify(entries.sort());
+      const known = (id) =>
+        /^[0-9]+$/.test(id ?? '') &&
+        ((Number(id) >= 123 && Number(id) <= 204) || (Number(id) >= 300 && Number(id) <= 343));
+      const summary = (id) => ({
+        series_id: id,
+        title: id === '123' ? '重生之后' : id === '124' ? '重生之后 · 第2季' : `归途与春山 ${id}`,
+        cover: `${origin}/cover/${Number(id) % 4}`,
+        intro: '重新开始的故事。面对熟悉的选择，这一次她决定走自己的路。',
+        episode_count: 2,
+      });
+      const detail = (id) => ({
+        ...summary(id),
+        episodes: [1, 2].map((index) => ({ index, video_id: `${id}${index}`, locked: false })),
+        actors:
+          id === '123'
+            ? [
+                {
+                  actor_id: '9007199254740993',
+                  name: '林初与山海之间的漫长旅程还有那些未曾说完的故事在岁月流转之后再次走向春天的约定',
+                  avatar: `${origin}/cover/0`,
+                },
+                { name: '没有演员编号的特别出演与漫长中文姓名', avatar: '' },
+              ]
+            : id === '300'
+              ? [{ name: '只有姓名也应能安静读完的特别出演'.repeat(7).slice(0, 100), avatar: '' }]
+              : [],
+        related:
+          id === '123'
+            ? Array.from({ length: 44 }, (_, index) => summary(String(300 + index)))
+            : [],
+      });
+      if (url.pathname === '/api/v1/library' && exact([]))
+        return reply({
+          owner_id: '',
+          entries: [
+            {
+              drama: summary('123'),
+              episode: 1,
+              video_id: '1231',
+              position: 15,
+              last_played_at: 123,
+            },
+          ],
+        });
+      if (url.pathname === '/api/v1/account' && exact([]))
+        return reply({ logged_in: false, qr_login_available: false });
+      if (url.pathname === '/api/v1/search/history' && exact([])) return reply({ items: [] });
+      if (url.pathname === '/api/v1/series/detail') {
+        const id = url.searchParams.get('series_id');
+        if (
+          !known(id) ||
+          !exact([
+            ['series_id', id],
+            ['content_type', ''],
+          ])
+        )
+          return reject('Unexpected detail identity or parameters');
+        return reply(detail(id));
+      }
+      if (url.pathname === '/api/v1/series/seasons') {
+        const id = url.searchParams.get('series_id');
+        if (!known(id) || !exact([['series_id', id]]))
+          return reject('Unexpected season identity or parameters');
+        return reply({
+          items: ['123', '124'].includes(id)
+            ? ['123', '124'].map((season, index) => ({
+                drama: summary(season),
+                season_index: index + 1,
+                label: `第${index + 1}季`,
+                playable: true,
+                upcoming: false,
+                first_video_id: `${season}1`,
+              }))
+            : [],
+        });
+      }
+      if (url.pathname === '/api/v1/actors/works' && exact([['actor_id', '9007199254740993']]))
+        return reply({
+          actor: {
+            id: '9007199254740993',
+            name: '林初与山海之间的漫长旅程还有那些未曾说完的故事在岁月流转之后再次走向春天的约定',
+            avatar: `${origin}/cover/0`,
+            description: '',
+          },
+          items: Array.from({ length: 82 }, (_, index) => summary(String(123 + index))),
+        });
+      return reject('Unknown detail extras acceptance route');
+    }
     if (url.pathname === '/api/v1/series/seasons') {
       if (
         req.method !== 'GET' ||
@@ -380,12 +498,14 @@ export async function browsingFixture({ discovery = 'populated', feed = false } 
     }
     reply('Unknown acceptance route', 404);
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
   return {
     origin,
     requests,
     writes,
+    unknown,
+    media,
     close: () =>
       new Promise((resolve) => {
         server.closeAllConnections();

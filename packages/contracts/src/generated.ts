@@ -496,8 +496,8 @@ export interface components {
         };
         /** @description Successful ordinary drama detail. */
         DetailResponse: {
-            /** @description Requested drama and ordered episodes. */
-            data: components["schemas"]["Drama"];
+            /** @description Requested drama, ordered episodes, cast and related summaries. */
+            data: components["schemas"]["SeriesDetail"];
             /** @description Always true. */
             ok: boolean;
         };
@@ -1086,6 +1086,22 @@ export interface components {
         SearchSuggestions: {
             /** @description Empty when the current term is empty or the upstream has no valid suggestions. */
             items: components["schemas"]["SearchSuggestion"][];
+        };
+        /** @description Displayable cast member; a missing or conflicting identity never becomes a works link. */
+        SeriesActor: {
+            /** @description Exact actor identity, only when every supplied alias is valid and agrees. */
+            actor_id?: string;
+            /** @description Approved public HTTPS avatar, or an empty string for the neutral fallback. */
+            avatar: string;
+            /** @description Nonempty bounded public name. */
+            name: string;
+        };
+        /** @description Full anonymous detail. Extensions are separate from summaries and persistent history. */
+        SeriesDetail: components["schemas"]["Drama"] & {
+            /** @description Cast in source order; an empty list means no supported public cast was supplied. */
+            actors: components["schemas"]["SeriesActor"][];
+            /** @description Unique source-ordered summaries, excluding the requested drama and episode payloads. */
+            related: components["schemas"]["Drama"][];
         };
         /** @description Public season metadata, separate from detail episodes and account reservation state. */
         SeriesSeason: {

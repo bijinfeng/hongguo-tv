@@ -6,7 +6,11 @@
 - `hongguo_client.go::SeriesDetail`、`hongguo_client_test.go::TestSeriesDetailCreatesLockedEpisodes`：router JSON、视频顺序与 accessible_episode_cnt。缺失/零/超出视频数量时，按参考将已列出的集全部视为可访问。
 - `hongguo_client.go::SearchSuggestions`、`hongguo_client_test.go::TestSearchSuggestionsNormalizesDramaActorAndKeyword`：固定官网 suggestion 的剧名／演员／关键词及 display_words、剧名回退。`suggestions.input/expected.json` 增加合成重复、未知类型及非播放身份，验证精确数值ID与严格有界输出；不运行Go。
 
-所有标题、简介、图片地址、视频 ID 与响应均为合成数据；保留大整数格式用来检验 JavaScript 精度边界，没有 Cookie、账号、媒体或真实用户信息。expected 文件是既有共享 UI 使用的归一化子集，不声明已迁移评论、演员或完整上游对象。创作者合集被明确拒绝/过滤。
+所有标题、简介、图片地址、视频 ID 与响应均为合成数据；保留大整数格式用来检验 JavaScript 精度边界，没有 Cookie、账号、媒体或真实用户信息。`detail.expected.json` 保留旧 Drama 子集；完整详情另用 `series-detail.input.html` 验证。评论／剧评不输出，创作者合集被明确拒绝/过滤。
+
+完整详情参考同一固定提交的 `SeriesDetail`、`normalizeSeriesActors`、`normalizeRelatedDramas` 与 `extractDeferredRecommendations`。独立 `SeriesDetail` 将 Drama 扁平输出并添加有序演员和相关摘要，通用 Drama／历史不增加扩展。演员姓名最多100字符，只有合法且一致的十进制别名生成 `actor_id`，否则保留只读姓名；头像沿用公开 HTTPS 图片白名单。演员／相关原始数组合计各最多2048行，超限整页失败而不截断；相关推荐过滤当前剧、重复身份与不支持类型，不带选集详情。精确 detail_page 之外的 loader 不充当本剧详情；推荐内联数据为空时才解析 script 的 inert mergeLoaderData 属性，处理 HTML 实体及嵌套 JSON，不执行脚本。响应12MiB、嵌套推荐 JSON 8MiB、script数量2048、单标签属性64、递归深度32均有边界。专项：`cargo test --locked -p hongguo-core series_detail`；合成样本不证明官网当前响应或界面验收通过。
+
+显式匿名完整详情探针：`cargo run --locked -p hongguo-core --example series_detail_probe -- --anonymous-live <public-series-id>`。只输出身份已核对及演员／可导航演员／相关剧／选集数量，不输出姓名、图片地址或响应原文；零条扩展只表示本次没有支持的数据。旧 `catalog_probe` 保留 Drama 兼容方法，不能作为完整扩展的在线证据。
 
 联想每次最多10条、扫描前128行、响应256KiB；当前词trim后最多100 Unicode字符，空词不联网。名称／剧名最多100字符；元信息最多3个24字符分类、80字符上游热度文字及正集数，不生成热度。演员ID独立且不代表演员作品页已经实现；keyword即使像系列ID也不能推断为剧集。无本地输入词缓存／持久化；HTTP/native生成契约不等于输入联想界面已验收。
 

@@ -2310,8 +2310,8 @@
         ],
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/Drama",
-            "description": "Requested drama and ordered episodes."
+            "$ref": "#/components/schemas/SeriesDetail",
+            "description": "Requested drama, ordered episodes, cast and related summaries."
           },
           "ok": {
             "type": "boolean",
@@ -3784,6 +3784,68 @@
             "description": "Empty when the current term is empty or the upstream has no valid suggestions."
           }
         }
+      },
+      "SeriesActor": {
+        "type": "object",
+        "description": "Displayable cast member; a missing or conflicting identity never becomes a works link.",
+        "required": [
+          "name",
+          "avatar"
+        ],
+        "properties": {
+          "actor_id": {
+            "type": "string",
+            "description": "Exact actor identity, only when every supplied alias is valid and agrees.",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[0-9]*[1-9][0-9]*$"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "Approved public HTTPS avatar, or an empty string for the neutral fallback.",
+            "maxLength": 2048
+          },
+          "name": {
+            "type": "string",
+            "description": "Nonempty bounded public name.",
+            "maxLength": 100,
+            "minLength": 1
+          }
+        }
+      },
+      "SeriesDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Drama",
+            "description": "Compatible flat drama fields and ordered episodes."
+          },
+          {
+            "type": "object",
+            "required": [
+              "actors",
+              "related"
+            ],
+            "properties": {
+              "actors": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SeriesActor"
+                },
+                "description": "Cast in source order; an empty list means no supported public cast was supplied.",
+                "maxItems": 2048
+              },
+              "related": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Drama"
+                },
+                "description": "Unique source-ordered summaries, excluding the requested drama and episode payloads.",
+                "maxItems": 2048
+              }
+            }
+          }
+        ],
+        "description": "Full anonymous detail. Extensions are separate from summaries and persistent history."
       },
       "SeriesSeason": {
         "type": "object",

@@ -149,7 +149,7 @@ export function registerSeasonDetailTests(entry = './SeasonDetailPreview.tsx') {
     ].entries()) {
       await app.waitUntil(() => app.texts().some((value) => value.includes(`read${index + 1}:`)));
       await app.press(action);
-      await app.waitFor('text:error:选集加载失败，请重试');
+      await app.waitFor('text:error:详情加载失败，请重试');
       expect(app.shows('text:detail:none:none')).toBe(true);
       expect(app.texts().some((value) => /internal\.fixture|never-expose/.test(value))).toBe(false);
       await app.press('重试详情');
@@ -169,5 +169,84 @@ export function registerSeasonDetailTests(entry = './SeasonDetailPreview.tsx') {
     expect(app.texts().some((value) => value.includes('read1:'))).toBe(false);
     expect(app.requests()).toEqual([]);
     expect(app.audio()).toEqual([]);
+  });
+
+  test('supplied episodes remain usable while metadata is read once, retries, and caches complete empty extras', async () => {
+    const app = await open(entry);
+    await app.press('仅提供已有选集');
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:900:1')));
+    expect(app.shows('text:episodes:9001,9002')).toBe(true);
+    expect(app.shows('text:metadata:unread')).toBe(true);
+    await app.press('敏感详情错误');
+    await app.waitFor('text:error:详情加载失败，请重试');
+    expect(app.shows('text:episodes:9001,9002')).toBe(true);
+    await app.press('重试详情');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read2:900:1')));
+    await app.press('完成当前详情');
+    await app.waitFor('text:metadata:0:0');
+    await app.press('隐藏浏览');
+    await app.press('激活浏览');
+    await app.press('重试详情');
+    expect(app.texts().some((value) => value.includes('read3:'))).toBe(false);
+    expect(app.shows('text:episodes:9001,9002')).toBe(true);
+    expect(app.requests()).toEqual([]);
+    expect(app.audio()).toEqual([]);
+  });
+
+  test('detail-only metadata preserves exact identities and is cached separately for a new source', async () => {
+    const app = await open(entry);
+    await app.press('激活浏览');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read1:100:1')));
+    await app.press('完成扩展详情');
+    await app.waitFor('text:metadata:2:1');
+    expect(app.shows('text:actor-ids:9007199254740993,none')).toBe(true);
+    expect(app.shows('text:related-ids:9007199254740992')).toBe(true);
+    await app.press('浏览第二季');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read2:200:1')));
+    expect(app.shows('text:metadata:unread')).toBe(true);
+    await app.press('完成扩展详情');
+    await app.waitFor('text:metadata:2:1');
+    await app.press('独立浏览第二季来源');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read3:200:1')));
+    expect(app.shows('text:metadata:unread')).toBe(true);
+    await app.press('非法扩展详情');
+    await app.waitFor('text:error:详情加载失败，请重试');
+    await app.press('重试详情');
+    await app.waitUntil(() => app.texts().some((value) => value.includes('read4:200:1')));
+    await app.press('完成当前详情');
+    await app.waitFor('text:metadata:0:0');
+    expect(app.requests()).toEqual([]);
+    expect(app.audio()).toEqual([]);
+  });
+
+  test('supplied complete metadata follows core normalization without unsafe links, duplicate keys or episode payloads', async () => {
+    const app = await open(entry);
+    await app.press('提供需归一的完整详情');
+    await app.press('激活浏览');
+    await app.waitFor('text:metadata:3:2');
+    expect(app.shows('text:actor-ids:9007199254740993,none,none')).toBe(true);
+    expect(app.shows('text:actor-avatars:||')).toBe(true);
+    expect(app.shows('text:related-ids:901,904')).toBe(true);
+    expect(app.shows('text:related-episodes:none')).toBe(true);
+    expect(app.texts().some((value) => value.includes('read1:'))).toBe(false);
+    expect(app.requests()).toEqual([]);
+    expect(app.audio()).toEqual([]);
+  });
+
+  test('oversized supplied actors, related rows and related episode counts require a validated read', async () => {
+    for (const action of ['提供超量演员详情', '提供超量相关详情', '提供超大相关集数']) {
+      const app = await open(entry);
+      await app.press(action);
+      await app.press('激活浏览');
+      await app.waitUntil(() => app.texts().some((value) => value.includes('read1:900:1')));
+      expect(app.shows('text:metadata:unread')).toBe(true);
+      expect(app.shows('text:episodes:9001,9002')).toBe(true);
+      await app.press('完成扩展详情');
+      await app.waitFor('text:metadata:2:1');
+      expect(app.requests()).toEqual([]);
+      expect(app.audio()).toEqual([]);
+      app.dispose();
+    }
   });
 }

@@ -26,6 +26,8 @@ public final class RankingsAcceptance extends Instrumentation {
     private static final String ACTOR = "actor/榜 & 9";
     private static final String LATER = "later/榜 & 48";
     private static final String DENSE = "dense/32 & raw";
+    private static final String READ_ONLY_ACTOR = "没有演员编号的特别出演与漫长中文姓名";
+    private static final String ONLY_ACTOR_NAME = onlyActorName();
     private static final String[] ROOT_CHOICES = { WEEKLY, ACTOR, LATER, DENSE, "" };
     private Bundle arguments;
     private Activity activity;
@@ -126,6 +128,35 @@ public final class RankingsAcceptance extends Instrumentation {
     private void walk(String id, int direction, int maximum) {
         for (int index = 0; index < maximum && !focused(id); index++) key(direction);
         check("remote reaches " + id, () -> focused(id));
+    }
+
+    private static String onlyActorName() {
+        StringBuilder name = new StringBuilder();
+        for (int index = 0; index < 7; index++) name.append("只有姓名也应能安静读完的特别出演");
+        return name.substring(0, 100);
+    }
+
+    /** Font scaling may wrap the reading stop onto another row; use its actual native rectangle. */
+    private void walkByGeometry(String id, int maximum) {
+        for (int index = 0; index < maximum && !focused(id); index++) {
+            Rect to = bounds(id), from = bounds(focusedIdentity());
+            if (to.isEmpty()) throw new AssertionError("native target has no geometry: " + id);
+            if (from.isEmpty()) {
+                // Enter a newly opened page through the remote's ordinary first directional key.
+                key(KeyEvent.KEYCODE_DPAD_DOWN);
+                continue;
+            }
+            int direction;
+            if (to.top >= from.bottom - 2) direction = KeyEvent.KEYCODE_DPAD_DOWN;
+            else if (to.bottom <= from.top + 2) direction = KeyEvent.KEYCODE_DPAD_UP;
+            else if (to.left >= from.right - 2) direction = KeyEvent.KEYCODE_DPAD_RIGHT;
+            else if (to.right <= from.left + 2) direction = KeyEvent.KEYCODE_DPAD_LEFT;
+            else if (Math.abs(to.centerY() - from.centerY()) >= Math.abs(to.centerX() - from.centerX()))
+                direction = to.centerY() > from.centerY() ? KeyEvent.KEYCODE_DPAD_DOWN : KeyEvent.KEYCODE_DPAD_UP;
+            else direction = to.centerX() > from.centerX() ? KeyEvent.KEYCODE_DPAD_RIGHT : KeyEvent.KEYCODE_DPAD_LEFT;
+            key(direction);
+        }
+        check("geometry-driven remote reaches " + id, () -> focused(id));
     }
 
     private void selectRoot(String value, String expectedLabel) {
@@ -501,6 +532,161 @@ public final class RankingsAcceptance extends Instrumentation {
         capture("radar-official-return");
     }
 
+    private AccessibilityNodeInfo labeledControl(AccessibilityNodeInfo node, String value) {
+        if (node == null || !node.isVisibleToUser()) return null;
+        if (node.isFocusable() && node.isClickable() && text(node, value)) return node;
+        for (int index = 0; index < node.getChildCount(); index++) {
+            AccessibilityNodeInfo found = labeledControl(node.getChild(index), value);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private boolean completeInside(String id, String container) {
+        Rect item = bounds(id), viewport = bounds(container);
+        return !item.isEmpty() && !viewport.isEmpty()
+            && item.left >= viewport.left + 4 && item.right <= viewport.right - 4
+            && item.top >= viewport.top + 4 && item.bottom <= viewport.bottom - 4;
+    }
+
+    private View shownNativeView(View view, String id) {
+        if (!view.isShown() || !view.isEnabled() || view.getAlpha() == 0
+                || view.getImportantForAccessibility() == View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) return null;
+        if (id.equals(view.createAccessibilityNodeInfo().getViewIdResourceName())) return view;
+        if (view instanceof ViewGroup)
+            for (int index = 0; index < ((ViewGroup) view).getChildCount(); index++) {
+                View found = shownNativeView(((ViewGroup) view).getChildAt(index), id);
+                if (found != null) return found;
+            }
+        return null;
+    }
+
+    private boolean noExtraSections() {
+        final boolean[] empty = { false };
+        runOnMainSync(() -> empty[0] = shownNativeView(activity.getWindow().getDecorView(), "detail-actors") == null
+            && shownNativeView(activity.getWindow().getDecorView(), "detail-related") == null);
+        return empty[0];
+    }
+
+    private boolean staticActorName(int index) {
+        final boolean[] readOnly = { false };
+        runOnMainSync(() -> {
+            View view = shownNativeView(activity.getWindow().getDecorView(), "detail-actor-name-" + index);
+            if (view == null) return;
+            AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+            readOnly[0] = node != null && !node.isClickable() && !node.isFocusable();
+        });
+        return readOnly[0];
+    }
+
+    private boolean readableActorName(int index, String name) {
+        String region = "focus-region-detail-actor-name-" + index;
+        AccessibilityNodeInfo node = find(root(), region);
+        Rect frame = bounds(region), text = bounds("detail-actor-name-" + index);
+        return node != null && node.isFocusable() && !node.isClickable()
+            && name.equals(String.valueOf(node.getContentDescription())) && staticActorName(index)
+            && completeInside(region, "detail-scroll")
+            && completeInside("detail-actor-name-" + index, "detail-scroll")
+            && text.left >= frame.left + 6 && text.right <= frame.right - 6
+            && text.top >= frame.top + 6 && text.bottom <= frame.bottom - 6;
+    }
+
+    private void detailExtras() throws Exception {
+        check("history offers read-only detail entry", () -> labeledControl(root(), "选集与详情") != null);
+        AccessibilityNodeInfo entry = labeledControl(root(), "选集与详情");
+        if (!entry.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) throw new AssertionError("focus history detail entry");
+        confirm();
+        check("original detail is read from HTTP", () -> has("episode-1231") && has("season-124"));
+        capture("detail-original");
+        focus("detail-start");
+        walk("detail-actor-9007199254740993", KeyEvent.KEYCODE_DPAD_DOWN, 16);
+        check("long actor name retains exact identity", () -> label("detail-actor-9007199254740993").equals("林初与山海之间的漫长旅程还有那些未曾说完的故事在岁月流转之后再次走向春天的约定"));
+        check("actor without identity retains static text", () -> staticActorName(1));
+        capture("detail-actors");
+        walkByGeometry("focus-region-detail-actor-name-1", 12);
+        check("remote can read the complete actor name without a destination", () -> readableActorName(1, READ_ONLY_ACTOR));
+        capture("detail-read-only-actor");
+        confirm();
+        check("confirm on actor reading stop cannot navigate", () -> focused("focus-region-detail-actor-name-1")
+            && has("episode-1231") && !has("actor-results"));
+        walkByGeometry("drama-300", 12);
+        check("reading stop continues down to related works", () -> completeInside("drama-300", "detail-scroll"));
+        walkByGeometry("focus-region-detail-actor-name-1", 12);
+        check("upward return keeps actor name fully readable", () -> readableActorName(1, READ_ONLY_ACTOR));
+        walkByGeometry("detail-actor-9007199254740993", 12);
+        check("reading stop returns to the exact actor destination", () -> focused("detail-actor-9007199254740993"));
+        confirm();
+        check("actor opens its own works", () -> has("actor-results") && has("drama-123"));
+        focus("drama-123");
+        walk("drama-204", KeyEvent.KEYCODE_DPAD_RIGHT, 90);
+        check("later actor work has complete focus ring", () -> completeInside("drama-204", "actor-results"));
+        capture("detail-later-actor-work");
+        confirm();
+        check("later actor work opens correct detail without inherited extras", () -> has("episode-2041") && noExtraSections());
+        back();
+        check("later actor work returns to exact visible card", () -> focused("drama-204") && completeInside("drama-204", "actor-results"));
+        capture("detail-actor-work-return");
+        confirm();
+        check("restored actor work remains activatable", () -> has("episode-2041"));
+        back();
+        check("second actor work return keeps identity", () -> focused("drama-204"));
+        back();
+        check("actor returns to originating detail button", () -> focused("detail-actor-9007199254740993") && completeInside("detail-actor-9007199254740993", "detail-scroll"));
+        capture("detail-actor-source-return");
+        confirm();
+        check("restored actor button remains activatable", () -> has("actor-results"));
+        back();
+        check("actor button restores on repeated return", () -> focused("detail-actor-9007199254740993"));
+        walk("drama-300", KeyEvent.KEYCODE_DPAD_DOWN, 8);
+        confirm();
+        check("related work with only an unnamed-ID actor opens its own detail", () -> has("episode-3001") && has("detail-actors")
+            && !has("detail-actor-9007199254740993") && !has("detail-related"));
+        walkByGeometry("focus-region-detail-actor-name-0", 24);
+        check("name-only detail exposes all one hundred characters inside the detail viewport", () -> ONLY_ACTOR_NAME.length() == 100
+            && readableActorName(0, ONLY_ACTOR_NAME));
+        capture("detail-only-read-only-actor");
+        confirm();
+        check("name-only actor confirm remains in the same detail", () -> focused("focus-region-detail-actor-name-0")
+            && has("episode-3001") && !has("actor-results"));
+        back();
+        check("name-only detail returns to exact related source", () -> focused("drama-300") && completeInside("drama-300", "detail-scroll"));
+        capture("detail-only-read-only-return");
+        walk("drama-340", KeyEvent.KEYCODE_DPAD_DOWN, 14);
+        walk("drama-343", KeyEvent.KEYCODE_DPAD_RIGHT, 4);
+        for (int index = 340; index <= 343; index++) {
+            final String id = "drama-" + index;
+            check("last related row retains complete card " + id, () -> completeInside(id, "detail-scroll"));
+        }
+        check("later related card has complete focus ring", () -> completeInside("drama-343", "detail-scroll"));
+        capture("detail-later-related");
+        confirm();
+        check("related card opens correct detail without inherited extras", () -> has("episode-3431") && noExtraSections());
+        back();
+        check("related return restores exact later card and ring", () -> focused("drama-343") && completeInside("drama-343", "detail-scroll"));
+        capture("detail-related-source-return");
+        confirm();
+        check("restored related card remains activatable", () -> has("episode-3431"));
+        back();
+        check("second related return keeps identity", () -> focused("drama-343"));
+        // The rightmost lane now includes the read-only name; return through the season's left lane.
+        walk("drama-340", KeyEvent.KEYCODE_DPAD_LEFT, 4);
+        for (int index = 0; index < 26 && !focused("season-123") && !focused("season-124"); index++) key(KeyEvent.KEYCODE_DPAD_UP);
+        check("remote returns to the season selector", () -> focused("season-123") || focused("season-124"));
+        if (!focused("season-124")) walk("season-124", KeyEvent.KEYCODE_DPAD_RIGHT, 3);
+        confirm();
+        check("another season hides both empty sections", () -> has("episode-1241") && noExtraSections());
+        capture("detail-empty-extras-season");
+        walk("season-123", KeyEvent.KEYCODE_DPAD_LEFT, 3);
+        confirm();
+        check("original season restores its own episode", () -> has("episode-1231") && !has("episode-1241"));
+        walk("detail-actor-9007199254740993", KeyEvent.KEYCODE_DPAD_DOWN, 16);
+        check("original season restores its own actor section", () -> has("detail-actors"));
+        capture("detail-original-extras-restored");
+        walk("drama-300", KeyEvent.KEYCODE_DPAD_DOWN, 8);
+        check("original season restores its own related section", () -> has("detail-related") && completeInside("drama-300", "detail-scroll"));
+        capture("detail-original-related-restored");
+    }
+
     @Override public void onStart() {
         if ("player".equals(arguments.getString("suite"))) {
             new PlayerAcceptance(this, appearance).run();
@@ -512,17 +698,21 @@ public final class RankingsAcceptance extends Instrumentation {
             if (launch == null) throw new AssertionError("independent Leanback launcher missing");
             activity = startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             check("shared TV application mounted", () -> has("home-rankings"));
-            enterRankings();
-            switch (arguments.getString("suite", "identity")) {
-                case "identity": identity(); break;
-                case "selectors": selectors(); break;
-                case "pagination": pagination(); break;
-                case "newer-selector": newerSelector(); break;
-                case "newer-focus": newerFocus(); break;
-                case "later": later(); break;
-                case "dense": dense(); break;
-                case "radar": radar(); break;
-                default: throw new AssertionError("Unknown suite");
+            String suite = arguments.getString("suite", "identity");
+            if ("detail-extras".equals(suite)) detailExtras();
+            else {
+                enterRankings();
+                switch (suite) {
+                    case "identity": identity(); break;
+                    case "selectors": selectors(); break;
+                    case "pagination": pagination(); break;
+                    case "newer-selector": newerSelector(); break;
+                    case "newer-focus": newerFocus(); break;
+                    case "later": later(); break;
+                    case "dense": dense(); break;
+                    case "radar": radar(); break;
+                    default: throw new AssertionError("Unknown suite");
+                }
             }
             result.putString("stream", "Rankings real TV adapter: " + checks + " checks passed\n");
             finish(Activity.RESULT_OK, result);

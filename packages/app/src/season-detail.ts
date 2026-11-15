@@ -1,5 +1,11 @@
 import { cleanup, effect, lifecycle, signal, untracked } from 'nsh';
-import type { captureRequest, Drama, Episode } from '@hongguo/core-client';
+import type {
+  captureRequest,
+  Drama,
+  Episode,
+  SeriesActor,
+  SeriesDetail,
+} from '@hongguo/core-client';
 import { errorMessage } from './error-messages';
 import type { SeasonsController } from './seasons';
 
@@ -40,6 +46,7 @@ function validDetail(drama: Drama | undefined, selected: Drama): drama is Drama 
   if (
     !drama ||
     !validId(drama.series_id) ||
+    drama.content_type === '1003' ||
     drama.series_id !== selected.series_id ||
     (selected.content_type !== undefined &&
       drama.content_type !== undefined &&
@@ -66,22 +73,130 @@ function validDetail(drama: Drama | undefined, selected: Drama): drama is Drama 
   return true;
 }
 
+// Match catalog/series_detail.rs and actor_works.rs before accepting locally supplied DTOs.
+const extrasLimit = 2048;
+const encoder = new TextEncoder();
+function boundedText(value: unknown, limit: number): string | undefined {
+  if (
+    typeof value !== 'string' ||
+    encoder.encode(value).length > limit * 4 ||
+    [...value].some((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || (code >= 127 && code <= 159);
+    })
+  )
+    return;
+  const text = value.trim();
+  return text && [...text].length <= limit ? text : undefined;
+}
+function publicImage(value: unknown): string {
+  if (typeof value !== 'string' || !value || encoder.encode(value).length > 2048) return '';
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      ['.byteimg.com', '.fqnovelpic.com'].some((host) => url.hostname.endsWith(host))
+      ? value
+      : '';
+  } catch {
+    return '';
+  }
+}
+const completeExtras = (drama: Drama): drama is SeriesDetail => {
+  const detail = drama as Partial<SeriesDetail>;
+  return Array.isArray(detail.actors) && Array.isArray(detail.related);
+};
+
+/** Old detail endpoint fixtures omitted both arrays; endpoint completion still means they were read. */
+function normalizeDetail(drama: Drama, selected: Drama): SeriesDetail | undefined {
+  if (!validDetail(drama, selected)) return;
+  const detail = drama as Partial<SeriesDetail>;
+  if (
+    (detail.actors !== undefined &&
+      (!Array.isArray(detail.actors) || detail.actors.length > extrasLimit)) ||
+    (detail.related !== undefined &&
+      (!Array.isArray(detail.related) || detail.related.length > extrasLimit))
+  )
+    return;
+  const actors: SeriesActor[] = [];
+  const actorKeys = new Set<string>();
+  for (const actor of detail.actors ?? []) {
+    if (!actor) continue;
+    const name = boundedText(actor.name, 100);
+    if (!name) continue;
+    const id = validId(actor.actor_id) ? actor.actor_id : undefined;
+    const key = JSON.stringify([id !== undefined, id ?? name]);
+    if (actorKeys.has(key)) continue;
+    actorKeys.add(key);
+    actors.push({ ...(id ? { actor_id: id } : {}), name, avatar: publicImage(actor.avatar) });
+  }
+  const related: Drama[] = [];
+  const relatedIds = new Set<string>();
+  for (const item of detail.related ?? []) {
+    if (
+      !item ||
+      !validId(item.series_id) ||
+      item.series_id === drama.series_id ||
+      relatedIds.has(item.series_id) ||
+      (item.content_type !== undefined && !['1', '7', '1004'].includes(item.content_type))
+    )
+      continue;
+    if (typeof item.episode_count === 'number' && item.episode_count > 10000) return;
+    relatedIds.add(item.series_id);
+    related.push({
+      series_id: item.series_id,
+      title: boundedText(item.title, 100) ?? '未命名短剧',
+      intro: boundedText(item.intro, 1024) ?? '',
+      cover: publicImage(item.cover),
+      ...(publicImage(item.cover_fallback)
+        ? { cover_fallback: publicImage(item.cover_fallback) }
+        : {}),
+      ...(item.content_type !== undefined ? { content_type: item.content_type } : {}),
+      ...(Number.isInteger(item.episode_count) &&
+      item.episode_count! > 0 &&
+      item.episode_count! <= 10000
+        ? { episode_count: item.episode_count }
+        : {}),
+      ...(Array.isArray(item.tags)
+        ? {
+            tags: item.tags
+              .slice(0, 16)
+              .flatMap((tag) => {
+                const text = boundedText(tag, 24);
+                return text ? [text] : [];
+              })
+              .slice(0, 3),
+          }
+        : {}),
+    });
+  }
+  return { ...drama, actors, related };
+}
+
 /** Read-only browsing details; media, history and playback identity belong to the page. */
 export function createSeasonDetail(
   request: ReturnType<typeof captureRequest>,
   seasons: SeasonsController,
   active: () => boolean,
 ) {
-  const cache = signal(new Map<string, Drama>());
+  const cache = signal(new Map<string, SeriesDetail>());
   const pending = signal('');
   const failure = signal({ key: '', message: '' });
   let revision = 0;
   let disposed = false;
   let abort: AbortController | undefined;
   let watched = '';
-  let source = '';
   const selected = () => seasons.selectedDrama();
-  const key = () => identity(selected());
+  const key = () => JSON.stringify([identity(seasons.source()), identity(selected())]);
+  const supplied = () => {
+    const chosen = selected();
+    const origin = seasons.source();
+    if (chosen && origin && chosen.series_id === origin.series_id && validDetail(origin, chosen))
+      return { ...chosen, ...origin, content_type: origin.content_type ?? chosen.content_type };
+    return chosen && validDetail(chosen, chosen) ? chosen : undefined;
+  };
   const allowed = () =>
     seasons.availability() === 'playable' ||
     (seasons.availability() === 'unknown' && selected()?.series_id === seasons.source()?.series_id);
@@ -96,40 +211,39 @@ export function createSeasonDetail(
     const chosen = selected();
     if (!chosen || !validId(chosen.series_id) || !enabled() || !allowed() || pending()) return;
     const owner = ++revision;
-    const ownedKey = identity(chosen);
-    const ownedSource = identity(seasons.source());
+    const ownedKey = key();
     const controller = new AbortController();
     abort = controller;
     const owns = () =>
       owner === revision &&
       !controller.signal.aborted &&
       ownedKey === key() &&
-      ownedSource === identity(seasons.source()) &&
       enabled() &&
       allowed();
     pending.set(ownedKey);
     failure.set({ key: ownedKey, message: '' });
     try {
-      const result = await request<Drama>(
+      const result = await request<SeriesDetail>(
         `/api/v1/series/detail?series_id=${encodeURIComponent(chosen.series_id)}&content_type=${encodeURIComponent(chosen.content_type ?? '')}`,
         controller.signal,
       );
       if (!owns()) return;
-      if (!validDetail(result, chosen)) throw new Error('Season detail identity mismatch');
+      const detail = normalizeDetail(result, chosen);
+      if (!detail) throw new Error('Season detail identity mismatch');
       cache.set(
         new Map(cache()).set(ownedKey, {
           ...chosen,
-          ...result,
-          content_type: result.content_type ?? chosen.content_type,
-          title: result.title || chosen.title,
-          cover: result.cover || chosen.cover,
-          cover_fallback: result.cover_fallback || chosen.cover_fallback,
-          intro: result.intro || chosen.intro,
-          tags: result.tags ?? chosen.tags,
+          ...detail,
+          content_type: detail.content_type ?? chosen.content_type,
+          title: detail.title || chosen.title,
+          cover: detail.cover || chosen.cover,
+          cover_fallback: detail.cover_fallback || chosen.cover_fallback,
+          intro: detail.intro || chosen.intro,
+          tags: detail.tags ?? chosen.tags,
         }),
       );
     } catch (error) {
-      if (owns()) failure.set({ key: ownedKey, message: errorMessage(error, '选集加载失败') });
+      if (owns()) failure.set({ key: ownedKey, message: errorMessage(error, '详情加载失败') });
     } finally {
       if (owns()) {
         abort = undefined;
@@ -138,20 +252,20 @@ export function createSeasonDetail(
     }
   };
   effect(() => {
-    const chosen = selected();
-    const next = identity(chosen);
-    const origin = identity(seasons.source());
+    const next = key();
+    const provided = supplied();
     const visible = enabled();
     const readable = allowed();
     untracked(() => {
-      if (watched !== next || source !== origin || !visible || !readable) {
+      if (watched !== next || !visible || !readable) {
         cancel();
         watched = next;
-        source = origin;
         failure.set({ key: next, message: '' });
       }
-      if (!visible || !readable || !chosen || !next || cache().has(next)) return;
-      if (validDetail(chosen, chosen)) cache.set(new Map(cache()).set(next, chosen));
+      if (!visible || !readable || !selected() || cache().has(next)) return;
+      const complete =
+        provided && completeExtras(provided) ? normalizeDetail(provided, provided) : undefined;
+      if (complete) cache.set(new Map(cache()).set(next, complete));
       else if (!pending() && !failure().message) void read();
     });
   });
@@ -159,8 +273,10 @@ export function createSeasonDetail(
     disposed = true;
     cancel();
   });
-  const drama = () => (allowed() ? cache().get(key()) : undefined);
+  const detail = () => (allowed() ? cache().get(key()) : undefined);
+  const drama = () => (allowed() ? (detail() ?? supplied()) : undefined);
   return {
+    detail,
     drama,
     summary: () => drama() ?? selected(),
     loading: () => allowed() && pending() === key() && !!pending(),

@@ -341,7 +341,8 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
           fixture.writes.length ||
           fixture.unknown.length ||
           fixture.reads.some((path) =>
-            /\/play\/|\/series\/seasons|\/lists\/rank|series_id=30[12]|series_id=311/.test(path),
+            // Released details may read their season selector; the fixture validates its exact identity.
+            /\/play\/|\/lists\/rank|series_id=30[12]|series_id=311/.test(path),
           )
         )
           throw new Error('Calendar request boundary violated');

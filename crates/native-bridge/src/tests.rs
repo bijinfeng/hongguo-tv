@@ -45,6 +45,7 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
     if state.stalled
         && (path.starts_with("/reading/")
             || path == "/api/search/result"
+            || path == "/detail"
             || path == "/incent_resource/suggestion"
             || path == "/ranks_latest.json"
             || path == "/growth_latest.json"
@@ -109,9 +110,8 @@ async fn upstream(State(state): State<Upstream>, request: HttpRequest) -> Respon
         "/api/search/result" => {
             include_str!("../../../contracts/fixtures/catalog/search.input.json").into_response()
         }
-        "/detail" => {
-            include_str!("../../../contracts/fixtures/catalog/detail.input.html").into_response()
-        }
+        "/detail" => include_str!("../../../contracts/fixtures/catalog/series-detail.input.html")
+            .into_response(),
         "/media" => {
             let bytes = media_bytes();
             let raw = request
@@ -288,6 +288,103 @@ impl Drop for Fixture {
 }
 fn client() -> reqwest::Client {
     reqwest::Client::builder().no_proxy().build().unwrap()
+}
+
+#[tokio::test]
+async fn full_series_detail_matches_http_and_never_persists_extensions_to_guest_history() {
+    let fixture = Fixture::new(false).await;
+    let app = router_with_playback(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        None,
+        None,
+    );
+    let path = "/api/v1/series/detail?series_id=7690163276214176792";
+    let native = fixture.call(path, None).await;
+    let http = app
+        .oneshot(
+            axum::http::Request::builder()
+                .uri(path)
+                .header("host", "127.0.0.1:8080")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(http.status(), StatusCode::OK);
+    assert_eq!(http.headers()["cache-control"], "no-store");
+    let http: Value =
+        serde_json::from_slice(&axum::body::to_bytes(http.into_body(), 32768).await.unwrap())
+            .unwrap();
+    assert_eq!(native.body, http);
+    let data = &native.body["data"];
+    assert_eq!(data["actors"].as_array().unwrap().len(), 4);
+    assert_eq!(
+        data["actors"][0]["actor_id"],
+        "99999999999999999999999999999999"
+    );
+    assert!(data["actors"][1].get("actor_id").is_none());
+    assert!(data["related"][0].get("episodes").is_none());
+    assert!(data.get("reviews").is_none());
+    let mismatch = fixture
+        .call("/api/v1/series/detail?series_id=999", None)
+        .await;
+    assert_eq!(mismatch.status, 502);
+    assert_eq!(mismatch.body["code"], "UPSTREAM_INVALID_DATA");
+    assert!(!mismatch.body.to_string().contains("合成演员"));
+    let library = fixture.call("/api/v1/library", None).await;
+    assert_eq!(library.body["data"]["entries"], json!([]));
+}
+
+#[tokio::test]
+async fn full_series_detail_cancel_and_close_leave_no_pending_work_or_history() {
+    for close in [false, true] {
+        let fixture = Fixture::new(true).await;
+        let call = fixture
+            .session
+            .start("/api/v1/series/detail?series_id=7690163276214176792", None);
+        timeout(Duration::from_secs(2), fixture.upstream.started.acquire())
+            .await
+            .unwrap()
+            .unwrap()
+            .forget();
+        if close {
+            fixture.session.close();
+        } else {
+            call.cancel();
+        }
+        let reply = timeout(Duration::from_secs(1), call.inner.result())
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 499);
+        assert_eq!(reply.body["code"], "CORE_CANCELLED");
+        assert!(fixture.session.calls.lock().unwrap().pending.is_empty());
+        fixture.upstream.gate.add_permits(1);
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 1);
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .snapshot()
+                .await
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert!(
+            fixture
+                .session
+                .services
+                .library
+                .search_history()
+                .await
+                .unwrap()
+                .items
+                .is_empty()
+        );
+    }
 }
 
 #[tokio::test]

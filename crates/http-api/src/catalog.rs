@@ -8,7 +8,7 @@ use axum::{
 };
 use hongguo_core::catalog::{
     ActorQuery, ActorWorksResult, CatalogClient, CatalogError, CategoryParams, CategoryQuery,
-    CategoryResult, Drama, SearchDiscovery, SearchQuery, SearchResult, SearchSuggestions,
+    CategoryResult, SearchDiscovery, SearchQuery, SearchResult, SearchSuggestions, SeriesDetail,
     SuggestionQuery,
 };
 use serde::{Deserialize, Serialize};
@@ -188,8 +188,8 @@ pub struct SearchResponse {
 pub struct DetailResponse {
     /// Always true.
     pub ok: bool,
-    /// Requested drama and ordered episodes.
-    pub data: Drama,
+    /// Requested drama, ordered episodes, cast and related summaries.
+    pub data: SeriesDetail,
 }
 
 #[derive(Deserialize)]
@@ -299,7 +299,7 @@ pub(crate) async fn detail(
 ) -> Result<Json<DetailResponse>, Response> {
     let Query(params) = params.map_err(|_| catalog_failure(CatalogError::InvalidInput))?;
     let data = client
-        .detail(&params.series_id, params.content_type.as_deref())
+        .series_detail(&params.series_id, params.content_type.as_deref())
         .await
         .map_err(catalog_failure)?;
     Ok(Json(DetailResponse { ok: true, data }))

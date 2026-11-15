@@ -196,7 +196,7 @@ final class TvRemote extends View {
         if (id != null && id.startsWith("focus-entry-")) observedFocusEntry = view;
         boolean actionable = node != null && node.isEnabled()
                 && (node.isClickable() || adjustable(node) || view instanceof EditText);
-        boolean scrollRegion = namedScrollRegion(view, node);
+        boolean scrollRegion = namedReadingRegion(view, node);
         if (view instanceof EditText) {
             EditText input = (EditText) view;
             input.setImeOptions(input.getImeOptions() | EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
@@ -529,15 +529,15 @@ final class TvRemote extends View {
                     current.requestFocus();
                     ((android.view.inputmethod.InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
                             .showSoftInput(current, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-                } else if (!namedScrollRegion(current, currentNode))
+                } else if (!namedReadingRegion(current, currentNode))
                     current.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null);
             }
             return true;
         }
         // A named reading region is an explicit stop. Its text scrolls before navigation leaves it.
-        if (namedScrollRegion(current, currentNode) && scrollRegion(current, key)) return true;
+        if (namedReadingRegion(current, currentNode) && scrollRegion(current, key)) return true;
         Rect from = bounds(current);
-        View best = namedScrollRegion(current, currentNode) ? nearestOutsideRegion(targets, from, key)
+        View best = namedReadingRegion(current, currentNode) ? nearestOutsideRegion(targets, from, key)
                 : nearest(targets, from, key);
         if (best == null && exitingInput && targets.size() > 1) best = targets.get((targets.indexOf(current) + 1) % targets.size());
         if (scrollAtEdge(key, from, best)) return true;
@@ -581,11 +581,14 @@ final class TvRemote extends View {
         return node.getRangeInfo() != null || "android.widget.SeekBar".equals(String.valueOf(node.getClassName()));
     }
 
-    private boolean namedScrollRegion(View view, AccessibilityNodeInfo node) {
+    private boolean namedReadingRegion(View view, AccessibilityNodeInfo node) {
         if (node == null || !node.isEnabled() || node.isClickable()
                 || node.getContentDescription() == null || node.getContentDescription().length() == 0) return false;
+        String id = node.getViewIdResourceName();
+        // NSH Android does not map TSX focusable to View; the explicit marker also opts short text in.
         return readingRegionOptIn(android.os.Build.VERSION.SDK_INT, node)
-                && (scrollViewport(view, false, -1) != null || scrollViewport(view, false, 1) != null
+                && (id != null && id.startsWith("focus-region-")
+                || scrollViewport(view, false, -1) != null || scrollViewport(view, false, 1) != null
                 || scrollViewport(view, true, -1) != null || scrollViewport(view, true, 1) != null);
     }
 

@@ -406,7 +406,7 @@ impl Request {
                 .map_err(catalog_error),
             Self::Detail(id, content) => services
                 .catalog
-                .detail(&id, content.as_deref())
+                .series_detail(&id, content.as_deref())
                 .await
                 .map(Reply::success)
                 .map_err(catalog_error),

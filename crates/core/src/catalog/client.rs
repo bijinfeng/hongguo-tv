@@ -191,14 +191,32 @@ impl CatalogClient {
         series_id: &str,
         content_type: Option<&str>,
     ) -> Result<Drama, CatalogError> {
+        let body = self.detail_body(series_id, content_type).await?;
+        parse_detail(&body, series_id)
+    }
+
+    /// Read full anonymous detail, cast and recommendations through the same bounded transport.
+    pub async fn series_detail(
+        &self,
+        series_id: &str,
+        content_type: Option<&str>,
+    ) -> Result<super::SeriesDetail, CatalogError> {
+        let body = self.detail_body(series_id, content_type).await?;
+        super::parse_series_detail(&body, series_id)
+    }
+
+    async fn detail_body(
+        &self,
+        series_id: &str,
+        content_type: Option<&str>,
+    ) -> Result<Vec<u8>, CatalogError> {
         validate_detail(series_id, content_type)?;
         let mut url = self
             .origin
             .join("/detail")
             .map_err(|_| CatalogError::Configuration)?;
         url.query_pairs_mut().append_pair("series_id", series_id);
-        let body = self.fetch(url, "text/html", DETAIL_LIMIT).await?;
-        parse_detail(&body, series_id)
+        self.fetch(url, "text/html", DETAIL_LIMIT).await
     }
 
     async fn fetch(&self, url: Url, accept: &str, limit: usize) -> Result<Vec<u8>, CatalogError> {
