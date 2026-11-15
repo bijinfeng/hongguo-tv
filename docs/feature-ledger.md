@@ -1,6 +1,6 @@
 # 首期功能台账
 
-验收口径（2026-11-15）：正式入口的真实数据／使用流程为功能验收依据；合成数据只记边界回归。历史条目中仅有 fixture 通过的状态不再计为功能已验收，须补真实流程；真实接口或数据缺失时保留“已实现待真实验收”，不能因此关闭 MVP 项。
+当前实现台账（2026-11-15，整理基线eee26ae）。验收要求见[ENGINEERING §9](../ENGINEERING.md#9-安全测试与可观测性)，实际通过范围见[VALIDATION](../VALIDATION.md)。合成回归不计真实功能验收。
 
 行为基线：`upstream.lock.json` 固定 `de9712bf358dcbdf8a188e26cba711e3e5354e8a`。下列上游指针均相对于 `upstream/hongguo/core/cmd/hongguotv/`，只读参考，不执行 Go。批次见 [实施路线](implementation-roadmap.md)，设计见 [页面地图](design/ui-map.md)。状态只代表新工作区，不继承原型或旧链路的成功。
 
@@ -18,7 +18,7 @@
 | 系列／季／自动下一季           | series_seasons.go、seasons.go、ui/next-season-hint.js                                                               | D／三端              | Rust 系列契约；app 浏览／媒体独立身份                            | seasons 状态／缓存／控件、HTTP Host／TV验收                          | 共享切季／严格紧邻后继已接；浏览隔离、迟到取消、同季确认及来源恢复有合成回归；正式入口真实切季／自动续季待验收，账号预约／物理TV仍开放                                                         |
 | 播放／切集／进度／后台         | player_actions.go、minireel_range.go、ui/playback-recovery.js                                                       | B／三端，C 原生      | core play/media；app playback session                            | app playback/library、PlayerMediaHost、VALIDATION B4b                | Rust 准备/Range 与定稿 Player 已接；Web 官网闭环、TV native 三主题观看／后台／重启续播已验，macOS 待验                                                                                         |
 | 倍速／音量／清晰度／全屏／偏好 | ui/playback-settings.js、ui/playback-pointer.js                                                                     | B/F／适用端          | core 解析／偏好；app 播控／host                                  | PlayerMediaHost；Web 官网／暂停／seek／质量证据                      | 倍速/音量/质量已接；B4c TV 遥控与嵌套选择已验，Web 全屏不可用，macOS 全屏与持久偏好待验                                                                                                        |
-| 历史／续播／管理／清空         | guest_history.go、library.go、guest_history_test.go                                                                 | A 展示、E 管理／三端 | Rust SQLite Library／HistoryChange                               | crates/core/tests/library.rs、app/testing、live-history-host         | E1 状态／回执／顺序 job 与管理 UI 已接（7／13）；macOS 宿主正式 Web 的真实双记录跨重启保留、精确选择删除与邻项身份浅深通过；后续真实重跑失败单列，完整焦点及其他平台待验，E1 整体未验收        |
+| 历史／续播／管理／清空         | guest_history.go、library.go、guest_history_test.go                                                                 | A 展示、E 管理／三端 | Rust SQLite Library／HistoryChange                               | crates/core/tests/library.rs、app/testing、live-history-host         | E1 管理UI／写屏障已接，仍7／13；Web真实管理与持久化有局部证据，后续播放错误／详情超时保留；完整焦点／后台及原生Desktop／当前TV包待验，整体未验收                                               |
 | 观看统计                       | watch_statistics.go、ui/watch-statistics.js                                                                         | E／三端              | core按owner累计／重置；app展示                                   | watch_statistics_test.go 对照                                        | 待迁移；按实际观看分段累计类型／题材，独立于云历史，不用进度或记录条数推算，不伪造跨设备统计                                                                                                   |
 | 收藏                           | library.go、library_test.go、cloud_test.go                                                                          | E／三端              | core library／account；app操作                                   | 账号隔离／失败用例待建                                               | 待迁移；收藏按剧，移除／清空与远端取消语义分开，不承诺云端批量删除。点赞由用户排除                                                                                                             |
 | 追更／更新提醒／预约           | follow_test.go、notifications.go                                                                                    | E／三端              | core account/library；app 列表                                   | follow／notifications 对照                                           | 待迁移                                                                                                                                                                                         |
@@ -36,30 +36,6 @@
 
 ## 状态更新规则
 
-每项细分状态使用“待核对、待实现、已实现待真实验收、已验收、平台不适用”；证据必须能关联实际源码与运行。上表已更新 A、B4b 与 B4c 的实际实现状态；未通过的宿主／发行项仍保持缺口，不从其他链路继承验收。默认回归使用去敏 fixture；页面 ID 由剧目／视频身份派生，禁止使用随机或回收行索引作为身份。
+状态区分“待核对、待实现、已实现待真实验收、已验收、平台不适用”。真实／合成、入口／平台和源码范围按[工程验收标准](../ENGINEERING.md#9-安全测试与可观测性)分别判断；验证结果及开放失败只维护在[VALIDATION](../VALIDATION.md)。
 
-UI 所有者：`packages/ui` 管外观、控件与动效，`packages/app` 管双端组合和共享业务；`apps/*` 只装配。新增行为同时补对应层回归、运行命令与失败边界，避免为开发者和 Agent 形成另一套含糊状态。
-
-2026-11-14 设计现实约束审查：先以固定源码与真实数据确认能力，再保留设计；未迁移不等于不可能，未定位证据也不直接宣称永久不支持。五轴评分取消；第三方榜单快照／增长、范围内的详情扩展、账号合并及真实设置仍保留迁移范围。评论／回复／弹幕／剧评／点赞虽有上游源码，但按用户新指令主动排除，不再是缺口。此处只纠正范围与语义，不新增宿主通过记录。
-
-2026-11-14 局部复验：macOS 播放速度／集数区间的原生键盘确认已修复并经过两轮统一版本宿主测试及独立 UI／源码审查，见 VALIDATION「macOS · Select」。系统字号、辅助技术、真实 Desktop 独立官网业务与其余 A/B/C3 缺口继续开放。
-
-2026-11-15 雷达状态：Rust RadarSnapshot、独立私有缓存、严格 HTTP/native 与共享页面已接。新列宽 Web／macOS 各 4／4、API34 TV 三档各 48 项通过，官方榜身份回归三档各 21 项通过且恢复回读成功；功能与还原度证据见 VALIDATION 雷达段及 [雷达交接](radar-snapshots.md)。最终完整 verify 已通过，含三端正式入口 check／build 和表格各 3 项回归；Tab hover 下划线覆盖为轻微未解决发现，全部动效、横向滚轮、读屏、物理 TV 与正式发行边界保留。
-
-2026-11-15 真实数据口径复核：详情实现提交 `1357ce5`；正式 Web App 在 macOS 图形宿主的当前官网搜索→详情→相关→返回浅深2／2及14张独立截图复核通过，真实关键词持久化、浏览未写观看历史。演员、真实切季／较后条目、浏览器Web、Desktop native和TV等仍待真实验收，详情3.1重新开放。其余仅有合成宿主结果的发现功能同样不计功能已验收；细分证据见VALIDATION最新段。
-
-2026-11-15 E1 状态基础：任务 1.1 已实现，Home／History／resume 共用已提交 Library，失败刷新保留快照；未知／其他 owner 零派发，播放保存和更新重试共用 tail。定向 7 项与既有关闭排空专项通过、独立源码复核无阻断；删除 UI、序号失效、原派发终结屏障及正式入口真实播放形成历史的管理主验收仍开放，不计 E1 功能完成。模块说明见[游客历史管理](guest-history-management.md)。
-
-2026-11-15 E1 写入与管理 job：任务 1.1–1.4、2.1–2.2 已实现（6／13）。正式共享应用的 progress／remove／clear 使用同一 session／operation 终态回执协议；失败旧进度按原序号失效，批量删除逐项提交／首次失败停止，未决不视为回滚或更新已保存。定向状态 15 项、真实 SQLite 的 core／HTTP／native 专项 25 项及原关闭排空／更新保存保护通过；这些均不代替正式入口真实视频形成历史后的管理主验收。管理 UI、宿主、最终门禁与其余 MVP 功能继续开放。
-
-2026-11-15 E1 真实主链：生命周期围栏和正常关闭接线已修，任务 4.1 的真实 SQLite／HTTP／native 专项已完成，当前 7／13。共享管理 UI 与 7 项合成边界已接；正式 Web 在 macOS 可见宿主的真实搜索／实际播放→取消／单删→实际重播→清空→API 重启及应用重开，浅深各 6 段通过，独立功能和 18 张真实截图复核通过。完整 verify 工具53、Rust244、Web160、Desktop／TV各162通过；只代表工程门禁。真实多选、完整焦点和其他平台等仍开放，不关闭 E1 或完整 MVP；细分限制见 VALIDATION。
-
-2026-11-15 E1 双记录增量：正式 Web 在 macOS 可见宿主使用两部真实短剧实际播放，浅深各 9 段／共 18 段通过；完整快照跨 API 重启／应用重开不变，选择仅删目标、保留另一条完整 entry，驱动 Enter 打开正确邻项。新增 12 张真实截图及独立功能审查通过，完整 verify 工具53／Rust244／Web165／Desktop和TV各167通过。合成12项只补边界；浏览器来源失败和后续 macOS 深色上游错误／超时均单列，未以通过覆盖。当前仍7／13，完整焦点／生命周期、其他平台、E1及MVP继续开放，见VALIDATION。
-
-2026-11-15 E1 继续 7／13：Chromium 精确来源已接通，正式入口真实浅色9段及深色前三段通过；深色重播详情连接超时，整体未通过。独立功能与12张实际截图只覆盖已完成范围；后台焦点修复的14项合成边界另列，不代替真实验收。详情类型补全会冗余重发，待保留身份围栏修正；完整焦点、真实后台、浏览器完整浅深、Desktop native／当前TV包和其余MVP仍开放，详见VALIDATION。
-
-2026-11-15 E1 类型补全增量：已修复搜索摘要未知类型被同季元数据补全时的冗余详情请求，保留冲突、切季、来源及生命周期围栏；18 项合成回归仅证明边界。正式 Web／Chromium 的新真实运行完成浅色首次播放、取消、单删和重播，第二部详情后停滞，未取得播放器证据；补诊断后的运行进入播放器但显示播放失败，两轮整体均未通过。真实请求记录中同次详情均只读一次，尚不能据此判断播放故障根因；仍 7／13，E1、完整浅深浏览器主流程与 MVP 未关闭，见 VALIDATION。
-
-2026-11-15 E1 浏览器终轮：类型补全修复后的当前共享应用在 Chromium 完成浅深各 9 段真实主链，包含实际两部播放、取消／删除／重播、双记录跨重启保留、精确选择删除、保留项完整详情和清空重启。963 项源码 manifest 无漂移，独立代码与 14 张实际截图复审通过；清理故障单列并修正，公共工具 58 项通过。此前间歇失败继续保留；完整焦点、真实后台、长列表和 Desktop native／当前 TV 包仍待验，E1 继续 7／13，不关闭 MVP。
-
-2026-11-15 E1 键盘增量：修复真实正式入口发现的 Escape 抢先离页，以及回收 ref／滚动恢复所有权。Chromium 浅深各 10 段真实流程走完，三类确认键盘取消与正确回源、全选／清选择／mixed、管理退出与重新进入均核对零写及完整持久快照；深色播放一次失败经 UI 重试恢复，整轮仍 passed=false，未以合成或重试成功替代无故障验收。合成 16 项及 macOS 长列表截图只补边界，平台与生命周期等缺口继续开放，E1 仍 7／13，见 VALIDATION。
+每次只更新受影响行的当前实现／缺口与证据入口，不追加日期进度。共享控件归ui，业务归app，持久状态归Rust；设计与API链接其唯一来源。历史阶段记录见[台账快照](history/2026-11-15/feature-ledger.md)，不能覆盖表中当前状态。

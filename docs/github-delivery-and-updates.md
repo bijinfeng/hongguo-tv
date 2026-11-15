@@ -1,90 +1,24 @@
-# GitHub 构建、分发与自动更新方案
+# GitHub构建、分发与更新
 
-调研日期：2026-11-13；发行清单、原生客户端与工作流更新：2026-11-14。状态：发行基础、客户端更新与发布门禁已实现，本地与模拟器结果见 [客户端更新](client-updates.md)；正式远端发布与设备升级仍未验收。依据当前工作区、固定 NSH 0.5.0（f4d68f7）、本地 CLI/生成类型及官方资料；本文不代表远端流水线、正式签名或设备升级已经通过。
+本文件维护同仓库Releases的发行方案与操作边界；当前门禁、安装／升级及远端运行结果只维护在[VALIDATION](../VALIDATION.md)。客户端状态和宿主安装细节见[客户端更新](client-updates.md)，产品内界面规则见[DESIGN](../DESIGN.md)。早期调研、签名工具实验和逐轮实施／远端结果保存在[历史记录](history/2026-11-15/github-delivery-and-updates.md)。
 
-## 1. 建议采用的方案
+源码、版本与工作流使用bijinfeng/hongguo-tv，桌面和TV从同仓库公开Release资产下载，客户端无GitHub token，不新增发行仓库、Pages或业务API依赖。单通道不保证所有地区家庭网络可达，发行前实际测量。
 
-按已确定的源码公开方向，使用 `bijinfeng/hongguo-tv` 一个公开仓库承载源码、构建与发行。GitHub Actions 构建与签名，同仓库 GitHub Releases 存放不可变安装包、签名更新清单和验收记录。客户端通过公开 Release 资产匿名下载，不需要 GitHub 账号或 token，不新增独立发行仓库或 Pages 部署。
+## 本地发行工具
 
-桌面复用 NSH 整包更新；Android TV 由应用的 Android 宿主下载完整 APK、校验并调用系统安装器。两端共享更新入口、显示状态和交互规则，平台 adapter 负责安装。首期只启用 stable 整包更新，不做差分包、TSX OTA、百分比灰度或自建更新服务。
+唯一版本编辑源为product-version.json。下列工具只检查／生成元数据，不自动签名、上传或发布：
 
-TV 的“自动更新”定义为自动发现版本、按用户设置下载、由用户确认系统安装。普通侧载应用不承诺全程静默安装。桌面下载后也由用户选择重启时机，避免打断观看。
-
-```mermaid
-flowchart TD
-  Source[公开源码仓库：确定的源码 SHA] --> CI[Actions：检查、各平台构建]
-  CI --> Sign[平台签名与最终产物验收]
-  Sign --> Candidate[候选产物与验收记录]
-  Candidate --> Release[同仓库：不可变 Release]
-  Release --> Desktop[桌面：NSH GitHub updater]
-  Release --> TV[TV：Rust 校验与 Android 安装 adapter]
+```sh
+pnpm release:check
+pnpm release:sync
+pnpm release:metadata --artifact <产物路径> --target <平台标识> --source-sha <源码SHA>
+pnpm release:record --input <候选描述JSON> --repository bijinfeng/hongguo-tv --source-sha <源码SHA> --out release.json --checksums SHA256SUMS
+pnpm release:verify-record --record release.json --artifact-dir <下载目录> --repository bijinfeng/hongguo-tv --source-sha <源码SHA>
 ```
 
-源码公开是已确定的方案前提；本次复核远端已返回 PUBLIC。生产签名 secrets 与 `release-publish.yml` 已配置；仍需完成一次远端 Release 发布和匿名下载验收。
+参数与字节校验边界见[发行摘要](release-metadata-validation.md)。预览使用debug／ad-hoc签名，候选和正式签名、元数据验签、实际安装与两版升级各有证据，不能互相代替。
 
-## 2. 初次调研快照与当时缺口
-
-下表保留 2026-11-13 首次调研时的状态；后续实施结果以第 11 节和 [客户端更新](client-updates.md) 为准，不据此表判断当前能力未接通。
-
-| 项目     | 已核对的实现                                                                                                                                                                                      | 对本方案的影响                                                                  |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| GitHub   | `gh repo view` 复核返回 PUBLIC，默认分支 `master`                                                                                                                                                 | 公开源码、同仓库发行；不依赖改名为 main，客户端无 token                         |
-| 现有 CI  | `.github/workflows/ci.yml`：三系统 Rust、macOS 三端 NSH check/build/headless、security、required；`release-validation.yml`：确定 SHA 的源码验证；`release-preview.yml`：macOS arm64 与 TV T0 预览 | 尚无正式发行、桌面安装/升级或 TV Android 构建发布 job；配置存在不等于远端已通过 |
-| NSH      | `.nsh-version` 为 0.5.0；本机 CLI 为 f4d68f7；生成类型包含 `nsh/updater`                                                                                                                          | 可复用原生整包更新 API，无须引入 Electron/Tauri 更新框架                        |
-| 桌面     | `apps/desktop/nsh.json` 已配置 GitHub Releases updater 与独立公钥；native package 不读取电脑 API 地址                                                                                             | 可生成签名清单，但独立产品仍需完成 Rust 业务内嵌                                |
-| TV       | 自有 `NshView` embedding 宿主；`packageTvHost()` 默认执行 debug，可由 `HONGGUO_TV_BUILD_TYPE=release` 切换正式签名构建                                                                            | `release-signing` secrets 已配置；同签名 N-1 包和设备升级仍需验收               |
-| TV APK   | arm64-v8a、min 26 / target 35；当前 T0 使用 debug 签名                                                                                                                                            | 正式包需固定身份、正式 keystore；不能把 T0/debug 包当作正式升级起点             |
-| 业务     | 匿名目录、播放／媒体与游客历史在 Rust；Web 官网观看已验，账号、跨宿主验收与原生业务桥接未完成                                                                                                     | 构建通道可先建立；正式产品发行不得绕过业务与独立运行验收                        |
-| 版本     | 根 package.json 和三端 nsh.json 分别声明 0.1.0，各端 build 为 1                                                                                                                                   | 建立唯一产品版本源，避免包版本、APK versionCode 和清单漂移                      |
-| 安全门禁 | VALIDATION 记录 NSH 间接依赖许可证及停止维护 advisory 导致 security 失败                                                                                                                          | 是已记录的发行阻塞，本次未重跑；不能在发行工作流中忽略或删除该检查              |
-
-现状依据：README、ARCHITECTURE、ENGINEERING、DESIGN、VALIDATION、TV_DEVELOPMENT，以及 `tooling/src/cli.mjs`、`tooling/src/tv-host.mjs`、`tooling/src/release.mjs`、TV Gradle/manifest/Activity。并行中的界面修改不属于本方案实施。
-
-## 3. 调研结果与方案取舍
-
-### GitHub 的职责
-
-| 能力                 | 用途                             | 边界                                                                                             |
-| -------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Actions              | 可重复构建、检查、签名、产物晋级 | 公开仓库的标准 GitHub-hosted runner 免费；larger runner 另行计费                                 |
-| Actions artifacts    | PR 预览、候选、测试报告、符号    | 下载需要登录和仓库读取权限，且有保留期限；公开仓库 artifact 不是保密存储，不适合作为产品更新 URL |
-| GitHub Releases      | 安装包、更新清单、签名和验收记录 | 公开 Release 资产可匿名下载；单资产小于 2 GiB，不能覆盖已发布资产                                |
-| Release immutability | 固定已发布标签与资产             | 必须先补齐草稿资产再发布；不能覆盖原文件修复坏包                                                 |
-
-依据：[Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)、[Artifacts](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)、[不可变发行](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)、[Actions 计费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。
-
-源码公开后优先使用标准 GitHub-hosted runner，降低构建计算成本；larger runner、存储超额和平台签名服务仍需单独核算。先记录一次完整矩阵的时间、产物体积与实际费用，再设预算。预览 artifact 建议短期保留，正式候选必须覆盖完整验收周期；符号按对应版本长期归档，可去敏后随公开发行提供。共享依赖缓存按 OS/架构/工具链/锁文件隔离，不能缓存签名材料来节省构建时间。
-
-### 为什么直接使用 GitHub Releases 清单
-
-固定版本的 [`nsh-updater` 源码](https://github.com/longbridge/nsh/blob/f4d68f7/crates/nsh-updater/src/lib.rs) 已核对：
-
-- `updater.github` 固定访问 `https://github.com/<owner>/<repo>/releases/latest/download/latest.json`，不调用 REST API。
-- 一份清单只有一个 `id`；桌面和 TV 当前分别是 `dev.hongguo.desktop`、`dev.hongguo.tv`。
-- 签名固定解析为同目录的 `latest.json.sig`。因此桌面使用 NSH 约定的 `latest.json` / `latest.json.sig`，TV 生成 `tv-latest.json` / `tv-latest.json.sig`，由 TV 自有 adapter 按显式资产名读取。
-- Release 资产 URL 对客户端公开，不需要 token；`releases/latest/download/<asset>` 会跟随 GitHub 的最新正式 Release 解析到固定资产。
-- 整包更新比较 SemVer，只有更高版本才会提供；同版本只增加 build 不能让桌面收到整包更新。
-
-| 方案                               | 评价                                                                                          |
-| ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| 一个公开仓库 + Releases 资产       | **推荐**；源码、tag、包、清单、签名和证据同仓库，桌面直接复用 NSH updater，TV 由 adapter 读取 |
-| 每端一个公开发行仓库               | 可行，但增加仓库、tag 和发行管理；没有必要作为首期方案                                        |
-| Releases + GitHub Pages 分目录清单 | 可行，但增加部署步骤和缓存切换面；当前没有实际收益                                            |
-| 自建更新服务/CDN                   | 网络规模或投放策略有实际需求后再引入                                                          |
-
-客户端不轮询 Releases REST API，避免匿名 API 限额；它只请求稳定的静态 Release 资产。GitHub 资产跳转、缓存、限流和目标网络可达性仍需在首发前从桌面与家庭电视网络实测。见 [GitHub REST 限额](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)。
-
-### NSH 更新能力
-
-桌面直接使用生成类型中已有的 `checkForUpdate()`、`downloadUpdate()`、`installAndRestart()`；`canInstall=false` 时提供已验证的手动安装链接。开发运行返回 null，不能通过 `pnpm dev:desktop` 证明更新可用。系统管理或不可写安装位置需要手动安装，不自动提权。
-
-Android 的 `canInstall` 为 false，内置 updater 不负责下载/安装 APK。TV 当前还是自有 embedding 启动流程，不能把“NSH 官方打包支持 OTA”推定为这个宿主已经接好 OTA launcher。
-
-纯 TSX OTA 不能更新 Rust、JNI、运行时或 Android manifest，并增加原生 bridge 兼容版本、信任根、冷启动与回退矩阵。首期不配置 `updater.packages`，后续有实际发版频率收益再评估。
-
-依据：[App Updates](https://nsh.dev/docs/app-updates/)、[OTA Updates](https://nsh.dev/docs/ota-updates/)、[Signed Packages](https://nsh.dev/docs/signed-packages/)；API 以本项目 `apps/desktop/.nsh/types/nsh/updater.d.ts` 与固定源码为准。
-
-## 4. 仓库、清单与版本
+## 仓库、清单与版本
 
 ### 单仓库源码与发行
 
@@ -166,19 +100,18 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 
 每个 Release 同时提供 SHA256SUMS、去敏 release.json、SBOM、NOTICE 和分端更新清单的归档副本；保留目录的清单/签名可打成 `update-metadata.tar.gz`，Release 资产使用其中的原始字节。调试符号和源码映射按版本归档，公开提供前确认不含凭据、私人路径或测试数据。
 
-## 5. 构建与发布流水线
+## 构建与发布流水线
 
-现有 CI 保留，新增真实 Android 构建/模拟器以及各桌面宿主 job；接通的产品目标纳入 required。工程入口沿用 pnpm/Cargo，不新增 Go 发行依赖。干净 runner 执行 frozen install、setup、setup:tools、doctor、verify；发行另外执行 security、包检查和安装/升级验收。缺工具、缺报告、缺平台或安全失败都应阻止正式晋级。
+现有CI及发行工作流定义在.github/workflows；Android／各桌面真实宿主和设备矩阵的缺口以VALIDATION为准，接通的产品目标纳入required。工程入口沿用 pnpm/Cargo，不新增 Go 发行依赖。干净 runner 执行 frozen install、setup、setup:tools、doctor、verify；发行另外执行 security、包检查和安装/升级验收。缺工具、缺报告、缺平台或安全失败都应阻止正式晋级。
 
-| 工作流（拟新增）                        | 触发与权限                                                                      | 交付                                                                        |
-| --------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥          | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                       |
-| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 与原生 TV arm64 预览包，不拿生产密钥         | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable        |
-| `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK   | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                   |
-| `release-candidate.yml`（后续，同仓库） | 默认分支上的确定 SHA，受保护 tag 或显式输入；平台产物构建后才进入受控签名阶段   | 最终签名候选、SBOM、完整验收记录；不自动投放 stable                         |
-| `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；使用 `release-signing` environment 构建两端并校验资产 | 上传并验证草稿 → 发布并设为 latest 的 Release；不需要 `HONGGUO_CORE_ORIGIN` |
+| 工作流                                  | 触发与权限                                                                      | 交付                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥          | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                         |
+| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 与原生 TV arm64 预览包，不拿生产密钥         | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable          |
+| `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK   | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                     |
+| `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；使用 `release-signing` environment 构建两端并校验资产 | 草稿回验 → 非latest发布 → 匿名回验 → latest晋级；不需要 `HONGGUO_CORE_ORIGIN` |
 
-版本必须先写入源码再形成候选。tag 先建或后补均需校验指向同一 SHA，禁止发布时自动重构建。候选过期、文件缺失、重签名或字节变化必须重新验收。正式标记前最终文件需完成平台验签及安装冒烟。
+版本必须先写入源码再形成候选。tag 先建或后补均需校验指向同一 SHA，晋级／上传阶段复用已验收的最终字节，不再自动重构建另一份文件。候选过期、文件缺失、重签名或字节变化必须重新验收。正式标记前最终文件需完成平台验签及安装冒烟。
 
 当前的 `release-publish.yml` 直接读取手动输入的确定源码 SHA 与 tag，分别在 macOS/Ubuntu runner 构建，再由 publish job 校验两份 `release.json` 的 source SHA 后上传草稿。不能只按 artifact 名称查找“最新成功构建”，也不能把任意 fork PR 的 artifact 当成可签名/可发布候选。GITHUB_TOKEN 按 job 分配所需权限即可完成同仓库晋级。
 
@@ -203,61 +136,13 @@ GITHUB_TOKEN 触发的常见仓库事件不会再次启动工作流，因此发�
 
 公开仓库可配置 environment required reviewers。设置独立的 `release-signing` 和 `production` 环境：前者保护生产签名密钥，后者保护正式发行；仅允许已审核的分支/tag，按维护者配置防止自行批准及管理员绕过。签名 job 也必须在获得对应审批后才拿到密钥，不能只保护最后的发布步骤。单维护者阶段若无法提供独立审批人，应如实记录审批配置，不以 environment 名称冒充双人复核。若未来调整仓库可见性，再按账号套餐重新确认保护能力。见 [部署保护与套餐限制](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)。
 
-## 6. 双端更新实现边界
+## 双端更新职责
 
-### 共享层与宿主层
+桌面使用NSH updater，TV使用Rust验签／下载和Android PackageInstaller；清单签名与平台安装签名分别核验。客户端状态机、进度写排空、授权／取消／安装确认、焦点及交互的唯一说明在[client-updates](client-updates.md)，这里不复制实现和视觉状态。
 
-实际端口为 `packages/app/src/updates.ts` 的 `UpdateAdapter`，不经过内容 API client；`packages/app` 负责共享更新用例和显示状态，`packages/ui` 提供已有主题下的控件。`apps/*` 只装配平台能力，不复制更新页面。
+正式发布前需同一源码的verify／Clippy／security及最终签名资产验收，缺失或失败阻止晋级；安全工作区和生成宿主范围见[依赖检查](dependencies/native-release-security.md)。支持平台、真实两版升级、数据保留和恢复演练按工程规范与当前矩阵逐项验证，工作流存在不等于发行已完成。
 
-端口包含初始化、检查、下载、安装、手动下载页与可选取消／安装状态／授权入口／dispose。桌面使用实际 `nsh/updater` 类型，TV 使用 Rust 生成类型和显式宿主调用；`canInstall` 区分自动安装候选与手动更新，不以 OS 猜测运行能力。
-
-- 桌面 adapter 包装 `nsh/updater`。下载缓存、替换和 helper 归宿主；TSX 镜像状态，不自写安装逻辑。
-- TV 更新校验/下载逻辑放一个独立的 Rust 应用更新模块或 crate，通过原生 bridge 暴露；不塞进内容协议 core。Android adapter 只负责权限、安装 session、系统 intent 和实际包信息。
-- 更新结果、下载文件和安装 attempt 由原生侧拥有，页面只有短期交互状态；跨页面不重复下载，应用退出取消/恢复有界。
-- Web 不暴露安装更新入口；源码变化后的 Web 部署是另一条交付链。
-
-### 桌面流程
-
-后台检查 → 有可用版本 → 用户下载（可选以后启用自动下载）→ 下载验证完成 → 用户选择“重启更新” → 暂停播放、确认进度写入排空 → NSH 替换与重启 → 新版本确认。安装失败时仍保留可用的核心会话。
-
-下载后到安装前，串行绑定同一个更新对象，不能另一次 check 把当前下载目标替换成另一个版本。退出前进度保存失败需留在当前版本并允许重试，不悄悄丢历史。替换失败保留旧程序；NSH 的替换失败保护不等于新版本启动后崩溃自动回滚，后者首期通过验收和更高版本修复包处理。
-
-macOS 正式发行需遵循 [Apple 公证流程](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)，Windows 使用 [SignTool 签名与验证](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool)。最终归档必须包含已签名的程序；签名后重新归档再重新计算摘要。
-
-### TV 清单与完整 APK 安装
-
-固定 CLI 的 Android `--link` 仅生成链接。现已由 `tooling/src/update-manifest.mjs tv` 读取最终 APK 对应的 `tv-release.json`、`aapt2 dump badging` 与成功执行的 `apksigner verify --print-certs` 报告，生成完整 `tv-latest.json`。签名前重新核对 APK 字节，要求精确包名、versionName/versionCode、minSdk 与 arm64-v8a ABI，拒绝 debuggable、多签名者或不匹配的正式证书。预期公钥与证书摘要保存在不含私钥的 `tooling/release-policy.json`；不能把 APK 实际证书直接当作预期信任身份。
-
-清单沿用 NSH 的 `id/version/platforms.android` 外壳，顶层包含 `schemaVersion: 1`、`channel: stable`；android 资产包含 `url`、`sha256`、`size`、`versionCode`、`packageName`、`minSdk`、`abis`、`signingCertificateSha256`。这是本项目扩展，不是 NSH 内置 APK 安装支持。首发只列 arm64；需要多 ABI 时先设计选择规则再扩展，不能靠 URL 猜 ABI。
-
-发布工具用 Node 标准库 Ed25519，按固定 NSH `nsh-updater-manifest\0` 上下文对完整原始 JSON 字节签名，不重排收到的 JSON 再验签。测试直接调用固定 NSH CLI，核对相同字节的签名完全一致，并覆盖错误上下文、篡改、错误公钥与正确签名但元数据不符。TV 的独立 Rust 校验器已消费同一格式并接通下载和 Android 安装 adapter；实际跨版本安装仍待验收。
-
-`node tooling/src/update-manifest.mjs verify` 同时重验两端清单签名、应用 ID、版本、平台、不可变 tag URL、安装包 SHA256/大小和校验和文件；TV 扩展元数据必须与受信任策略和发行记录完全一致。该命令在 workflow 下载候选、下载草稿和匿名下载三个阶段执行，不接触私钥。桌面归档固定使用 `macos-aarch64.tar.gz` 后缀，避免 NSH CLI 对原 `macos-arm64` 名称生成空平台清单。
-
-安装步骤：
-
-1. 校验清单签名、应用 ID、渠道、schema、SemVer 和大于已安装值的 versionCode；对同版本修包也要求产品版本递增。无新版本与检查失败分别返回。
-2. 将 APK 流式下载到应用私有临时目录；校验 HTTPS、可信下载来源/重定向策略、大小上限与可用空间。允许 GitHub 实际资产跳转，但拒绝降级 HTTP 和非预期来源。校验失败删除临时文件；取消和断网保留当前安装。
-3. 对完整文件验证 SHA256、精确大小、APK 包名、versionCode、minSdk、ABI 以及正式签名身份。首发要求固定完整 signer 集合匹配，不用“任意一个证书匹配”放宽；旧 Android 的 API 差异由 adapter 处理。证书轮换另行设计 lineage 与设备矩阵。
-4. 用户选择安装后，检查 `canRequestPackageInstalls()`，必要时引导到该应用的未知来源授权，再返回同一更新流程。声明所需 `REQUEST_INSTALL_PACKAGES`；不申请系统特权，不要求 root/ADB。
-5. 使用 PackageInstaller session 写入并 commit，处理 `STATUS_PENDING_USER_ACTION`；用户在系统安装器确认。API 26 到目标设备系统分别适配回调和 PendingIntent 要求。
-6. 记录提交的目标版本与摘要；系统成功回调及下次冷启动的实际安装版本共同确认结果。拒绝/取消/空间不足均允许重试，启动安装器本身不算安装成功。
-
-如厂商安装器与 session 方案不兼容，才评估内容 URI + 临时只读授权的系统安装 intent 回退；FileProvider 只暴露该更新文件，不开放整个目录。系统安装界面的可遥控性必须逐设备确认。
-
-Android 的无人值守更新有安装者身份、权限和目标版本等条件，本产品不以这些条件为首发保证。依据：[安装 session 条件](<https://developer.android.com/reference/android/content/pm/PackageInstaller.SessionParams#setRequireUserAction(int)>)、[未知来源权限](<https://developer.android.com/reference/android/content/pm/PackageManager#canRequestPackageInstalls()>)、[用户确认回调](https://developer.android.com/reference/android/content/pm/PackageInstaller#STATUS_PENDING_USER_ACTION)、[应用签名与升级身份](https://developer.android.com/studio/publish/app-signing)。
-
-### 更新体验
-
-已实现入口在账号页的「应用更新」；自动检查不弹窗、不夺走播放或输入焦点，用户进入页面后查看候选。当前每次应用根初始化仅自动检查一次，手动检查防止并发；跨启动的 24 小时节流与随机抖动仍是后续建议，未实现，也不是 GitHub 或 NSH 保证。
-
-初版默认自动检查、用户决定下载；可在完整取消/网络测试后启用“自动下载”。显示当前版本、可更新版本、必要的变更说明与下载进度即可，SHA、签名和流水线信息放诊断日志。下载总量未知时不显示虚假的百分比。
-
-共享状态语义：`idle → checking → available → downloading → ready → installing`，另有 `upToDate`、`awaitingPermission`、`awaitingConfirmation` 和可恢复错误。返回页面不丢下载状态；TV 返回/取消恢复原焦点；不会把失败当成“已是最新”。桌面未有真实取消 API 时不显示虚假的取消下载按钮，TV 取消由原生实现。
-
-交互复用现有 NSH 语义控件、主题和减少动态效果规则。动效只用于状态进入，进度与焦点即时更新；实施前补 DESIGN 动效清单，完成后在桌面/TV 真实宿主观察深浅主题、键盘/遥控、焦点和系统安装界面。更新交互已另行制作浏览器原型，见 [更新 UI 规格](design/update-ui.md)。原型覆盖模拟状态与输入，不代表真实 NSH/Android 更新能力已接入或验收。
-
-## 7. 故障、撤回与数据
+## 故障、撤回与数据
 
 | 故障                                | 行为                                                                         |
 | ----------------------------------- | ---------------------------------------------------------------------------- |
@@ -273,54 +158,3 @@ Android 的无人值守更新有安装者身份、权限和目标版本等条件
 数据库迁移前备份，升级中断、磁盘满、未来 schema、迁移失败保留原数据；测试历史和账号保留，但不读取旧参考客户端数据。不把复制旧二进制等同于数据可回退，不用删除数据库处理更新错误。
 
 单 GitHub 通道能满足首期托管与分发，但不保证所有电视网络可达。发行前从目标地区的桌面与家庭电视网络测量清单和 Release 跳转下载。若成功率或速度不满足产品要求，再接自有域名/CDN；镜像使用同一套签名清单和哈希，不引入任意第三方 GitHub 加速代理。
-
-## 8. 实施顺序与退出条件
-
-以下为实施边界与退出条件；已落地项目单独在本节末记录。
-
-| 阶段               | 交付                                                                                                         | 退出条件                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| R0：发行基础       | 公开现有源码仓库、明确 LICENSE/NOTICE、启用同仓库 Releases、应用身份、唯一版本源与受控签名路径               | 干净 checkout 版本检查可复现；源码/历史可公开，客户端无 token                               |
-| R1：构建和预览     | 源码验证、macOS arm64 桌面预览、TV arm64 T0 预览和受保护 TV release candidate workflow；版本/摘要/校验和工具 | 当前只上传候选 artifact；正式候选仍需从 GitHub 下载原文件可安装，不能因业务未完成误发正式版 |
-| R2：桌面更新闭环   | shared UpdateClient、桌面 NSH adapter、签名 Release 清单                                                     | 真实安装包 N-1 → N、重启保存、错误签名/断网/权限路径通过；macOS 优先，其他系统独立验收      |
-| R3：TV 更新闭环    | Rust 清单校验/下载、Android 权限/session adapter、共享 UI                                                    | 同签名 N-1 → N 保留数据，拒绝错包/错证书/降级；模拟器与目标真机安装器分别通过               |
-| R4：正式晋级与恢复 | 不可变 Release、渠道串行晋级、停止投放/修复包演练、设备证据                                                  | 最终签名资产满足业务、security、独立运行和真机门禁；公开匿名下载与升级复验通过              |
-
-R0/R1 可与 Rust 业务迁移并行；R2/R3 可用明确标记的测试版本验证更新机制。正式产品发布仍依赖 TV_DEVELOPMENT 中真实观看闭环、独立客户端和首发验收，不以更新机制通过替代。
-
-`tooling/src/release.mjs` 已提供 `check`、`sync`、`metadata` 和 `record` 命令，输出稳定 JSON 摘要和明确退出码，使本地、CI 和 Agent 走同一路径。`record` 生成不含本地路径的候选 `release.json` 与 `SHA256SUMS`，并拒绝非 HTTPS URL、重复 target、非法 Git SHA、缺失产物和不完整描述。报告包含 `sourceSha/version/build/target/artifactSha256/signingIdentity`；签名、网络、设备与业务问题仍由后续候选门禁分别报告。
-
-关键验收至少覆盖：
-
-- manifest 篡改、错误公钥/应用 ID/schema、缺哈希、错大小、错误平台；发布端与客户端签名向量互通。
-- 源码/tag/版本不一致、缺必需平台、同版本不同哈希、过期候选、并发旧发布覆盖、Release 上传失败后的幂等重试。
-- 桌面可写/不可写安装、下载中断、文件占用、退出保存失败、重启实际版本与数据库迁移恢复。
-- TV 未授权/授权返回、系统取消/失败、进程被杀、断网/空间不足、错误签名/ABI/minSdk、N-1 覆盖升级及重启保留历史。
-- 更新时不打断播放、不抢焦点；键鼠和遥控均能完成，深浅主题与系统安装页面实际观察。
-- CI 不能访问生产密钥的反例、缺工具失败、无 Go 的构建；保持现有 hooks 的部分暂存保护。
-
-## 9. 本次已验证与仍未验证
-
-本次完成只读源码/配置核对、GitHub 仓库可见性查询、官方资料调研，并用本机固定 CLI 做了临时离线实验：
-
-1. `nsh update-manifest` 对合成桌面文件生成含 URL、SHA256、size 的清单与签名；Node 内置 crypto 按 NSH 上下文验证签名成功，修改一个字节后拒绝。
-2. 同 CLI 的 Android `--link` 实际只生成 URL，证实不能直接承担完整 APK 校验清单。
-3. 配置 publicKey 却不传签名 key 时，CLI 明确失败。
-
-合成文件不是可安装归档；临时测试密钥和文件均已删除。以上实验只证明清单工具和签名格式，不证明下载、安装或升级行为。
-
-前轮已确认远端为 PUBLIC，加入 `release-validation.yml`、`release-preview.yml`、`tv-release-candidate.yml`、`release-publish.yml`、唯一版本源检查、候选产物记录工具和对应测试；桌面公钥已写入 NSH manifest，TV 公钥现由发行策略保存，四项 TV APK 签名 secrets、桌面更新签名 key、TV 更新签名 key 已写入 `release-signing` environment，本机 TV release APK 已验签。该 environment 当前没有 required reviewers 或分支/tag protection；正式更新链路使用 GitHub Releases 资产，不需要 Pages 或 `HONGGUO_CORE_ORIGIN`，远端发布工作流尚未运行；桌面独立业务、跨系统更新、TV 真机、网络可达性、Android 宿主 OTA、安装失败后的真实恢复均尚未验证。前轮 `pnpm verify` 曾受并行改动格式问题影响；本批完整验证已通过，详见第 10 节。`pnpm security` 仍需单独处理已有依赖策略阻塞。
-
-## 10. 签名清单与下载回验实施记录（2026-11-14）
-
-本批只改发行工具与 workflow，无客户端 UI、Rust DTO、业务数据或依赖变化。新增完整 TV 签名清单和两端制品回验；缩小构建 job 为 contents: read，仅 publish 获得 contents: write；临时签名文件在 always 清理步骤移除。实际命令、失败记录与边界见 [发行清单验证记录](release-metadata-validation.md)。远端正式发布、latest 晋级、真实 N-1 → N 和 TV PackageInstaller 仍未验收。
-
-## 11. 原生客户端接入与发布门禁（2026-11-14）
-
-共享账号页现已提供应用更新入口，应用根持有状态；桌面接 NSH updater 和重启回执，TV 接 Rust 验签／下载与 Android PackageInstaller，安装前排空并重试失败观看进度。没有独立设置树或自动下载开关；默认只检查，用户决定下载与安装。实现、可复现命令、宿主截图及真实安装未验范围见 [客户端更新](client-updates.md)。
-
-发布工作流在同一源码 SHA 上强制 verify／Clippy／security，通过后才运行签名构建；TV 三个工作流共用固定工具安装，区分 NSH JDK 与 Gradle JDK 17。草稿前先创建缺失的 tag 或核对已有 tag 的实际源码 SHA，拒绝改写并以 `--verify-tag` 创建草稿，上传前再次复核。桌面目前签的是更新元数据，尚未完成 Developer ID／公证，不能把它称作已通过 Apple 平台签名的正式发行。当前安全阻塞与宿主图检查边界见 [原生发行依赖检查](dependencies/native-release-security.md)；没有运行远端发布。
-
-### 12. 首轮远端构建（2026-11-14）
-
-已确认并推送至 `2611c0b`，实际运行 CI 与 Release preview；三处 runner 环境问题及修正记录在 [客户端更新](client-updates.md#首轮-github-构建2026-11-14)。当前 preview workflow 使用两端原生业务入口，TV 为 debug 签名；本地 T0 入口仍保留。前文初始 T0 构建描述是调研时点快照，不能当作当前 workflow 或正式发行证据。安全阻塞仍有效，尚未运行正式 publish、创建 Release 或验证两版升级。

@@ -37,7 +37,7 @@ pnpm security
 - TV 生产入口独立 debug APK 的实际 Android 版本桥接、非法私有路径拒绝、拒绝时不创建 session、合成回执不能冒称成功／实际版本匹配只消费一次、无 Release 时诚实可重试、主按钮及返回来源原生焦点均在固定 API 34 arm64 模拟器验收。浅深及 1.3 字号分别记录 `artifacts/client-updates/tv/`；测试 `adb install -r` 保留应用数据并恢复主题／字号。没有把打开安装器或模拟回执计为真实升级。
 - 圆角、字阶、间距、对齐和浅深表面复用既有主题与控件，并检查上述实屏；hover 已在 macOS 观察，键盘和遥控主动作通过。页面入场与按钮反馈复用共享动效，进度原位变化；静态截图不证明逐帧动效、减少动态或 VoiceOver／TalkBack 人工验收。
 
-完整源码验证结果追加于 [VALIDATION](../VALIDATION.md)。更新专项日志和截图保存在 ignored `artifacts/client-updates/`，不会进入源码或 Release。
+当前源码验证结果与开放问题统一见 [VALIDATION](../VALIDATION.md)，旧运行细节按批次保存在历史／artifact，不继续在根文档追加完整日志。更新专项日志和截图保存在 ignored `artifacts/client-updates/`，不会进入源码或 Release。
 
 ## 正式发布前的剩余项
 

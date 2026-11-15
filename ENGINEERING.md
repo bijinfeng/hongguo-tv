@@ -1,10 +1,6 @@
 # 工程工具链与交付规范
 
-> 2026-11-14 实施状态：pnpm/Cargo 工作区、三端薄入口、共享 UI、Axum/Tokio 及工程门禁已落地（第一阶段基线）。Web 使用 HTTP；Desktop／TV 已注册共享 native bridge，并默认装配包内核心，HTTP preview／T0 需显式选择。完整内容协议、原生独立业务验收与真机发行仍未完成。实际可执行命令以 README.md 为准，验证结果以 VALIDATION.md 为准。
-
-TV 的阶段任务、命令现状、设备门禁与签名 APK 交付顺序见 [TV_DEVELOPMENT.md](TV_DEVELOPMENT.md)。
-
-状态：设计提案，2026-11-13。与 [ARCHITECTURE.md](ARCHITECTURE.md) 配套，覆盖 TypeScript/NSH、Rust 和 Android 宿主。目标产品及正常开发、CI、发布均不依赖 Go；当前旧验证工程只在迁移期保留。以下是完整产品的规范；当前阶段仅实现 README 与 VALIDATION 明确列出的子集。
+现行工程要求；实际命令以根package.json／工程脚本及[运行手册](docs/development.md)为准，实现状态看[台账](docs/feature-ledger.md)，实际结果看[VALIDATION](VALIDATION.md)。本文件不维护每日实施进度，TV专项流程见[TV_DEVELOPMENT](TV_DEVELOPMENT.md)。
 
 ## 1. 工具链所有权与版本
 
@@ -15,14 +11,14 @@ pnpm 提供统一入口，各语言工具保留自身职责。开发机和 CI �
 | Node         | `.node-version`、`engines`                 | 初始锁定当前已验证的 26.12.1；其他版本经矩阵验证后再声明支持                       |
 | pnpm         | 根 `package.json#packageManager`           | 初始锁定已验证的 `pnpm@11.1.3`；提交单一 `pnpm-lock.yaml`                          |
 | NSH          | `.nsh-version`                             | 保持 0.5.0；CLI、runtime、Rust `nsh-*` 依赖保持一致                                |
-| Rust         | `rust-toolchain.toml`                      | 固定 1.97.0，包含 rustfmt、clippy；可移植工作区已编译，mixed/Android 宿主仍待验证  |
+| Rust         | `rust-toolchain.toml`                      | 固定 1.97.0，包含 rustfmt、clippy；宿主兼容性按目标实际构建与验收                  |
 | Rust 包      | 根 `Cargo.toml`、`Cargo.lock`              | Edition 2024、resolver 3；显式成员、共享依赖与 lints；应用锁文件提交               |
 | JS 工具      | 根 devDependencies + pnpm lock             | Oxlint、Oxfmt、Lefthook、commitlint、契约生成器使用精确版本                        |
-| 原生辅助工具 | `tooling/tool-versions.json`               | nextest、cargo-deny、cargo-llvm-cov、cargo-fuzz、扫描/发布工具锁定版本与下载校验值 |
+| 原生辅助工具 | `tooling/tools.json`                       | nextest、cargo-deny、cargo-llvm-cov、cargo-fuzz、扫描/发布工具锁定版本与下载校验值 |
 | 契约         | Rust DTO/路由 + 生成的 OpenAPI/TS types    | utoipa 与 openapi-typescript 锁定版本；离线导出，不启动真实服务                    |
 | Android      | Gradle Wrapper、版本目录、SDK/NDK/JDK 清单 | 与选定 NSH Android 宿主实际兼容后锁定所有精确版本，不能使用动态 `+` 版本           |
 
-Rust 1.97 是源码要求，不代表已经证明桌面/Android 集成能通过。Android 的 JDK、AGP、Gradle、NDK 组合，以及所有新工具的精确版本，在首个兼容性提交中填写并通过干净环境构建；不以 `latest`、滚动 `stable` 或不明全局版本代替锁定。
+版本文件是工具链要求，不代表所有平台已验收。Android 的 JDK、AGP、Gradle、NDK 组合在宿主工程固定，按目标通过干净环境构建；不以 `latest`、滚动 `stable` 或不明全局版本代替锁定。
 
 `setup` 只下载所选目标需要的工具，并校验官方发布的摘要。项目私有工具放到 `.local/tools/`；Rust 编译器由 rustup 管理。不替换用户默认编译器、不改 shell 配置、不自动接受 SDK 许可。普通依赖安装不隐式执行全量原生下载。
 
@@ -52,7 +48,7 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 
 ### 图标资源与依赖
 
-NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [基础组件方案](docs/design/nsh-components-plan.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
+NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)和[组件交接](docs/design/component-design.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
 
 - 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标规范」](DESIGN.md#统一图标规范--2026-11-14) 为准。生产资源、语义名称映射与 NSH 适配统一归 `packages/ui`，设计原型复用同一来源；业务页面和各端入口不复制图标路径。
 - 首次接入时固定官方包精确版本及锁文件，或记录所纳入官方资源的版本、来源和校验信息，并保留对应许可证。只打包实际使用的图标，不依赖运行时 CDN；版本升级时同步设计稿、资源和映射。
@@ -130,7 +126,7 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 
 ## 6. 统一命令契约
 
-以下是完整产品的命令目标；当前第一阶段命令已切换 pnpm，实际行为以 README 为准。
+以下定义命令责任；是否已接通及实际参数以根package.json／工程脚本为准，运行方法见开发运行手册，不能把命令目标当成已实现。
 
 | 命令                                      | 责任                                                              |
 | ----------------------------------------- | ----------------------------------------------------------------- |
@@ -144,7 +140,6 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 | `pnpm build`                              | 当前 profile 的 NSH bundle、Rust 核心/宿主/服务构建；不等于发行包 |
 | `pnpm test`                               | Node、NSH、Rust 的自动化行为测试，报告按责任层分组                |
 | `pnpm verify --target <...>`              | doctor → 格式 → lint → check → build → test；目标缺失失败         |
-| `pnpm verify:portable`                    | 无设备的公共层与 Web 检查；输出不冒充 native/TV 验收              |
 | `pnpm security`                           | JS/Rust/Android 依赖与首方代码扫描；网络失败标为检查未完成        |
 | `pnpm codegen` / `codegen:check`          | 生成提交的契约代码 / 验证无漂移                                   |
 | `pnpm package:<target>`                   | 形成完整目标产物；开发前端包另有显式标记                          |
@@ -156,7 +151,7 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 
 ## 7. Git 与协作
 
-采用 trunk-based development：目标主分支 `main`，短期功能分支，PR 合并。当前仓库尚无首次提交，仍在 `master`；设计阶段不自动改名或创建基线提交。
+目标采用短期功能分支与PR合并；当前分支／提交状态以Git为准，不根据早期提案改名。是否提交、推送、合并或发布遵守用户授权，不从流程建议推导授权。
 
 | 环节           | 工具/规则                                                         |
 | -------------- | ----------------------------------------------------------------- |
@@ -224,7 +219,7 @@ PR 使用 fuzz corpus 回归；定期运行限时 cargo-fuzz，所需 nightly �
 
 ## 10. 版本、构建与发布
 
-产品使用统一 SemVer 与递增 build number，首次实施时建立唯一产品版本文件，并同步生成 NSH manifest/宿主版本。内部 workspace 包保持 private；暂不需要独立 npm 发布或 Changesets 多包版本流程。Rust 核心与产品绑定发行，API/bridge 版本及行为参考来源单独记录。
+产品使用统一 SemVer 与递增 build number，唯一编辑源为 `product-version.json`，通过显式release:sync同步NSH manifest／宿主版本。内部 workspace 包保持 private；暂不需要独立 npm 发布或 Changesets 多包版本流程。Rust 核心与产品绑定发行，API/bridge 版本及行为参考来源单独记录。
 
 发布流水线按以下顺序执行：
 
@@ -252,18 +247,15 @@ Web 按不可变镜像摘要灰度/回滚。桌面更新原子切换，失败保
 
 签名与发布仅在受保护环境使用短期凭据/受控密钥。开发与 PR 不自动部署或发布；发行条件未满足时保留可检查的草稿及产物，不把 unsigned 开发包标成正式发行。
 
-## 11. 实施交付清单
+## 11. 文档与Agent协作
 
-首个工程化阶段应提交以下可评审结果：
+文档职责与按任务阅读入口见[docs/README](docs/README.md)。规则、当前实现、计划和验收分别维护；其他文档链接唯一来源，不复制完整条款或逐轮进度。产品PRD不复制API／状态机／任务，变更技术方案归对应OpenSpec design，只有重要架构取舍建立ADR。
 
-1. pnpm/Cargo workspace、版本文件、锁文件及可重复 bootstrap；新工作区命令不依赖旧语言工具，每项工具有对应调用与失败用例。
-2. Oxlint/Oxfmt、rustfmt/Clippy/nextest、核心测试向量与契约检查的真实接入，命令能从任意 cwd 正确运行。
-3. 包边界与契约生成验证；保留现有 UI/网关场景，将核心必需行为转为 Rust 测试。旧测试通过不能代替 Rust 核心验证。
-4. Lefthook、commitlint、编辑器配置、PR 模板与基础 CI；在临时 Git 仓库验证 hooks 不改工作区/index，正确拦截失败。
-5. 新环境复现记录，覆盖成功初始化、重复执行、缺工具/版本错误、构建失败退出与子进程清理。
-6. Rust/Android 尚未通过的兼容项清单和负责人；正式宿主与发行门禁按架构阶段逐步接通，状态明确。旧工程退役后在没有 Go 的机器完成 setup/verify/发行构建。
+历史方案、被替代决策和完整运行记录保留来源、日期与证据限制，归入history／ADR／OpenSpec archive；历史开头注明非当前指令和现行入口。迁移先核对有效条款及平台差异，再改引用，不通过删文档隐藏失败。
 
-不得仅添加配置文件、工具名称或空成功脚本就标记工具链完备。每个门禁必须能证明成功，也能证明一个真实失败会被阻断。
+OpenSpec格式校验不能证明实现／真实验收。同步主规范先核对重叠delta的最终语义；符合完成条件后再归档，不能因tasks已勾选批量归档。活跃变更不因文档整理被标记完成。
+
+文档整理仅运行定向格式、相对链接／章节和适用OpenSpec校验，不重跑产品构建。涉及命令的说明要核对实际脚本；纯导航索引不复制正文。源码、工具、契约或UI改动仍执行各自必需检查。
 
 ## 12. 官方依据
 
