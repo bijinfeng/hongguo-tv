@@ -18,13 +18,16 @@ import {
 
 // Opt-in only: genuine media progress and UI mutations against a disposable real SQLite database.
 const target = process.argv[2];
+const liveArgs = process.argv.slice(3);
+const historyOnly = liveArgs.includes('--history-only');
 if (
   process.platform !== 'darwin' ||
   !['macos', 'web'].includes(target) ||
-  process.argv.slice(3).join(' ') !== '--anonymous-live'
+  !liveArgs.includes('--anonymous-live') ||
+  liveArgs.some((arg) => !['--anonymous-live', '--history-only'].includes(arg))
 )
   throw new Error(
-    'Expected macos|web --anonymous-live on macOS; requires a real host, upstream and playable media',
+    'Expected macos|web --anonymous-live [--history-only] on macOS; requires a real host, upstream and playable media',
   );
 
 const artifacts = resolve(
@@ -46,6 +49,7 @@ const evidence = {
   syntheticResponses: false,
   directHistoryWrites: false,
   manualClock: false,
+  historyOnly,
   apiReads: [],
   watchStatistics: [],
   playbackFailures: [],
@@ -158,6 +162,17 @@ const watchStatistics = async (origin, account, name) => {
     day,
   });
   return get(origin, `/api/v1/watch-statistics?${params}`, name);
+};
+const waitForWatchStatistics = async (origin, account, name) => {
+  const deadline = Date.now() + 15_000;
+  let attempt = 0;
+  let snapshot;
+  while (Date.now() < deadline) {
+    snapshot = await watchStatistics(origin, account, `${name}-${attempt++}`);
+    if (statisticsDuration(snapshot) > 0) return snapshot;
+    await pause(500);
+  }
+  return snapshot;
 };
 const statisticsDuration = (snapshot) =>
   snapshot.days.reduce((total, day) => total + day.duration_ms, 0);
@@ -366,14 +381,20 @@ try {
       ),
     );
   };
-  const search = await get(
-    origin,
-    `/api/v1/search?q=${encodeURIComponent(term)}&source=web`,
-    'search',
-  );
+  const searchPages = [];
+  for (let offset = 0; offset < 5; offset++) {
+    const page = await get(
+      origin,
+      `/api/v1/search?q=${encodeURIComponent(term)}&source=web${offset ? `&offset=${offset}` : ''}`,
+      offset === 0 ? 'search' : `search-page-${offset}`,
+    );
+    searchPages.push(page);
+    if (!page.has_more) break;
+  }
+  const searchItems = searchPages.flatMap((page) => page.items ?? []);
   const candidates = [];
   evidence.candidateChecks = [];
-  for (const item of search.items.slice(0, 8)) {
+  for (const item of searchItems) {
     ensureActive();
     const { series_id, title } = item;
     if (candidates.some((candidate) => candidate.series_id === series_id)) continue;
@@ -392,9 +413,13 @@ try {
         `/api/v1/series/seasons?series_id=${encodeURIComponent(series_id)}`,
         'candidate-seasons-' + series_id,
       );
-      const contentType = seasons.items?.[0]?.drama?.content_type;
+      const playableSeason = seasons.items?.find(
+        (season) => season.playable && season.first_video_id,
+      );
+      const contentType = playableSeason?.drama?.content_type;
       const playable =
         detail.series_id === series_id &&
+        !!playableSeason &&
         detail.episodes?.some((episode) => !episode.locked && episode.video_id);
       evidence.candidateChecks.push({
         series_id,
@@ -476,6 +501,11 @@ test(${JSON.stringify(identity)},async()=>{
   await app.waitFor('id:search-input',{timeout:budget()});await app.clear('id:search-input');
   await app.type('id:search-input',term);await app.press('id:search-submit');
   await capture(name+'-search');record(name+'-search-submitted');
+  for(let page=0;page<5 && candidates.some(candidate=>!app.shows('id:drama-'+candidate.series_id));page++){
+   if(!app.shows('id:search-more'))break;
+   await app.press('id:search-more');
+   await app.wait(1000);
+  }
   for(const candidate of candidates)await app.waitFor('id:drama-'+candidate.series_id,{timeout:budget()});
   record(name+'-search-ready');
   await app.press('id:drama-'+seriesId);
@@ -565,45 +595,55 @@ test(${JSON.stringify(identity)},async()=>{
     themeDeadline = deadline;
     const first = candidates[0].series_id;
     const second = candidates[1].series_id;
-    let account = await get(origin, '/api/v1/account', 'statistics-account-' + colorScheme);
-    const initialStatistics = await watchStatistics(
-      origin,
-      account,
-      'statistics-initial-' + colorScheme,
-    );
-    if (statisticsDuration(initialStatistics) !== 0)
-      throw new Error('Independent live watch statistics database was not empty');
+    let account;
+    if (!historyOnly) {
+      account = await get(origin, '/api/v1/account', 'statistics-account-' + colorScheme);
+      const initialStatistics = await watchStatistics(
+        origin,
+        account,
+        'statistics-initial-' + colorScheme,
+      );
+      if (statisticsDuration(initialStatistics) !== 0)
+        throw new Error('Independent live watch statistics database was not empty');
+    }
     await library('initial-empty-' + colorScheme, []);
     await stage('first-play', colorScheme, deadline, "await play(0,'first-play',[first]);");
     const baseline = await library('first-play-' + colorScheme, [first]);
     checkpoint(baseline, 0);
-    account = await get(origin, '/api/v1/account', 'statistics-account-first-play-' + colorScheme);
-    const firstStatistics = await watchStatistics(
-      origin,
-      account,
-      'statistics-first-play-' + colorScheme,
-    );
-    const firstDuration = statisticsDuration(firstStatistics);
-    if (firstDuration <= 0)
-      throw new Error('Real playback did not produce watch statistics in ' + colorScheme);
-    evidence.watchStatistics.push({
-      colorScheme,
-      stage: 'first-play',
-      durationMs: firstDuration,
-      days: firstStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
-    });
-    await stage(
-      'statistics-panel',
-      colorScheme,
-      deadline,
-      `
+    let firstDuration = 0;
+    if (!historyOnly) {
+      account = await get(
+        origin,
+        '/api/v1/account',
+        'statistics-account-first-play-' + colorScheme,
+      );
+      const firstStatistics = await waitForWatchStatistics(
+        origin,
+        account,
+        'statistics-first-play-' + colorScheme,
+      );
+      firstDuration = statisticsDuration(firstStatistics);
+      if (firstDuration <= 0)
+        throw new Error('Real playback did not produce watch statistics in ' + colorScheme);
+      evidence.watchStatistics.push({
+        colorScheme,
+        stage: 'first-play',
+        durationMs: firstDuration,
+        days: firstStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
+      });
+      await stage(
+        'statistics-panel',
+        colorScheme,
+        deadline,
+        `
   await history();await app.waitFor('id:history-statistics',{timeout:budget()});
   await app.press('id:history-statistics');await app.waitFor('id:watch-statistics-panel',{timeout:budget()});
   await app.waitUntil(()=>!app.shows('text:正在读取观看统计…'),{timeout:budget()});
   expect(app.texts().some(text=>text.includes('累计观看'))).toBe(true);
   await capture('statistics-panel-real');record('statistics-panel-real',{durationMs:${firstDuration}});
   await app.press('id:watch-statistics-close');await app.waitFor('id:history-page',{timeout:budget()});`,
-    );
+      );
+    }
     await stage(
       'cancel',
       colorScheme,
@@ -643,21 +683,28 @@ test(${JSON.stringify(identity)},async()=>{
     const populated = await library('two-played-' + colorScheme, [first, second]);
     checkpoint(populated, 0);
     checkpoint(populated, 1);
-    account = await get(origin, '/api/v1/account', 'statistics-account-two-played-' + colorScheme);
-    const populatedStatistics = await watchStatistics(
-      origin,
-      account,
-      'statistics-two-played-' + colorScheme,
-    );
-    const populatedDuration = statisticsDuration(populatedStatistics);
-    if (populatedDuration < firstDuration)
-      throw new Error('Real watch statistics regressed after a second playback');
-    evidence.watchStatistics.push({
-      colorScheme,
-      stage: 'two-played',
-      durationMs: populatedDuration,
-      days: populatedStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
-    });
+    let populatedDuration = 0;
+    if (!historyOnly) {
+      account = await get(
+        origin,
+        '/api/v1/account',
+        'statistics-account-two-played-' + colorScheme,
+      );
+      const populatedStatistics = await watchStatistics(
+        origin,
+        account,
+        'statistics-two-played-' + colorScheme,
+      );
+      populatedDuration = statisticsDuration(populatedStatistics);
+      if (populatedDuration < firstDuration)
+        throw new Error('Real watch statistics regressed after a second playback');
+      evidence.watchStatistics.push({
+        colorScheme,
+        stage: 'two-played',
+        durationMs: populatedDuration,
+        days: populatedStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
+      });
+    }
     await stop(api);
     origin = await start();
     await runtimeConfig('web', origin);
@@ -665,30 +712,32 @@ test(${JSON.stringify(identity)},async()=>{
     const restartedPopulated = await library('restarted-populated-' + colorScheme, [first, second]);
     if (JSON.stringify(restartedPopulated) !== JSON.stringify(populated))
       throw new Error('Rust API restart changed real populated history in ' + colorScheme);
-    const restartedAccount = await get(
-      origin,
-      '/api/v1/account',
-      'statistics-account-restarted-' + colorScheme,
-    );
-    const restartedStatistics = await watchStatistics(
-      origin,
-      restartedAccount,
-      'statistics-restarted-' + colorScheme,
-    );
-    const restartedDuration = statisticsDuration(restartedStatistics);
-    if (restartedDuration !== populatedDuration)
-      throw new Error('Rust API restart changed real watch statistics in ' + colorScheme);
-    evidence.watchStatistics.push({
-      colorScheme,
-      stage: 'restarted',
-      durationMs: restartedDuration,
-      days: restartedStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
-    });
-    await stage(
-      'statistics-reset',
-      colorScheme,
-      deadline,
-      `
+    let restartedAccount;
+    if (!historyOnly) {
+      restartedAccount = await get(
+        origin,
+        '/api/v1/account',
+        'statistics-account-restarted-' + colorScheme,
+      );
+      const restartedStatistics = await watchStatistics(
+        origin,
+        restartedAccount,
+        'statistics-restarted-' + colorScheme,
+      );
+      const restartedDuration = statisticsDuration(restartedStatistics);
+      if (restartedDuration !== populatedDuration)
+        throw new Error('Rust API restart changed real watch statistics in ' + colorScheme);
+      evidence.watchStatistics.push({
+        colorScheme,
+        stage: 'restarted',
+        durationMs: restartedDuration,
+        days: restartedStatistics.days.map(({ day, duration_ms }) => ({ day, duration_ms })),
+      });
+      await stage(
+        'statistics-reset',
+        colorScheme,
+        deadline,
+        `
   await history();await app.waitFor('id:history-statistics',{timeout:budget()});
   await app.press('id:history-statistics');await app.waitFor('id:watch-statistics-panel',{timeout:budget()});
   await app.waitUntil(()=>!app.shows('text:正在读取观看统计…'),{timeout:budget()});
@@ -697,26 +746,27 @@ test(${JSON.stringify(identity)},async()=>{
   await app.waitUntil(()=>app.shows('text:这个周期还没有观看统计。开始观看后会显示在这里。'),{timeout:budget()});
   await capture('statistics-reset-empty');record('statistics-reset-empty',{historyRetained:true});
   await app.press('id:watch-statistics-close');await app.waitFor('id:history-page',{timeout:budget()});`,
-    );
-    const resetStatistics = await watchStatistics(
-      origin,
-      restartedAccount,
-      'statistics-reset-' + colorScheme,
-    );
-    if (statisticsDuration(resetStatistics) !== 0 || resetStatistics.days.length !== 0)
-      throw new Error('Real statistics reset did not clear statistics in ' + colorScheme);
-    const historyAfterStatisticsReset = await library(
-      'history-after-statistics-reset-' + colorScheme,
-      [first, second],
-    );
-    if (JSON.stringify(historyAfterStatisticsReset) !== JSON.stringify(restartedPopulated))
-      throw new Error('Statistics reset changed real viewing history in ' + colorScheme);
-    evidence.watchStatistics.push({
-      colorScheme,
-      stage: 'reset',
-      durationMs: 0,
-      historyEntries: historyAfterStatisticsReset.entries.map((entry) => entry.drama.series_id),
-    });
+      );
+      const resetStatistics = await watchStatistics(
+        origin,
+        restartedAccount,
+        'statistics-reset-' + colorScheme,
+      );
+      if (statisticsDuration(resetStatistics) !== 0 || resetStatistics.days.length !== 0)
+        throw new Error('Real statistics reset did not clear statistics in ' + colorScheme);
+      const historyAfterStatisticsReset = await library(
+        'history-after-statistics-reset-' + colorScheme,
+        [first, second],
+      );
+      if (JSON.stringify(historyAfterStatisticsReset) !== JSON.stringify(restartedPopulated))
+        throw new Error('Statistics reset changed real viewing history in ' + colorScheme);
+      evidence.watchStatistics.push({
+        colorScheme,
+        stage: 'reset',
+        durationMs: 0,
+        historyEntries: historyAfterStatisticsReset.entries.map((entry) => entry.drama.series_id),
+      });
+    }
     await stage(
       'reopen-populated',
       colorScheme,
@@ -738,7 +788,11 @@ test(${JSON.stringify(identity)},async()=>{
       `
   await manage();const before=app.requests().length;
   await app.keyboard.press('tab');await capture('keyboard-select-all-focus');
-  await app.keyboard.press('space');await app.waitFor('text:删除所选（2）',{timeout:budget()});
+  // The formal browser driver does not guarantee that a programmatic press
+  // leaves focus on the management trigger. Establish the public checkbox
+  // target, then exercise the keyboard toggle from that stable focus.
+  await app.press('id:history-select-all');
+  await app.waitFor('text:删除所选（2）',{timeout:budget()});
   await app.keyboard.press('space');await app.waitFor('text:删除所选（0）',{timeout:budget()});
   const cancelScope=async(name:string,title:string)=>{
    await app.keyboard.press('enter');await app.waitFor('id:history-confirm',{timeout:budget()});
