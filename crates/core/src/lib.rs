@@ -1,4 +1,5 @@
-//! Platform-independent domain rules and anonymous catalog queries. No NSH or account state.
+//! Platform-independent domain rules and services. No NSH or host UI state.
+pub mod account;
 pub mod catalog;
 mod http;
 pub mod library;

@@ -33,14 +33,14 @@ export type LibraryOperation = components['schemas']['LibraryOperation'];
 
 export type PlayInfo = components['schemas']['PlayInfo'];
 
-// Account remains a migration compatibility type.
-export interface Account {
-  logged_in: boolean;
-  profile?: { name: string };
-  error?: string;
-  qr_login?: { id: string; image?: string; state: string; error?: string };
-  qr_login_available?: boolean;
-}
+export type Account = components['schemas']['Account'];
+export type AccountProfile = components['schemas']['AccountProfile'];
+export type AccountLogin = components['schemas']['AccountLogin'];
+export type AccountCommand = components['schemas']['AccountCommand'];
+export type AccountCommandRequest = components['schemas']['AccountCommandRequest'];
+export type AccountCommandResult = components['schemas']['AccountCommandResult'];
+export type LoginMethod = components['schemas']['LoginMethod'];
+export type LoginState = components['schemas']['LoginState'];
 export type { paths, components } from './generated';
 
 export type SeriesSeason = components['schemas']['SeriesSeason'];

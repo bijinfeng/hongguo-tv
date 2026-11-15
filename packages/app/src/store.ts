@@ -15,6 +15,8 @@ import {
   CoreError,
   captureRequest,
   type Account,
+  type AccountCommand,
+  type AccountCommandResult,
   type Drama,
   type Episode,
   type HistoryChange,
@@ -175,7 +177,109 @@ export function createStore(
   };
   const history = createLibraryState(request);
   const library = history.library;
-  const account = resource(({ signal }) => request<Account>('/api/v1/account', signal));
+  let accountRevision = 0;
+  let latestAccount: Account | undefined;
+  const account = resource(async ({ signal }) => {
+    const revision = accountRevision;
+    try {
+      const next = await request<Account>('/api/v1/account', signal);
+      if (revision !== accountRevision && latestAccount) return latestAccount;
+      latestAccount = next;
+      return next;
+    } catch (cause) {
+      if (revision !== accountRevision && latestAccount) return latestAccount;
+      throw cause;
+    }
+  });
+  const publishAccount = (next: Account) => {
+    accountRevision++;
+    latestAccount = next;
+    account.mutate(next);
+  };
+  let accountTail = Promise.resolve();
+  const cancelledAccountCommand = () => new CoreError('账号操作已取消。', 'CORE_CANCELLED', 499);
+  const accountCommand = (command: AccountCommand, abort?: AbortSignal): Promise<Account> => {
+    const scope = {
+      owner_id: latestAccount?.owner_id ?? library()?.owner_id ?? '',
+      owner_epoch: latestAccount?.owner_epoch ?? '',
+    };
+    const admittedRevision = accountRevision;
+    // Cancellation must reach the core while a login command is still awaiting its response.
+    if (command.action === 'cancel')
+      return request<AccountCommandResult>('/api/v1/account/command', undefined, {
+        ...scope,
+        command,
+      })
+        .catch(async (cause) => {
+          if (
+            !(cause instanceof CoreError) ||
+            !['ACCOUNT_OWNER_CHANGED', 'ACCOUNT_ATTEMPT_EXPIRED'].includes(cause.code)
+          )
+            throw cause;
+          // Completion may have won cancellation; observe it instead of claiming rollback.
+          return request<AccountCommandResult>('/api/v1/account/state');
+        })
+        .then((result) => {
+          if (
+            admittedRevision === accountRevision &&
+            result.account.owner_epoch === scope.owner_epoch &&
+            result.account.owner_id === (library()?.owner_id ?? '')
+          )
+            publishAccount(result.account);
+          return result.account;
+        });
+    const run = async () => {
+      if (abort?.aborted) throw cancelledAccountCommand();
+      let result: AccountCommandResult | undefined;
+      if (history.ownerBlocked()) {
+        await history.transitionOwner(
+          async () => {
+            result = await request<AccountCommandResult>('/api/v1/account/state');
+            if (result.account.owner_id !== (result.library.owner_id ?? ''))
+              throw new CoreError(
+                '账号与观看记录不一致，请重新读取。',
+                'ACCOUNT_OWNER_CHANGED',
+                409,
+              );
+            return result.library;
+          },
+          () => publishAccount(result!.account),
+        );
+      }
+      if (abort?.aborted) throw cancelledAccountCommand();
+      playerCommand?.('pause');
+      playerCheckpoint?.();
+      let failure: unknown;
+      await history.transitionOwner(
+        async () => {
+          try {
+            if (abort?.aborted) throw cancelledAccountCommand();
+            result = await request<AccountCommandResult>('/api/v1/account/command', abort, {
+              ...scope,
+              command,
+            });
+            // An aborted response cannot authorize publication; reread the core instead.
+            if (abort?.aborted) throw cancelledAccountCommand();
+          } catch (cause) {
+            failure = cause;
+            result = await request<AccountCommandResult>('/api/v1/account/state');
+          }
+          if (result.account.owner_id !== (result.library.owner_id ?? ''))
+            throw new CoreError('账号与观看记录不一致，请重新读取。', 'ACCOUNT_OWNER_CHANGED', 409);
+          return result.library;
+        },
+        () => publishAccount(result!.account),
+      );
+      if (failure) throw failure;
+      return result!.account;
+    };
+    const pending = accountTail.then(run);
+    accountTail = pending.then(
+      () => {},
+      () => {},
+    );
+    return pending;
+  };
   const entries = () =>
     (library()?.entries ?? [])
       .filter((entry) => entry.last_played_at)
@@ -377,6 +481,7 @@ export function createStore(
     results,
     library,
     account,
+    accountCommand,
     warning,
     submit() {
       if (suggestions.composing()) return false;

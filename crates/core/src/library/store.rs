@@ -15,31 +15,48 @@ const APPLICATION_ID: i64 = 0x48475456;
 pub struct LibraryStore(
     pub(super) Arc<Mutex<Connection>>,
     pub(super) Arc<super::operations::WriteSessions>,
+    pub(super) String,
 );
 impl LibraryStore {
-    /// Open an explicit database path on a blocking worker; never imports legacy data.
+    /// Open an explicit guest database; never imports legacy data or adopts an account library.
     pub async fn open(path: impl Into<PathBuf>) -> Result<Self, LibraryError> {
-        let path = path.into();
+        Self::open_owned(path.into(), String::new()).await
+    }
+    /// Open a library for an already authenticated owner, never for an owner supplied by a mutation.
+    /// Existing guest or other-account databases are rejected without changing their identity.
+    pub async fn open_for_owner(
+        path: impl Into<PathBuf>,
+        owner_id: String,
+    ) -> Result<Self, LibraryError> {
+        if !super::valid_id(&owner_id) {
+            return Err(LibraryError::InvalidInput);
+        }
+        Self::open_owned(path.into(), owner_id).await
+    }
+    async fn open_owned(path: PathBuf, owner: String) -> Result<Self, LibraryError> {
+        let expected = owner.clone();
         let (connection, canonical) = tokio::task::spawn_blocking(move || {
-            let connection = initialize(path.clone())?;
+            let connection = initialize(path.clone(), &expected)?;
             let canonical = std::fs::canonicalize(path).map_err(|_| LibraryError::Storage)?;
             Ok::<_, LibraryError>((connection, canonical))
         })
         .await
         .map_err(|_| LibraryError::Storage)??;
-        let sessions = super::operations::shared_sessions(&canonical)?;
-        Ok(Self(Arc::new(Mutex::new(connection)), sessions))
+        let sessions = super::operations::shared_sessions(&canonical, &owner)?;
+        Ok(Self(Arc::new(Mutex::new(connection)), sessions, owner))
     }
     /// Return committed history without creating or updating an entry.
     pub async fn snapshot(&self) -> Result<Library, LibraryError> {
         self.1.wait_registered().await?;
-        self.run(|conn| snapshot(conn)).await
+        let owner = self.2.clone();
+        self.run(move |conn| snapshot(conn, &owner)).await
     }
     /// Commit an explicit mutation before returning its snapshot.
     /// Once blocking execution starts, dropping this future does not roll back the write.
     pub async fn apply(&self, change: HistoryChange) -> Result<Library, LibraryError> {
-        change.validate()?;
-        self.run(move |conn| apply(conn, change)).await
+        change.validate(&self.2)?;
+        let owner = self.2.clone();
+        self.run(move |conn| apply(conn, change, &owner)).await
     }
 
     pub(super) async fn run<T: Send + 'static>(
@@ -47,16 +64,25 @@ impl LibraryStore {
         operation: impl FnOnce(&mut Connection) -> Result<T, LibraryError> + Send + 'static,
     ) -> Result<T, LibraryError> {
         let connection = self.0.clone();
+        let owner = self.2.clone();
+        let admission = self.1.begin_blocking()?;
         tokio::task::spawn_blocking(move || {
+            let _admission = admission;
             let mut conn = connection.lock().map_err(|_| LibraryError::Storage)?;
+            validate_database_owner(&conn, &owner)?;
             operation(&mut conn)
         })
         .await
         .map_err(|_| LibraryError::Storage)?
     }
 }
-pub(super) fn apply(conn: &mut Connection, change: HistoryChange) -> Result<Library, LibraryError> {
+pub(super) fn apply(
+    conn: &mut Connection,
+    change: HistoryChange,
+    owner: &str,
+) -> Result<Library, LibraryError> {
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    validate_database_owner(&tx, owner)?;
     match change {
         HistoryChange::Progress(progress) => {
             let previous: i64 = tx.query_row(
@@ -88,12 +114,12 @@ pub(super) fn apply(conn: &mut Connection, change: HistoryChange) -> Result<Libr
             tx.execute("DELETE FROM history", [])?;
         }
     }
-    let result = snapshot(&tx)?;
+    let result = snapshot(&tx, owner)?;
     tx.commit()?;
     Ok(result)
 }
 
-fn initialize(path: PathBuf) -> Result<Connection, LibraryError> {
+fn initialize(path: PathBuf, owner: &str) -> Result<Connection, LibraryError> {
     if path.file_name().is_none() || path == std::path::Path::new(":memory:") {
         return Err(LibraryError::InvalidInput);
     }
@@ -136,14 +162,26 @@ fn initialize(path: PathBuf) -> Result<Connection, LibraryError> {
         tx.execute_batch(
             "CREATE TABLE history(series_id TEXT PRIMARY KEY NOT NULL, entry_json TEXT NOT NULL,
              last_played_at INTEGER NOT NULL CHECK(last_played_at > 0));
+             CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL CHECK(rank >= 0 AND rank < 10),
+             query TEXT UNIQUE NOT NULL);
              PRAGMA application_id=1212634198;
-             PRAGMA user_version=1;",
+             PRAGMA user_version=2;",
         )?;
-    } else if id != APPLICATION_ID || !(1..=2).contains(&version) {
+        if !owner.is_empty() {
+            tx.execute_batch(
+                "CREATE TABLE library_owner(singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                 owner_id TEXT NOT NULL); PRAGMA user_version=3;",
+            )?;
+            tx.execute(
+                "INSERT INTO library_owner(singleton, owner_id) VALUES (1, ?1)",
+                [owner],
+            )?;
+        }
+    } else if id != APPLICATION_ID || !(1..=3).contains(&version) {
         return Err(LibraryError::InvalidDatabase);
     }
-    snapshot(&tx)?;
-    if version <= 1 {
+    snapshot(&tx, owner)?;
+    if version == 1 {
         tx.execute_batch(
             "CREATE TABLE recent_searches(rank INTEGER PRIMARY KEY NOT NULL CHECK(rank >= 0 AND rank < 10),
              query TEXT UNIQUE NOT NULL); PRAGMA user_version=2;",
@@ -159,7 +197,57 @@ fn initialize(path: PathBuf) -> Result<Connection, LibraryError> {
     conn.pragma_update(None, "synchronous", "FULL")?;
     Ok(conn)
 }
-fn snapshot(conn: &Connection) -> Result<Library, LibraryError> {
+fn validate_database_owner(conn: &Connection, expected: &str) -> Result<(), LibraryError> {
+    let id: i64 = conn.query_row("PRAGMA application_id", [], |r| r.get(0))?;
+    let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    if id != APPLICATION_ID {
+        return Err(LibraryError::InvalidDatabase);
+    }
+    let owner = match version {
+        1 | 2 => {
+            let identities: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM sqlite_schema WHERE name='library_owner'",
+                [],
+                |r| r.get(0),
+            )?;
+            if identities != 0 {
+                return Err(LibraryError::InvalidDatabase);
+            }
+            String::new()
+        }
+        3 => {
+            let mut statement = conn
+                .prepare("SELECT singleton, owner_id FROM library_owner")
+                .map_err(|_| LibraryError::InvalidDatabase)?;
+            let mut rows = statement
+                .query([])
+                .map_err(|_| LibraryError::InvalidDatabase)?;
+            let row = rows
+                .next()
+                .map_err(|_| LibraryError::InvalidDatabase)?
+                .ok_or(LibraryError::InvalidDatabase)?;
+            let singleton: i64 = row.get(0).map_err(|_| LibraryError::InvalidDatabase)?;
+            let owner: String = row.get(1).map_err(|_| LibraryError::InvalidDatabase)?;
+            if singleton != 1
+                || !super::valid_id(&owner)
+                || rows
+                    .next()
+                    .map_err(|_| LibraryError::InvalidDatabase)?
+                    .is_some()
+            {
+                return Err(LibraryError::InvalidDatabase);
+            }
+            owner
+        }
+        _ => return Err(LibraryError::InvalidDatabase),
+    };
+    if owner != expected {
+        return Err(LibraryError::OwnerChanged);
+    }
+    Ok(())
+}
+fn snapshot(conn: &Connection, owner: &str) -> Result<Library, LibraryError> {
+    validate_database_owner(conn, owner)?;
     let mut query = conn.prepare("SELECT series_id, entry_json, last_played_at FROM history ORDER BY last_played_at DESC, series_id")?;
     let mut rows = query.query([])?;
     let mut entries = Vec::new();
@@ -193,6 +281,6 @@ fn snapshot(conn: &Connection) -> Result<Library, LibraryError> {
     }
     Ok(Library {
         entries,
-        owner_id: Some(String::new()),
+        owner_id: Some(owner.to_owned()),
     })
 }

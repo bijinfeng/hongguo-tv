@@ -8,3 +8,5 @@ export { registerUpdateTests } from './updates';
 export { registerCalendarTests } from './calendar';
 export { registerCalendarBackTests } from './calendar-back';
 export { registerRankingsTests } from './rankings';
+
+export { registerAccountTests } from './account';

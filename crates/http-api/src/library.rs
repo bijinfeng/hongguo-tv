@@ -59,6 +59,12 @@ pub(crate) async fn get(
 ) -> Response {
     let result = async {
         let Query(params) = params.map_err(|_| LibraryError::InvalidInput)?;
+        if let Some(account) = state.account {
+            return account
+                .library_snapshot(params.owner_id.as_deref())
+                .await
+                .map(Some);
+        }
         if params.owner_id.as_ref().is_some_and(|id| !id.is_empty()) {
             return Err(LibraryError::OwnerChanged);
         }
@@ -81,6 +87,9 @@ pub(crate) async fn change(
 ) -> Response {
     let result = async {
         let Json(change) = payload.map_err(|_| LibraryError::InvalidInput)?;
+        if let Some(account) = state.account {
+            return account.apply_history(change).await.map(Some);
+        }
         match state.library {
             Some(store) => store.apply(change).await.map(Some),
             None => Ok(None),
@@ -103,6 +112,9 @@ pub(crate) async fn session(
         async {
             params.map_err(|_| LibraryError::InvalidInput)?;
             let Json(request) = payload.map_err(|_| LibraryError::InvalidInput)?;
+            if let Some(account) = state.account {
+                return account.write_session(request).await.map(Some);
+            }
             match state.library {
                 Some(store) => store.write_session(request).await.map(Some),
                 None => Ok(None),
@@ -128,6 +140,9 @@ pub(crate) async fn operation(
         async {
             let Query(identity) = params.map_err(|_| LibraryError::InvalidInput)?;
             let Json(change) = payload.map_err(|_| LibraryError::InvalidInput)?;
+            if let Some(account) = state.account {
+                return account.apply_operation(identity, change).await.map(Some);
+            }
             match state.library {
                 Some(store) => store.apply_operation(identity, change).await.map(Some),
                 None => Ok(None),

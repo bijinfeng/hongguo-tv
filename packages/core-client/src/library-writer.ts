@@ -54,7 +54,7 @@ const optionalNumber = (value: unknown, maximum = Infinity, integer = false) =>
 function validLibrary(value: unknown): value is Library {
   return (
     record(value) &&
-    (value.owner_id === undefined || value.owner_id === '') &&
+    (value.owner_id === undefined || value.owner_id === '' || decimalId(value.owner_id)) &&
     Array.isArray(value.entries) &&
     value.entries.every((entry: unknown) => {
       if (!record(entry) || !record(entry.drama)) return false;
@@ -92,6 +92,7 @@ export function createLibraryWriter(
   canDispatch: () => boolean = () => true,
 ) {
   let session: string | undefined;
+  let ownerId: string | undefined;
   let next = 1n;
   let pending: { operation_id: string; payload: string } | undefined;
   let running = false;
@@ -113,7 +114,9 @@ export function createLibraryWriter(
       checkOwner();
       checkAbort(abort);
       if (!session) {
-        const opened = await request<unknown>('/api/v1/library/session', abort, { owner_id: '' });
+        const opened = await request<unknown>('/api/v1/library/session', abort, {
+          owner_id: ownerId,
+        });
         checkAbort(abort);
         if (
           !record(opened) ||
@@ -140,7 +143,11 @@ export function createLibraryWriter(
       )
         throw failure('LIBRARY_RECEIPT_INVALID', '记录写入回执不匹配，请重试确认。');
       const outcome = receipt.outcome;
-      if (outcome.status === 'committed' && validLibrary(outcome.library)) {
+      if (
+        outcome.status === 'committed' &&
+        validLibrary(outcome.library) &&
+        (outcome.library.owner_id ?? '') === ownerId
+      ) {
         const result = {
           change: change(),
           library: outcome.library,
@@ -190,11 +197,24 @@ export function createLibraryWriter(
       const snapshot: unknown = JSON.parse(payload);
       if (
         !record(snapshot) ||
-        (snapshot.owner_id !== undefined && snapshot.owner_id !== null && snapshot.owner_id !== '')
+        (snapshot.owner_id !== undefined &&
+          snapshot.owner_id !== null &&
+          snapshot.owner_id !== '' &&
+          !decimalId(snapshot.owner_id))
       )
-        throw new Error('记录所属账号已变化，不能创建游客写入会话。');
+        throw new Error('记录所属账号无效，不能创建写入会话。');
+      const inputOwner = (snapshot.owner_id as string | undefined) ?? '';
+      if (ownerId !== undefined && ownerId !== inputOwner)
+        throw new Error('记录所属账号已变化，不能复用写入会话。');
+      ownerId = inputOwner;
       pending = { operation_id: String(next++), payload };
       return send(abort);
+    },
+    reset() {
+      if (pending || running) throw new Error('记录写入尚未确认，不能重置会话。');
+      session = undefined;
+      ownerId = undefined;
+      next = 1n;
     },
     async resolve(abort?: AbortSignal): Promise<LibraryWriteResult | undefined> {
       if (!pending) return undefined;

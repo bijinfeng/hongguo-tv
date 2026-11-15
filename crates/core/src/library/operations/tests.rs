@@ -54,6 +54,191 @@ fn identity(session: &LibraryWriteSession, sequence: u64) -> LibraryOperationIde
     }
 }
 
+fn owned_progress(owner: &str, position: f64) -> HistoryChange {
+    let HistoryChange::Progress(mut change) = progress(position) else {
+        unreachable!()
+    };
+    change.owner_id = Some(owner.into());
+    HistoryChange::Progress(change)
+}
+
+fn owner_request(owner: &str) -> LibraryWriteSessionRequest {
+    LibraryWriteSessionRequest {
+        owner_id: Some(owner.into()),
+    }
+}
+
+#[tokio::test]
+async fn account_sessions_cannot_cross_owners_or_replay_after_switching_back() {
+    let tmp = Temp::new();
+    let path = tmp.0.join("account-a.sqlite3");
+    let account = LibraryStore::open_for_owner(&path, "1".into())
+        .await
+        .unwrap();
+    let other = LibraryStore::open_for_owner(tmp.0.join("account-b.sqlite3"), "2".into())
+        .await
+        .unwrap();
+    for request in [LibraryWriteSessionRequest::default(), owner_request("2")] {
+        assert_eq!(
+            account.write_session(request).await.err(),
+            Some(LibraryError::OwnerChanged)
+        );
+    }
+    let first = account.write_session(owner_request("1")).await.unwrap();
+    let second = other.write_session(owner_request("2")).await.unwrap();
+    assert_eq!(
+        account
+            .apply_operation(identity(&first, 1), owned_progress("2", 10.0))
+            .await
+            .err(),
+        Some(LibraryError::OwnerChanged)
+    );
+    assert_eq!(
+        other
+            .apply_operation(identity(&first, 1), owned_progress("2", 10.0))
+            .await
+            .err(),
+        Some(LibraryError::SessionExpired)
+    );
+    assert_eq!(
+        account
+            .apply_operation(identity(&second, 1), owned_progress("1", 10.0))
+            .await
+            .err(),
+        Some(LibraryError::SessionExpired)
+    );
+    let receipt = account
+        .apply_operation(identity(&first, 1), owned_progress("1", 10.0))
+        .await
+        .unwrap();
+    assert!(
+        matches!(receipt.outcome, LibraryOperationOutcome::Committed { ref library } if library.owner_id.as_deref() == Some("1"))
+    );
+    let retained = account.clone();
+    account.invalidate_write_sessions().await.unwrap();
+    drop(account);
+    other
+        .apply_operation(identity(&second, 1), owned_progress("2", 20.0))
+        .await
+        .unwrap();
+    let reopened = LibraryStore::open_for_owner(&path, "1".into())
+        .await
+        .unwrap();
+    assert_eq!(
+        reopened
+            .apply_operation(identity(&first, 1), owned_progress("1", 10.0))
+            .await
+            .err(),
+        Some(LibraryError::SessionExpired)
+    );
+    let fresh = reopened.write_session(owner_request("1")).await.unwrap();
+    reopened
+        .apply_operation(identity(&fresh, 1), owned_progress("1", 30.0))
+        .await
+        .unwrap();
+    assert_eq!(
+        reopened.snapshot().await.unwrap().entries[0].position,
+        Some(30.0)
+    );
+    assert_eq!(
+        other.snapshot().await.unwrap().entries[0].position,
+        Some(20.0)
+    );
+    assert_eq!(
+        retained
+            .apply_operation(identity(&first, 1), owned_progress("1", 10.0))
+            .await
+            .err(),
+        Some(LibraryError::SessionExpired)
+    );
+}
+
+#[tokio::test]
+#[allow(
+    clippy::await_holding_lock,
+    reason = "Gate admitted blocking workers to prove invalidation waits for real execution"
+)]
+async fn invalidation_drains_cancelled_legacy_and_registered_writes_before_expiring_tokens() {
+    let tmp = Temp::new();
+    let store = LibraryStore::open_for_owner(tmp.0.join("account.sqlite3"), "1".into())
+        .await
+        .unwrap();
+    let connection = store.0.clone();
+    let gate = connection.lock().unwrap();
+    let mut legacy = Box::pin(store.apply(owned_progress("1", 10.0)));
+    assert!(matches!(
+        legacy
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Pending
+    ));
+    drop(legacy);
+    let mut draining = Box::pin(store.invalidate_write_sessions());
+    assert!(matches!(
+        draining
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Pending
+    ));
+    drop(gate);
+    draining.await.unwrap();
+    assert_eq!(
+        store.snapshot().await.unwrap().entries[0].position,
+        Some(10.0)
+    );
+
+    let old = store.write_session(owner_request("1")).await.unwrap();
+    let gate = connection.lock().unwrap();
+    let HistoryChange::Progress(mut second) = owned_progress("1", 20.0) else {
+        unreachable!()
+    };
+    second.drama.series_id = "124".into();
+    let mut registered =
+        Box::pin(store.apply_operation(identity(&old, 1), HistoryChange::Progress(second)));
+    assert!(matches!(
+        registered
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Pending
+    ));
+    let mut invalidating = Box::pin(store.invalidate_write_sessions());
+    assert!(matches!(
+        invalidating
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Pending
+    ));
+    assert_eq!(
+        store
+            .register_operation(&identity(&old, 2), owned_progress("1", 30.0))
+            .err(),
+        Some(LibraryError::SessionExpired)
+    );
+    drop(invalidating);
+    assert_eq!(
+        store
+            .register_operation(&identity(&old, 1), owned_progress("1", 20.0))
+            .err(),
+        Some(LibraryError::SessionExpired)
+    );
+    drop(gate);
+    store.invalidate_write_sessions().await.unwrap();
+    assert!(matches!(
+        registered.await.unwrap().outcome,
+        LibraryOperationOutcome::Committed { .. }
+    ));
+    assert_eq!(store.snapshot().await.unwrap().entries.len(), 2);
+    let fresh = store.write_session(owner_request("1")).await.unwrap();
+    store
+        .apply_operation(identity(&fresh, 1), owned_progress("1", 40.0))
+        .await
+        .unwrap();
+    assert_eq!(
+        store.snapshot().await.unwrap().entries[0].position,
+        Some(40.0)
+    );
+}
+
 #[tokio::test]
 async fn cancelled_waiter_replays_one_original_write_and_stale_ids_never_write_again() {
     let tmp = Temp::new();

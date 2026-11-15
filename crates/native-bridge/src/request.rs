@@ -1,6 +1,7 @@
 use axum::{extract::Query, http::Uri};
 use hongguo_core::{
     CoreStatus,
+    account::{AccountCommandRequest, AccountError, AccountService},
     catalog::{
         ActorQuery, CatalogClient, CatalogError, CategoryParams, CategoryQuery, FeedParams,
         FeedQuery, SearchQuery, SuggestionQuery,
@@ -21,6 +22,7 @@ pub(crate) struct Services {
     pub library: LibraryStore,
     pub playback: PlaybackService,
     pub radar: Option<RadarService>,
+    pub account: Option<AccountService>,
 }
 
 #[derive(Clone, Serialize)]
@@ -117,7 +119,10 @@ pub(crate) enum Request {
     Rankings(hongguo_core::catalog::RankQuery),
     Detail(String, Option<String>),
     Play(PlaybackRequest),
-    Library,
+    Library(Option<String>),
+    Account,
+    AccountState,
+    AccountCommand(AccountCommandRequest),
     Change(HistoryChange),
     LibraryWriteSession(LibraryWriteSessionRequest),
     LibraryOperation(LibraryOperationIdentity, HistoryChange),
@@ -270,10 +275,7 @@ impl Request {
             ("/api/v1/library", None) => {
                 let p: Library =
                     query(&uri).map_err(|_| library_error(LibraryError::InvalidInput))?;
-                if p.owner_id.is_some_and(|s| !s.is_empty()) {
-                    return Err(library_error(LibraryError::OwnerChanged));
-                }
-                Ok(Self::Library)
+                Ok(Self::Library(p.owner_id))
             }
             ("/api/v1/library", Some(body)) => Ok(Self::Change(
                 serde_json::from_str(body)
@@ -303,7 +305,24 @@ impl Request {
                         .to_owned(),
                 ))
             }
-            ("/api/v1/account", None) => Ok(Self::Unavailable),
+            ("/api/v1/account", None) => {
+                let _: NoParams =
+                    query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?;
+                Ok(Self::Account)
+            }
+            ("/api/v1/account/state", None) => {
+                let _: NoParams =
+                    query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?;
+                Ok(Self::AccountState)
+            }
+            ("/api/v1/account/command", Some(body)) => {
+                let _: NoParams =
+                    query(&uri).map_err(|_| account_error(AccountError::InvalidInput))?;
+                Ok(Self::AccountCommand(
+                    serde_json::from_str(body)
+                        .map_err(|_| account_error(AccountError::InvalidInput))?,
+                ))
+            }
             (path, _)
                 if path
                     .strip_prefix("/api/v1/account/qr/")
@@ -313,6 +332,8 @@ impl Request {
             }
             (
                 "/api/v1/status"
+                | "/api/v1/account/state"
+                | "/api/v1/account/command"
                 | "/api/v1/radar"
                 | "/api/v1/search"
                 | "/api/v1/search/discovery"
@@ -400,6 +421,7 @@ impl Request {
                 let mut status = CoreStatus::default();
                 status.capabilities.history = true;
                 status.capabilities.playback = true;
+                status.capabilities.account = services.account.is_some();
                 Ok(Reply::success(status))
             }
             Self::Discovery => services
@@ -444,30 +466,65 @@ impl Request {
                 .await
                 .map(Reply::success)
                 .map_err(search_history_error),
-            Self::Library => services
-                .library
-                .snapshot()
-                .await
-                .map(Reply::success)
-                .map_err(library_error),
-            Self::Change(change) => services
-                .library
-                .apply(change)
-                .await
-                .map(Reply::success)
-                .map_err(library_error),
-            Self::LibraryWriteSession(request) => services
-                .library
-                .write_session(request)
-                .await
-                .map(Reply::success)
-                .map_err(library_error),
-            Self::LibraryOperation(identity, change) => services
-                .library
-                .apply_operation(identity, change)
-                .await
-                .map(Reply::success)
-                .map_err(library_error),
+            Self::Library(owner) => match &services.account {
+                Some(account) => account.library_snapshot(owner.as_deref()).await,
+                None if owner.as_ref().is_some_and(|id| !id.is_empty()) => {
+                    Err(LibraryError::OwnerChanged)
+                }
+                None => services.library.snapshot().await,
+            }
+            .map(Reply::success)
+            .map_err(library_error),
+            Self::Change(change) => match &services.account {
+                Some(account) => account.apply_history(change).await,
+                None => services.library.apply(change).await,
+            }
+            .map(Reply::success)
+            .map_err(library_error),
+            Self::LibraryWriteSession(request) => match &services.account {
+                Some(account) => account.write_session(request).await,
+                None => services.library.write_session(request).await,
+            }
+            .map(Reply::success)
+            .map_err(library_error),
+            Self::LibraryOperation(identity, change) => match &services.account {
+                Some(account) => account.apply_operation(identity, change).await,
+                None => services.library.apply_operation(identity, change).await,
+            }
+            .map(Reply::success)
+            .map_err(library_error),
+            Self::Account => match &services.account {
+                Some(account) => Ok(Reply::success(account.snapshot().await)),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
+            Self::AccountState => match &services.account {
+                Some(account) => account
+                    .state()
+                    .await
+                    .map(Reply::success)
+                    .map_err(account_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
+            Self::AccountCommand(request) => match &services.account {
+                Some(account) => account
+                    .command(request)
+                    .await
+                    .map(Reply::success)
+                    .map_err(account_error),
+                None => Err(Reply::failure(
+                    501,
+                    "CORE_NOT_IMPLEMENTED",
+                    "此功能尚未开放",
+                )),
+            },
             Self::Play(request) => services
                 .playback
                 .resolve(&request)
@@ -550,4 +607,15 @@ pub(crate) fn search_history_error(error: SearchHistoryError) -> Reply {
 
 pub(crate) fn radar_error(error: RadarError) -> Reply {
     Reply::failure(error.status(), error.code(), error.message())
+}
+
+pub(crate) fn account_error(error: AccountError) -> Reply {
+    let status = match error {
+        AccountError::InvalidInput => 400,
+        AccountError::AttemptExpired | AccountError::Busy | AccountError::OwnerChanged => 409,
+        AccountError::Limited => 429,
+        AccountError::Storage | AccountError::InvalidSession | AccountError::Library => 500,
+        AccountError::Upstream | AccountError::IdentityMismatch => 502,
+    };
+    Reply::failure(status, error.code(), &error.to_string())
 }

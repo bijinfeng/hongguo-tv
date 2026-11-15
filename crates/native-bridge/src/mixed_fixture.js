@@ -52,6 +52,7 @@ async function main() {
     const status = await request(session, '/api/v1/status');
     expect(status.body.data.capabilities.history, 'native history capability');
     expect(status.body.data.capabilities.playback, 'native playback capability');
+    expect(status.body.data.capabilities.account, 'native account capability');
     const saved = await request(
       session,
       '/api/v1/library',
@@ -65,10 +66,10 @@ async function main() {
       }),
     );
     expect(saved.body.data.entries[0].position === 12.5, 'mixed history save');
-    expect(
-      (await request(session, '/api/v1/account')).body.code === 'CORE_NOT_IMPLEMENTED',
-      'account remains unavailable',
-    );
+    const account = (await request(session, '/api/v1/account')).body.data;
+    expect(!account.logged_in && account.owner_id === '', 'mixed native guest account');
+    expect(/^[a-f0-9]{32}$/.test(account.owner_epoch), 'mixed native owner epoch');
+    expect(account.qr_login_available && account.phone_login_available, 'mixed login capabilities');
     session.close();
     session.close();
     session.dispose();

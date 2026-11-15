@@ -1,4 +1,5 @@
 //! Loopback development transport. Public deployment requires session isolation first.
+mod account;
 mod catalog;
 mod library;
 mod playback;
@@ -15,6 +16,7 @@ use axum::{
 };
 use hongguo_core::{
     CoreStatus,
+    account::AccountService,
     catalog::{CatalogClient, CatalogError},
     library::LibraryStore,
     playback::PlaybackService,
@@ -89,6 +91,7 @@ async fn status(State(state): State<ApiState>) -> Json<StatusResponse> {
     let mut result = StatusResponse::default();
     result.data.capabilities.history = state.library.is_some();
     result.data.capabilities.playback = state.playback.is_some();
+    result.data.capabilities.account = state.account.is_some();
     Json(result)
 }
 #[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Process is ready")))]
@@ -198,6 +201,7 @@ pub(crate) struct ApiState {
     library: Option<LibraryStore>,
     playback: Option<PlaybackService>,
     radar: Option<RadarService>,
+    account: Option<AccountService>,
 }
 impl FromRef<ApiState> for CatalogClient {
     fn from_ref(state: &ApiState) -> Self {
@@ -258,6 +262,18 @@ pub fn router_with_radar(
     playback: Option<PlaybackService>,
     radar: Option<RadarService>,
 ) -> Router {
+    router_with_account(policy, catalog, library, playback, radar, None)
+}
+
+/// Attach the authenticated local coordinator; public multiuser hosting remains unsupported.
+pub fn router_with_account(
+    policy: DevPolicy,
+    catalog: CatalogClient,
+    library: Option<LibraryStore>,
+    playback: Option<PlaybackService>,
+    radar: Option<RadarService>,
+    account: Option<AccountService>,
+) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/api/v1/status", get(status))
@@ -296,7 +312,12 @@ pub fn router_with_radar(
             "/api/v1/library/operation",
             axum::routing::post(library::operation),
         )
-        .route("/api/v1/account", get(unavailable))
+        .route("/api/v1/account", get(account::read_account))
+        .route("/api/v1/account/state", get(account::state))
+        .route(
+            "/api/v1/account/command",
+            axum::routing::post(account::command),
+        )
         .route(
             "/api/v1/account/qr/{action}",
             get(unavailable).post(unavailable),
@@ -314,6 +335,7 @@ pub fn router_with_radar(
             library,
             playback,
             radar,
+            account,
         })
         .layer(middleware::from_fn_with_state(policy, boundary))
 }
@@ -323,6 +345,9 @@ pub fn router_with_radar(
     paths(
         status,
         health,
+        account::read_account,
+        account::state,
+        account::command,
         radar::get,
         catalog::search,
         catalog::discovery,
@@ -352,6 +377,16 @@ pub fn router_with_radar(
         CoreStatus,
         hongguo_core::Capabilities,
         ApiError,
+        account::AccountResponse,
+        account::AccountStateResponse,
+        hongguo_core::account::Account,
+        hongguo_core::account::AccountProfile,
+        hongguo_core::account::AccountLogin,
+        hongguo_core::account::LoginMethod,
+        hongguo_core::account::LoginState,
+        hongguo_core::account::AccountCommand,
+        hongguo_core::account::AccountCommandRequest,
+        hongguo_core::account::AccountCommandResult,
         radar::RadarResponse,
         hongguo_core::radar::RadarSnapshot,
         hongguo_core::radar::RadarRanks,
@@ -430,7 +465,7 @@ pub fn router_with_radar(
 )]
 struct ApiDoc;
 
-/// Export implemented endpoints only. Account compatibility DTOs remain separate.
+/// Export the shared generated contract without private account credentials.
 pub fn openapi() -> utoipa::openapi::OpenApi {
     use utoipa::openapi::{RefOr, schema::Schema};
     let mut doc = ApiDoc::openapi();

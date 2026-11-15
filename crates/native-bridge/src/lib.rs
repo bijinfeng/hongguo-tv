@@ -2,12 +2,14 @@
 mod request;
 
 use hongguo_core::{
-    catalog::CatalogClient, library::LibraryStore, playback::PlaybackService, radar::RadarService,
+    account::AccountService, catalog::CatalogClient, library::LibraryStore,
+    playback::PlaybackService, radar::RadarService,
 };
 use hongguo_http_api::{DevPolicy, media_router};
 use nsh_core::prelude::*;
 use request::{
-    Reply, Request, Services, catalog_error, library_error, playback_error, radar_error, token,
+    Reply, Request, Services, account_error, catalog_error, library_error, playback_error,
+    radar_error, token,
 };
 use std::{
     collections::HashMap,
@@ -128,6 +130,9 @@ impl Session {
         let library = LibraryStore::open(dir.join("guest.sqlite3"))
             .await
             .map_err(library_error)?;
+        let account = AccountService::open(dir, library.clone())
+            .await
+            .map_err(account_error)?;
         let catalog = CatalogClient::new().map_err(catalog_error)?;
         let playback = PlaybackService::new(dir).map_err(playback_error)?;
         let radar = RadarService::open(dir).map_err(radar_error)?;
@@ -136,6 +141,7 @@ impl Session {
             library,
             playback,
             radar: Some(radar),
+            account: Some(account),
         })
         .await
     }

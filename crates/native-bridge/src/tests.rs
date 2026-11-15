@@ -320,6 +320,99 @@ struct Fixture {
     upstream: Upstream,
     origin: String,
 }
+#[tokio::test]
+async fn account_http_native_scope_state_and_structured_history_contract_match() {
+    let mut fixture = Fixture::new(false).await;
+    let account = hongguo_core::account::AccountService::open(
+        &fixture.dir,
+        fixture.session.services.library.clone(),
+    )
+    .await
+    .unwrap();
+    let services = Services {
+        account: Some(account.clone()),
+        ..fixture.session.services.clone()
+    };
+    let _previous_session = std::mem::replace(
+        &mut fixture.session,
+        Session::with_services(services)
+            .await
+            .unwrap_or_else(|_| panic!("account native session should open")),
+    );
+    let app = hongguo_http_api::router_with_account(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        Some(fixture.session.services.library.clone()),
+        None,
+        None,
+        Some(account.clone()),
+    );
+    async fn http(app: Router, path: &str, body: Option<Value>) -> (u16, Value) {
+        let request = axum::http::Request::builder()
+            .uri(path)
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .method(if body.is_some() { "POST" } else { "GET" })
+            .body(body.map_or(Body::empty(), |value| Body::from(value.to_string())))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        let status = response.status().as_u16();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&bytes).unwrap())
+    }
+    for path in [
+        "/api/v1/account",
+        "/api/v1/account/state",
+        "/api/v1/library",
+        "/api/v1/account?uid=123",
+        "/api/v1/account/state?token=private",
+    ] {
+        let native = fixture.call(path, None).await;
+        let (status, body) = http(app.clone(), path, None).await;
+        assert_eq!((native.status, native.body), (status, body));
+    }
+    let original = account.snapshot().await;
+    for body in [
+        json!({"owner_id":"", "owner_epoch":"old", "command":{"action":"logout"}}),
+        json!({"owner_id":"123", "owner_epoch":original.owner_epoch, "command":{"action":"logout"}}),
+        json!({"owner_id":"", "owner_epoch":original.owner_epoch, "command":{"action":"phone_start","country_code":"+86","phone":"invalid","send_code":true}}),
+        json!({"owner_id":"", "owner_epoch":original.owner_epoch, "command":{"action":"logout","unexpected":true}}),
+    ] {
+        let native = fixture
+            .call("/api/v1/account/command", Some(&body.to_string()))
+            .await;
+        let (status, body) = http(app.clone(), "/api/v1/account/command", Some(body)).await;
+        assert_eq!((native.status, native.body), (status, body));
+        assert!(status >= 400);
+    }
+    let logout =
+        json!({"owner_id":"", "owner_epoch":original.owner_epoch,"command":{"action":"logout"}});
+    let native = fixture
+        .call("/api/v1/account/command", Some(&logout.to_string()))
+        .await;
+    assert_eq!(native.status, 200);
+    assert_ne!(
+        native.body["data"]["account"]["owner_epoch"],
+        original.owner_epoch
+    );
+    let (status, body) = http(app.clone(), "/api/v1/account/state", None).await;
+    assert_eq!(status, 200);
+    assert_eq!(body, native.body);
+    let legacy = json!({"action":"clear","kind":"history","owner_id":""});
+    let native = fixture
+        .call("/api/v1/library", Some(&legacy.to_string()))
+        .await;
+    let (status, body) = http(app.clone(), "/api/v1/library", Some(legacy)).await;
+    assert_eq!(status, 409);
+    assert_eq!(native.body, body);
+    let (status, body) = http(app, "/api/v1/account/command", Some(logout)).await;
+    assert_eq!(status, 409);
+    assert_eq!(body["code"], "ACCOUNT_OWNER_CHANGED");
+    assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
 impl Fixture {
     async fn new(stalled: bool) -> Self {
         Self::with_radar(stalled, false).await
@@ -371,6 +464,7 @@ impl Fixture {
         });
         let dir = temp_dir();
         let services = Services {
+            account: None,
             radar: if radar {
                 Some(RadarService::for_loopback_tests(&dir, &origin, &origin).unwrap())
             } else {

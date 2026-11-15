@@ -260,3 +260,73 @@ test('controller revocation before dispatch or during lazy session creation cann
     assert.deepEqual(paths, initiallyAllowed ? ['/api/v1/library/session'] : []);
   }
 });
+
+test('account writers capture exact owner in session and every payload and receipt', async () => {
+  const calls = [];
+  const owner_id = '00123456789012345678901234567890';
+  const writer = createLibraryWriter(async (path, _abort, body) => {
+    calls.push({ path, body });
+    return path.endsWith('/session')
+      ? { session_id: token }
+      : receipt('1', {
+          status: 'committed',
+          library: { owner_id, entries: [] },
+        });
+  });
+  assert.equal((await writer.write({ ...clear, owner_id })).library.owner_id, owner_id);
+  assert.deepEqual(calls[0].body, { owner_id });
+  await assert.rejects(writer.write(clear));
+  assert.equal(calls.length, 2);
+});
+
+test('an account receipt cannot cross owner boundaries even with a correct operation identity', async () => {
+  let reads = 0;
+  const writer = createLibraryWriter(async (path) =>
+    path.endsWith('/session')
+      ? { session_id: token }
+      : receipt('1', {
+          status: 'committed',
+          library: { owner_id: ++reads === 1 ? '456' : '123', entries: [] },
+        }),
+  );
+  await assert.rejects(writer.write({ ...clear, owner_id: '123' }), unresolved);
+  await assert.rejects(writer.write({ ...clear, owner_id: '456' }), unresolved);
+  assert.equal((await writer.resolve()).library.owner_id, '123');
+});
+
+test('reset rejects pending and in-flight work; successful same-owner reentry opens a fresh session', async () => {
+  let finish;
+  let sessions = 0;
+  let operations = 0;
+  const writer = createLibraryWriter(async (path) => {
+    if (path.endsWith('/session')) {
+      sessions++;
+      return { session_id: token };
+    }
+    operations++;
+    if (operations === 1)
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    return receipt('1', { status: 'committed', library: { owner_id: '123', entries: [] } });
+  });
+  const pending = writer.write({ ...clear, owner_id: '123' });
+  await Promise.resolve();
+  assert.throws(() => writer.reset());
+  finish(receipt('1', { status: 'committed', library: { owner_id: '123', entries: [] } }));
+  await pending;
+  writer.reset();
+  assert.equal((await writer.write({ ...clear, owner_id: '123' })).operation_id, '1');
+  assert.equal(sessions, 2);
+});
+
+test('invalid owner identifiers fail before any session is admitted', async () => {
+  let requests = 0;
+  for (const owner_id of ['0', '000', '-1', '1e4', '123 ', '1'.repeat(33), {}, 123]) {
+    const writer = createLibraryWriter(async () => {
+      requests++;
+    });
+    await assert.rejects(writer.write({ ...clear, owner_id }));
+  }
+  assert.equal(requests, 0);
+});

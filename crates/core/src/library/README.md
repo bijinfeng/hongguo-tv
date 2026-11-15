@@ -1,19 +1,27 @@
-# 游客历史
+# 本地历史与写屏障
 
-`LibraryStore::open(database_path).await` 接受宿主明确提供的数据库路径。只在新目录/新文件创建时设置 Unix 0700/0600，不修改已有目录权限；绝不读取 legacy 的 library.json。
+`LibraryStore::open(path)` 打开游客库；`open_for_owner(path, uid)` 只供已验证身份的协调器打开账号库。宿主提供明确路径，不读取 legacy `library.json`。调用方只在实际播放后提交紧凑 progress；解析 URL、浏览详情不创建记录。支持观看历史 progress、remove／clear，不保存登录凭据、媒体 URL、评论或完整选集。
 
-`snapshot` 只读；`apply(HistoryChange)` 支持 progress、remove/clear（kind=history）。游客 owner_id 仅允许缺省或空字符串。调用方负责只在实际播放后上报，URL 解析不能创建记录；共享 progressSession 的保护行为继续保留。
+## 数据库与 owner
 
-SQLite bundled、WAL、synchronous=FULL，单连接操作在 spawn_blocking 中串行执行，独立连接由 Immediate 事务和 2 秒 busy timeout 协调。事务内读取新快照，commit 后才返回，无提前发布的内存缓存。取消 HTTP/future 不能撤销已经开始的阻塞事务；普通 GET 或客户端队列排空不能证明原写入已结束。
+SQLite `application_id=0x48475456`；新游客库为 v2，账号库为 v3。游客 v1 在同一事务内验证历史并新增关键词表升级至 v2；账号 v3 另有单行 `library_owner`，永久绑定非全零、1–32 位十进制 UID 字符串，`01` 与 `1` 不同。账号不能接管游客库，游客不能打开账号库，不同账号不能共用库。v1／v2 中出现 owner 表、v3 owner 缺失／异常、未知版本或坏数据均拒绝打开并保留原文件，不自动降级、重建或合并。
 
-需要完成屏障的客户端先调用 `write_session`（`POST /api/v1/library/session`），再用 `apply_operation`（`POST /api/v1/library/operation?session_id=…&operation_id=…`）提交原样 `HistoryChange`。operation_id 为从 `1` 开始连续递增的规范十进制字符串，最大 `9007199254740991`；同一会话只允许前一操作终止后注册下一操作。同 ID、同类型化请求重传会等待或重放原执行结果，不重新执行；同 ID 改请求或重放更旧 ID 会被拒绝。只有匹配捕获身份的 `LibraryOperation` 回执证明原执行已终止：`committed` 含原事务快照，`failed` 含脱敏错误，业务重试须换新 ID。传输错误或注册前拒绝均不是完成回执，注册前拒绝不消耗 ID。
+每次操作重新核对库的持久身份；变更及 `write_session` 请求中的 owner 必须精确匹配，缺省／空值仅用于游客。数据库路径和 owner 由受信任宿主／账号协调器决定，请求 owner 仅为前置条件。账号切换、epoch 与正式入口规则见[账号约定](../account/README.md)。
 
-切换会话先封存旧会话，再等待已注册的原操作终止，最后返回新 session_id；取消等待者不会取消执行或重新开放旧会话。同进程以规范数据库路径共享会话注册表，原宿主 store 被丢弃后重开仍能等待其阻塞 worker。公开 `snapshot` 也先等待读取时已注册的尾操作终结，避免重开页面先显示其执行前的旧快照；读取不签发操作身份回执，也不锁住之后注册的写入。此协议不提供跨进程排序；旧 `apply`／`POST /api/v1/library` 保持兼容，但不参与完成屏障。客户端仍须隔离旧回执，不能用原事务快照覆盖较新的页面状态。
+SQLite bundled、WAL、`synchronous=FULL`；新建 Unix 目录／文件为 0700／0600，不修改已有目录权限。连接操作在 `spawn_blocking` 中串行执行，独立连接使用 Immediate 事务和 2 秒 busy timeout。提交后才返回事务快照，没有提前发布的内存缓存；争锁超时返回 Storage，保留未保存状态后显式重试。历史当前返回全部条目，没有隐式淘汰或分页契约。
 
-application_id=0x48475456、user_version=2（从1在同一事务内新增关键词表）。仅空库初始化，不识别的数据库/未来版本/坏数据报错并保留原文件，不重建或自动降级。历史不设隐式淘汰上限，API 当前返回全部条目；分页需另行演进契约。数据库不保存账号、媒体 URL 或完整选集。
+## 注册写入与失效
 
-验证：`cargo test --locked -p hongguo-core --test library`，使用临时目录；覆盖并发连接、事务失败、重启、身份/输入边界及坏库保护。完成屏障另由 `cargo test --locked -p hongguo-core --lib library::operations` 覆盖取消、重传、会话切换、同路径重开和失败回执。
+客户端先 `write_session`（`POST /api/v1/library/session`），再 `apply_operation`（`POST /api/v1/library/operation?session_id=…&operation_id=…`）提交原样 `HistoryChange`。operation ID 是从 1 连续递增的规范十进制字符串，最大 `9007199254740991`；前一操作终止后才能注册下一操作。同 ID、同类型化请求等待／重放原执行；改请求或重放更旧 ID 被拒绝。注册前拒绝不消耗 ID。
 
-最近搜索使用同一宿主数据库的独立 `recent_searches` 表。`search_history` 只读；`change_search_history` 的 add／clear 只保存提交的关键词，不改观看历史，不读取 legacy 文件或发送云端。空白折叠并去重，新词或重复词置顶，最多10项；拒绝控制字符、超过80字符或100 UTF-16单位的词，不放宽官网搜索限制。事务提交后才返回快照，失败保留上一快照；已有未来版本／异常表／坏数据明确失败。v1→v2 先校验观看数据再建表，一起提交；失败回滚。旧版不能打开v2，不自动降级或删除表，回退必须使用升级前备份。
+只有匹配捕获身份的回执证明原执行终止：`committed` 带原事务快照，`failed` 带安全错误；业务重试换新 ID。传输错误、普通 GET、客户端队列排空都不代替完成回执。取消 waiter 不撤销已接纳事务，客户端不能用迟到的旧回执覆盖较新状态。
 
-独立连接争锁超过 2 秒时返回 Storage，调用者保留未保存状态并显式重试；不承诺任意积压下所有写入都无错误。并发验收逐轮运行两个独立写入者并核对全部 20 条记录；另用真实 SQLite 写锁验证超时不改变已提交快照、解锁后相同写入可重试。
+签发新 session 先封存旧 session 并等待尾操作终止。账号切换使用 `invalidate_write_sessions`，同时等所有已接纳 blocking worker 真正退出，再清除旧 session；取消等待不能重新开放旧 token。同进程注册表按规范路径＋owner 共享，尚未退出的 worker 保持注册表可发现；A→B→A 后旧 token 仍失效。调用方协调器必须阻止切换期间向旧 store 新派发；该方法不撤销受信任 store 对象的直接 `apply` 权限，也不提供跨进程排序。
+
+`snapshot` 先等待读取时已注册的尾操作，返回持久快照，不签发回执或阻止之后的新写入。低层 `apply` 不参与注册屏障。正式账号入口仅兼容初始游客的旧 `POST /api/v1/library`；登录或成功切换后必须用注册写入，退出也不重新开放该兼容入口。
+
+## 最近搜索与验证
+
+`recent_searches` 是同一物理库的独立表；add／clear 不改观看历史，不读取旧文件或发送云端。空白折叠、去重置顶、最多 10 项，拒绝控制字符及超过 80 字符／100 UTF-16 单位的词。低层操作遵守物理库 owner；当前 HTTP/native 最近搜索仍使用固定游客库，不宣称随活动账号切换或云同步。
+
+`cargo test --locked -p hongguo-core --test library` 验证临时 SQLite 的隔离、重开、并发、故障与坏库保护；`cargo test --locked -p hongguo-core --lib library::operations` 验证取消、重传、会话切换、旧 worker 排空及失败回执。合成记录仅作边界回归；正式功能仍需真实播放产生记录、正式入口管理及重启恢复的证据，真实账号流程另行验收。

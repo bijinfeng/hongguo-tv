@@ -26,6 +26,9 @@ export interface HistoryOperation {
   readonly error: string;
 }
 
+const validOwner = (value: unknown): value is string =>
+  value === '' || (typeof value === 'string' && /^[0-9]{1,32}$/.test(value) && /[1-9]/.test(value));
+
 // One application owns library writes in each engine VM; a remount supersedes its old queue.
 let currentOwner: object | undefined;
 
@@ -47,6 +50,8 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
   let disposed = false;
   let sealed = false;
   let draining = false;
+  let ownerBlocked = false;
+  let transitionRunning = false;
   let abort: AbortController | undefined;
   let writes = Promise.resolve();
   const mayDispatch = () =>
@@ -57,7 +62,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     const current = data();
     if (!current)
       throw new CoreError('观看记录尚未读取成功，请先重试加载。', 'LIBRARY_NOT_READY', 409);
-    if (current.owner_id)
+    if (!validOwner(current.owner_id ?? ''))
       throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
     return current.owner_id ?? '';
   };
@@ -70,11 +75,11 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     });
   };
   const read = async () => {
-    if (disposed) return;
+    if (disposed || ownerBlocked) return;
     cancelRead();
     // Capture all tokens before waiting: a later queued mutation invalidates this read.
     const owned = revision;
-    const expectedOwner = data()?.owner_id;
+    const expectedOwner = data() ? (data()!.owner_id ?? '') : undefined;
     const tail = writes;
     const controller = new AbortController();
     abort = controller;
@@ -83,7 +88,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       currentOwner === lifetime &&
       !controller.signal.aborted &&
       owned === revision &&
-      expectedOwner === data()?.owner_id;
+      expectedOwner === (data() ? (data()!.owner_id ?? '') : undefined);
     batch(() => {
       loading.set(true);
       state.set(data() ? 'refreshing' : 'pending');
@@ -92,6 +97,12 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       await tail;
       if (!owns()) return;
       const next = await request<Library>('/api/v1/library', controller.signal);
+      if (
+        !validOwner(next.owner_id ?? '') ||
+        !Array.isArray(next.entries) ||
+        (expectedOwner !== undefined && (next.owner_id ?? '') !== (expectedOwner ?? ''))
+      )
+        throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
       if (owns())
         batch(() => {
           data.set(next);
@@ -114,6 +125,12 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
   const admit = (change: HistoryChange) => {
     if (disposed || sealed || currentOwner !== lifetime)
       throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
+    if (ownerBlocked)
+      throw new CoreError(
+        '正在确认账号状态，暂不能写入观看记录。',
+        'LIBRARY_OWNER_TRANSITION',
+        409,
+      );
     const expectedOwner = owner();
     if ((change.owner_id ?? '') !== expectedOwner)
       throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
@@ -122,7 +139,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     return expectedOwner;
   };
   const publish = (next: Library, expectedOwner: string) => {
-    if ((next.owner_id ?? '') !== expectedOwner)
+    if (!validOwner(next.owner_id ?? '') || (next.owner_id ?? '') !== expectedOwner)
       throw new CoreError('记录所属账号已变化，请重新加载。', 'LIBRARY_OWNER_CHANGED', 409);
     if (!disposed && currentOwner === lifetime)
       batch(() => {
@@ -299,7 +316,7 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
     disposed = true;
     cancelRead();
   });
-  return {
+  const api = {
     library: Object.assign(() => data(), { state, loading, error, refetch: read }),
     warning,
     beginShutdown(checkpoint: () => void) {
@@ -317,6 +334,55 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
         draining = false;
       };
     },
+    /** Seal admission synchronously; a failed owner command stays sealed until authoritative recovery. */
+    async transitionOwner(work: () => Promise<Library>, publishAccount?: () => void) {
+      if (disposed || sealed || currentOwner !== lifetime)
+        throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
+      if (transitionRunning)
+        throw new CoreError('账号切换尚未完成。', 'LIBRARY_OWNER_TRANSITION', 409);
+      const wasBlocked = ownerBlocked;
+      ownerBlocked = true;
+      transitionRunning = true;
+      revision++;
+      cancelRead();
+      let dispatched = false;
+      try {
+        await api.drain();
+        await api.retryFailed();
+        api.assertSaved();
+        dispatched = true;
+        const next = await work();
+        if (!validOwner(next.owner_id ?? '') || !Array.isArray(next.entries))
+          throw new CoreError(
+            '账号记录响应无效，请重新确认账号状态。',
+            'LIBRARY_OWNER_CHANGED',
+            409,
+          );
+        if (!mayDispatch()) throw new CoreError('观看记录已关闭。', 'LIBRARY_DISPOSED', 410);
+        writer.reset();
+        revision++;
+        failedProgress.clear();
+        removedThrough.clear();
+        clearedThrough.clear();
+        pendingDispatch = undefined;
+        batch(() => {
+          operation.set(undefined);
+          warning.set('');
+          data.set(next);
+          error.set(undefined);
+          state.set('ready');
+          publishAccount?.();
+        });
+        ownerBlocked = false;
+      } catch (cause) {
+        // Before work starts the core owner cannot have changed. Afterwards only recovery can unlock.
+        if (!dispatched && !wasBlocked) ownerBlocked = false;
+        throw cause;
+      } finally {
+        transitionRunning = false;
+      }
+    },
+    ownerBlocked: () => ownerBlocked,
     management: {
       operation: () => operation(),
       remove: (ids: readonly string[]) => startOperation('remove', ids),
@@ -347,7 +413,10 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       try {
         expectedOwner = admit(change);
       } catch (cause) {
-        failed(cause);
+        // Before the first read, retain progress for explicit recovery. Foreign/transition
+        // rejections never join a different owner's retry queue.
+        if (cause instanceof CoreError && cause.code === 'LIBRARY_NOT_READY') failed(cause);
+        else warning.set(errorMessage(cause, '观看进度未保存'));
         return Promise.resolve();
       }
       return enqueue(async () => {
@@ -405,4 +474,5 @@ export function createLibraryState(request: ReturnType<typeof captureRequest>) {
       }
     },
   };
+  return api;
 }

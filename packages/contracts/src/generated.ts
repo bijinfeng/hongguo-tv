@@ -4,6 +4,54 @@
  */
 
 export interface paths {
+    "/api/v1/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["read_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["command"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["state"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/actors/works": {
         parameters: {
             query?: never;
@@ -360,6 +408,132 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Authoritative local account state. Local recovery does not assert remote session validity. */
+        Account: {
+            /** @description Sanitized local recovery failure. */
+            error?: string;
+            /** @description Whether a verified session is stored locally. */
+            logged_in: boolean;
+            /** @description Active or terminal attempt, until replaced or cancelled. */
+            login?: components["schemas"]["AccountLogin"];
+            /** @description Opaque scope generation; changes on restart and every committed owner transition. */
+            owner_epoch: string;
+            /** @description Empty for guests; otherwise the verified profile UID. */
+            owner_id: string;
+            /** @description Whether the host attached the real Passport phone service. */
+            phone_login_available: boolean;
+            /** @description Verified display identity. */
+            profile?: components["schemas"]["AccountProfile"];
+            /** @description Whether the host attached the real QR service. */
+            qr_login_available: boolean;
+        };
+        /** @description Explicit user intent; sensitive inputs are never debug formatted or persisted. */
+        AccountCommand: {
+            /** @enum {string} */
+            action: "qr_start";
+        } | {
+            /** @enum {string} */
+            action: "qr_poll";
+            /** @description Local attempt identity. */
+            id: string;
+        } | {
+            /** @enum {string} */
+            action: "cancel";
+            /** @description Local attempt identity. */
+            id: string;
+        } | {
+            /** @enum {string} */
+            action: "phone_start";
+            /** @description A supported calling code, for example +86. */
+            country_code: string;
+            /** @description User-entered local phone number. */
+            phone: string;
+            /** @description True only when the user selected the send-code action. */
+            send_code: boolean;
+        } | {
+            /** @enum {string} */
+            action: "phone_login";
+            /** @description A four-to-eight digit code. Never persisted. */
+            code: string;
+            /** @description Local attempt identity. */
+            id: string;
+        } | {
+            /** @enum {string} */
+            action: "phone_verify";
+            /** @description Local attempt identity. */
+            id: string;
+        } | {
+            /** @enum {string} */
+            action: "logout";
+        };
+        /** @description Owner precondition prevents an old page from changing a different active account. */
+        AccountCommandRequest: {
+            /** @description Explicit account command. */
+            command: components["schemas"]["AccountCommand"];
+            /** @description Exact scope generation from the current account snapshot. */
+            owner_epoch: string;
+            /** @description Expected current owner, empty for guests. */
+            owner_id: string;
+        };
+        /** @description One coherent account/library snapshot, also used after a lost command response. */
+        AccountCommandResult: {
+            /** @description Current durable account. */
+            account: components["schemas"]["Account"];
+            /** @description Committed snapshot of its local library. */
+            library: components["schemas"]["Library"];
+        };
+        /** @description Safe presentation of an attempt. IDs are local and contain no upstream token. */
+        AccountLogin: {
+            /** @description Sanitized recovery copy, without upstream payloads. */
+            error?: string;
+            /**
+             * Format: int64
+             * @description Fixed expiration in Unix milliseconds.
+             */
+            expires_at: number;
+            /** @description Random local attempt identity. */
+            id: string;
+            /** @description Validated bounded PNG data URL for QR login. */
+            image?: string;
+            /** @description Selected login method. */
+            method: components["schemas"]["LoginMethod"];
+            /** @description Masked phone number, never the submitted number. */
+            phone?: string;
+            /**
+             * Format: int32
+             * @description Remaining resend cooldown in seconds.
+             */
+            retry_after?: number;
+            /** @description Upstream SMS content; only present while this challenge is active. */
+            sms_content?: string;
+            /** @description Optional validated QR image of the user-sent SMS instruction. */
+            sms_image?: string;
+            /** @description Upstream destination the user must text during additional verification. */
+            sms_number?: string;
+            /** @description Current phase. */
+            state: components["schemas"]["LoginState"];
+        };
+        /** @description Public account identity; no session credentials or upstream response objects. */
+        AccountProfile: {
+            /** @description Display name, bounded by the core. */
+            name: string;
+            /** @description Verified nonzero decimal identity, kept as a string. */
+            uid: string;
+        };
+        /** @description Local account state without credentials. */
+        AccountResponse: {
+            /** @description Authoritative account. */
+            data: components["schemas"]["Account"];
+            /** @description Always true. */
+            ok: boolean;
+        };
+        /** @description Coherent account and active local library. */
+        AccountStateResponse: {
+            /** @description Atomic account and library state. */
+            data: components["schemas"]["AccountCommandResult"];
+            /** @description Always true. */
+            ok: boolean;
+        };
         /** @description Public actor identity and bounded display fields, without account state. */
         ActorSummary: {
             /** @description Approved public HTTPS image, when available. */
@@ -737,7 +911,7 @@ export interface components {
          * @enum {string}
          */
         HistoryKind: "history";
-        /** @description Guest history snapshot; account-backed libraries are not yet implemented. */
+        /** @description Snapshot of the owner fixed when the local library was opened. */
         Library: {
             /** @description Most recently viewed first. */
             entries: components["schemas"]["Entry"][];
@@ -793,9 +967,9 @@ export interface components {
             /** @description Opaque 32-character lowercase hexadecimal token, local to this store lifetime. */
             session_id: string;
         };
-        /** @description Open a local guest write session; this is not an account or authentication session. */
+        /** @description Open a local owner-scoped write session; this is not an authentication session. */
         LibraryWriteSessionRequest: {
-            /** @description Absent or empty for guests. */
+            /** @description Must match the opened owner; absent or empty only for guests. */
             owner_id?: string | null;
         };
         /** @description A local write session issued after prior registered work has terminated. */
@@ -805,6 +979,16 @@ export interface components {
             /** @description Always true. */
             ok: boolean;
         };
+        /**
+         * @description Input method for the current attempt.
+         * @enum {string}
+         */
+        LoginMethod: "qr" | "phone";
+        /**
+         * @description A bounded user-visible attempt phase, independent of upstream status spelling.
+         * @enum {string}
+         */
+        LoginState: "pending" | "scanned" | "processing" | "code_sent" | "uncertain" | "mfa" | "expired" | "cancelled" | "failed";
         /** @description Successful anonymous new series page. */
         NewSeriesResponse: {
             /** @description Typed public entries and exact continuation context. */
@@ -1251,6 +1435,155 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    read_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    command: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    state: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     actor_works: {
         parameters: {
             query: {

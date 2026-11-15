@@ -5,16 +5,19 @@ use std::{
     collections::HashMap,
     panic::AssertUnwindSafe,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, OnceLock, Weak},
+    sync::{
+        Arc, Mutex, OnceLock, Weak,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
-use tokio::sync::{Mutex as AsyncMutex, watch};
+use tokio::sync::{Mutex as AsyncMutex, Notify, watch};
 use utoipa::ToSchema;
 
-/// Open a local guest write session; this is not an account or authentication session.
+/// Open a local owner-scoped write session; this is not an authentication session.
 #[derive(Debug, Clone, Default, Deserialize, Serialize, ToSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LibraryWriteSessionRequest {
-    /// Absent or empty for guests.
+    /// Must match the opened owner; absent or empty only for guests.
     #[serde(default)]
     pub owner_id: Option<String>,
 }
@@ -69,8 +72,31 @@ pub struct LibraryOperation {
 pub(super) struct WriteSessions {
     current: Mutex<Option<Session>>,
     handoff: AsyncMutex<()>,
+    blocking: AtomicUsize,
+    settled: Notify,
 }
 impl WriteSessions {
+    pub(super) fn begin_blocking(self: &Arc<Self>) -> Result<BlockingCall, LibraryError> {
+        self.blocking
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+                count.checked_add(1)
+            })
+            .map_err(|_| LibraryError::Storage)?;
+        Ok(BlockingCall(self.clone()))
+    }
+
+    async fn wait_blocking(&self) {
+        loop {
+            let settled = self.settled.notified();
+            tokio::pin!(settled);
+            settled.as_mut().enable();
+            if self.blocking.load(Ordering::Acquire) == 0 {
+                return;
+            }
+            settled.await;
+        }
+    }
+
     pub(super) async fn wait_registered(&self) -> Result<(), LibraryError> {
         let operation = self
             .current
@@ -85,18 +111,31 @@ impl WriteSessions {
         Ok(())
     }
 }
-pub(super) fn shared_sessions(path: &Path) -> Result<Arc<WriteSessions>, LibraryError> {
-    static STORES: OnceLock<Mutex<HashMap<PathBuf, Weak<WriteSessions>>>> = OnceLock::new();
+pub(super) struct BlockingCall(Arc<WriteSessions>);
+impl Drop for BlockingCall {
+    fn drop(&mut self) {
+        if self.0.blocking.fetch_sub(1, Ordering::AcqRel) == 1 {
+            self.0.settled.notify_waiters();
+        }
+    }
+}
+pub(super) fn shared_sessions(
+    path: &Path,
+    owner: &str,
+) -> Result<Arc<WriteSessions>, LibraryError> {
+    type StoreIdentity = (PathBuf, String);
+    static STORES: OnceLock<Mutex<HashMap<StoreIdentity, Weak<WriteSessions>>>> = OnceLock::new();
     let mut stores = STORES
         .get_or_init(Mutex::default)
         .lock()
         .map_err(|_| LibraryError::Storage)?;
     stores.retain(|_, sessions| sessions.strong_count() > 0);
-    if let Some(sessions) = stores.get(path).and_then(Weak::upgrade) {
+    let identity = (path.to_owned(), owner.to_owned());
+    if let Some(sessions) = stores.get(&identity).and_then(Weak::upgrade) {
         return Ok(sessions);
     }
     let sessions = Arc::new(WriteSessions::default());
-    stores.insert(path.to_owned(), Arc::downgrade(&sessions));
+    stores.insert(identity, Arc::downgrade(&sessions));
     Ok(sessions)
 }
 struct Session {
@@ -131,7 +170,7 @@ impl LibraryStore {
         &self,
         request: LibraryWriteSessionRequest,
     ) -> Result<LibraryWriteSession, LibraryError> {
-        if request.owner_id.as_ref().is_some_and(|id| !id.is_empty()) {
+        if request.owner_id.as_deref().unwrap_or_default() != self.2 {
             return Err(LibraryError::OwnerChanged);
         }
         let _handoff = self.1.handoff.lock().await;
@@ -146,6 +185,7 @@ impl LibraryStore {
             // A failed terminal transaction is also finished and cannot write later.
             let _ = previous.wait().await;
         }
+        self.run(|_| Ok(())).await?;
         let mut nonce = [0_u8; 16];
         SystemRandom::new()
             .fill(&mut nonce)
@@ -158,6 +198,25 @@ impl LibraryStore {
             last: None,
         });
         Ok(LibraryWriteSession { session_id: id })
+    }
+
+    /// Seal prior tokens and wait for admitted work before an authenticated owner switch.
+    /// Cancellation leaves the old session sealed and never cancels an accepted transaction.
+    pub async fn invalidate_write_sessions(&self) -> Result<(), LibraryError> {
+        let _handoff = self.1.handoff.lock().await;
+        let previous = {
+            let mut current = self.1.current.lock().map_err(|_| LibraryError::Storage)?;
+            current.as_mut().and_then(|session| {
+                session.sealed = true;
+                session.last.clone()
+            })
+        };
+        if let Some(previous) = previous {
+            let _ = previous.wait().await;
+        }
+        self.1.wait_blocking().await;
+        *self.1.current.lock().map_err(|_| LibraryError::Storage)? = None;
+        Ok(())
     }
 
     /// Start once, or wait for the identical original operation. Dropping the waiter cannot abort it.
@@ -201,7 +260,7 @@ impl LibraryStore {
         {
             return Err(LibraryError::InvalidInput);
         }
-        change.validate()?;
+        change.validate(&self.2)?;
         let payload = serde_json::to_vec(&change).map_err(|_| LibraryError::InvalidInput)?;
         let mut current = self.1.current.lock().map_err(|_| LibraryError::Storage)?;
         let session = current
@@ -230,21 +289,22 @@ impl LibraryStore {
         }
         let (terminal, _) = watch::channel(None);
         let operation = Arc::new(Operation { payload, terminal });
+        let admission = self.1.begin_blocking()?;
         session.sequence = sequence;
         session.last = Some(operation.clone());
         let connection = self.0.clone();
-        let sessions = self.1.clone();
+        let owner = self.2.clone();
         let executing = operation.clone();
         // Registration and spawn are one synchronous critical section; no waiter owns execution.
         tokio::task::spawn_blocking(move || {
+            // Keep the registry discoverable until this admitted worker has actually exited.
+            let _admission = admission;
             let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
                 let mut connection = connection.lock().map_err(|_| LibraryError::Storage)?;
-                super::store::apply(&mut connection, change)
+                super::store::apply(&mut connection, change, &owner)
             }))
             .unwrap_or(Err(LibraryError::Storage));
             executing.terminal.send_replace(Some(result));
-            // Keep the registry discoverable if the native store reopens while this worker runs.
-            drop(sessions);
         });
         Ok(operation)
     }

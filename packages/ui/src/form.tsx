@@ -626,6 +626,7 @@ export function Tabs(props: TabsProps) {
       <BaseTabs
         class="flex-row flex-wrap gap-2 border-b border-border"
         indicatorClass={`bottom-0 h-0.5 ${props.disabled || props.options.find((option) => option.value === props.value)?.disabled ? 'bg-muted-foreground' : 'bg-primary'}`}
+        indicatorStyle={{ zIndex: 1 }}
       >
         <Each of={props.options} key={(option) => option.value}>
           {(option) => (

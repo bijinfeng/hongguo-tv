@@ -1,4 +1,4 @@
-//! Versioned guest history. Mutations publish only after a durable transaction commits.
+//! Versioned owner-scoped history. Mutations publish only after a durable transaction commits.
 mod operations;
 mod search;
 mod store;
@@ -45,7 +45,7 @@ pub struct Entry {
     pub last_played_at: Option<i64>,
 }
 
-/// Guest history snapshot; account-backed libraries are not yet implemented.
+/// Snapshot of the owner fixed when the local library was opened.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct Library {
     /// Most recently viewed first.
@@ -84,7 +84,7 @@ pub struct Progress {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum HistoryKind {
-    /// Guest watch history.
+    /// Watch history belonging to the opened library owner.
     History,
 }
 
@@ -104,7 +104,7 @@ pub enum HistoryChange {
         /// Exact series ID.
         series_id: String,
     },
-    /// Clear guest watch history.
+    /// Clear watch history for the expected owner.
     Clear {
         /// Expected owner, empty for guests.
         #[serde(default)]
@@ -114,12 +114,12 @@ pub enum HistoryChange {
     },
 }
 impl HistoryChange {
-    fn validate(&self) -> Result<(), LibraryError> {
+    fn validate(&self, expected_owner: &str) -> Result<(), LibraryError> {
         let owner = match self {
             Self::Progress(p) => &p.owner_id,
             Self::Remove { owner_id, .. } | Self::Clear { owner_id, .. } => owner_id,
         };
-        if owner.as_ref().is_some_and(|s| !s.is_empty()) {
+        if owner.as_deref().unwrap_or_default() != expected_owner {
             return Err(LibraryError::OwnerChanged);
         }
         match self {
@@ -199,7 +199,7 @@ fn seconds<'de, D: serde::Deserializer<'de>>(de: D) -> Result<f64, D::Error> {
 pub enum LibraryError {
     /// Invalid history mutation.
     InvalidInput,
-    /// A guest request refers to another owner.
+    /// A request or database refers to another owner.
     OwnerChanged,
     /// Unsupported database identity/version or invalid stored content.
     InvalidDatabase,

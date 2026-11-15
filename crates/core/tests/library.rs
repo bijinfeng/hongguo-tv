@@ -480,6 +480,175 @@ async fn keyword_migration_preserves_v1_history_and_rolls_back_failed_upgrade() 
 }
 
 #[tokio::test]
+async fn account_libraries_isolate_history_keywords_and_persist_exact_owner_identity() {
+    use hongguo_core::library::SearchHistoryChange;
+    let tmp = Temp::new();
+    let owner = "90071992547409931234567890123456";
+    let account_path = tmp.0.join("account.sqlite3");
+    let account = LibraryStore::open_for_owner(&account_path, owner.into())
+        .await
+        .unwrap();
+    let other = LibraryStore::open_for_owner(tmp.0.join("other.sqlite3"), "2".into())
+        .await
+        .unwrap();
+    let guest = LibraryStore::open(tmp.db()).await.unwrap();
+    let mut saved = progress("123");
+    saved.owner_id = Some(owner.into());
+    let baseline = account
+        .apply(HistoryChange::Progress(Box::new(saved.clone())))
+        .await
+        .unwrap();
+    assert_eq!(baseline.owner_id.as_deref(), Some(owner));
+    account
+        .change_search_history(SearchHistoryChange::Add {
+            query: "账号关键词".into(),
+        })
+        .await
+        .unwrap();
+    for store in [&other, &guest] {
+        assert!(store.snapshot().await.unwrap().entries.is_empty());
+        assert!(store.search_history().await.unwrap().items.is_empty());
+        assert_eq!(
+            store
+                .apply(HistoryChange::Progress(Box::new(saved.clone())))
+                .await,
+            Err(LibraryError::OwnerChanged)
+        );
+    }
+    for wrong in [None, Some(String::new()), Some("2".into())] {
+        saved.owner_id = wrong.clone();
+        for change in [
+            HistoryChange::Progress(Box::new(saved.clone())),
+            mutation(
+                serde_json::json!({"action":"remove","kind":"history","series_id":"123","owner_id":wrong}),
+            ),
+            mutation(serde_json::json!({"action":"clear","kind":"history","owner_id":wrong})),
+        ] {
+            assert_eq!(account.apply(change).await, Err(LibraryError::OwnerChanged));
+        }
+    }
+    assert_eq!(account.snapshot().await.unwrap(), baseline);
+    drop(account);
+    let reopened = LibraryStore::open_for_owner(&account_path, owner.into())
+        .await
+        .unwrap();
+    assert_eq!(reopened.snapshot().await.unwrap(), baseline);
+    assert_eq!(
+        reopened.search_history().await.unwrap().items,
+        ["账号关键词"]
+    );
+    drop(reopened);
+    let before = std::fs::read(&account_path).unwrap();
+    assert!(matches!(
+        LibraryStore::open(&account_path).await,
+        Err(LibraryError::OwnerChanged)
+    ));
+    assert!(matches!(
+        LibraryStore::open_for_owner(&account_path, "2".into()).await,
+        Err(LibraryError::OwnerChanged)
+    ));
+    assert_eq!(std::fs::read(&account_path).unwrap(), before);
+}
+
+#[tokio::test]
+async fn opening_for_an_account_never_adopts_or_migrates_a_guest_v2_database() {
+    use hongguo_core::library::SearchHistoryChange;
+    let tmp = Temp::new();
+    let guest = LibraryStore::open(tmp.db()).await.unwrap();
+    let viewing = guest
+        .apply(HistoryChange::Progress(Box::new(progress("123"))))
+        .await
+        .unwrap();
+    let searches = guest
+        .change_search_history(SearchHistoryChange::Add {
+            query: "游客关键词".into(),
+        })
+        .await
+        .unwrap();
+    drop(guest);
+    let before = std::fs::read(tmp.db()).unwrap();
+    assert!(matches!(
+        LibraryStore::open_for_owner(tmp.db(), "1".into()).await,
+        Err(LibraryError::OwnerChanged)
+    ));
+    assert_eq!(std::fs::read(tmp.db()).unwrap(), before);
+    let reopened = LibraryStore::open(tmp.db()).await.unwrap();
+    assert_eq!(reopened.snapshot().await.unwrap(), viewing);
+    assert_eq!(reopened.search_history().await.unwrap(), searches);
+    let conn = Connection::open(tmp.db()).unwrap();
+    assert_eq!(
+        conn.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_schema WHERE name='library_owner'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+}
+
+#[tokio::test]
+async fn invalid_account_ids_and_missing_or_changed_database_identity_fail_closed() {
+    let tmp = Temp::new();
+    let path = tmp.0.join("account.sqlite3");
+    for invalid in [
+        "",
+        "0",
+        "00",
+        "-1",
+        "+1",
+        "1 ",
+        "１",
+        "123456789012345678901234567890123",
+    ] {
+        assert!(matches!(
+            LibraryStore::open_for_owner(&path, invalid.into()).await,
+            Err(LibraryError::InvalidInput)
+        ));
+        assert!(!path.exists());
+    }
+    let store = LibraryStore::open_for_owner(&path, "01".into())
+        .await
+        .unwrap();
+    assert!(matches!(
+        LibraryStore::open_for_owner(&path, "1".into()).await,
+        Err(LibraryError::OwnerChanged)
+    ));
+    let conn = Connection::open(&path).unwrap();
+    conn.execute("UPDATE library_owner SET owner_id='2'", [])
+        .unwrap();
+    assert_eq!(store.snapshot().await, Err(LibraryError::OwnerChanged));
+    let mut change = progress("123");
+    change.owner_id = Some("01".into());
+    assert_eq!(
+        store.apply(HistoryChange::Progress(Box::new(change))).await,
+        Err(LibraryError::OwnerChanged)
+    );
+    assert_eq!(
+        conn.query_row("SELECT COUNT(*) FROM history", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    conn.execute("DELETE FROM library_owner", []).unwrap();
+    assert_eq!(store.snapshot().await, Err(LibraryError::InvalidDatabase));
+    assert!(matches!(
+        LibraryStore::open_for_owner(&path, "01".into()).await,
+        Err(LibraryError::InvalidDatabase)
+    ));
+    drop(store);
+    conn.execute_batch("PRAGMA user_version=2;").unwrap();
+    assert!(matches!(
+        LibraryStore::open(&path).await,
+        Err(LibraryError::InvalidDatabase)
+    ));
+}
+
+#[tokio::test]
 async fn keyword_writes_are_atomic_across_connections_and_failure() {
     use hongguo_core::library::SearchHistoryChange;
     let tmp = Temp::new();

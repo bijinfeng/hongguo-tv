@@ -9,6 +9,172 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/account": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "read_account",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/command": {
+      "post": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "command",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/state": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "state",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/actors/works": {
       "get": {
         "tags": [
@@ -2079,6 +2245,358 @@
   },
   "components": {
     "schemas": {
+      "Account": {
+        "type": "object",
+        "description": "Authoritative local account state. Local recovery does not assert remote session validity.",
+        "required": [
+          "logged_in",
+          "owner_id",
+          "owner_epoch",
+          "qr_login_available",
+          "phone_login_available"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Sanitized local recovery failure."
+          },
+          "logged_in": {
+            "type": "boolean",
+            "description": "Whether a verified session is stored locally."
+          },
+          "login": {
+            "$ref": "#/components/schemas/AccountLogin",
+            "description": "Active or terminal attempt, until replaced or cancelled."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Opaque scope generation; changes on restart and every committed owner transition."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Empty for guests; otherwise the verified profile UID."
+          },
+          "phone_login_available": {
+            "type": "boolean",
+            "description": "Whether the host attached the real Passport phone service."
+          },
+          "profile": {
+            "$ref": "#/components/schemas/AccountProfile",
+            "description": "Verified display identity."
+          },
+          "qr_login_available": {
+            "type": "boolean",
+            "description": "Whether the host attached the real QR service."
+          }
+        }
+      },
+      "AccountCommand": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Obtain a new official login QR.",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "qr_start"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Poll the exact locally issued QR attempt.",
+            "required": [
+              "id",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "qr_poll"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "description": "Local attempt identity."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Cancel an exact attempt; cannot cancel a replacement.",
+            "required": [
+              "id",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "cancel"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "description": "Local attempt identity."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Prepare a phone attempt, optionally sending a code on explicit user action.",
+            "required": [
+              "country_code",
+              "phone",
+              "send_code",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "phone_start"
+                ]
+              },
+              "country_code": {
+                "type": "string",
+                "description": "A supported calling code, for example +86."
+              },
+              "phone": {
+                "type": "string",
+                "description": "User-entered local phone number."
+              },
+              "send_code": {
+                "type": "boolean",
+                "description": "True only when the user selected the send-code action."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Submit the entered code to this phone attempt.",
+            "required": [
+              "id",
+              "code",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "phone_login"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "description": "A four-to-eight digit code. Never persisted."
+              },
+              "id": {
+                "type": "string",
+                "description": "Local attempt identity."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Check whether the user-sent SMS challenge has completed.",
+            "required": [
+              "id",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "phone_verify"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "description": "Local attempt identity."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Reliably clear credentials and restore the guest library.",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "logout"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Explicit user intent; sensitive inputs are never debug formatted or persisted."
+      },
+      "AccountCommandRequest": {
+        "type": "object",
+        "description": "Owner precondition prevents an old page from changing a different active account.",
+        "required": [
+          "owner_id",
+          "owner_epoch",
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "$ref": "#/components/schemas/AccountCommand",
+            "description": "Explicit account command."
+          },
+          "owner_epoch": {
+            "type": "string",
+            "description": "Exact scope generation from the current account snapshot."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Expected current owner, empty for guests."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountCommandResult": {
+        "type": "object",
+        "description": "One coherent account/library snapshot, also used after a lost command response.",
+        "required": [
+          "account",
+          "library"
+        ],
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Account",
+            "description": "Current durable account."
+          },
+          "library": {
+            "$ref": "#/components/schemas/Library",
+            "description": "Committed snapshot of its local library."
+          }
+        }
+      },
+      "AccountLogin": {
+        "type": "object",
+        "description": "Safe presentation of an attempt. IDs are local and contain no upstream token.",
+        "required": [
+          "id",
+          "method",
+          "state",
+          "expires_at"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Sanitized recovery copy, without upstream payloads."
+          },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Fixed expiration in Unix milliseconds.",
+            "minimum": 0
+          },
+          "id": {
+            "type": "string",
+            "description": "Random local attempt identity."
+          },
+          "image": {
+            "type": "string",
+            "description": "Validated bounded PNG data URL for QR login."
+          },
+          "method": {
+            "$ref": "#/components/schemas/LoginMethod",
+            "description": "Selected login method."
+          },
+          "phone": {
+            "type": "string",
+            "description": "Masked phone number, never the submitted number."
+          },
+          "retry_after": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Remaining resend cooldown in seconds.",
+            "minimum": 0
+          },
+          "sms_content": {
+            "type": "string",
+            "description": "Upstream SMS content; only present while this challenge is active."
+          },
+          "sms_image": {
+            "type": "string",
+            "description": "Optional validated QR image of the user-sent SMS instruction."
+          },
+          "sms_number": {
+            "type": "string",
+            "description": "Upstream destination the user must text during additional verification."
+          },
+          "state": {
+            "$ref": "#/components/schemas/LoginState",
+            "description": "Current phase."
+          }
+        }
+      },
+      "AccountProfile": {
+        "type": "object",
+        "description": "Public account identity; no session credentials or upstream response objects.",
+        "required": [
+          "uid",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name, bounded by the core."
+          },
+          "uid": {
+            "type": "string",
+            "description": "Verified nonzero decimal identity, kept as a string."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountResponse": {
+        "type": "object",
+        "description": "Local account state without credentials.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Account",
+            "description": "Authoritative account."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
+      "AccountStateResponse": {
+        "type": "object",
+        "description": "Coherent account and active local library.",
+        "required": [
+          "ok",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AccountCommandResult",
+            "description": "Atomic account and library state."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Always true."
+          }
+        }
+      },
       "ActorSummary": {
         "type": "object",
         "description": "Public actor identity and bounded display fields, without account state.",
@@ -2933,7 +3451,7 @@
           },
           {
             "type": "object",
-            "description": "Clear guest watch history.",
+            "description": "Clear watch history for the expected owner.",
             "required": [
               "kind",
               "action"
@@ -2970,7 +3488,7 @@
       },
       "Library": {
         "type": "object",
-        "description": "Guest history snapshot; account-backed libraries are not yet implemented.",
+        "description": "Snapshot of the owner fixed when the local library was opened.",
         "required": [
           "entries"
         ],
@@ -3131,14 +3649,14 @@
       },
       "LibraryWriteSessionRequest": {
         "type": "object",
-        "description": "Open a local guest write session; this is not an account or authentication session.",
+        "description": "Open a local owner-scoped write session; this is not an authentication session.",
         "properties": {
           "owner_id": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Absent or empty for guests."
+            "description": "Must match the opened owner; absent or empty only for guests."
           }
         },
         "additionalProperties": false
@@ -3160,6 +3678,29 @@
             "description": "Always true."
           }
         }
+      },
+      "LoginMethod": {
+        "type": "string",
+        "description": "Input method for the current attempt.",
+        "enum": [
+          "qr",
+          "phone"
+        ]
+      },
+      "LoginState": {
+        "type": "string",
+        "description": "A bounded user-visible attempt phase, independent of upstream status spelling.",
+        "enum": [
+          "pending",
+          "scanned",
+          "processing",
+          "code_sent",
+          "uncertain",
+          "mfa",
+          "expired",
+          "cancelled",
+          "failed"
+        ]
       },
       "NewSeriesResponse": {
         "type": "object",

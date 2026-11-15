@@ -110,6 +110,7 @@ export interface DialogProps {
 
 /** A themed NSH dialog, with shared dimensions and native modal behavior. */
 export function Dialog(props: DialogProps) {
+  const focusInset = () => Math.max(6, unit(8));
   recoverSource(
     () => props.open,
     () => props.returnFocus?.(),
@@ -169,8 +170,12 @@ export function Dialog(props: DialogProps) {
       </If>
       <Scroll
         class="min-h-0 shrink"
-        style={{ maxHeight: Math.max(0, windowSize().height - unit(240, 320)) }}
+        style={{
+          margin: -focusInset(),
+          maxHeight: Math.max(0, windowSize().height - unit(240, 320) + focusInset() * 2),
+        }}
         contentClass="gap-4"
+        contentStyle={{ padding: focusInset() }}
       >
         {props.children}
       </Scroll>
