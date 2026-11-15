@@ -24,6 +24,7 @@
 | 历史材料                        | 原文                                                                          |
 | ------------------------------- | ----------------------------------------------------------------------------- |
 | 桌面、TV 与组件板综合评估及打磨 | [历史记录](2026-11-15/design/prototype-comprehensive-review.md)               |
+| 原生核心收尾审查                | [历史记录](2026-11-16/native-core-review.md)                                  |
 | 基础组件覆盖与状态完整度审查    | [历史记录](2026-11-15/design/component-completeness-state-audit.md)           |
 | 基础组件覆盖审查                | [历史记录](2026-11-15/design/component-coverage-audit.md)                     |
 | 基础组件设计交接                | [历史记录](2026-11-15/design/component-design.md)                             |
