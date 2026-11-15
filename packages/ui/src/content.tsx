@@ -177,8 +177,8 @@ export function EpisodeRange(props: {
           onPress={() => open.set(true)}
         />
       }
-      popupClass="bg-card border border-border rounded-(--radius) p-2"
-      itemClass="text-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
+      popupClass="bg-popover border border-border rounded-(--radius) p-2"
+      itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
       itemStyle={{
         minHeight: controlMetrics().height,
         fontSize: controlMetrics().fontSize,

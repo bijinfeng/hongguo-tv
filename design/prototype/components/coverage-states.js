@@ -25,6 +25,7 @@ export function controlStateSamples(ctx) {
         .map(([label, disabled, checked]) =>
           button(label, {
             disabled,
+            glyph: 'check',
             variant: checked ? 'selected' : '',
             action: 'cv-choice',
             extra: `role="radio" aria-checked="${checked}" tabindex="${checked ? 0 : -1}"`,

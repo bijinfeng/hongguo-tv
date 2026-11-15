@@ -182,6 +182,36 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
     await app.waitFor('text:记录已移除');
     app.dispose();
   });
+  test('selection groups retain their selected value through disabled state and recovery', async () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const app = await open(entry, settings(theme));
+      const muted = theme === 'light' ? '#686a64ff' : '#a6ada0ff';
+      for (const [sheet, group] of [
+        ['forms', 'choice'],
+        ['navigation', 'tabs'],
+      ] as const) {
+        await app.press(`id:gallery-sheet-${sheet}`);
+        await app.press(`id:gallery-${group}-city`);
+        const selected = app.spanStyle(`id:gallery-${group}-city >> text:都市`);
+        expect(selected.fontWeight).toBe(600);
+        expect(app.spanStyle(`id:gallery-${group}-unavailable >> text:悬疑`).color).toBe(muted);
+        await app.press(`id:gallery-${group}-disabled`);
+        expect(app.enabled(`id:gallery-${group}-city`)).toBe(false);
+        expect(app.spanStyle(`id:gallery-${group}-city >> text:都市`).color).toBe(muted);
+        await expect(app.press(`id:gallery-${group}-period`)).rejects.toMatchObject({
+          code: 'ERR_NSH_TEST_DISABLED',
+        });
+        await app.press(`id:gallery-${group}-disabled`);
+        expect(app.spanStyle(`id:gallery-${group}-city >> text:都市`).color).toBe(selected.color);
+        expect(app.spanStyle(`id:gallery-${group}-city >> text:都市`).fontWeight).toBe(600);
+      }
+      await app.press('id:gallery-sheet-feedback');
+      expect(app.spanStyle('text:12.0 MB / 32.0 MB').fontSize).toBe(
+        options.target === 'tv' ? 22 : 16,
+      );
+      app.dispose();
+    }
+  });
   test('accordion and removable chips preserve caller state and focus continuity', async () => {
     const app = await open(entry, settings());
     await app.press('id:gallery-sheet-navigation');

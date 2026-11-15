@@ -55,7 +55,7 @@ export interface DialogChangeEvent {
 }
 
 const unit = (desktop: number, tv = desktop) => (Product() === 'tv' ? tvUnit(tv) : desktop);
-const popupClass = 'rounded-(--radius) border border-border bg-card';
+const popupClass = 'rounded-(--radius) border border-border bg-popover text-popover-foreground';
 const popupMotion = () => (reduceMotion() ? '' : 'transition-opacity duration-100');
 
 // Host dismissal and an owner's open=false both remove the native surface.
@@ -134,7 +134,7 @@ export function Dialog(props: DialogProps) {
         props.onClose?.();
         props.returnFocus?.();
       }}
-      class="m-auto rounded-(--radius) bg-card"
+      class="m-auto rounded-(--radius) bg-popover"
       backdropClass="bg-cinema/40"
       style={{
         width: Math.max(0, Math.min(unit(480, 800), windowSize().width - unit(48, 96))),
@@ -147,7 +147,7 @@ export function Dialog(props: DialogProps) {
       <View class="flex-row items-center justify-between gap-4">
         <Text
           role="header"
-          class="flex-1 min-w-0 font-semibold text-foreground"
+          class="flex-1 min-w-0 font-semibold text-popover-foreground"
           style={{ fontSize: unit(24, 32) }}
         >
           {props.title}
@@ -295,7 +295,7 @@ export function SidePanel(props: SidePanelProps) {
       closeOnEscape
       closeOnBackdropPress
       closeOnSwipe={false}
-      popupClass="bg-card"
+      popupClass="bg-popover"
       popupStyle={{
         width: Math.min(unit(440, 640), windowSize().width),
         padding: unit(32, 32),
@@ -315,7 +315,7 @@ export function SidePanel(props: SidePanelProps) {
       <View class="flex-row items-center justify-between gap-4">
         <Text
           role="header"
-          class="flex-1 min-w-0 font-semibold text-foreground"
+          class="flex-1 min-w-0 font-semibold text-popover-foreground"
           style={{ fontSize: unit(24, 32) }}
         >
           {props.title}
@@ -456,7 +456,7 @@ export function Menu(props: MenuProps) {
                 <Icon name={command().icon!} />
               </If>
               <Text
-                class={`${command().destructive ? 'text-destructive' : 'text-foreground'} group-disabled:text-muted-foreground`}
+                class={`${command().destructive ? 'text-destructive' : 'text-popover-foreground'} group-disabled:text-muted-foreground`}
                 style={{ fontSize: controlMetrics().fontSize }}
               >
                 {command().label}
@@ -560,7 +560,7 @@ export function Tooltip(props: TooltipProps) {
       startingClass={reduceMotion() ? '' : 'opacity-0'}
       endingClass={reduceMotion() ? '' : 'opacity-0'}
     >
-      <Text class="text-foreground" style={{ fontSize: unit(14, 20) }}>
+      <Text class="text-popover-foreground" style={{ fontSize: unit(14, 20) }}>
         {props.label}
       </Text>
     </BaseTooltip>
@@ -596,7 +596,7 @@ export function Toast(props: ToastProps) {
       endingClass={reduceMotion() ? '' : 'opacity-0'}
     >
       <Text
-        class={`flex-1 min-w-0 ${props.tone === 'error' ? 'text-destructive' : 'text-foreground'}`}
+        class={`flex-1 min-w-0 ${props.tone === 'error' ? 'text-destructive' : 'text-popover-foreground'}`}
         style={{ fontSize: controlMetrics().fontSize }}
       >
         {props.message}

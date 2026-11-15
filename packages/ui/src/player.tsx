@@ -152,24 +152,24 @@ export function CinemaSelect(props: {
             paddingVertical: controlMetrics().paddingVertical,
           }}
         >
-          <SelectFocus open={open()} gap={controlMetrics().gap}>
+          <SelectFocus open={open()} gap={controlMetrics().gap} stretch>
+            <Text
+              class={props.disabled || !enabled() ? 'text-cinema-muted' : 'text-cinema-foreground'}
+              style={{ fontSize: controlMetrics().fontSize, flexShrink: 1 }}
+            >
+              {props.items.find((item) => item.value === props.value)?.title ?? props.label}
+            </Text>
             <Icon
               name="down"
               color={token(props.disabled || !enabled() ? 'cinema-muted' : 'cinema-foreground')}
             />
-            <Text
-              class={props.disabled || !enabled() ? 'text-cinema-muted' : 'text-cinema-foreground'}
-              style={{ fontSize: controlMetrics().fontSize }}
-            >
-              {props.items.find((item) => item.value === props.value)?.title ?? props.label}
-            </Text>
           </SelectFocus>
         </Button>
       }
       placement="top"
-      popupClass="bg-card border border-border rounded-(--radius) p-2"
+      popupClass="bg-popover border border-border rounded-(--radius) p-2"
       popupStyle={{ minWidth: Product() === 'tv' ? tvUnit(220) : 120 }}
-      itemClass="text-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
+      itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
       itemStyle={{
         minHeight: controlMetrics().height,
         fontSize: controlMetrics().fontSize,
@@ -276,7 +276,7 @@ export function EpisodePanel(props: {
       onOpenChange={({ open }) => {
         if (!open) props.onClose();
       }}
-      popupClass={props.cinema ? 'bg-cinema' : 'bg-card'}
+      popupClass={props.cinema ? 'bg-cinema' : 'bg-popover'}
       popupStyle={{ width: Math.min(Product() === 'tv' ? tvUnit(640) : 440, windowSize().width) }}
       backdropClass="bg-cinema/60"
     >

@@ -110,6 +110,24 @@ button:disabled {
   filter: none;
   transition: none;
 }
+.choice-group [role='radio'][aria-checked='false'] > .icon {
+  visibility: hidden;
+}
+.choice-group [role='radio'] {
+  border-color: var(--input);
+}
+.choice-group [role='radio'][aria-checked='true'] {
+  font-weight: 600;
+}
+.choice-group [role='radio'][aria-checked='true']:not(:disabled) {
+  border-color: var(--primary);
+}
+.choice-group [role='radio']:disabled {
+  border-color: var(--input);
+}
+.tabs button[aria-selected='true']:disabled::after {
+  background: var(--muted-foreground);
+}
 
 .ui-button.compact {
   min-height: var(--small);
@@ -222,7 +240,8 @@ button:disabled {
   width: max-content;
   max-width: 400px;
   z-index: 5;
-  background: var(--card);
+  background: var(--popover);
+  color: var(--popover-foreground);
   border-radius: var(--radius);
   padding: 8px;
   box-shadow: 0 10px 32px #00000026;
@@ -231,7 +250,7 @@ button:disabled {
 .popup button {
   border: 0;
   background: transparent;
-  color: var(--foreground);
+  color: var(--popover-foreground);
   border-radius: 8px;
   min-height: var(--control);
   padding: 0 var(--pad);
@@ -350,7 +369,7 @@ button:disabled {
   padding: 0 8px 12px;
   border: 0;
   background: transparent;
-  color: var(--muted-foreground);
+  color: var(--foreground);
 }
 
 .tabs button[aria-selected='true'] {
@@ -630,8 +649,8 @@ input[type='checkbox']:disabled::after {
   border-color: transparent;
 }
 #toast {
-  color: var(--foreground);
-  background: var(--card);
+  color: var(--popover-foreground);
+  background: var(--popover);
   padding: 16px 20px;
   border-radius: var(--radius);
   box-shadow: 0 8px 32px var(--border);
@@ -670,8 +689,8 @@ dialog {
   overflow: auto;
   border: 0;
   border-radius: var(--radius);
-  background: var(--card);
-  color: var(--foreground);
+  background: var(--popover);
+  color: var(--popover-foreground);
   box-shadow: 0 20px 60px #00000040;
 }
 

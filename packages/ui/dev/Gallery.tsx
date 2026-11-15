@@ -88,7 +88,7 @@ const options = [
   { value: 'all', label: '全部' },
   { value: 'city', label: '都市' },
   { value: 'period', label: '古装' },
-  { value: 'unavailable', label: '暂不可用', disabled: true },
+  { value: 'unavailable', label: '悬疑', disabled: true },
 ];
 const initialChips: RemovableChip[] = [
   { id: 'city', label: '都市' },
@@ -116,6 +116,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   const checked = signal(false);
   const mixed = signal(true);
   const enabled = signal(true);
+  const selectionDisabled = signal(false);
   const genre = signal<string | null>('all');
   const choice = signal('all');
   const tab = signal('all');
@@ -175,7 +176,10 @@ export function ComponentGallery(props: ComponentGalleryProps) {
           </Each>
         </ActionBar>
         <Scroll ref={(ref) => (scroll = ref)} class="flex-1" testID="gallery-scroll">
-          <View class="gap-8" style={{ paddingBottom: unit(32, 48) }}>
+          <View
+            class="gap-8"
+            style={{ padding: Math.max(8, unit(8, 8)), paddingBottom: unit(32, 48) }}
+          >
             <If when={sheet() === 'foundation'}>
               <Section title="文字与表面">
                 <UiText role="page">春山不负</UiText>
@@ -389,8 +393,14 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   label="题材单选"
                   value={choice()}
                   options={options}
+                  disabled={selectionDisabled()}
                   onChange={({ value }) => choice.set(value)}
                   testID="gallery-choice"
+                />
+                <Button
+                  label="切换选择组可用性"
+                  testID="gallery-choice-disabled"
+                  onPress={() => selectionDisabled.set(!selectionDisabled())}
                 />
                 <Button
                   label="重置音量"
@@ -435,8 +445,14 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   label="内容分类"
                   value={tab()}
                   options={options}
+                  disabled={selectionDisabled()}
                   onChange={({ value }) => tab.set(value)}
                   testID="gallery-tabs"
+                />
+                <Button
+                  label="切换标签组可用性"
+                  testID="gallery-tabs-disabled"
+                  onPress={() => selectionDisabled.set(!selectionDisabled())}
                 />
                 <Accordion
                   value={accordion()}

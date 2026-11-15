@@ -65,7 +65,9 @@ export function Button(props: ButtonProps) {
               ? 'bg-transparent border-transparent hover:bg-muted active:bg-muted'
               : props.episode
                 ? 'bg-muted border-transparent hover:bg-accent active:bg-accent'
-                : 'bg-card border-border hover:bg-muted active:bg-muted';
+                : props.selectOpen !== undefined
+                  ? 'bg-card border-input hover:bg-muted active:bg-muted'
+                  : 'bg-card border-border hover:bg-muted active:bg-muted';
   return (
     <Root
       ref={(ref) => props.buttonRef?.(ref)}
@@ -98,8 +100,14 @@ export function Button(props: ButtonProps) {
       accessibilityDescription={props.accessibilityDescription}
       class={`flex-row items-center ${variant() === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()}`}
     >
-      <SelectFocus open={props.selectOpen} gap={size().gap}>
-        <If when={props.icon || (props.iconOnly && props.pending)}>
+      <SelectFocus
+        open={props.selectOpen}
+        gap={size().gap}
+        stretch={props.selectOpen !== undefined}
+      >
+        <If
+          when={(props.icon && props.selectOpen === undefined) || (props.iconOnly && props.pending)}
+        >
           <Icon
             name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
             color={token(tone())}
@@ -111,11 +119,15 @@ export function Button(props: ButtonProps) {
             style={{
               fontSize:
                 variant() === 'navigation' && Product() === 'tv' ? tvUnit(24) : size().fontSize,
+              flexShrink: props.selectOpen !== undefined ? 1 : undefined,
             }}
             class={`${variant() === 'primary' || props.selected ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : props.selected ? 'text-accent-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : 'text-foreground'}`}
           >
             {props.displayLabel ?? (props.pending ? '处理中…' : props.label)}
           </Text>
+        </If>
+        <If when={props.icon && props.selectOpen !== undefined}>
+          <Icon name={props.icon!} color={token(tone())} size={props.size ?? 'md'} />
         </If>
       </SelectFocus>
     </Root>

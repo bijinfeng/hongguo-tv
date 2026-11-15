@@ -1,7 +1,12 @@
 import { View, cleanup, effect, platform, type JSX, type ViewRef } from 'nsh';
 
 /** NSH 0.5 macOS activates a pressed trigger before dispatching the open Select's Enter. */
-export function SelectFocus(props: { open?: boolean; gap: number; children?: JSX.Element }) {
+export function SelectFocus(props: {
+  open?: boolean;
+  gap: number;
+  stretch?: boolean;
+  children?: JSX.Element;
+}) {
   // Whether this is a Select trigger is fixed for the component's lifetime.
   if (props.open === undefined) return props.children;
   let content: ViewRef | undefined;
@@ -18,7 +23,7 @@ export function SelectFocus(props: { open?: boolean; gap: number; children?: JSX
         content = ref;
       }}
       focusable={platform.os === 'macos' && props.open}
-      class="flex-row items-center"
+      class={`flex-row items-center ${props.stretch ? 'flex-1 min-w-0 justify-between' : ''}`}
       style={{ gap: props.gap }}
     >
       {props.children}

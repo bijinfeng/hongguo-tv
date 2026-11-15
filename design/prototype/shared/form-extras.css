@@ -32,7 +32,8 @@ dialog .input-with-icon .ui-input:focus {
   font-weight: 550;
 }
 .suggestion-list {
-  background: var(--card);
+  background: var(--popover);
+  color: var(--popover-foreground);
   border-radius: var(--radius);
   box-shadow: 0 10px 32px #00000026;
   padding: 8px;

@@ -2,6 +2,7 @@ import { Text, View, cleanup, effect, signal, token, type JSX, type ViewRef } fr
 import { Button } from './button';
 import { Product, controlMetrics, tvUnit } from './foundation';
 import { UiText } from './display';
+import { textSize } from './typography';
 
 const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
@@ -23,8 +24,8 @@ export function ExpandableText(props: ExpandableTextProps) {
   const isExpanded = () => props.expanded ?? expanded();
   const lines = () => Math.max(1, props.collapsedLines ?? 2);
   const font = () => ({
-    fontSize: controlMetrics().fontSize,
-    lineHeight: controlMetrics().fontSize * 1.8,
+    fontSize: textSize('body'),
+    lineHeight: textSize('body') * 1.5,
   });
   const toggle = () => {
     const next = !isExpanded();

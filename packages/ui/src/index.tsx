@@ -15,7 +15,7 @@ export { SearchInput, type SearchInputProps } from './search-input';
 export { CardControls } from './card-controls';
 export { SearchPicker, SearchSuggestionRow } from './search-picker';
 export { FilterChoices } from './filter-choices';
-export { DownloadProgress } from './download-progress';
+export { DownloadProgress, type DownloadProgressProps } from './download-progress';
 export * from './form';
 export * from './display';
 export * from './overlay';

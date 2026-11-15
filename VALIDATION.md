@@ -615,6 +615,22 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 
 未验：VoiceOver／TalkBack 完整输出、系统大字、Android TV 本批组件宿主、真实遥控／IME、物理观看距离、逐帧正常动效及全状态焦点裁切、真实账号／媒体／解码、独立安装包和正式发行。无依赖变化，未重跑 security，既有安全阻塞保留。未提交、未推送，保留其他任务改动。六项范围与状态见[专项审查](docs/design/design-system-accessibility-state-copy-audit.md#修复实施与证据)。
 
+## 基础组件规范还原修复与补审 · 2026-11-15
+
+修复初审 R1–R6：下载 16／22 字级、展开正文 1.5 行高、Select 起始文字／末端箭头及 input 边界、画廊外焦点安全区、Tabs／ChoiceGroup 禁用组合、普通弹层 popover 配对。补审另修未知总量下载满条误导，复用共享 Progress 的片段与减少动态效果路径。浏览器参考同步相应状态配方。详细范围和证据见[修复与补审记录](docs/design/component-spec-conformance-fixes.md)。
+
+验证根目录 `artifacts/design-spec-review/`（ignored）：
+
+- `final-ui-check.log`：三端 check＋build 通过；`final-ui-test.log`：三端各 16／16，共 48／48；`final-ui-host.log`：macOS 桌面配方／TV 密度各 16／16，共 32／32。
+- `visual-review.log`：两端密度×浅深主题×正常／减少动态效果的打开弹层与真实封面场景共 16／16；已实际看过 Dialog／Confirm／Sheet／Menu／Popover／Toast／Tooltip、成功封面／续播／精选、正文展开及图片失败恢复。两张公开封面以本地副本载入，来源见 `cover-sources.json`，不证明持续网络可用。
+- `motion-review.log`：系统真实时钟连续采样共 8／8；捕获 Dialog 淡入／淡出、Sheet 进出及图片切换中间帧，检查 Menu／Popover／Toast 打开与四类弹层快速开关的最终收敛。减少动态效果分支同步检查。截图存在调用开销，不认定精确时长、完整中断轨迹、帧率或全组件动效性能通过。
+- `prototype-tests.log`：浏览器参考测试 28／28；另在浏览器默认窗口实际查看桌面浅色／TV 配方深色的选中标记和焦点。定向 UI lint 与 `git diff --check` 通过。
+- `final-verify.log`：根 `pnpm verify` 通过，包含格式、lint、生成契约、Rust 197／197、工程 30／30、三端 check／build、App 测试 Web 64／Desktop 66／TV 67 及发行基础检查。最终文档另做格式检查。mixed headless／development host 有 NSH 汇总但未展开的构建 warning，合成失败测试有预期错误日志，不称零警告。
+
+初审源码快照保持原样；本次源码／夹具身份另存 `fix-source-manifest.json`。临时 `.nsh/DesignReview*` 与本次封面副本在收尾后删除，脚本、夹具、日志和截图留在 artifacts 中可复现；没有清理其他任务的缓存或文件。
+
+边界：本批是 macOS 图形宿主的两端密度观察，不是 Android／物理 TV 验收；系统大字、读屏、真实遥控／IME、物理距离、所有窗口与封面、所有控件动效、媒体解码及正式包仍未覆盖。未改变依赖，未重跑 security，既有安全阻塞保留。保留日历等并行修改，未提交、未推送。
+
 ## 新剧／上新日历共享 UI · 2026-11-15
 
 日历切片的交付源码已迁回并继续直接修改主项目目录。共享 controller/page 提供真实日期、新剧独立人群、双游标与独立缓存；已上线进入既有详情，未上线只展示公开安排和诚实的预约门槛，不把预约 ID 用于详情／媒体，也不写历史或模拟预约成功。DateChoice 有独立公共实现、预览入口和三端测试。安排复用列表内容区，隐藏列表退出交互和无障碍树；收起／Escape／native Back 先关闭安排并恢复来源，长文可用键盘／遥控阅读。输入及动效清单、复现命令见[日历浏览交接](docs/calendar-browsing.md)。

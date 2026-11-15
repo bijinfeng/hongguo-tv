@@ -431,6 +431,8 @@ export interface ProgressProps {
   value?: number;
   max?: number;
   label?: string;
+  /** Names a progress bar whose visible context is supplied by its owner. */
+  accessibilityLabel?: string;
   detail?: string;
   indeterminate?: boolean;
   position?: number;
@@ -480,7 +482,7 @@ export function Progress(props: ProgressProps) {
         </View>
       </If>
       <BaseProgress
-        accessibilityLabel={props.label ?? '进度'}
+        accessibilityLabel={props.accessibilityLabel ?? props.label ?? '进度'}
         value={percentage()}
         indeterminate={unknown()}
         onLayout={({ bounds }) => width.set(bounds.size.width)}

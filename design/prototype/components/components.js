@@ -81,7 +81,7 @@ const row = (label, content) =>
 const section = (heading, content) =>
   `<section class="spec-section"><h2>${heading}</h2>${content}</section>`;
 const choiceGroup = () =>
-  `<div class="choice-group" role="radiogroup" aria-label="题材">${['全部', '都市', '古装', '悬疑'].map((label) => button(label, { variant: state.genre === label ? 'selected' : '', action: 'genre', extra: `data-value="${label}" role="radio" aria-checked="${state.genre === label}" tabindex="${state.genre === label ? 0 : -1}"` })).join('')}</div>`;
+  `<div class="choice-group" role="radiogroup" aria-label="题材">${['全部', '都市', '古装', '悬疑'].map((label) => button(label, { variant: state.genre === label ? 'selected' : '', glyph: 'check', action: 'genre', extra: `data-value="${label}" role="radio" aria-checked="${state.genre === label}" tabindex="${state.genre === label ? 0 : -1}"` })).join('')}</div>`;
 const select = (label, options, value, key, config = {}) => {
   const current = state.selectValues?.[key] || value;
   return `<div class="select-wrap"><button type="button" class="select-trigger" aria-label="${escape(label)}" aria-haspopup="listbox" aria-expanded="false" data-select="${key}" ${config.disabled ? 'disabled' : ''}><span>${escape(current)}</span>${icon('chevron-down')}</button><div class="popup" role="listbox" aria-label="${escape(label)}" hidden>${options

@@ -1,20 +1,28 @@
-import { Text } from 'nsh';
-import { Progress } from 'nsh/base';
+import { View } from 'nsh';
+import { Progress, UiText } from './display';
+import { Product, tvUnit } from './foundation';
 
-/** Byte progress keeps its semantic range without a focusable control or tick animation. */
-export function DownloadProgress(props: { received: number; total?: number }) {
+const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
+
+/** Byte counts supplied by the updater; the component owns no download state. */
+export interface DownloadProgressProps {
+  received: number;
+  total?: number;
+}
+
+/** Shares range and unknown-total motion with Progress; byte counts update in place. */
+export function DownloadProgress(props: DownloadProgressProps) {
   return (
-    <Progress
-      accessibilityLabel="更新下载进度"
-      value={props.total ? Math.min(100, (props.received / props.total) * 100) : 0}
-      indeterminate={!props.total}
-      class="gap-3"
-      trackClass="h-1 bg-muted overflow-hidden rounded-(--radius)"
-      indicatorClass="h-full bg-primary"
-    >
-      <Text class="text-base text-muted-foreground tabular-nums">
+    <View style={{ gap: unit(12) }}>
+      <Progress
+        accessibilityLabel="更新下载进度"
+        value={props.received}
+        max={props.total}
+        indeterminate={!props.total}
+      />
+      <UiText role="numeric" tone="muted">
         {`${(props.received / 1048576).toFixed(1)} MB${props.total ? ` / ${(props.total / 1048576).toFixed(1)} MB` : ''}`}
-      </Text>
-    </Progress>
+      </UiText>
+    </View>
   );
 }

@@ -106,8 +106,8 @@ export function FilterChoices(props: {
             onPress={() => open.set(true)}
           />
         }
-        popupClass="bg-card border border-border rounded-(--radius) p-2"
-        itemClass="p-3 text-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
+        popupClass="bg-popover border border-border rounded-(--radius) p-2"
+        itemClass="p-3 text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
         itemStyle={{ fontSize: tvUnit(24) }}
       />
     </If>

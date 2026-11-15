@@ -2,6 +2,8 @@
 
 红果桌面与 TV 的共享 NSH 样式层。业务页面从包根导入；NSH `nsh/base` 提供行为，本包拥有主题、尺寸、图标、部件样式与必要输入适配。它不依赖 `packages/app`、网络、存储、媒体会话或其他应用入口。
 
+基础组件规范还原、打开弹层、真实封面与动效的本轮结果见[修复与补审记录](../../docs/design/component-spec-conformance-fixes.md)；当前规则仍以根 DESIGN 为准。
+
 ## 两端使用
 
 只有一个 package、一份公共 API。应用根注入 `Product.Provider`，普通页面不判断平台，不复制 DesktopButton／TvButton。`desktop` 与 `tv` 是产品端型，不是操作系统；Web 采用桌面样式。

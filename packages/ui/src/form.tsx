@@ -568,19 +568,27 @@ export function ChoiceGroup(props: ChoiceGroupProps) {
               accessibilityLabel={option().label}
               testID={props.testID ? `${props.testID}-${option().value}` : undefined}
               onChange={() => props.onChange({ value: option().value })}
-              class="items-center justify-center rounded-(--radius) border border-border bg-card hover:bg-accent checked:bg-accent checked:border-primary focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-muted"
+              class={`flex-row items-center justify-center rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled || option().disabled ? 'bg-muted border-input' : props.value === option().value ? 'bg-accent border-primary' : 'bg-card border-input hover:bg-accent'}`}
               style={{
                 minHeight: controlMetrics().height,
                 paddingHorizontal: controlMetrics().paddingHorizontal,
                 paddingVertical: controlMetrics().paddingVertical,
+                gap: controlMetrics().gap,
               }}
             >
+              <View
+                class={props.value === option().value ? '' : 'opacity-0'}
+                style={{ width: controlMetrics().iconSize, height: controlMetrics().iconSize }}
+              >
+                <Icon
+                  name="check"
+                  color={token(
+                    props.disabled || option().disabled ? 'muted-foreground' : 'accent-foreground',
+                  )}
+                />
+              </View>
               <Text
-                class={
-                  props.value === option().value
-                    ? 'font-semibold text-accent-foreground'
-                    : 'text-foreground'
-                }
+                class={`${props.value === option().value ? 'font-semibold' : ''} ${props.disabled || option().disabled ? 'text-muted-foreground' : props.value === option().value ? 'text-accent-foreground' : 'text-foreground'}`}
                 style={{ fontSize: controlMetrics().fontSize }}
               >
                 {option().label}
@@ -602,7 +610,7 @@ export function Tabs(props: TabsProps) {
     <View role="group" accessibilityLabel={props.label} testID={props.testID}>
       <BaseTabs
         class="flex-row flex-wrap gap-2 border-b border-border"
-        indicatorClass="bottom-0 h-0.5 bg-primary"
+        indicatorClass={`bottom-0 h-0.5 ${props.disabled || props.options.find((option) => option.value === props.value)?.disabled ? 'bg-muted-foreground' : 'bg-primary'}`}
       >
         <Each of={props.options} key={(option) => option.value}>
           {(option) => (
@@ -612,7 +620,7 @@ export function Tabs(props: TabsProps) {
               testID={props.testID ? `${props.testID}-${option().value}` : undefined}
               accessibilityLabel={option().label}
               onPress={() => props.onChange({ value: option().value })}
-              class="items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+              class={`items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled || option().disabled ? 'bg-muted' : 'hover:bg-muted'}`}
               style={{
                 minHeight: controlMetrics().height,
                 paddingHorizontal: controlMetrics().paddingHorizontal,
@@ -620,11 +628,7 @@ export function Tabs(props: TabsProps) {
               }}
             >
               <Text
-                class={
-                  props.value === option().value
-                    ? 'font-semibold text-primary'
-                    : 'text-muted-foreground'
-                }
+                class={`${props.value === option().value ? 'font-semibold' : ''} ${props.disabled || option().disabled ? 'text-muted-foreground' : props.value === option().value ? 'text-primary' : 'text-foreground'}`}
                 style={{ fontSize: controlMetrics().fontSize }}
               >
                 {option().label}
