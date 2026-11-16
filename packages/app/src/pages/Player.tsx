@@ -1062,8 +1062,6 @@ export function Player(props: {
                     <Text class="text-sm text-muted-foreground">第 {props.episode.index} 集</Text>
                   </View>
                 </If>
-                <Button label="收藏" disabled onPress={() => {}} />
-                <Button label="追更" disabled onPress={() => {}} />
                 <If when={props.feed}>
                   <Button
                     testID="feed-next"
