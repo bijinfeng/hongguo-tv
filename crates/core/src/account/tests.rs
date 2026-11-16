@@ -463,6 +463,38 @@ async fn owner_switches_preserve_separate_libraries_and_expire_prior_generations
 }
 
 #[tokio::test]
+async fn reopening_the_same_directory_restores_login_without_a_new_attempt() {
+    let tmp = Temp::new();
+    let service = tmp.open().await;
+
+    switch_to(&service, "7390000000000000003")
+        .await
+        .expect("verified session should be committed");
+    let first = service.state().await.unwrap();
+    assert!(first.account.logged_in);
+    assert!(first.account.login.is_none());
+    assert_eq!(first.account.owner_id, "7390000000000000003");
+    drop(service);
+
+    let reopened = tmp.open().await;
+    let restored = reopened.state().await.unwrap();
+    assert!(restored.account.logged_in);
+    assert!(restored.account.login.is_none());
+    assert_eq!(restored.account.owner_id, "7390000000000000003");
+
+    let logged_out = reopened
+        .command(AccountCommandRequest {
+            owner_id: restored.account.owner_id,
+            owner_epoch: restored.account.owner_epoch,
+            command: AccountCommand::Logout {},
+        })
+        .await
+        .unwrap();
+    assert!(!logged_out.account.logged_in);
+    assert!(persisted_payload(&tmp.session_db()).is_none());
+}
+
+#[tokio::test]
 async fn watch_statistics_rejects_an_old_epoch_after_returning_to_the_same_account() {
     let tmp = Temp::new();
     let service = tmp.open().await;
