@@ -86,6 +86,115 @@ struct FollowTransport {
     task: tokio::task::JoinHandle<()>,
 }
 
+#[derive(Clone)]
+struct ReservationTransportState {
+    reserved: Arc<AtomicBool>,
+    force_unconfirmed: Arc<AtomicBool>,
+}
+
+async fn reservation_transport_upstream(
+    State(state): State<ReservationTransportState>,
+    request: HttpRequest,
+) -> Response {
+    const ITEM: &str = "7692049770637954110";
+    const SERIES: &str = "7690163276214176792";
+    match (request.method(), request.uri().path()) {
+        (&Method::GET, "/reading/user/subscribe/list/v1/") => {
+            let url =
+                reqwest::Url::parse(&format!("http://fixture.invalid{}", request.uri())).unwrap();
+            let online = url
+                .query_pairs()
+                .find(|(key, _)| key == "is_online")
+                .map(|(_, value)| value == "true")
+                .unwrap_or(false);
+            assert_eq!(
+                url.query_pairs()
+                    .find(|(key, _)| key == "tab_type")
+                    .unwrap()
+                    .1,
+                "13"
+            );
+            let remote_present = state.reserved.load(Ordering::Acquire)
+                && !state.force_unconfirmed.load(Ordering::Acquire);
+            let present = online && remote_present;
+            let rows = if present {
+                vec![json!({
+                    "item_id": ITEM,
+                    "is_online": true,
+                    "subscribe_data": {
+                        "series_id": SERIES,
+                        "title": "合成预约剧",
+                        "episode_cnt": 12
+                    }
+                })]
+            } else {
+                Vec::new()
+            };
+            axum::Json(json!({
+                "code": 0,
+                "data": {
+                    "subscribe_items": rows,
+                    "has_more": false,
+                    "online_total_count": if remote_present { 1 } else { 0 },
+                    "offline_total_count": 0
+                }
+            }))
+            .into_response()
+        }
+        (&Method::POST, "/reading/bookapi/search/uncover_subscribe/v") => {
+            let body = axum::body::to_bytes(request.into_body(), 32768)
+                .await
+                .unwrap();
+            assert!(!body.is_empty());
+            state.reserved.store(true, Ordering::Release);
+            axum::Json(json!({"code": 0, "data": {}})).into_response()
+        }
+        _ => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+struct ReservationTransport {
+    origin: String,
+    reserved: Arc<AtomicBool>,
+    force_unconfirmed: Arc<AtomicBool>,
+    task: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for ReservationTransport {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+impl ReservationTransport {
+    async fn new() -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}/", listener.local_addr().unwrap());
+        let state = ReservationTransportState {
+            reserved: Arc::new(AtomicBool::new(false)),
+            force_unconfirmed: Arc::new(AtomicBool::new(false)),
+        };
+        let reserved = state.reserved.clone();
+        let force_unconfirmed = state.force_unconfirmed.clone();
+        let task = tokio::spawn(async move {
+            axum::serve(
+                listener,
+                Router::new()
+                    .fallback(reservation_transport_upstream)
+                    .with_state(state),
+            )
+            .await
+            .unwrap();
+        });
+        Self {
+            origin,
+            reserved,
+            force_unconfirmed,
+            task,
+        }
+    }
+}
+
 impl Drop for FollowTransport {
     fn drop(&mut self) {
         self.task.abort();
@@ -824,6 +933,133 @@ async fn follow_http_native_authenticated_success_and_unconfirmed_results_match(
         "7690163276214176792"
     );
     assert!(transport.followed.load(Ordering::Acquire));
+}
+
+#[tokio::test]
+async fn reservations_http_native_authenticated_success_and_unconfirmed_results_match() {
+    let transport = ReservationTransport::new().await;
+    let mut fixture = Fixture::new(false).await;
+    let account = hongguo_core::account::AccountService::open(
+        &fixture.dir,
+        fixture.session.services.library.clone(),
+    )
+    .await
+    .unwrap();
+    account.configure_loopback_for_tests(&transport.origin);
+    account
+        .install_loopback_account_for_tests("7390000000000000003")
+        .await
+        .unwrap();
+    let services = Services {
+        account: Some(account.clone()),
+        ..fixture.session.services.clone()
+    };
+    let _previous = std::mem::replace(
+        &mut fixture.session,
+        Session::with_services(services)
+            .await
+            .unwrap_or_else(|_| panic!("authenticated reservation session")),
+    );
+    let app = hongguo_http_api::router_with_account(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        Some(fixture.session.services.library.clone()),
+        None,
+        None,
+        Some(account.clone()),
+    );
+    async fn http(app: Router, path: &str, body: Option<Value>) -> (u16, Value) {
+        let request = axum::http::Request::builder()
+            .uri(path)
+            .header("host", "127.0.0.1:8080")
+            .header("content-type", "application/json")
+            .method(if body.is_some() {
+                Method::POST
+            } else {
+                Method::GET
+            })
+            .body(body.map_or(Body::empty(), |value| Body::from(value.to_string())))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        let status = response.status().as_u16();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&bytes).unwrap())
+    }
+    let snapshot = account.snapshot().await;
+    let query = format!(
+        "/api/v1/reservations?owner_id={}&owner_epoch={}",
+        snapshot.owner_id, snapshot.owner_epoch
+    );
+    let native_initial = fixture.call(&query, None).await;
+    let (http_status, http_initial) = http(app.clone(), &query, None).await;
+    assert_eq!(
+        (native_initial.status, &native_initial.body),
+        (http_status, &http_initial)
+    );
+    assert_eq!(native_initial.status, 200);
+    assert_eq!(native_initial.body["data"]["items"], json!([]));
+
+    let intent = json!({
+        "owner_id": snapshot.owner_id,
+        "owner_epoch": snapshot.owner_epoch,
+        "target": {"kind": "item", "id": "7692049770637954110"},
+        "enabled": true
+    });
+    let native_add = fixture
+        .call("/api/v1/reservations", Some(&intent.to_string()))
+        .await;
+    let (http_status, http_add) =
+        http(app.clone(), "/api/v1/reservations", Some(intent.clone())).await;
+    assert_eq!(
+        (native_add.status, &native_add.body),
+        (http_status, &http_add)
+    );
+    assert_eq!(native_add.status, 200);
+    assert_eq!(native_add.body["data"]["acknowledged"], true);
+    assert_eq!(native_add.body["data"]["confirmed"], true);
+    assert_eq!(
+        native_add.body["data"]["snapshot"]["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(transport.reserved.load(Ordering::Acquire));
+
+    // Both transports must expose the same acknowledged-but-unconfirmed result
+    // when the remote read temporarily hides the target identity.
+    transport.force_unconfirmed.store(true, Ordering::Release);
+    let native_unconfirmed = fixture
+        .call("/api/v1/reservations", Some(&intent.to_string()))
+        .await;
+    let (http_status, http_unconfirmed) =
+        http(app.clone(), "/api/v1/reservations", Some(intent)).await;
+    assert_eq!(
+        (native_unconfirmed.status, &native_unconfirmed.body),
+        (http_status, &http_unconfirmed)
+    );
+    assert_eq!(native_unconfirmed.status, 200);
+    assert_eq!(native_unconfirmed.body["data"]["acknowledged"], true);
+    assert_eq!(native_unconfirmed.body["data"]["confirmed"], false);
+    assert_eq!(
+        native_unconfirmed.body["data"]["snapshot"]["items"],
+        json!([])
+    );
+
+    transport.force_unconfirmed.store(false, Ordering::Release);
+    let native_observed = fixture.call(&query, None).await;
+    let (http_status, http_observed) = http(app, &query, None).await;
+    assert_eq!(
+        (native_observed.status, &native_observed.body),
+        (http_status, &http_observed)
+    );
+    assert_eq!(native_observed.status, 200);
+    assert_eq!(
+        native_observed.body["data"]["items"][0]["reservation_id"],
+        "7692049770637954110"
+    );
 }
 
 #[tokio::test]
