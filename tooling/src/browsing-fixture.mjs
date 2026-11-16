@@ -71,8 +71,15 @@ export async function browsingFixture({
     }
     if (url.pathname.startsWith('/cover/')) {
       const image = ['home', 'night', 'return', 'spring'][Number(url.pathname.at(-1))];
-      res.setHeader('Content-Type', 'image/png');
-      res.end(await readFile(resolve(root, `design/prototype/assets/${image}.png`)));
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.end(
+        await readFile(
+          resolve(
+            root,
+            `design/prototype/visual-redesign-real/assets/component-covers/${image}.jpg`,
+          ),
+        ),
+      );
       return;
     }
     const reply = (data, status = 200) => {

@@ -24,7 +24,8 @@ test('NSH and browser glyphs derive from the same verified official SVG sources'
   const manifest = JSON.parse(await readFile(resolve(source, 'provenance.json'), 'utf8'));
   assert.equal(manifest.package, 'lucide-static');
   assert.equal(manifest.version, '0.468.0');
-  const { icons } = await import('../../design/prototype/components/assets/icons.js');
+  const { icons } =
+    await import('../../design/prototype/visual-redesign-real/components/assets/icons.js');
   assert.deepEqual(Object.keys(icons).sort(), Object.keys(manifest.svgSha256).sort());
   for (const [name, hash] of Object.entries(manifest.svgSha256)) {
     const svg = await readFile(resolve(source, `${name}.svg`), 'utf8');

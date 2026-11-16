@@ -4,7 +4,7 @@
 
 ## 审查依据与边界
 
-行为依据为 `upstream.lock.json` 固定的 [aston314/hongguo-tv](https://github.com/aston314/hongguo-tv/tree/de9712bf358dcbdf8a188e26cba711e3e5354e8a) 提交；原型是 `design/prototype`，浏览器审阅入口为 `http://127.0.0.1:4178/`。剧目、封面、账号和指标均明确标注为演示样例，不是线上数据。
+行为依据为 `upstream.lock.json` 固定的 [aston314/hongguo-tv](https://github.com/aston314/hongguo-tv/tree/de9712bf358dcbdf8a188e26cba711e3e5354e8a) 提交；当前视觉稿是 `design/prototype/visual-redesign-real`，浏览器审阅入口为 `http://127.0.0.1:4178/visual-redesign-real/`。剧目、封面、账号和指标均明确标注为演示样例，不是线上数据。
 
 本次覆盖设计稿的业务真实性、桌面／TV 原型布局与关键交互；未做官方红果 App 的逐像素对照。未连接真实账号、扫码、预约或媒体；浏览器方向键不等于实体遥控、NSH 宿主或物理 TV 验收。此前实现半成品保持冻结，不将本轮设计修订当作生产功能完成。
 

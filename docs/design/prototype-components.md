@@ -1,8 +1,8 @@
 # 原型与基础组件共源
 
-本次基础组件提交包含组件板与共享资源；下述产品原型整页接入仍留在工作区，另行提交。接入规范继续适用于后续原型。
+当前基础组件稿与桌面／TV稿统一位于 `design/prototype/visual-redesign-real/`；旧的整页原型和组件板已清理。接入规范继续适用于后续实现。
 
-产品原型 `design/prototype/index.html` 和基础组件板 `design/prototype/components/index.html` 使用同一套浏览器设计组件。颜色由 `packages/ui/theme.json` 生成到 `components/assets/theme.css`；图标由固定版本 Lucide 官方资源生成到 `shared/icons.js`，不在页面内另画路径。
+桌面稿 `visual-redesign-real/desktop.html`、TV 稿 `visual-redesign-real/tv.html` 和组件板 `visual-redesign-real/components/index.html` 使用当前设计资源。设计稿 token 位于 `visual-redesign-real/components/assets/design-theme.css`；图标由固定版本 Lucide 官方资源生成到 `visual-redesign-real/shared/icons.js`，不在页面内另画路径。
 
 ## 源码边界
 
@@ -48,7 +48,7 @@ button('继续观看', { variant: 'primary', glyph: 'play', action: 'resume', va
 
 当前原型使用的基础操作、搜索、分类标签、导航选中、日期、季、选集、设置选择器与切换、历史勾选、海报、续播、结果行、反馈和播放控件已接到上述公共来源。折叠、链接、键提示等高频组合可复用同一来源，未为示例组件编造产品入口。
 
-`node --test design/prototype/*.test.mjs` 包括既有24项交互回归和4项共源契约测试：入口资源一致、按钮无障碍/动作属性、产品所有图标均能解析到生成的官方资源、滑杆比例与实际值同步。JavaScript 语法与 Oxfmt 检查同步执行。
+当前清理范围不包含生产 NSH 实现；桌面／TV稿与组件板通过浏览器入口进行视觉检查，生产实现阶段再补充对应宿主验证。
 
 视觉验收需比较桌面/TV、浅色/深色及924px窄窗口，检查输入与按钮实测高度、单一焦点边界、弹层焦点恢复和页面溢出。截图与浏览器尺寸矩阵由本轮主验收记录汇总；源码/模型回归通过不替代这些观察，也不代表真实 NSH、TV 遥控器或媒体解码通过。
 

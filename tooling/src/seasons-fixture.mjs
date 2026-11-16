@@ -23,7 +23,12 @@ export async function seasonsFixture({ port = 0 } = {}) {
     ),
     Promise.all(
       ['spring', 'home', 'night', 'return'].map((name) =>
-        readFile(resolve(root, `design/prototype/assets/${name}.png`)),
+        readFile(
+          resolve(
+            root,
+            `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`,
+          ),
+        ),
       ),
     ),
   ]);

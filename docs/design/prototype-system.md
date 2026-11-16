@@ -4,7 +4,7 @@
 
 产品原型与基础组件板现已使用同一套公共组件资源；后续原型必须遵守 [原型组件共源约束](prototype-components.md)。
 
-当前可评审方案位于 `design/prototype/`。完整页面地图见 [ui-map.md](ui-map.md)，任务与动效契约见 [redesign-brief.md](redesign-brief.md)，参考图片及源码证据见 [ui-reference-products.md](ui-reference-products.md)。
+当前可评审方案位于 `design/prototype/visual-redesign-real/`。完整页面地图见 [ui-map.md](ui-map.md)，任务与动效契约见 [redesign-brief.md](redesign-brief.md)，参考图片及源码证据见 [ui-reference-products.md](ui-reference-products.md)。
 
 本轮是应用内页面的代码原型，采用 Operate 工作流；此前确认的“效果图优先”针对宣传／展示页。本轮没有生成待复刻的全页效果图，不以项目全局 `buildPath: comp` 宣称存在已批准的效果图或已关闭的复刻阶段。
 
@@ -87,12 +87,10 @@ TV 本轮动效清单：筛选改变、进度初始化及阅读位置恢复沿�
 未引入 React、Vite 或 npm UI 依赖。使用项目已有 Oxfmt 检查原型格式，JavaScript 通过语法检查。设计稿本地启动：
 
 ```sh
-node design/prototype/serve.mjs
+python3 -m http.server 4178 --directory design/prototype
 ```
 
-两端筛选排序与续播、TV 输入／返回、弹层焦点、阅读滚动及安静观看范围的回归入口：`node --test design/prototype/prototype.test.mjs`。
-
-访问 `http://127.0.0.1:4178/`；TV 为 `http://127.0.0.1:4178/?platform=tv`。顶部评审工具提供页面地图、主题、平台与正常／加载／空／失败状态。
+访问 `http://127.0.0.1:4178/visual-redesign-real/desktop.html` 或 `http://127.0.0.1:4178/visual-redesign-real/tv.html`。组件板入口为 `http://127.0.0.1:4178/visual-redesign-real/components/index.html`。
 
 原型内剧目、封面、统计与账号均为样例；数据只在内存保留，刷新复原。登录、预约、同步、支付及更新均不连接真实服务；二维码不可扫描。点击模拟播放才将新剧加入演示历史，进入静态播放器本身不作为实际观看。
 

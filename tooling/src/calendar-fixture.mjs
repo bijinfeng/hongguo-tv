@@ -14,7 +14,9 @@ export async function calendarFixture({
 } = {}) {
   const covers = await Promise.all(
     ['home', 'night', 'return', 'spring'].map((name) =>
-      readFile(resolve(root, `design/prototype/assets/${name}.png`)),
+      readFile(
+        resolve(root, `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`),
+      ),
     ),
   );
   const requests = [];

@@ -4,13 +4,21 @@
 
 ## 打开设计稿
 
-运行 `node design/prototype/serve.mjs`。产品原型与组件板共用[同源资源](prototype-components.md)，不是两套独立风格。
+运行 `python3 -m http.server 4178 --directory design/prototype`。当前设计稿位于 `design/prototype/visual-redesign-real/`，组件板与桌面／TV稿同属这一版。
 
-- [公共基础](http://127.0.0.1:4178/components/index.html?platform=common)
-- [桌面](http://127.0.0.1:4178/components/index.html?platform=desktop)
-- [TV](http://127.0.0.1:4178/components/index.html?platform=tv)
+- [公共基础](http://127.0.0.1:4178/visual-redesign-real/components/index.html?platform=common)
+- [桌面](http://127.0.0.1:4178/visual-redesign-real/components/index.html?platform=desktop)
+- [TV](http://127.0.0.1:4178/visual-redesign-real/components/index.html?platform=tv)
 
 每端为基础、按钮与选择、输入与表单、导航、弹层、内容、观看、反馈八组；布局配方及业务组合置于对应组，不按新名称无限扩组。评审标签不进入产品，账号／视频／进度样例不代表真实能力。
+
+## 设计规范与桌面／TV稿对齐
+
+根目录 [DESIGN.md](../../DESIGN.md) 是设计规范的唯一来源。新的桌面稿和 TV 稿只提供端型构图、真实目录和尺寸参考；基础组件稿必须从同一组语义 token 和状态规则派生，不在页面 CSS 里另造按钮、输入框或选集边界。
+
+两端共用以下控件规则：普通边框按钮使用 `card` 表面、`foreground` 文字和 `border` 1px 边界；悬停与按下只改变表面颜色；选中使用 `accent` 配对；主动作使用 `primary`；焦点始终使用独立 `ring` 轮廓。搜索输入和 Select 保留 `input` 边界，搜索组合只有一条外框。桌面稿的 44px 控件、TV 稿的 60px 控件，以及 TV 更强的焦点轮廓属于端型密度，不改变这套语义。
+
+桌面稿中的搜索栏、描边操作、选集网格和 TV 稿中的主舞台、导航、选集面板都要回到 `design/prototype/visual-redesign-real/shared/controls.css` 与 `packages/ui/src` 的对应组件。当前阶段只更新组件设计稿，设计稿 token 位于 `design/prototype/visual-redesign-real/components/assets/design-theme.css`；实现阶段再把确认后的值同步到共享来源。
 
 ## 公共设计与平台适配
 

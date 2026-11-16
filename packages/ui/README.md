@@ -108,9 +108,9 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 安装图标和 Web favicon 共用 [品牌资源](assets/brand/README.md)，由三端 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
-主题唯一源是 `theme.json`。必要控件边界使用 `input`，在浅深色的 background／card／muted／popover 上至少 3:1；装饰分隔使用 `border`。修改主题后运行 `node design/prototype/components/sync-theme.mjs`，同步浏览器共用主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
+主题唯一源是 `theme.json`。必要控件边界使用 `input`，在浅深色的 background／card／muted／popover 上至少 3:1；装饰分隔使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
 
-浏览器产品原型与组件板复用 `design/prototype/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
+浏览器产品设计稿与组件板复用 `design/prototype/visual-redesign-real/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 
 ## 验证
 

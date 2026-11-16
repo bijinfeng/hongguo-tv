@@ -10,7 +10,7 @@
 
 默认自动检查，用户决定下载；不默认自动下载。后台发现更新不弹窗，不打断播放。下载期间可返回找剧，回来时保留进度。检查与下载的进行状态由评审栏模拟，产品区域不出现“完成下载”等假能力按钮。
 
-直达：`design/prototype/index.html?screen=updates`；TV 加 `&platform=tv`。顶部“更新演示”可覆盖正常、失败、能力不足和系统步骤。
+旧版更新交互原型已随旧 `design/prototype/` 清理；本页保留为历史规格，不提供当前设计稿直达入口。
 
 ## 状态与动作
 
@@ -67,7 +67,7 @@
 
 2026-11-13，浏览器原型验证：
 
-- `node --test design/prototype/prototype.test.mjs`：12/12 通过（既有 10 项回归；新增平台隔离/过期回调、安装器打开不等于成功两项）。
+- 旧版原型测试已随旧 `design/prototype/` 清理；当前桌面／TV视觉稿按新入口进行浏览器检查。
 - Playwright：132 组平台 × 尺寸 × 主题 × 可用状态组合，无横向溢出、操作按钮横向裁切或 page error。桌面 1280×800 / 1440×900，TV 1440×900 / 1920×1080。
 - 行为：下载从零开始；进度更新不抢焦点；离开下载页后继续下载；设置重新进入恢复状态；返回恢复入口焦点；TV 方向键/确认键、取消下载、拒绝/允许授权、系统安装取消、重新打开再核对版本通过。
 - 视觉：已逐张查看深浅截图、下载/准备完成/保存失败/校验失败/授权/系统确认/成功。继承平面边界、主题色和控件；桌面状态 24px，TV 状态 32px、说明标题 28px（沿用 TV 独立尺度）。没有改变根 DESIGN.md 或品牌。
@@ -78,6 +78,6 @@
 
 独立 finish reviewer 逐张复核 13 张截图、状态规格与验证记录，并复跑 12 项测试，结论为 `ship`，范围仅限交互设计原型。
 
-证据在忽略目录 `artifacts/update-ui/`，包括截图、`verification.json` 和可复跑 `verify.cjs`。复跑先启动 `HONGGUO_PROTOTYPE_PORT=4182 node design/prototype/serve.mjs`；浏览器脚本使用本机 Codex bundled Playwright，不加入项目依赖。普通使用可运行 `node design/prototype/serve.mjs`（默认 4178），再访问上述 query 路由。
+历史证据保留在忽略目录 `artifacts/update-ui/`；旧版页面不再作为当前设计稿入口。
 
 这轮不接真实 NSH updater、GitHub 清单、Android 下载或安装，不做生产 check/build/完整 verify；没有新增依赖。未验证原生宿主、真实权限/系统安装器、真实重启/进度恢复、正式签名、跨版本迁移、下载网络/空间检查、Windows/Linux 或 TV 真机升级。浏览器截图不作为这些能力的验收证据。未提交或推送。

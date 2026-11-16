@@ -25,7 +25,9 @@ const option = (id, label, selected = false) => ({
 export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {}) {
   const images = await Promise.all(
     ['home', 'night', 'return', 'spring'].map((name) =>
-      readFile(resolve(root, `design/prototype/assets/${name}.png`)),
+      readFile(
+        resolve(root, `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`),
+      ),
     ),
   );
   const requests = [];
