@@ -212,10 +212,16 @@ export function Following(props: { store: Store }) {
   return (
     <View
       testID="following-page"
-      class={`flex-1 gap-4 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : undefined}
+      class={`flex-1 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      style={{
+        gap: props.store.target === 'tv' ? tvUnit(16) : 16,
+        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
+      }}
     >
-      <View class="flex-row flex-wrap items-center justify-between gap-4">
+      <View
+        class="flex-row flex-wrap items-center justify-between"
+        style={{ gap: props.store.target === 'tv' ? tvUnit(16) : 16 }}
+      >
         <UiText role="page">追更</UiText>
         <Button
           label="刷新"
@@ -353,7 +359,7 @@ function FollowRow(props: {
           />
         </View>
       </If>
-      <View class="flex-1 min-w-0 gap-3">
+      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}>
         <UiText role="content-title">{title()}</UiText>
         <If when={followCaption(props.item)}>
           <UiText tone="muted">{followCaption(props.item)}</UiText>
