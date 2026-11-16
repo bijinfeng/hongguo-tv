@@ -141,7 +141,7 @@ export function Account(props: {
             </View>
           </View>
           <AccountLibrary store={props.store} />
-          <View class="flex-row flex-wrap gap-3 self-start">
+          <View class="w-full flex-row flex-wrap gap-3 shrink-0">
             <If when={props.openNotifications}>
               <Button
                 label="查看更新提醒"

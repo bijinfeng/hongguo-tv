@@ -104,6 +104,27 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
     height: target === 'tv' ? 1080 : 1000,
   };
 
+  test('restored account keeps activity actions reachable at the approved desktop size', async () => {
+    const fixture = accountFixture(() => ({ error: 'unexpected account mutation' }));
+    fixture.state.account = signedIn();
+    const app = await open(entry, {
+      width: target === 'tv' ? 1920 : 1180,
+      height: target === 'tv' ? 1080 : 780,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await app.waitFor('id:nav-history');
+    await app.press(
+      target === 'tv' ? 'role:button[集成账号]' : 'label:账号与记录 >> role:button[集成账号]',
+    );
+    await app.waitFor('id:account-logout');
+    expect(app.shows('id:account-notifications')).toBe(true);
+    expect(app.shows('id:account-following')).toBe(true);
+    expect(app.shows('id:account-reservations')).toBe(true);
+  });
+
   test('synthetic account App QR buttons poll real shared state and show failures without starting another attempt', async () => {
     let polls = 0;
     const fixture = accountFixture(({ command }, state) => {
@@ -230,6 +251,9 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
     );
     await app.waitFor('id:account-logout');
+    expect(app.shows('id:account-notifications')).toBe(true);
+    expect(app.shows('id:account-following')).toBe(true);
+    expect(app.shows('id:account-reservations')).toBe(true);
     await app.press('id:account-logout');
     await app.waitFor('id:account-login-open');
     await app.press('id:nav-history');

@@ -89,7 +89,7 @@ export function AccountLibrary(props: { store: Store }) {
     }
   };
   return (
-    <View class="gap-4">
+    <View class="gap-4 shrink-0">
       <UiText role="section">{signedIn() ? '我的片库' : '本机片库'}</UiText>
       <View class="flex-row flex-wrap gap-3">
         <Button

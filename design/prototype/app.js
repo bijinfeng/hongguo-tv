@@ -191,8 +191,8 @@ const posterImage = (d, cls = '', alt = '') =>
 function poster(d) {
   return `<article class="poster"><button class="poster-link content-poster-button" data-detail="${d.id}"><span class="poster-art content-poster-cover">${posterImage(d)}<span class="tag content-cover-label">${d.note}</span></span><span class="poster-title">${d.title}</span><span class="poster-meta content-meta">${d.tags.slice(0, 2).join(' · ')}</span></button></article>`;
 }
-function posters(items = dramas) {
-  return `<div class="poster-grid">${items.map(poster).join('')}</div>`;
+function posters(items = dramas, className = '') {
+  return `<div class="poster-grid ${className}">${items.map(poster).join('')}</div>`;
 }
 function chips(items, active, action) {
   return `<div class="chips">${items.map((item) => `<button class="ui-button" aria-pressed="${active === item}" data-action="${action}" data-value="${item}">${item}</button>`).join('')}</div>`;
@@ -533,7 +533,7 @@ function discoverFilters(tv = false) {
     .filter(([, , , key]) => state[key] && state[key] !== '全部')
     .map(([, label, , key]) => `${label}：${state[key]}`)
     .join(' · ');
-  return `<section class="reality-discover-filters" aria-label="分类筛选"><div class="${tv ? 'tv-filter' : 'filters'}">${primary.map(row).join('')}</div><div class="reality-filter-toggle">${button(state.discoverExpanded ? '收起筛选' : '更多筛选', 'discover-expand', { attrs: `aria-expanded="${!!state.discoverExpanded}" aria-controls="discover-more-filters"` })}${!state.discoverExpanded && selected ? `<span class="small muted">${selected}</span>` : ''}</div><div id="discover-more-filters" ${state.discoverExpanded ? '' : 'hidden'}><div class="advanced-filter-grid ${tv ? 'tv-filter' : ''}">${advanced.map(selectRow).join('')}</div></div><p class="small muted">筛选与指标为演示样例；实际选项随内容类型提供。</p></section>`;
+  return `<section class="reality-discover-filters" aria-label="分类筛选"><div class="${tv ? 'tv-filter' : 'filters'}">${primary.map(row).join('')}</div><div class="reality-filter-toggle${state.discoverExpanded ? ' is-expanded' : ''}">${button(state.discoverExpanded ? '收起筛选' : '更多筛选', 'discover-expand', { attrs: `aria-expanded="${!!state.discoverExpanded}" aria-controls="discover-more-filters"` })}${!state.discoverExpanded && selected ? `<span class="small muted">${selected}</span>` : ''}</div><div id="discover-more-filters" ${state.discoverExpanded ? '' : 'hidden'}><div class="advanced-filter-grid ${tv ? 'tv-filter' : ''}">${advanced.map(selectRow).join('')}</div></div><p class="small muted">筛选与指标为演示样例；实际选项随内容类型提供。</p></section>`;
 }
 function discoverPageKey() {
   return state.query.trim()
@@ -568,7 +568,16 @@ function discoverPage(tv = false) {
     ? `<div class="reality-pagination" aria-live="polite">${page.status === 'error' ? '<p class="error-text" role="alert">后续内容加载失败，当前结果已保留。</p>' : ''}${page.status === 'end' ? '<p class="muted small">没有更多内容</p>' : button(page.status === 'loading' ? '正在加载…' : page.status === 'error' ? '重试加载' : '加载更多', 'discover-more', { attrs: page.status === 'loading' ? 'disabled aria-busy="true"' : '' })}</div>`
     : '';
   const review = `<details class="reality-review"><summary>数据状态演示</summary>${chips(['正常', '续页失败', '续页中', '热搜失败'], '', 'discover-page-state')}<p>桌面搜索建议</p>${chips(['正常', '建议读取中', '建议失败', '建议为空'], '', 'search-suggestion-state')}<p>本机搜索记录</p>${chips(['正常', '保存失败'], '', 'search-history-state')}<p class="small muted">仅切换设计状态，不发送或保存真实数据。</p></details>`;
-  return `<div class="${tv ? 'tv-page-heading' : 'page-head'}"><h1>${q ? `“${escapeHTML(q)}”的搜索结果` : '找一部想看的'}</h1>${q ? button('按分类找剧', 'clear-query') : tv ? button('搜索短剧', 'search', { image: 'search' }) : ''}</div>${searchHistoryNotice()}${q ? '' : discoverFilters(tv)}${statusContent() || `${actorResults}<div class="section-head"><h2>${q ? '短剧' : '全部短剧'}</h2><span class="small muted">已加载 ${items.length} 部${actors.length ? ` · ${actors.length} 位演员` : ''}</span></div>${items.length ? (tv ? tvCards(items) : posters(items)) : actors.length ? '' : empty('没有找到相关短剧', q ? '试试更短的关键词。' : '试试放宽筛选。', q ? '按分类找剧' : '清除筛选', q ? 'clear-query' : 'reset-discover', 'search')}${paging}`}${landing}${review}${tv ? `<div class="tv-destination-row tv-discover-destinations">${button('排行榜', 'ranking', { image: 'chart' })}${button('上新日历', 'new', { image: 'calendar' })}${button('刷剧', 'feed', { image: 'play' })}</div>` : ''}`;
+  const resultBody =
+    statusContent() ||
+    `${actorResults}<section class="discover-results" aria-labelledby="discover-results-title"><div class="section-head"><h2 id="discover-results-title">${q ? '短剧' : '全部短剧'}</h2><span class="small muted">${items.length ? `已加载 ${items.length} 部` : '暂无结果'}${actors.length ? ` · ${actors.length} 位演员` : ''}</span></div>${items.length ? (tv ? tvCards(items) : posters(items, items.length < 3 ? 'is-sparse' : '')) : actors.length ? '' : empty('没有找到相关短剧', q ? '试试更短的关键词。' : '试试放宽筛选。', q ? '按分类找剧' : '清除筛选', q ? 'clear-query' : 'reset-discover', 'search')}${paging}</section>`;
+  const pageHead = `<div class="${tv ? 'tv-page-heading' : 'page-head discover-page-head'}"><div><h1>${q ? `“${escapeHTML(q)}”的搜索结果` : '找一部想看的'}</h1>${!q && !tv ? '<p class="discover-subtitle">按类型、题材和热度，找到下一部想看的短剧。</p>' : ''}</div>${q ? button('按分类找剧', 'clear-query') : tv ? button('搜索短剧', 'search', { image: 'search' }) : ''}</div>`;
+  const spotlight = `<article class="discover-spotlight" aria-labelledby="discover-spotlight-title"><div class="discover-spotlight-art">${posterImage(dramaById('night'))}</div><div class="discover-spotlight-copy"><h2 id="discover-spotlight-title">长夜有声</h2><p>都市 · 悬疑 · 全 36 集</p>${button('查看详情', 'detail', { value: 'night', variant: 'primary', image: 'forward' })}</div></article>`;
+  const resultAndDiscovery =
+    !q && !tv
+      ? `<div class="discover-content-grid">${resultBody}<aside class="discover-aside">${spotlight}${landing}</aside></div>`
+      : `${resultBody}${landing}`;
+  return `${pageHead}${searchHistoryNotice()}${q ? '' : discoverFilters(tv)}${resultAndDiscovery}${review}${tv ? `<div class="tv-destination-row tv-discover-destinations">${button('排行榜', 'ranking', { image: 'chart' })}${button('上新日历', 'new', { image: 'calendar' })}${button('刷剧', 'feed', { image: 'play' })}</div>` : ''}`;
 }
 function mediaRow(d, options = {}) {
   const {
