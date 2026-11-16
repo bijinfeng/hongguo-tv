@@ -11,12 +11,72 @@ export function Notifications(props: { store: Store }) {
   const notifications = props.store.notifications;
   const signedIn = () => props.store.account()?.logged_in === true;
   const active = () => props.store.activePage('notifications') && lifecycle() === 'active';
+  const scope = () => {
+    const account = props.store.account();
+    return account?.logged_in && account.owner_id && account.owner_epoch
+      ? JSON.stringify([account.owner_id, account.owner_epoch])
+      : '';
+  };
   const items = () => notifications.snapshot()?.items ?? [];
   let list: ListRef | undefined;
   let refreshRef: ViewRef | undefined;
   let frame = 0;
+  let generation = 0;
+  let scopeKey = scope();
+  let restorePlan:
+    | { id: string; scope: string; generation: number; owns: () => boolean }
+    | undefined;
   const actions = new Map<string, { detail?: ViewRef; read?: ViewRef }>();
   let disposed = false;
+  const scheduleRestore = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(async () => {
+      const plan = restorePlan;
+      if (
+        !plan ||
+        disposed ||
+        !active() ||
+        plan.scope !== scope() ||
+        plan.generation !== generation ||
+        !plan.owns()
+      ) {
+        if (plan && (!plan.owns() || plan.scope !== scope() || plan.generation !== generation))
+          restorePlan = undefined;
+        return;
+      }
+      const index = items().findIndex((item) => item.id === plan.id);
+      if (index < 0) {
+        restorePlan = undefined;
+        return;
+      }
+      list?.scrollToIndex({ index, animated: false });
+      const action = actions.get(plan.id);
+      const row = items().find((item) => item.id === plan.id);
+      const ref = (row?.read ? action?.detail : action?.read) ?? action?.detail ?? refreshRef;
+      if (!ref) return;
+      if (
+        restorePlan !== plan ||
+        !plan.owns() ||
+        plan.scope !== scope() ||
+        plan.generation !== generation
+      )
+        return;
+      restorePlan = undefined;
+      ref.reveal({ vertical: 'nearest', horizontal: 'nearest', animated: false });
+      ref.focus();
+    });
+  };
+  effect(() => {
+    const nextScope = scope();
+    const isActive = active();
+    if (nextScope !== scopeKey) {
+      scopeKey = nextScope;
+      generation++;
+      restorePlan = undefined;
+      cancelAnimationFrame(frame);
+    }
+    if (isActive && restorePlan) scheduleRestore();
+  });
   effect(() => {
     if (!active() || props.store.target !== 'tv') return;
     props.store.primaryReady('notifications');
@@ -27,20 +87,15 @@ export function Notifications(props: { store: Store }) {
     list = undefined;
     actions.clear();
   });
-  const restoreAction = (id: string) => {
-    if (disposed || !active()) return;
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => {
-      const index = items().findIndex((item) => item.id === id);
-      if (index >= 0) list?.scrollToIndex({ index, animated: false });
-      const action = actions.get(id);
-      const row = items().find((item) => item.id === id);
-      const ref = (row?.read ? action?.detail : action?.read) ?? action?.detail ?? refreshRef;
-      if (!ref) return;
-      ref.reveal({ vertical: 'nearest', horizontal: 'nearest', animated: false });
-      ref.focus();
-    });
+  const restoreAction = (id: string, plan: ReturnType<typeof focusPlan>) => {
+    if (disposed || !plan.owns() || plan.scope !== scope() || plan.generation !== generation)
+      return;
+    restorePlan = { id, ...plan };
+    if (active()) scheduleRestore();
   };
+  function focusPlan() {
+    return { scope: scope(), generation, owns: props.store.focusGuard() };
+  }
   const refresh = () => {
     if (!disposed && active()) {
       props.store.noteFocusIntent();
@@ -50,22 +105,33 @@ export function Notifications(props: { store: Store }) {
   const open = (item: NotificationItem) => {
     if (!active() || !item.drama) return;
     props.store.noteFocusIntent();
-    props.store.open(item.drama, () => restoreAction(item.id));
+    const plan = focusPlan();
+    props.store.open(item.drama, () => restoreAction(item.id, plan));
   };
   const markRead = async (item: NotificationItem) => {
     if (!active() || item.read) return;
     props.store.noteFocusIntent();
+    const plan = focusPlan();
     await notifications.markRead(item.id);
-    restoreAction(item.id);
+    restoreAction(item.id, plan);
   };
   return (
     <View
       testID="notifications-page"
-      class={`flex-1 gap-4 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : undefined}
+      class={`flex-1 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      style={{
+        gap: props.store.target === 'tv' ? tvUnit(16) : 16,
+        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
+      }}
     >
-      <View class="flex-row flex-wrap items-center justify-between gap-4">
-        <View class="flex-row items-center gap-3">
+      <View
+        class="flex-row flex-wrap items-center justify-between"
+        style={{ gap: props.store.target === 'tv' ? tvUnit(16) : 16 }}
+      >
+        <View
+          class="flex-row items-center"
+          style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}
+        >
           <UiText role="page">更新提醒</UiText>
           <If
             when={
@@ -148,6 +214,7 @@ export function Notifications(props: { store: Store }) {
             estimatedItemSize={(props.store.target === 'tv' ? tvUnit(168) : 132) * fontScale()}
             class="flex-1"
             contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}
+            onLayout={scheduleRestore}
           >
             {(item) => {
               const row = item() as NotificationItem;
@@ -158,10 +225,13 @@ export function Notifications(props: { store: Store }) {
                   pending={notifications.mutation()?.id === row.id}
                   open={() => open(row)}
                   markRead={() => void markRead(row)}
-                  register={(kind, ref) => {
+                  register={(kind, ref, previous) => {
                     const action = actions.get(row.id) ?? {};
-                    action[kind] = ref;
-                    actions.set(row.id, action);
+                    if (ref) action[kind] = ref;
+                    else if (previous && action[kind] === previous) delete action[kind];
+                    if (!action.detail && !action.read) actions.delete(row.id);
+                    else actions.set(row.id, action);
+                    if (restorePlan?.id === row.id) scheduleRestore();
                   }}
                 />
               );
@@ -191,25 +261,42 @@ function NotificationRow(props: {
   pending: boolean;
   open: () => void;
   markRead: () => void;
-  register: (kind: 'detail' | 'read', ref: ViewRef) => void;
+  register: (kind: 'detail' | 'read', ref?: ViewRef, previous?: ViewRef) => void;
 }) {
   const item = props.item;
   const canOpen = !!item.drama;
+  const references = new Map<'detail' | 'read', ViewRef>();
+  effect(() => {
+    for (const [kind, ref] of references) props.register(kind, ref);
+    cleanup(() => {
+      for (const [kind, ref] of references) props.register(kind, undefined, ref);
+    });
+  });
+  const register = (kind: 'detail' | 'read', ref: ViewRef) => {
+    references.set(kind, ref);
+    props.register(kind, ref);
+  };
   return (
     <Surface
       variant="content"
       testID={`notification-${item.id}`}
-      class="flex-row min-w-0 items-center gap-3 p-3"
+      class="flex-row min-w-0 items-center"
     >
-      <Cover
-        src={item.drama?.cover}
-        title={item.title}
-        variant="poster"
-        class="w-16 shrink-0"
-        height={props.store.target === 'tv' ? tvUnit(96) : 80}
-      />
-      <View class="flex-1 min-w-0 gap-1">
-        <View class="flex-row items-center gap-2">
+      <View
+        class="shrink-0"
+        style={{
+          width: props.store.target === 'tv' ? tvUnit(72) : 64,
+          height: props.store.target === 'tv' ? tvUnit(96) : 80,
+          marginRight: props.store.target === 'tv' ? tvUnit(16) : 12,
+        }}
+      >
+        <Cover src={item.drama?.cover} title={item.title} variant="poster" class="w-full h-full" />
+      </View>
+      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? tvUnit(4) : 4 }}>
+        <View
+          class="flex-row items-center"
+          style={{ gap: props.store.target === 'tv' ? tvUnit(8) : 8 }}
+        >
           <UiText role="title" lines={2}>
             {item.title}
           </UiText>
@@ -222,12 +309,12 @@ function NotificationRow(props: {
           <UiText role="meta" tone="muted">{`第 ${item.episode} 集`}</UiText>
         </If>
       </View>
-      <View class="shrink-0 gap-2">
+      <View class="shrink-0" style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 8 }}>
         <If when={canOpen}>
           <Button
             label="查看详情"
             compact={props.store.target === 'desktop'}
-            buttonRef={(ref) => props.register('detail', ref)}
+            buttonRef={(ref) => register('detail', ref)}
             onPress={props.open}
           />
         </If>
@@ -235,7 +322,7 @@ function NotificationRow(props: {
           <Button
             label="标为已读"
             variant="quiet"
-            buttonRef={(ref) => props.register('read', ref)}
+            buttonRef={(ref) => register('read', ref)}
             pending={props.pending}
             disabled={props.pending}
             onPress={props.markRead}

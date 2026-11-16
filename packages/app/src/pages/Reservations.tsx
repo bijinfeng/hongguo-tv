@@ -242,10 +242,16 @@ export function Reservations(props: { store: Store }) {
   return (
     <View
       testID="reservations-page"
-      class={`flex-1 gap-4 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : undefined}
+      class={`flex-1 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      style={{
+        gap: props.store.target === 'tv' ? tvUnit(16) : 16,
+        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
+      }}
     >
-      <View class="flex-row flex-wrap items-center justify-between gap-4">
+      <View
+        class="flex-row flex-wrap items-center justify-between"
+        style={{ gap: props.store.target === 'tv' ? tvUnit(16) : 16 }}
+      >
         <UiText role="page">预约</UiText>
         <Button
           label="刷新"
@@ -261,7 +267,7 @@ export function Reservations(props: { store: Store }) {
           }}
         />
       </View>
-      <CardControls label="预约状态" onNavigate={props.store.noteFocusIntent} class="gap-3">
+      <CardControls label="预约状态" onNavigate={props.store.noteFocusIntent}>
         <Each of={['upcoming', 'online'] as Mode[]} key={(value) => value}>
           {(value) => (
             <Button
@@ -369,7 +375,11 @@ function ReservationRow(props: {
   return (
     <View
       testID={`reservations-row-${reservationItemId(props.item)}`}
-      class="flex-row flex-wrap items-center gap-5 border-b border-border py-5"
+      class="flex-row flex-wrap items-center border-b border-border"
+      style={{
+        gap: props.store.target === 'tv' ? tvUnit(20) : 20,
+        paddingVertical: props.store.target === 'tv' ? tvUnit(20) : 20,
+      }}
     >
       <View
         style={{
@@ -383,8 +393,8 @@ function ReservationRow(props: {
           class="w-full h-full"
         />
       </View>
-      <View class="flex-1 min-w-0 gap-3">
-        <UiText role="section">{title()}</UiText>
+      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}>
+        <UiText role="content-title">{title()}</UiText>
         <If when={reservationPublishLabel(props.item)}>
           <UiText tone="muted">{reservationPublishLabel(props.item)}</UiText>
         </If>

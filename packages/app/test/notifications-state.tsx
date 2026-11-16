@@ -59,6 +59,20 @@ export function registerNotificationsStateTests(entry: string) {
     expect(app.shows('text:writes:none')).toBe(true);
   });
 
+  test('owner changes fence a pending read result before it can publish', async () => {
+    const app = await start();
+    await app.press('完成读取');
+    await app.waitFor('text:snapshot:' + 'a'.repeat(32));
+    await app.press('标为已读');
+    await app.waitFor('text:mutation:pending');
+    await app.press('切换账号代次');
+    await app.waitFor('text:reads:2');
+    await app.press('完成已读写入');
+    expect(app.shows('text:snapshot:none')).toBe(true);
+    await app.press('完成读取');
+    await app.waitFor('text:snapshot:' + 'b'.repeat(32));
+  });
+
   test('background cancels the read and stale refresh keeps the prior snapshot', async () => {
     const app = await start();
     await app.press('完成读取');

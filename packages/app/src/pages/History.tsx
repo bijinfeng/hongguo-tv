@@ -223,6 +223,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
   const localError = signal('');
   let resetRef: ViewRef | undefined;
   const state = () => props.store.watchStatistics;
+  const unit = (value: number) => (props.store.target === 'tv' ? tvUnit(value) : value);
   effect(() => {
     if (props.open) void state().ensure();
   });
@@ -265,10 +266,10 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
   };
   return (
     <If when={props.open}>
-      <Surface testID="watch-statistics-panel" variant="page" class="gap-4">
-        <View class="flex-row items-center justify-between gap-3">
+      <Surface testID="watch-statistics-panel" variant="page">
+        <View class="flex-row items-center justify-between" style={{ gap: unit(12) }}>
           <UiText role="section">观看统计</UiText>
-          <View class="flex-row gap-2">
+          <View class="flex-row" style={{ gap: unit(8) }}>
             <Button
               testID="watch-statistics-reset"
               label="重置统计"
@@ -308,31 +309,31 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
             <Notice message="这个周期还没有观看统计。开始观看后会显示在这里。" />
           </If>
           <If when={hasPeriodData()}>
-            <View class="flex-row flex-wrap gap-5">
-              <View class="min-w-[160px] gap-1">
+            <View class="flex-row flex-wrap" style={{ gap: unit(20) }}>
+              <View class="min-w-[160px]" style={{ gap: unit(4) }}>
                 <UiText role="meta" tone="muted">
                   累计观看
                 </UiText>
                 <UiText role="numeric">{statisticsDuration(total())}</UiText>
               </View>
-              <View class="min-w-[160px] gap-1">
+              <View class="min-w-[160px]" style={{ gap: unit(4) }}>
                 <UiText role="meta" tone="muted">
                   统计起点
                 </UiText>
                 <UiText role="numeric">{state().snapshot()?.since ?? '—'}</UiText>
               </View>
             </View>
-            <View class="gap-2">
+            <View style={{ gap: unit(8) }}>
               <UiText role="meta" tone="muted">
                 最近 7 天
               </UiText>
               <View
-                class="flex-row items-end gap-2"
-                style={{ height: props.store.target === 'tv' ? tvUnit(112) : 88 }}
+                class="flex-row items-end"
+                style={{ height: props.store.target === 'tv' ? tvUnit(112) : 88, gap: unit(8) }}
               >
                 <Each of={bars()} key={(bar) => bar.day}>
                   {(bar) => (
-                    <View class="flex-1 items-center gap-1">
+                    <View class="flex-1 items-center" style={{ gap: unit(4) }}>
                       <View
                         class="w-full rounded-(--radius) bg-accent"
                         style={{
@@ -353,8 +354,8 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
                 </Each>
               </View>
             </View>
-            <View class="flex-row flex-wrap gap-4">
-              <View class="flex-1 min-w-[220px] gap-2">
+            <View class="flex-row flex-wrap" style={{ gap: unit(16) }}>
+              <View class="flex-1 min-w-[220px]" style={{ gap: unit(8) }}>
                 <UiText role="meta" tone="muted">
                   内容类型
                 </UiText>
@@ -366,7 +367,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
                   )}
                 </Each>
               </View>
-              <View class="flex-1 min-w-[220px] gap-2">
+              <View class="flex-1 min-w-[220px]" style={{ gap: unit(8) }}>
                 <UiText role="meta" tone="muted">
                   题材
                 </UiText>
@@ -422,6 +423,7 @@ export function History(props: { store: Store }) {
   let sourceEpoch = 0;
   let submitting = false;
   const dialogJob = signal<number | undefined>(undefined);
+  const unit = (value: number) => (props.store.target === 'tv' ? tvUnit(value) : value);
   let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
   let waiting: (NonNullable<typeof returnSource> & { align: 'center' | 'nearest' }) | undefined;
   const refs = new Map<string, ViewRef>();
@@ -806,10 +808,13 @@ export function History(props: { store: Store }) {
   return (
     <View
       testID="history-page"
-      class={`flex-1 gap-4 ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
-      style={props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : undefined}
+      class={`flex-1 ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
+      style={{
+        gap: unit(16),
+        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
+      }}
     >
-      <View class="flex-row flex-wrap items-center justify-between gap-4">
+      <View class="flex-row flex-wrap items-center justify-between" style={{ gap: unit(16) }}>
         <Text
           role="header"
           accessibilityLevel={1}
@@ -818,7 +823,7 @@ export function History(props: { store: Store }) {
         >
           我的片库
         </Text>
-        <View class="flex-row flex-wrap gap-2">
+        <View class="flex-row flex-wrap" style={{ gap: unit(8) }}>
           <Button
             testID="history-statistics"
             label={statisticsOpen() ? '收起统计' : '观看统计'}
@@ -855,7 +860,7 @@ export function History(props: { store: Store }) {
       <WatchStatisticsPanel store={props.store} open={statisticsOpen()} onClose={closeStatistics} />
       <LibrarySyncNotice store={props.store} active={present()} testID="history-library-sync" />
       <If when={managing()}>
-        <View class="flex-row flex-wrap items-center gap-3">
+        <View class="flex-row flex-wrap items-center" style={{ gap: unit(12) }}>
           <Checkbox
             label="全选"
             testID="history-select-all"
@@ -905,7 +910,7 @@ export function History(props: { store: Store }) {
         <Notice message="另一栏目仍有未完成的管理操作，请切换栏目确认。" />
       </If>
       <If when={operationMessage() || localError()}>
-        <View testID="history-operation" class="gap-3">
+        <View testID="history-operation" style={{ gap: unit(12) }}>
           <Notice
             message={localError() || operationMessage()}
             error={!!localError() || operation()?.status !== 'pending'}
