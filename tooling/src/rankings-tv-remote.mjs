@@ -208,6 +208,7 @@ android {
   targetSdk ${toolchain.android.targetSdk}
   versionCode 1
   versionName '0.0.0-acceptance'
+  resValue 'string', 'app_name', 'Rankings TV Acceptance'
   testInstrumentationRunner 'dev.hongguo.tv.RankingsAcceptance'
   buildConfigField 'String', 'UPDATE_CERTIFICATE_SHA256', ${quote(JSON.stringify(release.tv.signingCertificateSha256))}
   ndk { abiFilters 'arm64-v8a' }
@@ -215,7 +216,7 @@ android {
  sourceSets.main {
   manifest.srcFile ${quote(resolve(app, 'AndroidManifest.xml'))}
   java.srcDirs = [${quote(resolve(productionHost, 'app/src/main/java'))}]
-  res.srcDirs = [${quote(resolve(productionHost, 'app/src/main/res'))}, ${quote(resolve(project, 'res'))}]
+  res.srcDirs = [${quote(resolve(productionHost, 'app/src/main/res'))}, ${quote(resolve(embedded, 'res'))}]
   assets.srcDirs = [${quote(resolve(project, 'assets'))}]
   jniLibs.srcDirs = [${quote(resolve(embedded, 'jni'))}]
  }
