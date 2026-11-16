@@ -217,6 +217,34 @@ impl AccountService {
         })
     }
 
+    /// Configure a loopback-only upstream for transport integration tests.
+    #[cfg(feature = "test-support")]
+    pub fn configure_loopback_for_tests(&self, origin: &str) {
+        *self.online.fixture.lock().expect("follow fixture") = Some(origin.to_owned());
+    }
+
+    /// Install a deterministic verified owner for transport integration tests.
+    #[cfg(feature = "test-support")]
+    pub async fn install_loopback_account_for_tests(&self, uid: &str) -> Result<(), AccountError> {
+        let verified = super::passport::synthetic_verified_fixture(uid);
+        let saved = SavedSession {
+            profile: AccountProfile {
+                uid: verified.uid,
+                name: verified.name,
+            },
+            credential: verified.credential,
+        };
+        let library = LibraryStore::open_for_owner(
+            self.directory
+                .join("accounts")
+                .join(format!("{uid}.sqlite3")),
+            uid.to_owned(),
+        )
+        .await
+        .map_err(|_| AccountError::Library)?;
+        self.commit(self.state.clone().lock_owned().await, Some(saved), library)
+            .await
+    }
     /// Read statistics only for the active owner and epoch. The scope lock is held
     /// through the storage operation so an owner transition cannot overtake it.
     pub async fn watch_statistics_snapshot(

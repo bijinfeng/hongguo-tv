@@ -145,6 +145,24 @@ impl PersistedSession {
     }
 }
 
+#[cfg(feature = "test-support")]
+pub(crate) fn synthetic_verified_fixture(uid: &str) -> VerifiedSession {
+    assert!(valid_id(uid));
+    let mut credential = PersistedSession::fresh().expect("test credential");
+    credential.device_id = "7390000000000000001".into();
+    credential.install_id = "7390000000000000002".into();
+    credential.registered = true;
+    credential.uid = Some(uid.into());
+    credential
+        .cookies
+        .insert("sessionid".into(), "synthetic-core-owner-test-only".into());
+    VerifiedSession {
+        uid: uid.into(),
+        name: "Synthetic account".into(),
+        credential,
+    }
+}
+
 pub(crate) struct VerifiedSession {
     pub(crate) uid: String,
     pub(crate) name: String,

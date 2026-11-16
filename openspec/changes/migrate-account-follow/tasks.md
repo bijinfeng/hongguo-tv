@@ -14,7 +14,7 @@
 
 ## 3. Shared transport contract
 
-- [ ] 3.1 为 GET／POST `/api/v1/follow` 接入相同 Rust DTO／用例及 native 分派；HTTP／native parity 测试覆盖正常列表、确认／未确认结果、来源限制、错 scope、畸形输入、取消和安全错误，确认无凭据或任意 endpoint 暴露。
+- [x] 3.1 为 GET／POST `/api/v1/follow` 接入相同 Rust DTO／用例及 native 分派；HTTP／native parity 测试覆盖正常列表、确认／未确认结果、来源限制、错 scope、畸形输入、取消和安全错误，确认无凭据或任意 endpoint 暴露。
 - [x] 3.2 执行 pnpm codegen 与 pnpm codegen:check，提交对应 OpenAPI／generated.ts；core-client 增加必要 wire 校验与导出，测试错 owner／epoch、部分／畸形快照和非法 mutation result 被拒绝，更新所属 API 文档。
 
 ## 4. Formal application flow
@@ -30,3 +30,5 @@
 - [ ] 5.2 从已登录正式入口读取实际追更列表并打开真实条目详情／返回；按端记录源码、入口／包、数据源、时间、分页／空／失败事实、封面和限制，不复制凭据、不自动退出，缺真实数据保持待验。
 - [ ] 5.3 核对现有授权是否明确覆盖账号、具体series与追更加／取消；只有适用授权存在才在正式入口执行添加→完整列表观察→同库重开→取消→再观察及获准恢复，保留失败，不用合成结果代证；没有授权仍继续只读／工程工作并保留本项待验。
 - [ ] 5.4 在真实宿主按Web／Desktop native／Android TV分别检查浅深、键盘／DPAD、长列表／返回／删除焦点、大字／减少动态及清单中的动效；更新当前验收所有者的受影响条目，分别记录未覆盖的物理TV／读屏／跨设备／平台流程，不宣称完整MVP或正式发行通过。
+
+2026-11-16：3.1 已完成。test-support 仅由 HTTP/native 的开发测试依赖启用，loopback 认证 fixture 不进入默认 release；新增共用 AccountService 的 HTTP/native 正向 parity，覆盖空列表、ACK 未确认和后续读回。追更页面同步修正内容标题层级与 TV 行密度；5.2–5.4 真实账号／宿主验收保持未完成。

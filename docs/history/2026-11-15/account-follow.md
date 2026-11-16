@@ -1,6 +1,6 @@
 # 账号追更实施与验收 · 2026-11-15
 
-范围为 `migrate-account-follow`，基线 `4850ae3`。当前 12／16 项任务完成；实现、合成边界与正式真实流程分别记录；未推送或发行，不视为完整 MVP 验收。
+范围为 `migrate-account-follow`，基线 `4850ae3`。当前 13／16 项任务完成；实现、合成边界与正式真实流程分别记录；未推送或发行，不视为完整 MVP 验收。
 
 ## 实现与审查
 
@@ -16,7 +16,7 @@
 
 - `follow-core-first.log`、`follow-core-second.log` 保留首轮编译失败：测试模块路径、穷尽 Drama 字段和 Map／Value 类型；`follow-core-third.log` 为修复后的 22 项定向测试通过（包含 1 项同名 radar 用例）。
 - `follow-account-regression.log`：账号既有与新增回归 86／86；包括重开、旧 epoch、读写排序、丢调用方、凭证 CAS 和 ACK 后刷新凭证保存。
-- `follow-http.log`、`follow-http-errors.log`、`follow-native.log`：分别 3／1／1 项边界通过。正常登录态 confirmed／unconfirmed 的 HTTP／native 路由级正向 parity 缺少安全 fixture，保持待验；未为测试加入生产任意 endpoint 注入。
+- `follow-http.log`、`follow-http-errors.log`、`follow-native.log`：原有边界分别 3／1／1 项通过。2026-11-16 新增 `follow_http_native_authenticated_success_and_unconfirmed_results_match`，在仅测试依赖启用的 loopback fixture 中验证 HTTP/native 共用 `AccountService` 的空列表、ACK 未确认与后续读回；不为生产加入任意 endpoint 注入。
 - `follow-state-client-final.log`：32 项 Node 状态、client 与既有账号／片库回归通过。
 - `follow-tooling.log` 保留 131／132 初轮结果；失败为 pnpm 11 在临时 hook 仓库自修复依赖，被 noTTY 拒绝。仅测试子进程改用受支持的 `verify-deps-before-run=warn`，不安装或修改主仓依赖，定向回归通过。
 - `follow-clippy-first.log` 保留 4 项新 parser 风格检查失败；修复后 `follow-clippy-final.log` 为全工作区 strict Clippy 通过。
@@ -32,3 +32,10 @@
 正式 `pnpm dev:desktop` 启动并 connected 后 AX 窗口数为 0，未能进入真实追更列表。当前系统 IOConsoleUsers 明确报告 `CGSSessionScreenIsLocked=true`，不能按此前未锁屏的事件归因。本次已在结束前保存精确宿主 PID 的 3 秒采样：`follow-native-zero-window.sample.txt`；主线程在正常 AppKit 事件循环，engine 等待消息，没有本次采样支持的 join／shutdown 卡死证据。`follow-desktop-live.log` 保留启动日志；未因可见窗口不可用重复重启或要求重新扫码，真实只读验收继续待补。收尾仅结束已采样的开发宿主、未执行 logout；`persistent-login-after-follow.json` 再次去敏核验凭证仍在，目录／文件权限仍为 0700／0600。
 
 真实添加／取消追更尚无本批适用的明确授权，不由历史或收藏的写授权推定。继续只读和工程验收；真实写往返、Web／当前 Android TV 包、物理 TV、读屏、大字／减少动态及跨设备流程分别保留待验。
+
+## 2026-11-16 增量：传输 parity 与 UI 密度修正
+
+- `crates/core` 新增 `test-support` feature，仅由 HTTP/native 的开发测试依赖启用；loopback-only `AccountService` 注入和合成已验证账号只存在测试构建路径，默认 release 不启用。
+- HTTP 与 native 使用同一已验证 `AccountService` 和同一 loopback 上游，覆盖认证空列表、远端 ACK 但完整读回未观察到成员（`acknowledged=true`、`confirmed=false`）及解除隐藏后的精确 series 读回；请求仍校验 `tab_type=14`、`count=20` 和 series 身份。
+- 追更页面标题改用 `content-title`，行内 TV 间距使用 `tvUnit`；公共 `CardControls` 的按钮间距随 Product 密度缩放。桌面／TV 语义、焦点和无评论／弹幕／点赞范围不变。
+- 定向证据：HTTP follow 3／3、native follow 2／2、core follow 7／7、Web test 142／142、三端 check/build 通过；一次并行全量 nextest 的无关生命周期用例出现时序失败，单测串行复跑 5 次通过，未将该失败写成产品回归。真实账号和正式宿主仍待验。

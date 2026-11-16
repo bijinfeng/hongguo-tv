@@ -8,7 +8,7 @@ use reqwest::{
     header::{HeaderMap, HeaderValue},
 };
 use serde_json::Value;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use std::net::IpAddr;
 use std::{collections::BTreeMap, time::Duration};
 
@@ -50,7 +50,7 @@ impl PassportClient {
         })
     }
     /// Explicit loopback fixtures only; production never accepts an upstream destination.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub(crate) fn for_loopback_tests(
         session: PersistedSession,
         origin: &str,

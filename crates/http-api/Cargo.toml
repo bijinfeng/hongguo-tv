@@ -14,6 +14,7 @@ serde_json.workspace = true
 utoipa.workspace = true
 
 [dev-dependencies]
+hongguo-core = { workspace = true, features = ["test-support"] }
 rusqlite.workspace = true
 tokio.workspace = true
 tower.workspace = true

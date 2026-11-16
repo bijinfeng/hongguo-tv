@@ -18,9 +18,9 @@ pub(super) struct OnlineRuntime {
     mutation: Arc<AtomicBool>,
     stopped: AtomicBool,
     generation: watch::Sender<u64>,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub(super) fixture: std::sync::Mutex<Option<String>>,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub(super) timeout: std::sync::Mutex<Duration>,
 }
 impl Default for OnlineRuntime {
@@ -30,9 +30,9 @@ impl Default for OnlineRuntime {
             mutation: Arc::new(AtomicBool::new(false)),
             stopped: AtomicBool::new(false),
             generation: watch::channel(0).0,
-            #[cfg(test)]
+            #[cfg(any(test, feature = "test-support"))]
             fixture: std::sync::Mutex::new(None),
-            #[cfg(test)]
+            #[cfg(any(test, feature = "test-support"))]
             timeout: std::sync::Mutex::new(Duration::from_secs(60)),
         }
     }
@@ -59,17 +59,17 @@ impl OnlineRuntime {
         !self.stopped.load(Ordering::Acquire) && *self.generation.borrow() == generation
     }
     pub(super) fn deadline(&self) -> Duration {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         {
             *self.timeout.lock().expect("follow timeout")
         }
-        #[cfg(not(test))]
+        #[cfg(not(any(test, feature = "test-support")))]
         {
             Duration::from_secs(60)
         }
     }
     pub(super) fn client(&self, session: PersistedSession) -> Result<PassportClient, AccountError> {
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-support"))]
         if let Some(origin) = &*self.fixture.lock().expect("follow fixture") {
             return PassportClient::for_loopback_tests(session, origin)
                 .map_err(|_| AccountError::InvalidSession);

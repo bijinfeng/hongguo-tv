@@ -333,7 +333,11 @@ function FollowRow(props: {
   return (
     <View
       testID={`following-row-${props.item.series_id}`}
-      class="flex-row flex-wrap items-center gap-5 border-b border-border py-5"
+      style={{
+        gap: props.store.target === 'tv' ? tvUnit(24) : 20,
+        paddingVertical: props.store.target === 'tv' ? tvUnit(24) : 20,
+      }}
+      class="flex-row flex-wrap items-center border-b border-border"
     >
       <If when={props.item.drama}>
         <View
@@ -350,7 +354,7 @@ function FollowRow(props: {
         </View>
       </If>
       <View class="flex-1 min-w-0 gap-3">
-        <UiText role="section">{title()}</UiText>
+        <UiText role="content-title">{title()}</UiText>
         <If when={followCaption(props.item)}>
           <UiText tone="muted">{followCaption(props.item)}</UiText>
         </If>

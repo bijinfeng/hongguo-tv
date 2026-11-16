@@ -15,6 +15,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+hongguo-core = { workspace = true, features = ["test-support"] }
 rusqlite.workspace = true
 reqwest.workspace = true
 tower.workspace = true

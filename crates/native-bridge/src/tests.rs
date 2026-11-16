@@ -14,11 +14,112 @@ use hongguo_http_api::{router_with_playback, router_with_radar};
 use serde_json::{Value, json};
 use std::{
     path::PathBuf,
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     time::Duration,
 };
 use tokio::{net::TcpListener, sync::Semaphore, time::timeout};
 use tower::ServiceExt;
+
+#[derive(Clone)]
+struct FollowTransportState {
+    followed: Arc<AtomicBool>,
+    force_unconfirmed: Arc<AtomicBool>,
+}
+
+async fn follow_transport_upstream(
+    State(state): State<FollowTransportState>,
+    request: HttpRequest,
+) -> Response {
+    let path = request.uri().path();
+    match (request.method(), path) {
+        (&Method::GET, "/reading/user/subscribe/list/v1/") => {
+            let url =
+                reqwest::Url::parse(&format!("http://fixture.invalid{}", request.uri())).unwrap();
+            assert_eq!(
+                url.query_pairs()
+                    .find(|(key, _)| key == "tab_type")
+                    .unwrap()
+                    .1,
+                "14"
+            );
+            assert_eq!(
+                url.query_pairs().find(|(key, _)| key == "count").unwrap().1,
+                "20"
+            );
+            let present = state.followed.load(Ordering::Acquire)
+                && !state.force_unconfirmed.load(Ordering::Acquire);
+            axum::Json(json!({
+                "code": 0,
+                "data": {
+                    "mix_data": if present {
+                        vec![json!({"series_id":"7690163276214176792","title":"合成追更剧","series_status":0})]
+                    } else {
+                        Vec::new()
+                    },
+                    "has_more": false
+                }
+            }))
+            .into_response()
+        }
+        (&Method::POST, "/reading/user/subscribe/delete/v") => {
+            let body = axum::body::to_bytes(request.into_body(), 32768)
+                .await
+                .unwrap();
+            let value: Value = serde_json::from_slice(&body).unwrap();
+            assert_eq!(value["book_type"], 2);
+            assert_eq!(value["series_id"], "7690163276214176792");
+            assert_eq!(value["book_id"], "7690163276214176792");
+            assert!(value["op_type"] == 1 || value["op_type"] == 2);
+            state
+                .followed
+                .store(value["op_type"] == 1, Ordering::Release);
+            axum::Json(json!({"code": 0, "data": {}})).into_response()
+        }
+        _ => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+struct FollowTransport {
+    origin: String,
+    followed: Arc<AtomicBool>,
+    force_unconfirmed: Arc<AtomicBool>,
+    task: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for FollowTransport {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+impl FollowTransport {
+    async fn new() -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}/", listener.local_addr().unwrap());
+        let state = FollowTransportState {
+            followed: Arc::new(AtomicBool::new(false)),
+            force_unconfirmed: Arc::new(AtomicBool::new(false)),
+        };
+        let followed = state.followed.clone();
+        let force_unconfirmed = state.force_unconfirmed.clone();
+        let task = tokio::spawn(async move {
+            axum::serve(
+                listener,
+                Router::new()
+                    .fallback(follow_transport_upstream)
+                    .with_state(state),
+            )
+            .await
+            .unwrap();
+        });
+        Self {
+            origin,
+            followed,
+            force_unconfirmed,
+            task,
+        }
+    }
+}
 
 #[tokio::test]
 async fn native_library_operations_share_exact_receipts_with_http_and_reject_stale_sessions() {
@@ -616,6 +717,113 @@ async fn notifications_http_native_guest_scope_and_lifecycle_boundaries_match() 
     assert_eq!(cancelled.body["code"], "CORE_CANCELLED");
     assert_eq!(account.snapshot().await, original);
     assert_eq!(fixture.upstream.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn follow_http_native_authenticated_success_and_unconfirmed_results_match() {
+    let transport = FollowTransport::new().await;
+    let mut fixture = Fixture::new(false).await;
+    let account = hongguo_core::account::AccountService::open(
+        &fixture.dir,
+        fixture.session.services.library.clone(),
+    )
+    .await
+    .unwrap();
+    account.configure_loopback_for_tests(&transport.origin);
+    account
+        .install_loopback_account_for_tests("7390000000000000003")
+        .await
+        .unwrap();
+    let services = Services {
+        account: Some(account.clone()),
+        ..fixture.session.services.clone()
+    };
+    let _previous = std::mem::replace(
+        &mut fixture.session,
+        Session::with_services(services)
+            .await
+            .unwrap_or_else(|_| panic!("authenticated follow session")),
+    );
+    let app = hongguo_http_api::router_with_account(
+        DevPolicy::new(8080, None),
+        fixture.session.services.catalog.clone(),
+        Some(fixture.session.services.library.clone()),
+        None,
+        None,
+        Some(account.clone()),
+    );
+    let snapshot = account.snapshot().await;
+    let query = format!(
+        "/api/v1/follow?owner_id={}&owner_epoch={}",
+        snapshot.owner_id, snapshot.owner_epoch
+    );
+    let native_initial = fixture.call(&query, None).await;
+    let http_initial = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .uri(&query)
+                .header("host", "127.0.0.1:8080")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let http_initial_body: Value = serde_json::from_slice(
+        &axum::body::to_bytes(http_initial.into_body(), 32768)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(native_initial.status, 200);
+    assert_eq!(native_initial.body, http_initial_body);
+    assert_eq!(native_initial.body["data"]["items"], json!([]));
+
+    // The remote ACK is accepted, but the follow read deliberately hides the
+    // member. Both transports must expose acknowledged=true and confirmed=false.
+    transport.force_unconfirmed.store(true, Ordering::Release);
+    let intent = json!({
+        "owner_id": snapshot.owner_id,
+        "owner_epoch": snapshot.owner_epoch,
+        "series_id": "7690163276214176792",
+        "enabled": true
+    });
+    let native_add = fixture
+        .call("/api/v1/follow", Some(&intent.to_string()))
+        .await;
+    let http_add = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method(Method::POST)
+                .uri("/api/v1/follow")
+                .header("host", "127.0.0.1:8080")
+                .header("content-type", "application/json")
+                .body(Body::from(intent.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let http_add_body: Value = serde_json::from_slice(
+        &axum::body::to_bytes(http_add.into_body(), 32768)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(native_add.status, 200);
+    assert_eq!(native_add.body, http_add_body);
+    assert_eq!(native_add.body["data"]["acknowledged"], true);
+    assert_eq!(native_add.body["data"]["confirmed"], false);
+    assert_eq!(native_add.body["data"]["snapshot"]["items"], json!([]));
+
+    transport.force_unconfirmed.store(false, Ordering::Release);
+    let observed = fixture.call(&query, None).await;
+    assert_eq!(observed.status, 200);
+    assert_eq!(
+        observed.body["data"]["items"][0]["series_id"],
+        "7690163276214176792"
+    );
+    assert!(transport.followed.load(Ordering::Acquire));
 }
 
 #[tokio::test]
