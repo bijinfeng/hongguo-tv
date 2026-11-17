@@ -14,6 +14,7 @@ import { Following } from '../pages/Following';
 import { Reservations } from '../pages/Reservations';
 import { Notifications } from '../pages/Notifications';
 import { Account } from '../pages/Account';
+import { SettingsPage } from '../pages/SettingsPage';
 import { Home } from '../pages/Home';
 import { Feed } from '../pages/Feed';
 import { Calendar } from '../pages/Calendar';
@@ -210,6 +211,13 @@ export function Pages(props: { store: Store; updates?: Updates }) {
                 tv={props.store.target === 'tv'}
                 active={props.store.nav.routes().at(-1) === route}
                 focusGuard={props.store.focusGuard}
+              />
+            </If>
+            <If when={route.name === 'settings'}>
+              <SettingsPage
+                store={props.store}
+                updates={props.updates}
+                tv={props.store.target === 'tv'}
               />
             </If>
             <If when={route.name === 'account'}>

@@ -1,6 +1,7 @@
 import {
   registerApplicationTests,
   registerAccountTests,
+  registerSettingsTests,
   registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
@@ -52,3 +53,4 @@ import { registerLibraryLifecycleTests } from '@hongguo/app/testing';
 registerLibraryLifecycleTests();
 
 registerAccountTests('tv', './HttpFixture.tsx');
+registerSettingsTests('tv', './HttpFixture.tsx');

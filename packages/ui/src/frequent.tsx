@@ -1,4 +1,4 @@
-import { Text, View, cleanup, effect, signal, token, type JSX, type ViewRef } from 'nsh';
+import { Text, View, cleanup, effect, signal, token, type ViewRef } from 'nsh';
 import { Button } from './button';
 import { Product, controlMetrics, tvUnit } from './foundation';
 import { UiText } from './display';
@@ -202,48 +202,6 @@ export function RemovableChipGroup(props: RemovableChipGroupProps) {
           />
         </If>
       </View>
-    </View>
-  );
-}
-
-/** A settings row owns geometry and copy; its caller supplies the control and confirmed value. */
-export interface SettingsRowProps {
-  label: string;
-  description?: string;
-  value?: string;
-  error?: string;
-  children?: JSX.Element;
-  testID?: string;
-}
-
-/** Aligns labels and controls on a stable row, with failure next to the affected setting. */
-export function SettingsRow(props: SettingsRowProps) {
-  return (
-    <View
-      testID={props.testID}
-      style={{ gap: unit(12), paddingVertical: unit(16) }}
-      class="border-b border-border"
-    >
-      <View
-        style={{ minHeight: controlMetrics().height, gap: unit(24) }}
-        class="flex-row flex-wrap items-center justify-between"
-      >
-        <View class="flex-1 min-w-0 gap-1">
-          <UiText>{props.label}</UiText>
-          <If when={props.description}>
-            <UiText role="meta">{props.description}</UiText>
-          </If>
-        </View>
-        <If when={props.value}>
-          <UiText tone="muted">{props.value}</UiText>
-        </If>
-        {props.children}
-      </View>
-      <If when={props.error}>
-        <Text role="alert" style={{ fontSize: controlMetrics().fontSize }} class="text-destructive">
-          {props.error}
-        </Text>
-      </If>
     </View>
   );
 }

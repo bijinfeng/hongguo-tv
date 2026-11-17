@@ -46,6 +46,7 @@ import {
   ExpandableText,
   RemovableChipGroup,
   SettingsRow,
+  SettingsSection,
   PosterCard,
   ContinueCard,
   Cover,
@@ -632,14 +633,17 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   emptyAction={{ label: '重新选择', onPress: () => chips.set(initialChips) }}
                   testID="gallery-chips"
                 />
-                <SettingsRow label="自动连播" description="本集结束后继续播放下一集">
-                  <Switch
-                    label="内容区自动连播"
-                    checked={enabled()}
-                    onChange={({ checked: value }) => enabled.set(value)}
-                  />
-                </SettingsRow>
-                <SettingsRow label="内容源" value="当前内容源" />
+                <SettingsSection title="偏好示例">
+                  <SettingsRow label="自动连播" description="本集结束后继续播放下一集">
+                    <Switch
+                      label="内容区自动连播"
+                      labelHidden
+                      checked={enabled()}
+                      onChange={({ checked: value }) => enabled.set(value)}
+                    />
+                  </SettingsRow>
+                  <SettingsRow label="内容源" description="来自当前内容库" value="当前内容源" />
+                </SettingsSection>
               </Section>
               <GalleryBusinessRecipes />
             </If>

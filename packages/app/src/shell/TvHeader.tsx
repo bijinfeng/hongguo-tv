@@ -56,6 +56,16 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
         </View>
         <View style={{ width: tvUnit(geometry.actions), height: tvUnit(geometry.actions) }}>
           <Button
+            testID="nav-settings"
+            icon="settings"
+            iconOnly
+            variant="quiet"
+            label="设置"
+            onPress={() => props.store.settingsPage()}
+          />
+        </View>
+        <View style={{ width: tvUnit(geometry.actions), height: tvUnit(geometry.actions) }}>
+          <Button
             icon="user"
             iconOnly
             variant="quiet"

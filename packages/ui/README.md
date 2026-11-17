@@ -44,9 +44,12 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 | foundation                                          | Product 上下文、端型尺寸表、TV 换算                                 |
 | icon / assets/lucide                                | 官方 Lucide 资源、稳定语义别名、原生渲染                            |
 | button                                              | Button／IconButton，有限 variant 与 size                            |
-| form                                                | Input／Field／SearchField、Select、多选／单选、Tabs、Slider         |
+| text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                  |
+| select / checkbox / switch                          | 受控选择、复选与开关；开关支持隐藏可视标签并按端缩放                |
+| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）                          |
 | overlay                                             | Dialog／Confirm／SidePanel、Menu／Popover、提示、操作栏、折叠、链接 |
-| display / frequent                                  | 字级、静态表面、反馈、行与高频基础组合                              |
+| display / frequent                                  | 字级、静态表面、反馈与高频基础组合                                  |
+| settings-row / settings-section                     | 设置行与分区：分隔列表或独立卡片，控件和值由调用方提供              |
 | content / player                                    | 既有内容与影院控件的兼容组合                                        |
 | card-controls / select-focus / focused-removal-root | 已有宿主焦点问题的内部适配                                          |
 | dev / test                                          | 显式验收入口和行为测试，不挂载到产品路由                            |

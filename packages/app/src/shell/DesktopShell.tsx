@@ -10,7 +10,10 @@ import { Topbar } from './Topbar';
 /** Desktop and web outer frame: fixed rail beside the scrolled content column. */
 export function DesktopShell(props: { store: Store; logoMark: ImageAsset; updates?: Updates }) {
   const window = isAvailable ? currentWindow() : undefined;
-  const cinema = () => props.store.playing() && window?.state()?.placement.mode === 'fullScreen';
+  // Fullscreen hides chrome on its own; quiet watching asks the same of a windowed player.
+  const cinema = () =>
+    props.store.playing() &&
+    (window?.state()?.placement.mode === 'fullScreen' || props.store.settings.quietWatching());
   return (
     <Product.Provider value="desktop">
       <View class="flex-1 flex-row">

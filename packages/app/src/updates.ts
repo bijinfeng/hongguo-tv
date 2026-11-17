@@ -45,8 +45,17 @@ export type UpdatePhase =
   | 'saveError'
   | 'installError';
 
+export interface UpdateOptions {
+  /** Automatic checking is a saved preference; the initial service probe stays unconditional. */
+  autoCheck?: () => boolean;
+}
+
 /** One controller per app root; navigating away never starts another operation. */
-export function createUpdates(adapter: UpdateAdapter, prepare: () => Promise<void>) {
+export function createUpdates(
+  adapter: UpdateAdapter,
+  prepare: () => Promise<void>,
+  options: UpdateOptions = {},
+) {
   const phase = signal<UpdatePhase>('initializing');
   const version = signal('');
   const update = signal<AppUpdate | undefined>(undefined);
@@ -181,7 +190,7 @@ export function createUpdates(adapter: UpdateAdapter, prepare: () => Promise<voi
                 ? 'idle'
                 : 'manual',
       );
-      if (phase() === 'idle') await check();
+      if (phase() === 'idle' && (options.autoCheck?.() ?? true)) await check();
       else polling();
     } catch (reason) {
       busy = false;

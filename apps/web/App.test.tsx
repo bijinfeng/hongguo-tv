@@ -1,6 +1,7 @@
 import {
   registerApplicationTests,
   registerAccountTests,
+  registerSettingsTests,
   registerBrowsingTests,
   registerLibraryTests,
   registerPlaybackTests,
@@ -32,3 +33,4 @@ import { registerLibraryLifecycleTests } from '@hongguo/app/testing';
 registerLibraryLifecycleTests();
 
 registerAccountTests('desktop', './App.tsx');
+registerSettingsTests('desktop', './App.tsx');

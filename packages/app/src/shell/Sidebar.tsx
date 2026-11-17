@@ -32,6 +32,14 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
           current={props.store.nav.routes().at(-1)?.name === 'account'}
           onPress={props.store.accountPage}
         />
+        <Button
+          variant="navigation"
+          icon="settings"
+          label="设置"
+          testID="nav-settings"
+          current={props.store.nav.routes().at(-1)?.name === 'settings'}
+          onPress={() => props.store.settingsPage()}
+        />
       </CardControls>
     </View>
   );

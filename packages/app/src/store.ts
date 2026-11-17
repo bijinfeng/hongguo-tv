@@ -30,6 +30,7 @@ import { createFollowState } from './follow-state';
 import { createReservationState } from './reservation-state';
 import { createNotificationsState } from './notifications-state';
 import { createSearchSuggestions } from './search-suggestions';
+import { createSettings } from './settings';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
 import { errorMessage } from './error-messages';
@@ -59,7 +60,8 @@ export type Route =
   | { name: 'actor'; actorId: string; title: string }
   | { name: 'player'; drama: Drama; episode: Episode }
   | { name: 'account' }
-  | { name: 'updates' };
+  | { name: 'updates' }
+  | { name: 'settings' };
 
 /** One navigation stack and resource lifetime per mounted application. */
 export function createStore(
@@ -69,6 +71,7 @@ export function createStore(
 ) {
   const request = captureRequest();
   const nav = createNavStack<Route>([{ name: 'browse' }]);
+  const settings = createSettings();
   const section = signal<Section>('home');
   const libraryKind = signal<'history' | 'favorites'>('history');
   const activePage = (name: Section) =>
@@ -433,6 +436,7 @@ export function createStore(
     hostFocus,
     hostOwnsFocus: !!subscribeFocus,
     nav,
+    settings,
     section,
     libraryKind,
     openLibrary(kind: 'history' | 'favorites') {
@@ -471,6 +475,7 @@ export function createStore(
       try {
         await recent.drain();
         await history.drain();
+        await settings.flush();
       } finally {
         finish();
       }
@@ -596,6 +601,10 @@ export function createStore(
       account.refetch();
       if (restore) sources.set(nav.routes().length, restore);
       nav.push({ name: 'account' });
+    },
+    settingsPage(restore?: () => void) {
+      if (restore) sources.set(nav.routes().length, restore);
+      nav.push({ name: 'settings' });
     },
     draft,
     query,

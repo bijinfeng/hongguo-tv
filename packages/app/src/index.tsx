@@ -1,4 +1,4 @@
-import { cleanup, View, keymap, type ImageAsset } from 'nsh';
+import { cleanup, effect, View, keymap, type ImageAsset } from 'nsh';
 import { BackHandler } from 'nsh/mobile';
 import { Product, type ProductTarget } from '@hongguo/ui';
 import { createUpdates, type UpdateAdapter } from './updates';
@@ -17,7 +17,16 @@ export function App(props: {
   onReady?: () => void;
 }) {
   const store = createStore(props.target, props.subscribePlayerCommands, props.subscribeFocus);
-  const updates = props.updates ? createUpdates(props.updates, store.prepareUpdate) : undefined;
+  const updates = props.updates
+    ? createUpdates(props.updates, store.prepareUpdate, {
+        autoCheck: () => store.settings.loaded() && store.settings.autoCheckUpdates(),
+      })
+    : undefined;
+  // A saved preference loads after the service probe; catch up once it decides checking is on.
+  effect(() => {
+    if (!updates || !store.settings.loaded() || !store.settings.autoCheckUpdates()) return;
+    if (updates.phase() === 'idle') void updates.check();
+  });
   cleanup(() => {
     const drained = store.shutdown();
     props.onShutdown?.(drained);

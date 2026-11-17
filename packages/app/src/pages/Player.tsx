@@ -22,6 +22,7 @@ import { createWatchStatisticsCollector, watchContentType } from '../watch-stati
 import { playbackTime as timeLabel } from '../format';
 import { errorMessage } from '../error-messages';
 import { createSeasons, isFinalEpisode, type SeasonsController } from '../seasons';
+import { PLAYBACK_RATES, type PlaybackRate } from '../settings';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
 import {
@@ -262,7 +263,7 @@ export function Player(props: {
   const quality = signal('');
   const qualities = signal<string[]>([]);
   const volume = signal(0.8);
-  const rate = signal('1');
+  const rate = signal(props.store.settings.defaultRate());
   const panel = signal(false);
   const more = signal(false);
   const menuOpen = signal(false);
@@ -731,7 +732,9 @@ export function Player(props: {
                         duration.set(total);
                         loaded.set(true);
                         buffering.set(false);
-                        const resume = props.store.resume(props.drama);
+                        const resume = props.store.settings.rememberPosition()
+                          ? props.store.resume(props.drama)
+                          : undefined;
                         const saved =
                           resume?.video_id === props.episode.video_id && !resume.completed
                             ? (resume.position ?? 0)
@@ -825,8 +828,10 @@ export function Player(props: {
                         completed.set(true);
                         paused.set(true);
                         layer.set('controls');
-                        if (next()) nextEpisode();
-                        else if (isFinalEpisode(props.drama, props.episode)) void nextSeason();
+                        const auto = props.store.settings.autoplayNext();
+                        if (auto && next()) nextEpisode();
+                        else if (auto && isFinalEpisode(props.drama, props.episode))
+                          void nextSeason();
                       }}
                     />
                   )}
@@ -993,12 +998,12 @@ export function Player(props: {
                     <CinemaSelect
                       label="播放速度"
                       value={rate()}
-                      items={[0.75, 1, 1.25, 1.5, 2].map((value) => ({
-                        value: String(value),
+                      items={PLAYBACK_RATES.map((value) => ({
+                        value,
                         title: `${value}×`,
                       }))}
                       disabled={!enabled()}
-                      onChange={rate.set}
+                      onChange={(value) => rate.set(value as PlaybackRate)}
                       onOpenChange={menuOpen.set}
                     />
                     <CinemaSelect
@@ -1133,12 +1138,12 @@ export function Player(props: {
           <CinemaSelect
             label="播放速度"
             value={rate()}
-            items={[0.75, 1, 1.25, 1.5, 2].map((value) => ({
-              value: String(value),
+            items={PLAYBACK_RATES.map((value) => ({
+              value,
               title: `${value}×`,
             }))}
             disabled={!enabled()}
-            onChange={rate.set}
+            onChange={(value) => rate.set(value as PlaybackRate)}
           />
         </CinemaSettingRow>
         <CinemaSettingRow label="清晰度">
