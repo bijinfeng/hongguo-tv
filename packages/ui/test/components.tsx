@@ -260,8 +260,16 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
     await app.press('id:gallery-sheet-navigation');
     await app.press('id:gallery-back');
     await app.waitFor('text:当前位置：分类');
-    await app.press('id:gallery-page-5');
-    await app.waitFor('text:第 5 / 5 页');
+    await app.press('id:gallery-pagination >> text:3');
+    await app.waitFor('text:第 3 / 21 页');
+    await app.press('id:gallery-pagination-single-toggle');
+    await app.waitFor('text:第 1 / 1 页');
+    expect(app.shows('id:gallery-pagination')).toBe(false);
+    await app.press('id:gallery-pagination-single-toggle');
+    await app.waitFor('text:第 3 / 21 页');
+    expect(app.enabled('id:gallery-pagination-disabled >> text:3')).toBe(false);
+    await app.press('id:gallery-pagination-compact >> label:下一页');
+    await app.waitFor('text:第 4 / 12 页');
     await app.press('id:gallery-load-more');
     await app.press('id:gallery-load-more');
     expect(app.enabled('id:gallery-load-more')).toBe(false);

@@ -40,6 +40,7 @@ export {
   type RadarTableRow,
 } from './radar-table';
 export { SeasonChoice, type SeasonChoiceProps } from './season-choice';
+export { Pagination, type PaginationProps } from './pagination';
 export {
   Cover,
   type CoverProps,

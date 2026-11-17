@@ -24,6 +24,7 @@ import {
   ActionBar,
   Product,
   tvUnit,
+  Pagination,
 } from '../src/index';
 
 function Row(props: { children?: JSX.Element }) {
@@ -115,6 +116,8 @@ export function GalleryNavigationRecipes() {
   const active = signal('首页');
   const depth = signal(2);
   const page = signal(1);
+  const compactPage = signal(3);
+  const single = signal(false);
   const batch = signal(1);
   return (
     <View class="gap-6">
@@ -150,21 +153,40 @@ export function GalleryNavigationRecipes() {
         <UiText role="meta">{`当前位置：${depth() === 0 ? '首页' : depth() === 1 ? '分类' : '春山不负'}`}</UiText>
       </Block>
       <Block title="已知页数">
+        <Pagination
+          page={page()}
+          totalPages={single() ? 1 : 21}
+          visiblePages={7}
+          onChange={({ page: next }) => page.set(next)}
+          testID="gallery-pagination"
+        />
         <Row>
-          <Button label="上一页" disabled={page() === 1} onPress={() => page.set(page() - 1)} />
-          <Each of={[1, 2, 3, 4, 5]}>
-            {(number) => (
-              <Button
-                label={String(number())}
-                selected={page() === number()}
-                onPress={() => page.set(number())}
-                testID={`gallery-page-${number()}`}
-              />
-            )}
-          </Each>
-          <Button label="下一页" disabled={page() === 5} onPress={() => page.set(page() + 1)} />
+          <Button
+            label={single() ? '恢复 21 页' : '切到单页'}
+            variant="quiet"
+            onPress={() => single.set(!single())}
+            testID="gallery-pagination-single-toggle"
+          />
         </Row>
-        <UiText role="meta">{`第 ${page()} / 5 页`}</UiText>
+        <UiText role="meta">{`第 ${single() ? 1 : page()} / ${single() ? 1 : 21} 页`}</UiText>
+      </Block>
+      <Block title="紧凑分页">
+        <Pagination
+          page={compactPage()}
+          totalPages={12}
+          compact
+          onChange={({ page: next }) => compactPage.set(next)}
+          testID="gallery-pagination-compact"
+        />
+      </Block>
+      <Block title="分页禁用">
+        <Pagination
+          page={3}
+          totalPages={12}
+          disabled
+          onChange={() => {}}
+          testID="gallery-pagination-disabled"
+        />
       </Block>
       <Block title="未知总数">
         <UiText>{`已加载 ${batch() * 12} 条演示条目`}</UiText>
