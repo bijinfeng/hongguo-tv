@@ -464,6 +464,9 @@ small,
   max-width: 1660px;
   margin: auto;
 }
+.main-content:focus-visible {
+  outline: none;
+}
 .page-heading {
   display: flex;
   justify-content: space-between;
