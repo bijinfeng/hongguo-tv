@@ -12,7 +12,7 @@ import {
   rustEnvironment,
 } from './process.mjs';
 
-async function freePort() {
+export async function freePort() {
   const server = createServer();
   await new Promise((res, rej) => {
     server.once('error', rej);

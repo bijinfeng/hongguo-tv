@@ -20,6 +20,7 @@ import {
 import { boundaries } from './boundaries.mjs';
 import { codegen } from './codegen.mjs';
 import { dev } from './dev.mjs';
+import { fixtureDev } from './fixture-dev.mjs';
 import { packageTvHost, tvHostEnvironment } from './tv-host.mjs';
 
 const tvToolchain = JSON.parse(readFileSync(resolve(root, 'tooling/tv-toolchain.json'), 'utf8'));
@@ -262,6 +263,11 @@ try {
       if (!target) throw new Error('dev requires --target');
       await doctor();
       await dev(target, runtimeMode(target));
+      break;
+    case 'dev:fixture':
+      if (!target) throw new Error('dev:fixture requires --target');
+      await doctor();
+      await fixtureDev(target);
       break;
     case 'api':
       await cargo([

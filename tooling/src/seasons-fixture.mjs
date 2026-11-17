@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { root } from './process.mjs';
+import { coverImages } from './fixture-covers.mjs';
 
 const ids = ['101', '201', '301', '401'];
 const videos = { 101: ['1001', '1002'], 201: ['2001', '2002'] };
@@ -21,16 +22,7 @@ export async function seasonsFixture({ port = 0 } = {}) {
     Promise.all(
       ['a', 'b'].map((name) => readFile(resolve(root, `apps/tv/fixtures/t0-${name}.mp4`))),
     ),
-    Promise.all(
-      ['spring', 'home', 'night', 'return'].map((name) =>
-        readFile(
-          resolve(
-            root,
-            `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`,
-          ),
-        ),
-      ),
-    ),
+    coverImages(['spring', 'home', 'night', 'return']),
   ]);
   const requests = [],
     writes = [],

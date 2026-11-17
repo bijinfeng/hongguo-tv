@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { root } from './process.mjs';
+import { coverImages } from './fixture-covers.mjs';
 
 const ids = {
   weekly: 'weekly & raw',
@@ -23,13 +21,7 @@ const option = (id, label, selected = false) => ({
 
 /** Synthetic GET-only HTTP source for the production rankings page and its destinations. */
 export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {}) {
-  const images = await Promise.all(
-    ['home', 'night', 'return', 'spring'].map((name) =>
-      readFile(
-        resolve(root, `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`),
-      ),
-    ),
-  );
+  const images = await coverImages();
   const requests = [];
   const writes = [];
   const unknown = [];

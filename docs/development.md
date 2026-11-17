@@ -25,6 +25,8 @@ Windows 按官方 PowerShell 安装说明设置 NSH_VERSION，其余 pnpm 命令
 
 `pnpm dev:web` 启动当前 Rust API 并分配端口，`pnpm dev:api` 只启动 loopback API。Desktop／TV 的 dev 和 package 默认使用包内 Rust，不要求电脑 API 或 adb reverse。
 
+`pnpm dev:fixture:web|desktop|tv` 用 `tooling/src/browsing-fixture.mjs` 的本地合成 core 启动同一入口，只用于开发与回归（接口契约、布局、状态切换）；启动时明确标注 synthetic data，不能作为功能验收证据，验收使用 `pnpm dev:*` 或正式包连真实 core。
+
 `HONGGUO_RUNTIME_MODE=native|http-preview|t0` 显式选择模式；未设置时 Desktop／TV 为 native，Web 为 http-preview。显式提供 `HONGGUO_CORE_ORIGIN` 也会选择 http-preview，不能同时指定 native／t0。HTTP preview 打包必须提供精确 origin，不回退默认地址。
 
 ```sh
@@ -47,6 +49,7 @@ check／build／test 可加 `--target web|desktop|tv`，默认三端。开发中
 | ----------------------------------------------------- | ------------------------------------------------------------------------ |
 | `pnpm ui:check`／`ui:test`／`ui:host`                 | 基础组件三端检查、行为与 macOS 可见宿主；不等于 Android 遥控／系统输入法 |
 | `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                |
+| `pnpm dev:fixture:web`／`desktop`／`tv`                | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收         |
 | `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                  |
 | `pnpm test:tv-native-startup`／`test:tv-native-retry` | 原生入口合成启动／失败／重试，不是独立真实业务                           |
 | `pnpm test:tv-native-business`                        | 当前原生 APK、官网媒体、SQLite、进程重启；需要唯一固定 TV API34 模拟器   |

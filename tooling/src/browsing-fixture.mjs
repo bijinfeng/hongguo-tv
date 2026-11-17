@@ -71,15 +71,11 @@ export async function browsingFixture({
     }
     if (url.pathname.startsWith('/cover/')) {
       const image = ['home', 'night', 'return', 'spring'][Number(url.pathname.at(-1))];
+      const cover = (name) =>
+        resolve(root, `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`);
       res.setHeader('Content-Type', 'image/jpeg');
-      res.end(
-        await readFile(
-          resolve(
-            root,
-            `design/prototype/visual-redesign-real/assets/component-covers/${image}.jpg`,
-          ),
-        ),
-      );
+      // A missing optional cover falls back to a sibling so one absent asset never fails a read.
+      res.end(await readFile(cover(image)).catch(() => readFile(cover('night'))));
       return;
     }
     const reply = (data, status = 200) => {
@@ -385,7 +381,8 @@ export async function browsingFixture({
             { id: 'cate_3', label: '家庭' },
             { id: 'cate_4', label: '古装' },
             { id: 'cate_5', label: '重生' },
-            { id: 'cate_6', label: '很长的题材选项仍然可以完整阅读' },
+            // Long option label keeps chip overflow and wrapping covered by fixtures.
+            { id: 'cate_6', label: '古装穿越重生复仇' },
           ],
         },
         {

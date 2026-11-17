@@ -1,8 +1,6 @@
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { calendarFixture as createCalendarData } from '../../packages/app/test/calendar-fixture.ts';
-import { root } from './process.mjs';
+import { coverImages } from './fixture-covers.mjs';
 
 /** GET-only local calendar fixture; never contacts a real source, account or player. */
 export async function calendarFixture({
@@ -12,13 +10,7 @@ export async function calendarFixture({
   longAnnouncement = false,
   emptyTomorrow = false,
 } = {}) {
-  const covers = await Promise.all(
-    ['home', 'night', 'return', 'spring'].map((name) =>
-      readFile(
-        resolve(root, `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`),
-      ),
-    ),
-  );
+  const covers = await coverImages();
   const requests = [];
   let data;
   const server = createServer(async (request, response) => {
