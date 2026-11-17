@@ -37,6 +37,17 @@ function fixture(request: StubRequest): StubResponse {
   if (url.pathname === '/api/v1/account')
     return ok({ logged_in: false, sync: { state: 'local', pending: 0 }, qr_login_available: true });
   if (url.pathname === '/api/v1/search') return ok({ items: [drama], has_more: false });
+  if (url.pathname === '/api/v1/category')
+    return ok({
+      items: [drama],
+      filters: [
+        { type: 'category_dim_theme', options: [{ id: 'urban', label: '都市' }] },
+        { type: 'sort', options: [{ id: 'online_time', label: '最新' }] },
+      ],
+      has_more: false,
+      session_id: 'fixture',
+      next_offset: 0,
+    });
   if (url.pathname === '/api/v1/series/detail') return ok(drama);
   if (
     url.pathname === '/api/v1/series/seasons' &&

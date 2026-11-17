@@ -26,6 +26,7 @@ import type { Drama, RankItem } from '@hongguo/core-client';
 import { rankingIdentity, type RankingChoices, type RankingsController } from '../rankings';
 import type { RadarController } from '../radar';
 import { Radar } from './Radar';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 export type RankingsProps = {
   rankings: RankingsController;
@@ -526,8 +527,12 @@ export function Rankings(props: RankingsProps) {
   });
   return (
     <View
-      class={`flex-1 min-h-0 gap-7 ${props.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
+      class="flex-1 min-h-0"
+      style={
+        props.target === 'tv'
+          ? { paddingTop: tvUnit(32), gap: tvUnit(28) }
+          : desktopContentFrame({ top: 24, gap: 28 })
+      }
     >
       <UiText role="page">排行榜</UiText>
       <If when={props.radar}>

@@ -2,6 +2,7 @@ import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type V
 import { Badge, Button, ContentArrival, Cover, Notice, Surface, UiText, tvUnit } from '@hongguo/ui';
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 export function notificationLabel(item: NotificationItem): string {
   return item.kind === 'reservation_online' ? '预约已上线' : '追更有更新';
@@ -118,10 +119,12 @@ export function Notifications(props: { store: Store }) {
   return (
     <View
       testID="notifications-page"
-      class={`flex-1 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      class="flex-1"
       style={{
+        ...(props.store.target === 'tv'
+          ? { paddingTop: tvUnit(32) }
+          : desktopContentFrame({ top: 24 })),
         gap: props.store.target === 'tv' ? tvUnit(16) : 16,
-        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
       }}
     >
       <View

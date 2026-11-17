@@ -4,6 +4,7 @@ import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
 import { errorMessage } from '../error-messages';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 export function Search(props: { store: Store }) {
   const discoveries = () => {
@@ -57,8 +58,12 @@ export function Search(props: { store: Store }) {
   };
   return (
     <View
-      class={`flex-1 ${props.store.query() ? 'gap-7' : 'gap-4'} ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
-      style={props.store.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
+      class="flex-1"
+      style={
+        props.store.target === 'tv'
+          ? { paddingTop: tvUnit(32), gap: tvUnit(28) }
+          : { ...desktopContentFrame({ top: 24 }), gap: props.store.query() ? 28 : 16 }
+      }
     >
       <If when={props.store.searchFromCategory()}>
         <View class="items-start">

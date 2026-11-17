@@ -11,7 +11,13 @@ import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { FollowAction, FollowNotice } from '../FollowAction';
 import { ReservationAction, ReservationNotice } from '../ReservationAction';
 
-export function Detail(props: { drama: Drama; store: Store; active?: boolean }) {
+export function Detail(props: {
+  drama: Drama;
+  store: Store;
+  active?: boolean;
+  /** The caller asked for playback (the home hero); starts the first playable episode once. */
+  autoplay?: boolean;
+}) {
   const active = () => props.active !== false;
   const seasons = createSeasons(props.store.request, () => props.drama, active);
   const browse = createSeasonDetail(props.store.request, seasons, active);
@@ -72,6 +78,15 @@ export function Detail(props: { drama: Drama; store: Store; active?: boolean }) 
     props.store.noteFocusIntent();
     props.store.play(drama, member, source);
   };
+
+  let autoplayed = false;
+  effect(() => {
+    if (!props.autoplay || autoplayed || !active() || lifecycle() !== 'active') return;
+    const episode = startEpisode();
+    if (!episode) return;
+    autoplayed = true;
+    play(episode);
+  });
   const startLabel = () =>
     seasons.availability() === 'upcoming'
       ? '尚未上线'

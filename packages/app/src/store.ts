@@ -55,7 +55,7 @@ export type Section =
   | 'notifications';
 export type Route =
   | { name: 'browse' }
-  | { name: 'detail'; drama: Drama }
+  | { name: 'detail'; drama: Drama; autoplay?: boolean }
   | { name: 'actor'; actorId: string; title: string }
   | { name: 'player'; drama: Drama; episode: Episode }
   | { name: 'account' }
@@ -103,6 +103,8 @@ export function createStore(
   cleanup(() => cancelAnimationFrame(frame));
   const searchSelection = signal('');
   const category = createCategory(request, () => activePage('discover'));
+  /** Home reads the same catalog feed as discovery, but owns its own selection state. */
+  const homeCatalog = createCategory(request, () => activePage('home'));
   const calendar = createCalendar(request, () => activePage('calendar'));
   const rankingView = signal<'official' | 'radar'>('official');
   const rankings = createRankings(
@@ -504,6 +506,7 @@ export function createStore(
     },
     searchSelection,
     category,
+    homeCatalog,
     calendar,
     rankings,
     rankingView,
@@ -659,6 +662,12 @@ export function createStore(
       suggestions.dismiss();
       if (origin) sources.set(nav.routes().length, origin);
       nav.push({ name: 'detail', drama });
+    },
+    /** Opens the detail page and starts playback once its episodes arrive. */
+    watch(drama: Drama, origin?: () => void) {
+      suggestions.dismiss();
+      if (origin) sources.set(nav.routes().length, origin);
+      nav.push({ name: 'detail', drama, autoplay: true });
     },
     openActor(actorId: string, title: string, origin?: () => void) {
       suggestions.dismiss();

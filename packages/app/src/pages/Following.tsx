@@ -3,6 +3,7 @@ import { Button, CardControls, ContentArrival, Cover, Notice, UiText, tvUnit } f
 import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 /** These labels are remote observations, never local playback checkpoints or inferred schedules. */
 export function followCaption(item: FollowItem): string {
@@ -212,10 +213,12 @@ export function Following(props: { store: Store }) {
   return (
     <View
       testID="following-page"
-      class={`flex-1 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      class="flex-1"
       style={{
+        ...(props.store.target === 'tv'
+          ? { paddingTop: tvUnit(32) }
+          : desktopContentFrame({ top: 24 })),
         gap: props.store.target === 'tv' ? tvUnit(16) : 16,
-        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
       }}
     >
       <View

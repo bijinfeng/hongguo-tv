@@ -3,6 +3,7 @@ import { Notice, tvUnit } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PosterCollection } from '../PosterCollection';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 export function Actor(props: { store: Store; actorId: string; title: string; active: boolean }) {
   const request = captureRequest();
@@ -21,8 +22,12 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
   return (
     <View
       testID="actor-works"
-      class={`flex-1 gap-7 ${props.store.target === 'desktop' ? 'px-10 pt-3 pb-8' : ''}`}
-      style={props.store.target === 'tv' ? { gap: tvUnit(28), paddingTop: tvUnit(12) } : undefined}
+      class="flex-1"
+      style={
+        props.store.target === 'tv'
+          ? { gap: tvUnit(28), paddingTop: tvUnit(12) }
+          : desktopContentFrame({ top: 16, gap: 28 })
+      }
     >
       <View class="flex-row items-center gap-5">
         <If when={data()?.actor.avatar}>

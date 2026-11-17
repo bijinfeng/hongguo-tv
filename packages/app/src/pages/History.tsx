@@ -28,6 +28,7 @@ import type { Store } from '../store';
 import { historyProgress, playbackTime } from '../format';
 import { errorMessage } from '../error-messages';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 type Entry = Library['entries'][number];
 type LibraryItem = Entry | FavoriteEntry;
@@ -808,10 +809,12 @@ export function History(props: { store: Store }) {
   return (
     <View
       testID="history-page"
-      class={`flex-1 ${props.store.target === 'tv' ? '' : 'px-10 pt-7 pb-8'}`}
+      class="flex-1"
       style={{
+        ...(props.store.target === 'tv'
+          ? { paddingTop: tvUnit(32) }
+          : desktopContentFrame({ top: 24 })),
         gap: unit(16),
-        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
       }}
     >
       <View class="flex-row flex-wrap items-center justify-between" style={{ gap: unit(16) }}>

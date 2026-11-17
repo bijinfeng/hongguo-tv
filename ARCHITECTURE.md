@@ -55,6 +55,7 @@ flowchart TD
 
 App／UI／Client为源码依赖，Web→API为网络调用，bridge→core为进程内调用。Web注入HTTP transport，原生入口打开生成的原生会话并注入结构化native transport；adapter共用CoreClient及错误／取消语义。原生媒体需要URL时只开放必要loopback媒体路由，业务调用不必绕回HTTP。
 
+- `packages/app`内部分层：`src/shell/`是外壳业务组件（`DesktopShell`、`Sidebar`、`Topbar`、`TvShell`、`TvHeader`、`Navigation`、`Pages`），`src/pages/`是页面（首页另拆`src/pages/home/`的Hero、续播、片库分段），`src/store.ts`持有导航、请求与页面状态；外壳与页面只组合`packages/ui`控件，不自行封装控件。
 - 入口仅负责mount、配置和平台能力注入；共享包不反向导入`apps/*`，不在模块顶层启动宿主。
 - UI不请求业务接口；core-client不依赖NSH、Node或宿主生成模块。原生Session的实际打开／关闭由装配层拥有。
 - contracts只承载wire DTO，不包含UI状态或接口实现。TS包使用`workspace:*`和有限源码exports，禁止跨包深层导入。

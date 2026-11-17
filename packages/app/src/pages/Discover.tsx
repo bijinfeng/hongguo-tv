@@ -3,6 +3,7 @@ import { Button, CardControls, FilterChoices, Notice, tvUnit } from '@hongguo/ui
 import { PosterCollection } from '../PosterCollection';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 const dimensions: { key: CategoryDimension; label: string }[] = [
   { key: 'genre', label: '类型' },
@@ -24,8 +25,12 @@ export function Discover(props: { store: Store }) {
   };
   return (
     <View
-      class={`flex-1 gap-7 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.store.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(28) } : undefined}
+      class="flex-1"
+      style={
+        props.store.target === 'tv'
+          ? { paddingTop: tvUnit(32), gap: tvUnit(28) }
+          : desktopContentFrame({ top: 24, gap: 28 })
+      }
     >
       <View class="flex-row items-center justify-between">
         <Text

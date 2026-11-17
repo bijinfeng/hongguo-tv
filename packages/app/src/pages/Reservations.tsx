@@ -13,6 +13,7 @@ import { Button, CardControls, ContentArrival, Cover, Notice, UiText, tvUnit } f
 import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 type Mode = 'upcoming' | 'online';
 type Action = 'open' | 'cancel';
@@ -242,10 +243,12 @@ export function Reservations(props: { store: Store }) {
   return (
     <View
       testID="reservations-page"
-      class={`flex-1 ${props.store.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
+      class="flex-1"
       style={{
+        ...(props.store.target === 'tv'
+          ? { paddingTop: tvUnit(32) }
+          : desktopContentFrame({ top: 24 })),
         gap: props.store.target === 'tv' ? tvUnit(16) : 16,
-        ...(props.store.target === 'tv' ? { paddingTop: tvUnit(32) } : {}),
       }}
     >
       <View

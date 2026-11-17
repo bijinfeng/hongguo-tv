@@ -34,6 +34,7 @@ import {
   type ReleaseCalendar,
 } from '../calendar';
 import { ReservationAction, ReservationNotice, type ReservationStore } from '../ReservationAction';
+import { desktopContentFrame } from '../shell/ContentColumn';
 
 /** Approved shared release browsing. The parent owns navigation and the controller lifetime. */
 export function Calendar(props: {
@@ -243,8 +244,12 @@ export function Calendar(props: {
   return (
     <View
       testID="release-calendar"
-      class={`flex-1 gap-6 ${props.target === 'desktop' ? 'px-10 pt-7 pb-8' : ''}`}
-      style={props.target === 'tv' ? { paddingTop: tvUnit(32), gap: tvUnit(24) } : undefined}
+      class="flex-1"
+      style={
+        props.target === 'tv'
+          ? { paddingTop: tvUnit(32), gap: tvUnit(24) }
+          : desktopContentFrame({ top: 24, gap: 24 })
+      }
     >
       <UiText role="page">{props.target === 'tv' ? '上新日历' : '新剧与上新日历'}</UiText>
       <CardControls label="新剧与日历" onNavigate={props.onNavigate} class="gap-3">

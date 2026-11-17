@@ -1,156 +1,24 @@
-import { Scroll, Text, View, type ViewRef } from 'nsh';
-import { Button, CardControls, ContinueCard, StoryFeature, UiText, tvUnit } from '@hongguo/ui';
-import type { Library } from '@hongguo/core-client';
+import { Scroll } from 'nsh';
+import { UiText } from '@hongguo/ui';
 import type { Store } from '../store';
-import { historyLabel, LibraryStatus } from './History';
-import { historyProgress } from '../format';
-function Continuation(props: { entry: Library['entries'][number]; store: Store }) {
-  let source: ViewRef | undefined;
-  const entry = () => props.entry;
-  return (
-    <ContinueCard
-      title={entry().drama.title}
-      image={entry().drama.cover_fallback || entry().drama.cover}
-      subtitle={historyProgress(entry())}
-      position={entry().position ?? 0}
-      duration={entry().duration}
-      label="选集与详情"
-      accessibilityLabel={historyLabel(entry())}
-      buttonRef={(ref) => {
-        source = ref;
-      }}
-      onPress={() => props.store.open(entry().drama, () => source?.focus())}
-    />
-  );
-}
+import { ContentColumn } from '../shell/ContentColumn';
+import { HomeHero } from './home/HomeHero';
+import { ContinueSection } from './home/ContinueSection';
+import { CatalogSection } from './home/CatalogSection';
 
+/** Home: draft greeting, hero, continue rail and the catalog grid inside the shared column. */
 export function Home(props: { store: Store }) {
-  let resumeRef: ViewRef | undefined;
-  const current = () => props.store.entries()[0];
+  const tv = () => props.store.target === 'tv';
   return (
-    <Scroll
-      testID="home-scroll"
-      class="flex-1"
-      contentStyle={{
-        paddingHorizontal: props.store.target === 'tv' ? 0 : 40,
-        paddingVertical: props.store.target === 'tv' ? tvUnit(32) : 40,
-        gap: 28,
-      }}
-    >
-      <View class="gap-7">
-        <If when={props.store.target === 'desktop'}>
-          <Text
-            role="header"
-            accessibilityLevel={1}
-            class="text-[32px] font-semibold text-foreground"
-          >
-            首页
-          </Text>
+    <Scroll testID="home-scroll" class="flex-1 min-h-0" contentStyle={{ flexDirection: 'column' }}>
+      <ContentColumn store={props.store}>
+        <If when={!tv()}>
+          <UiText role="section">把今晚，留给好故事。</UiText>
         </If>
-        <LibraryStatus store={props.store} />
-        <If when={props.store.entries().length}>
-          <If
-            when={props.store.target === 'tv'}
-            else={
-              <View class="gap-6">
-                <View class="flex-row items-center justify-between">
-                  <Text
-                    role="header"
-                    accessibilityLevel={2}
-                    class="text-xl font-semibold text-foreground"
-                  >
-                    继续观看
-                  </Text>
-                  <Button
-                    label="全部记录"
-                    icon="forward"
-                    variant="quiet"
-                    compact
-                    onPress={() => {
-                      props.store.openLibrary('history');
-                      props.store.restoreFocus();
-                    }}
-                  />
-                </View>
-                <View class="flex-row gap-6">
-                  <Each
-                    of={props.store.entries().slice(0, 2)}
-                    key={(entry) => entry.drama.series_id}
-                  >
-                    {(entry) => (
-                      <View class="flex-1">
-                        <Continuation entry={entry()} store={props.store} />
-                      </View>
-                    )}
-                  </Each>
-                  <If when={props.store.entries().length === 1}>
-                    <View class="flex-1" />
-                  </If>
-                </View>
-              </View>
-            }
-          >
-            {() => (
-              <StoryFeature
-                title={current()?.drama.title || ''}
-                image={current()?.drama.cover_fallback || current()?.drama.cover}
-                meta={`${current()?.drama.episode_count ?? 0} 集`}
-                description={current()?.drama.intro}
-                footer={historyProgress(current())}
-              >
-                <Button
-                  primary
-                  icon="forward"
-                  label="选集与详情"
-                  buttonRef={(ref) => {
-                    resumeRef = ref;
-                  }}
-                  onPress={() => {
-                    const entry = current();
-                    if (entry) props.store.open(entry.drama, () => resumeRef?.focus());
-                  }}
-                />
-              </StoryFeature>
-            )}
-          </If>
-        </If>
-        <If when={props.store.target === 'tv'}>
-          <View style={{ gap: tvUnit(24) }}>
-            <UiText role="section">新剧与热播</UiText>
-            <CardControls label="新剧与热播" onNavigate={props.store.noteFocusIntent}>
-              <Button
-                label="排行榜"
-                icon="chart-no-axes-column-increasing"
-                testID="home-rankings"
-                onPress={() => {
-                  props.store.navigate('rankings');
-                  props.store.restoreFocus();
-                }}
-              />
-              <Button
-                label="上新日历"
-                icon="calendar-days"
-                testID="home-calendar"
-                onPress={() => {
-                  props.store.navigate('calendar');
-                  props.store.restoreFocus();
-                }}
-              />
-            </CardControls>
-          </View>
-        </If>
-        <View class="items-start">
-          <Button
-            label={props.store.target === 'tv' ? '刷剧' : '刷一部短剧'}
-            icon="play"
-            testID="home-feed"
-            onPress={() => {
-              props.store.navigate('feed');
-              props.store.restoreFocus();
-            }}
-          />
-        </View>
-      </View>
+        <HomeHero store={props.store} />
+        <ContinueSection store={props.store} />
+        <CatalogSection store={props.store} />
+      </ContentColumn>
     </Scroll>
   );
 }
