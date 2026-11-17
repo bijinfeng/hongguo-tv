@@ -1,5 +1,5 @@
 import { Image, Text, View, token, windowSize } from 'nsh';
-import { Button, CardControls, UiText, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, SkeletonBlock, SkeletonRegion, UiText, tvUnit } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from '../../store';
 
@@ -153,12 +153,79 @@ function TvArt(props: { drama: Drama; second?: Drama }) {
   );
 }
 
+/**
+ * Pending hero: the card, copy column and art panel keep the loaded geometry, so the
+ * featured drama lands without a reflow. Same announcement as the grid region.
+ */
+function HeroSkeleton(props: { tv: boolean }) {
+  const size = () => desktopHero();
+  return (
+    <SkeletonRegion
+      label="正在加载精选内容"
+      testID="home-hero-pending"
+      class={`overflow-hidden rounded-(--radius) bg-card ${props.tv ? '' : 'flex-row'}`}
+      style={{
+        minHeight: props.tv ? tvUnit(450) : size().minHeight,
+        marginBottom: props.tv ? tvUnit(24) : 0,
+        flexDirection: props.tv ? 'column' : 'row',
+        alignItems: props.tv ? 'flex-start' : 'stretch',
+        justifyContent: props.tv ? 'center' : undefined,
+      }}
+    >
+      <View
+        class="justify-center"
+        style={
+          props.tv
+            ? { width: tvUnit(790), paddingBottom: tvUnit(8), gap: tvUnit(18) }
+            : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: size().padLeft, gap: 12 }
+        }
+      >
+        <SkeletonBlock
+          width={props.tv ? tvUnit(140) : 108}
+          height={props.tv ? tvUnit(20) : 12}
+          radius={props.tv ? tvUnit(10) : 6}
+        />
+        <SkeletonBlock
+          width="62%"
+          height={props.tv ? tvUnit(52) : 44}
+          radius={props.tv ? tvUnit(8) : 6}
+        />
+        <SkeletonBlock width="82%" height={props.tv ? tvUnit(20) : 12} radius={4} />
+        <View class="flex-row" style={{ gap: props.tv ? tvUnit(18) : 12 }}>
+          <SkeletonBlock
+            width={props.tv ? tvUnit(220) : 140}
+            height={props.tv ? tvUnit(62) : 44}
+            radius={props.tv ? tvUnit(12) : 8}
+          />
+          <SkeletonBlock
+            width={props.tv ? tvUnit(168) : 104}
+            height={props.tv ? tvUnit(62) : 44}
+            radius={props.tv ? tvUnit(12) : 8}
+          />
+        </View>
+      </View>
+      <If when={!props.tv}>
+        <View
+          accessibilityElementsHidden
+          class="items-center justify-center bg-skeleton-surface"
+          style={{ flex: 7 }}
+        >
+          <SkeletonBlock width={size().poster} height={size().poster * 1.5} radius={3} />
+        </View>
+      </If>
+    </SkeletonRegion>
+  );
+}
+
 /** Featured drama from the home catalog: draft copy/art pair with the resume-aware primary action. */
 export function HomeHero(props: { store: Store }) {
   const tv = () => props.store.target === 'tv';
-  const items = () => props.store.homeCatalog.data()?.items ?? [];
+  const catalog = props.store.homeCatalog;
+  const items = () => catalog.data()?.items ?? [];
   const featured = () => items()[0];
   const second = () => items()[1];
+  /** No data yet and no failure: the only state that owns a hero skeleton. */
+  const unresolved = () => catalog.data() === undefined && !catalog.error();
   const resume = () => {
     const drama = featured();
     return drama ? props.store.resume(drama) : undefined;
@@ -187,45 +254,9 @@ export function HomeHero(props: { store: Store }) {
     <If
       when={featured()}
       else={
-        <View
-          class="flex-row overflow-hidden rounded-(--radius) bg-muted"
-          style={{ minHeight: tv() ? tvUnit(450) : desktopHero().minHeight }}
-          testID="home-hero-pending"
-        >
-          <View
-            class="justify-center"
-            style={{
-              flex: 5,
-              padding: tv() ? tvUnit(48) : 36,
-              gap: tv() ? tvUnit(18) : 12,
-            }}
-          >
-            <View class="rounded-full bg-border" style={{ width: 108, height: 12 }} />
-            <View
-              class="rounded bg-border"
-              style={{ width: '62%', height: tv() ? tvUnit(52) : 44 }}
-            />
-            <View class="rounded bg-border" style={{ width: '82%', height: 12 }} />
-            <View
-              class="rounded bg-border"
-              style={{ width: tv() ? tvUnit(180) : 140, height: tv() ? tvUnit(62) : 44 }}
-            />
-            {/* The TV feed entry keeps a reachable target while the catalog loads or fails. */}
-            <If when={tv()}>
-              <Button
-                variant="quiet"
-                label="刷一部短剧"
-                icon="play"
-                testID="home-feed"
-                onPress={() => {
-                  props.store.navigate('feed');
-                  props.store.restoreFocus();
-                }}
-              />
-            </If>
-          </View>
-          <View style={{ flex: 7 }} />
-        </View>
+        <If when={unresolved()}>
+          <HeroSkeleton tv={tv()} />
+        </If>
       }
     >
       {(drama) => (
@@ -275,19 +306,6 @@ export function HomeHero(props: { store: Store }) {
                 testID="home-hero-detail"
                 onPress={() => props.store.open(drama(), () => props.store.restoreFocus())}
               />
-              {/* TV has no sidebar: its random-feed entry lives with the hero actions. */}
-              <If when={tv()}>
-                <Button
-                  variant="quiet"
-                  label="刷一部短剧"
-                  icon="play"
-                  testID="home-feed"
-                  onPress={() => {
-                    props.store.navigate('feed');
-                    props.store.restoreFocus();
-                  }}
-                />
-              </If>
             </CardControls>
           </View>
           <If when={tv()} else={<DesktopArt drama={drama()} second={second()} />}>

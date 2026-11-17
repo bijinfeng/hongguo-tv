@@ -8,6 +8,7 @@ import {
   token,
   type ImageAsset,
   type JSX,
+  type ViewProps,
 } from 'nsh';
 import { Avatar as BaseAvatar, Progress as BaseProgress } from 'nsh/base';
 import { Button } from './button';
@@ -398,7 +399,7 @@ export function Skeleton(props: SkeletonProps) {
       <If when={props.variant === 'poster'}>
         <View
           style={{ width: '100%', aspectRatio: 2 / 2.7, borderRadius: unit(12) }}
-          class="bg-muted"
+          class="bg-skeleton"
         />
       </If>
       <If when={props.variant === 'result'}>
@@ -408,7 +409,7 @@ export function Skeleton(props: SkeletonProps) {
             height: Product() === 'tv' ? tvUnit(128) : 96,
             borderRadius: unit(8),
           }}
-          class="bg-muted shrink-0"
+          class="bg-skeleton shrink-0"
         />
       </If>
       <If when={props.variant !== 'poster'}>
@@ -421,12 +422,64 @@ export function Skeleton(props: SkeletonProps) {
                   height: Product() === 'tv' ? tvUnit(20) : 14,
                   borderRadius: unit(4),
                 }}
-                class="bg-muted"
+                class="bg-skeleton"
               />
             )}
           </Each>
         </View>
       </If>
+    </View>
+  );
+}
+
+/** One inert block; the caller supplies the geometry of the content it stands in for. */
+export interface SkeletonBlockProps {
+  /** Product units, or a percentage of the parent's width. */
+  width?: number | `${number}%`;
+  height?: number;
+  /** Corner radius in product units; text lines default to 4. */
+  radius?: number;
+  /** Layout classes only (flex, margin, alignment); colors and borders stay owned. */
+  class?: string;
+}
+
+/** A single placeholder block, hidden from focus and the accessibility tree. */
+export function SkeletonBlock(props: SkeletonBlockProps) {
+  return (
+    <View
+      accessibilityElementsHidden
+      class={`bg-skeleton shrink-0 ${props.class ?? ''}`}
+      style={{
+        width: props.width,
+        height: props.height,
+        borderRadius: props.radius ?? unit(4),
+      }}
+    />
+  );
+}
+
+/** One loading region: inert blocks with a single busy announcement. */
+export interface SkeletonRegionProps {
+  /** Read once when the region appears, e.g. “正在加载精选内容”. */
+  label: string;
+  testID?: string;
+  class?: string;
+  style?: ViewProps['style'];
+  children?: JSX.Element;
+}
+
+/** Groups placeholder blocks so the region is announced once and never steals focus. */
+export function SkeletonRegion(props: SkeletonRegionProps) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={props.label}
+      accessibilityState={{ busy: true }}
+      testID={props.testID}
+      class={props.class}
+      style={props.style}
+    >
+      {props.children}
     </View>
   );
 }

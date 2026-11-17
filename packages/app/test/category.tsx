@@ -18,7 +18,8 @@ export function registerCategoryTests() {
     await app.press('悬疑筛选');
     await app.waitUntil(() => app.texts().some((t) => t.includes('abort2')));
     await app.press('完成旧续页');
-    expect(app.shows('text:ids:1,2')).toBe(false);
+    // 筛选切换保留旧网格：过期续页不能改写内容，新查询完成前仍显示旧 ids。
+    expect(app.shows('text:ids:1,2')).toBe(true);
     await app.press('完成空页');
     await app.waitFor('text:ids:');
     expect(app.shows('text:themes:all,cate_165')).toBe(true);

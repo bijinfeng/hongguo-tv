@@ -1,11 +1,26 @@
 import { Image, View, windowSize } from 'nsh';
-import { Button, CardControls, Icon, Surface, UiText, tvUnit } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  Icon,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  Surface,
+  UiText,
+  tvUnit,
+} from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../../store';
+import { errorMessage } from '../../error-messages';
 import { historyLabel } from '../History';
 import { contentGutter } from '../../shell/ContentColumn';
 
 type Entry = Library['entries'][number];
+
+/** Draft rail keeps three equal columns; a single entry must not stretch across the column. */
+const continueTileWidth = () =>
+  Math.floor((Math.min(1660, windowSize().width - 176) - contentGutter() * 2 - 36) / 3);
 
 const clock = (seconds: number) => {
   const safe = Math.max(0, Math.round(seconds));
@@ -127,13 +142,83 @@ function ContinueEmpty(props: { store: Store }) {
   );
 }
 
+/** Pending rail: the same card, cover and copy rows as a loaded tile, no motion. */
+function ContinueSkeleton(props: { store: Store }) {
+  const tv = () => props.store.target === 'tv';
+  const count = () => (tv() ? 4 : 3);
+  return (
+    <SkeletonRegion
+      label="正在加载观看记录"
+      testID="home-continue-pending"
+      class="flex-row"
+      style={{ gap: tv() ? tvUnit(28) : 18 }}
+    >
+      <Each
+        of={Array.from({ length: count() }, (_, index) => index)}
+        key={(index: number) => index}
+      >
+        {() =>
+          tv() ? (
+            <View
+              class="border border-border rounded-(--radius) bg-card"
+              style={{ width: tvUnit(326), padding: tvUnit(10), gap: tvUnit(12) }}
+            >
+              <SkeletonBlock width={tvUnit(306)} height={tvUnit(306) * 0.625} radius={8} />
+              <View class="justify-center" style={{ height: tvUnit(33) }}>
+                <SkeletonBlock width="72%" height={tvUnit(22)} radius={4} />
+              </View>
+              <View class="justify-center" style={{ height: tvUnit(30) }}>
+                <SkeletonBlock width="46%" height={tvUnit(20)} radius={4} />
+              </View>
+              <SkeletonBlock width="100%" height={2} radius={1} />
+              <SkeletonBlock width={tvUnit(168)} height={tvUnit(48)} radius={tvUnit(12)} />
+            </View>
+          ) : (
+            <View style={{ width: continueTileWidth() }}>
+              <View
+                class="flex-row items-center border border-border rounded-(--radius) bg-card"
+                style={{ padding: 10, gap: 15 }}
+              >
+                <SkeletonBlock width={114} height={114 * 0.625} radius={8} />
+                <View class="flex-1 min-w-0" style={{ gap: 8 }}>
+                  <View class="justify-center" style={{ height: 27 }}>
+                    <SkeletonBlock width="64%" height={14} radius={4} />
+                  </View>
+                  <View class="justify-center" style={{ height: 21 }}>
+                    <SkeletonBlock width="42%" height={12} radius={4} />
+                  </View>
+                  <SkeletonBlock width="100%" height={2} radius={1} />
+                </View>
+              </View>
+            </View>
+          )
+        }
+      </Each>
+    </SkeletonRegion>
+  );
+}
+
+/** A failed, still-empty library: say what failed and keep the retry in place. */
+function ContinueFailure(props: { store: Store }) {
+  const library = props.store.library;
+  return (
+    <Notice
+      title="观看记录加载失败"
+      message={errorMessage(library.error(), '记录加载失败')}
+      error
+      retry={() => library.refetch()}
+      testID="home-continue-retry"
+    />
+  );
+}
+
 /** “继续观看” rail with the library link, from the home draft. */
 export function ContinueSection(props: { store: Store }) {
   const tv = () => props.store.target === 'tv';
   const entries = () => props.store.entries().slice(0, tv() ? 4 : 3);
-  // Draft rail keeps three equal columns; a single entry must not stretch across the column.
-  const tileWidth = () =>
-    Math.floor((Math.min(1660, windowSize().width - 176) - contentGutter() * 2 - 36) / 3);
+  const library = props.store.library;
+  const state = () => library.state();
+  const pending = () => state() === 'unresolved' || state() === 'pending';
   return (
     <View>
       <View class="flex-row items-center justify-between" style={{ marginBottom: 16 }}>
@@ -149,20 +234,29 @@ export function ContinueSection(props: { store: Store }) {
           }}
         />
       </View>
-      <If when={entries().length} else={<ContinueEmpty store={props.store} />}>
+      <If when={entries().length > 0}>
         <View class="flex-row" style={{ gap: tv() ? tvUnit(28) : 18 }}>
           <Each of={entries()} key={(entry: Entry) => entry.drama.series_id}>
             {(entry) =>
               tv() ? (
                 <ContinueTile entry={entry()} store={props.store} />
               ) : (
-                <View style={{ width: tileWidth() }}>
+                <View style={{ width: continueTileWidth() }}>
                   <ContinueTile entry={entry()} store={props.store} />
                 </View>
               )
             }
           </Each>
         </View>
+      </If>
+      <If when={entries().length === 0 && pending()}>
+        <ContinueSkeleton store={props.store} />
+      </If>
+      <If when={entries().length === 0 && state() === 'errored'}>
+        <ContinueFailure store={props.store} />
+      </If>
+      <If when={entries().length === 0 && !pending() && state() !== 'errored'}>
+        <ContinueEmpty store={props.store} />
       </If>
     </View>
   );

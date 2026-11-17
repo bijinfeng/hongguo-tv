@@ -39,6 +39,8 @@ import {
   Notice,
   Empty,
   Skeleton,
+  SkeletonBlock,
+  SkeletonRegion,
   Progress,
   ResultRow,
   ExpandableText,
@@ -731,6 +733,17 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   </View>
                 </View>
                 <Skeleton variant="text" />
+                <SkeletonRegion label="正在加载片库" class="flex-row" style={{ gap: unit(20) }}>
+                  <Each of={[1, 2, 3]}>
+                    {() => (
+                      <View style={{ width: unit(160, 180), gap: unit(12) }}>
+                        <SkeletonBlock width="100%" height={unit(216, 243)} radius={unit(12)} />
+                        <SkeletonBlock width="72%" height={unit(14, 18)} radius={unit(4)} />
+                        <SkeletonBlock width="42%" height={unit(12, 16)} radius={unit(4)} />
+                      </View>
+                    )}
+                  </Each>
+                </SkeletonRegion>
               </Section>
               <Section title="空状态与恢复">
                 <Empty

@@ -12,6 +12,7 @@ const dimensions: CategoryDimension[] = ['genre', 'category_dim_theme', 'sort'];
 export function createCategory(request: ReturnType<typeof captureRequest>, active: () => boolean) {
   const selection = signal(empty());
   const data = signal<CategoryResult | undefined>(undefined);
+  const dataKey = signal<string | undefined>(undefined);
   const rows = signal<CategoryFilterRow[]>([]);
   const loading = signal(false);
   const error = signal('');
@@ -64,6 +65,7 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
     abort = controller;
     const owns = () => owner === revision && !controller.signal.aborted && enabled();
     const params = new URLSearchParams({ ...selection(), selectors: more ? '0' : '1' });
+    const requestKey = key();
     if (prior) {
       params.set('offset', String(offset));
       params.set('session_id', prior.session_id);
@@ -122,6 +124,7 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
           rows.set([...merged.values()]);
         }
         data.set({ ...next, items: [...(prior?.items ?? []), ...added] });
+        dataKey.set(requestKey);
       });
     } catch (failure) {
       if (owns()) {
@@ -140,8 +143,9 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
       cancel();
       return;
     }
-    // Only activation starts a missing first page; failures require an explicit retry.
-    if (!data() && !loading() && !error()) void read();
+    // A first page, or a changed selection whose previous page stays visible until the new one lands.
+    const behind = data() !== undefined && dataKey() !== key();
+    if ((!data() || behind) && !loading() && !error()) void read();
   });
   cleanup(() => {
     disposed = true;
@@ -153,7 +157,7 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
       if (next.genre !== selection().genre)
         rows.set(rows().filter((r) => r.type !== 'category_dim_theme'));
       selection.set(next);
-      data.set(undefined);
+      // Keep the previous page visible while the new query loads; `dataKey` marks it stale.
       selected.set('');
       error.set('');
     });
@@ -165,6 +169,8 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
     error,
     selected,
     key,
+    /** True while the visible page still answers an earlier selection. */
+    stale: () => data() !== undefined && dataKey() !== key(),
     choices,
     change(dimension: CategoryDimension, value: string) {
       if (
@@ -183,7 +189,9 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
       select(empty());
     },
     retry() {
-      void read(!!data());
+      // A failed continuation retries the same cursor; a failed selection change re-reads the first
+      // page instead of paging from the stale offset.
+      void read(data() !== undefined && dataKey() === key());
     },
     loadMore() {
       void read(true);

@@ -1,6 +1,15 @@
 import { Select } from 'nsh/base';
 import { View, signal, windowSize } from 'nsh';
-import { Button, CardControls, PosterCard, UiText, tvUnit } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  Notice,
+  PosterCard,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  tvUnit,
+} from '@hongguo/ui';
 import type { Store } from '../../store';
 
 /** Fluid poster grid: keep desktop cards near 180px and add columns as the window grows. */
@@ -94,56 +103,94 @@ function CatalogFilters(props: { store: Store }) {
   );
 }
 
-function CatalogPlaceholder(props: { store: Store }) {
+/** Filter geometry before the first catalog page arrives; the grid owns the announcement. */
+function FilterSkeleton() {
+  return (
+    <View
+      accessibilityElementsHidden
+      class="flex-row min-w-0 flex-wrap items-center justify-between"
+      style={{ gap: 7, marginBottom: 22 }}
+    >
+      <View class="flex-row min-w-0 flex-wrap items-center" style={{ gap: 7 }}>
+        <Each of={[52, 64, 56, 60]}>
+          {(width) => <SkeletonBlock width={width()} height={36} radius={6} />}
+        </Each>
+      </View>
+      <SkeletonBlock width={132} height={36} radius={6} />
+    </View>
+  );
+}
+
+/** Poster cards keep the loaded geometry: cover, one title row and one caption row. */
+function PosterSkeleton(props: { store: Store }) {
+  const tv = () => props.store.target === 'tv';
+  const width = () => cardWidth(props.store);
+  return (
+    <SkeletonRegion
+      label="正在加载片库"
+      testID="home-catalog-pending"
+      class="flex-row flex-wrap"
+      style={{ gap: columnGap }}
+    >
+      <Each
+        of={Array.from({ length: columns(props.store) * 3 }, (_, index) => index)}
+        key={(index: number) => `poster-${index}`}
+      >
+        {() => (
+          <View accessibilityElementsHidden style={{ width: width(), gap: tv() ? tvUnit(14) : 12 }}>
+            <SkeletonBlock
+              width={width()}
+              height={width() * 1.35}
+              radius={tv() ? tvUnit(12) : 12}
+            />
+            <View style={{ gap: 4 }}>
+              <View class="justify-center" style={{ height: tv() ? tvUnit(36) : 27 }}>
+                <SkeletonBlock width="72%" height={tv() ? tvUnit(18) : 14} radius={4} />
+              </View>
+              <View class="justify-center" style={{ height: tv() ? tvUnit(30) : 21 }}>
+                <SkeletonBlock width="42%" height={tv() ? tvUnit(16) : 12} radius={4} />
+              </View>
+            </View>
+          </View>
+        )}
+      </Each>
+    </SkeletonRegion>
+  );
+}
+
+/** A failed catalog keeps its filters above and offers one retry in place. */
+function CatalogFailure(props: { store: Store }) {
+  const catalog = props.store.homeCatalog;
+  return (
+    <Notice
+      title="片库加载失败"
+      message={catalog.error()}
+      error
+      retry={() => catalog.retry()}
+      testID="home-catalog-retry"
+    />
+  );
+}
+
+/** The settled empty page: no data, no failure, filters stay for recovery. */
+function CatalogEmpty(props: { store: Store }) {
   const catalog = props.store.homeCatalog;
   const tv = () => props.store.target === 'tv';
   return (
-    <If
-      when={catalog.loading()}
-      else={
-        <If
-          when={catalog.error()}
-          else={
-            <View class="items-start" style={{ gap: 12, paddingVertical: tv() ? tvUnit(24) : 24 }}>
-              <UiText role="title">暂时没有找到这部剧</UiText>
-              <UiText role="meta" lines={2}>
-                {catalog.selection().category_dim_theme || catalog.selection().genre
-                  ? '换一个题材，或重置筛选看看全部剧。'
-                  : '片库正在更新，稍后再来。'}
-              </UiText>
-              <Button
-                label="重置筛选"
-                variant="quiet"
-                testID="home-catalog-reset"
-                onPress={() => catalog.clear()}
-              />
-            </View>
-          }
-        >
-          <View class="items-start" style={{ gap: 12, paddingVertical: tv() ? tvUnit(24) : 24 }}>
-            <UiText role="title">片库加载失败</UiText>
-            <UiText role="meta" lines={2}>
-              {catalog.error()}
-            </UiText>
-            <Button label="重试" testID="home-catalog-retry" onPress={() => catalog.retry()} />
-          </View>
-        </If>
-      }
-    >
-      <View class="flex-row flex-wrap" style={{ gap: columnGap }}>
-        <Each
-          of={Array.from({ length: columns(props.store) * 3 }, (_, index) => index)}
-          key={(index: number) => `skeleton-${index}`}
-        >
-          {() => (
-            <View
-              class="rounded-(--radius) bg-muted"
-              style={{ width: cardWidth(props.store), height: cardWidth(props.store) * 1.35 }}
-            />
-          )}
-        </Each>
-      </View>
-    </If>
+    <View class="items-start" style={{ gap: 12, paddingVertical: tv() ? tvUnit(24) : 24 }}>
+      <UiText role="title">暂时没有找到这部剧</UiText>
+      <UiText role="meta" lines={2}>
+        {catalog.selection().category_dim_theme || catalog.selection().genre
+          ? '换一个题材，或重置筛选看看全部剧。'
+          : '片库正在更新，稍后再来。'}
+      </UiText>
+      <Button
+        label="重置筛选"
+        variant="quiet"
+        testID="home-catalog-reset"
+        onPress={() => catalog.clear()}
+      />
+    </View>
   );
 }
 
@@ -151,19 +198,39 @@ function CatalogPlaceholder(props: { store: Store }) {
 export function CatalogSection(props: { store: Store }) {
   const tv = () => props.store.target === 'tv';
   const catalog = props.store.homeCatalog;
-  const items = () => catalog.data()?.items ?? [];
+  const data = () => catalog.data();
+  const items = () => data()?.items ?? [];
+  const unresolved = () => !data() && !catalog.error();
+  const failed = () => !!catalog.error() && (!data() || catalog.stale());
+  const blank = () => unresolved() || (catalog.stale() && items().length === 0);
+  const counting = () => !failed() && items().length > 0;
+  const upToDate = () => !blank() && !failed();
   return (
     <View>
       <View class="flex-row items-center justify-between" style={{ marginBottom: 16 }}>
         <UiText role={tv() ? 'section' : 'title'}>今晚，想看什么</UiText>
-        <If when={!tv() && items().length > 0}>
-          <UiText role="meta">{`${items().length} 部剧`}</UiText>
+        <If when={!tv() && counting()}>
+          <UiText role="meta">
+            {catalog.loading() && catalog.stale() ? '正在更新…' : `${items().length} 部剧`}
+          </UiText>
         </If>
       </View>
-      <If when={!tv()}>
+      <If when={!tv() && !data() && !catalog.error()}>
+        <FilterSkeleton />
+      </If>
+      <If when={!tv() && !!data()}>
         <CatalogFilters store={props.store} />
       </If>
-      <If when={items().length > 0} else={<CatalogPlaceholder store={props.store} />}>
+      <If when={blank()}>
+        <PosterSkeleton store={props.store} />
+      </If>
+      <If when={failed()}>
+        <CatalogFailure store={props.store} />
+      </If>
+      <If when={upToDate() && items().length === 0}>
+        <CatalogEmpty store={props.store} />
+      </If>
+      <If when={upToDate() && items().length > 0}>
         <View class="flex-row flex-wrap" style={{ gap: columnGap }}>
           <Each of={items().slice(0, columns(props.store) * 3)} key={(drama) => drama.series_id}>
             {(drama) => (
@@ -181,14 +248,15 @@ export function CatalogSection(props: { store: Store }) {
           </Each>
         </View>
       </If>
-      <If when={catalog.data()?.has_more}>
+      <If when={data()?.has_more && !catalog.stale()}>
         <View class="items-end" style={{ marginTop: 16 }}>
           <Button
-            label={catalog.loading() ? '正在加载…' : '查看更多'}
+            label="查看更多"
+            displayLabel={catalog.loading() ? '正在加载…' : undefined}
+            pending={catalog.loading()}
             variant="quiet"
             size="sm"
             icon="forward"
-            disabled={catalog.loading()}
             testID="home-catalog-more"
             onPress={() => catalog.loadMore()}
           />
