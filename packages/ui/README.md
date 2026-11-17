@@ -126,7 +126,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 包根导出 `RadarTable`、`RadarTableProps`、`RadarTableColumn`、`RadarTableRow` 和 `RadarTableRef`。它是只读比较表，不是可编辑网格；桌面与 TV 共用列、标题动作、受控状态与恢复契约，仅通过 Product 调整尺寸。标题是唯一的行内动作，完整标题保留为无障碍名称，视觉摘要不改变 ID；数值列靠右，其余列靠左。横向按钮始终可见，不依赖拖动或 hover 才能查看后面的列。
 
-内部由独立的表头水平 `Scroll` 和垂直虚拟 `List` 组成，二者为兄弟节点。表头真实横向滚动的 offset 同步到各行宽内容的 `translateX`；行外框保持列表视口宽度，表头与行共用列宽和两侧 inset，所有宿主共用此结构。NSH 0.5.0 的 `DataTable` 自定义行位于零尺寸原点容器之下，在 Android 原生树可见而 Accessibility 树无法到达；把虚拟 List 放入水平 Scroll 又出现后续行子树零尺寸，因此列表直接拥有独立垂直视口。这里使用公开原语保留真实标题按钮，不修改引擎或绕过可访问性验收。纵向仍按稳定字符串 ID 回查当前索引，回收行的事件始终读取 `item()`；后段恢复使用 `ListRef.scrollToIndex`，横向恢复只移动到完整显示标题列的位置。该替换仍需实际 check／build、行为与宿主回归验证。
+内部由独立的表头水平 `Scroll` 和垂直虚拟 `List` 组成，二者为兄弟节点。表头真实横向滚动的 offset 同步到各行宽内容的 `translateX`；行外框保持列表视口宽度，表头与行共用列宽和两侧 inset，所有宿主共用此结构。NSH 0.5.0／0.5.1 的 `DataTable` 自定义行位于零尺寸原点容器之下，在 Android 原生树可见而 Accessibility 树无法到达（0.5.1 只改动 web 缩放滚动条，未涉及该结构）；把虚拟 List 放入水平 Scroll 又出现后续行子树零尺寸，因此列表直接拥有独立垂直视口。这里使用公开原语保留真实标题按钮，不修改引擎或绕过可访问性验收。纵向仍按稳定字符串 ID 回查当前索引，回收行的事件始终读取 `item()`；后段恢复使用 `ListRef.scrollToIndex`，横向恢复只移动到完整显示标题列的位置。该替换仍需实际 check／build、行为与宿主回归验证。
 
 `columns` 提供稳定 key、标题与 `numeric`，`rows` 提供稳定且唯一的字符串 `id`、完整 `title` 和已格式化的字符串 `cells`。组件不解析、排序、连接或补造业务指标；缺失 cell 显示“—”，调用方传入的“0”、负数及超出 JavaScript 安全整数范围的字符串原样显示。`selected` 与 `pending` 由同一外部 owner 提供；`onOpen({ id })` 只报告打开请求，`onSource({ id })` 只报告获得焦点的准确身份，外部拒绝请求不会改变 selected。读取中改变标题的视觉文案，完整可访问名称仍保留。
 

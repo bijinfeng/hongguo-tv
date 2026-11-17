@@ -1,6 +1,6 @@
 # 原生发行依赖检查
 
-2026-11-14，固定 NSH 0.5.0。依赖与许可证结论来自当前 Cargo 下载包、`cargo tree --locked` 和 `pnpm security`，不将维护状态告警表述为已知可利用漏洞。
+2026-11-14 首次核对，2026-11-17 升级到 NSH 0.5.1 后重跑。依赖与许可证结论来自当前 Cargo 下载包、`cargo tree --locked` 和 `pnpm security`，不将维护状态告警表述为已知可利用漏洞。
 
 ## 已移除的工作区依赖
 
@@ -22,7 +22,7 @@ TV Rust 模块仅使用 `nsh-base::theme()`，不使用编辑器、语法高亮�
 
 `pnpm security` 实际 exit 1：5 项许可证拒绝、1 项 unmaintained advisory，bans／sources 通过。单独 `pnpm audit --audit-level moderate` 实际 exit 0；完整命令在 cargo-deny 失败后退出，不能把单独 audit 的成功说成完整 security 通过。未添加 allow／ignore 例外。
 
-[ttf-parser 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2026-0192) 没有修复版本，建议的替代库需要上游迁移；[bincode 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2025-0141) 也没有修复版本。已下载核对当天发布的 NSH 0.5.1 Cargo manifest，core 仍直接依赖 ttf-parser 0.25，因此没有为此升级整套 CLI／宿主并重新推定验收结果。
+[ttf-parser 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2026-0192) 没有修复版本，建议的替代库需要上游迁移；[bincode 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2025-0141) 也没有修复版本。NSH 0.5.1 的 core 仍直接依赖 ttf-parser 0.25；2026-11-17 已把 CLI、宿主和 Rust `nsh-*` 依赖升到 0.5.1（`Cargo.lock` 仅 nsh 系列版本变化），并在新工具链上重跑 `pnpm security`，结论与 0.5.0 相同（5 项许可证拒绝、1 项 unmaintained advisory），升级不解除该阻塞。
 
 许可证需要按实际分发内容核对原始许可、版权与 notices；移除 Windows 目标或降低 advisory 检查不能代替处理依赖。升级上游、移除实际未使用功能或明确审查后的策略变更，需要分别记录并重新验证，正式 publish 保持阻断。
 

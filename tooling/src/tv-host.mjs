@@ -36,7 +36,7 @@ export function tvBuildType(env = process.env) {
 }
 
 // The upstream AAR is immutable and checked before extracting its embedding classes.
-const archiveHash = '4e0c943c75c4618e84a0139394719068de341f5c4386714502a2fb1cba802d7f';
+const archiveHash = '38af836d7892b8ed449e72bd023529594d90229aa2f019c900e472dc668fb0ce';
 
 /** The custom Android host consumes the same icon as NSH's other packages. */
 export async function prepareTvBranding(metadata, appDirectory, generated) {
