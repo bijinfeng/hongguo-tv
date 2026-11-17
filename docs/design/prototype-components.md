@@ -2,7 +2,7 @@
 
 当前基础组件稿与桌面／TV稿统一位于 `design/prototype/visual-redesign-real/`；旧的整页原型和组件板已清理。接入规范继续适用于后续实现。
 
-桌面稿 `visual-redesign-real/desktop.html`、TV 稿 `visual-redesign-real/tv.html` 和组件板 `visual-redesign-real/components/index.html` 使用当前设计资源。设计稿 token 位于 `visual-redesign-real/components/assets/design-theme.css`；图标由固定版本 Lucide 官方资源生成到 `visual-redesign-real/shared/icons.js`，不在页面内另画路径。
+桌面稿 `visual-redesign-real/desktop.html`、TV 稿 `visual-redesign-real/tv.html` 和组件板 `visual-redesign-real/components/index.html` 使用当前设计资源。组件板 token 由 `packages/ui/theme.json` 生成到 `visual-redesign-real/components/assets/theme.css`；图标由固定版本 Lucide 官方资源生成到 `visual-redesign-real/shared/icons.js`，不在页面内另画路径。
 
 ## 源码边界
 

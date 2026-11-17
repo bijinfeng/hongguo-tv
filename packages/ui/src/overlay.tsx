@@ -411,7 +411,7 @@ export function Menu(props: MenuProps) {
           accessibilityLabel={props.label}
           accessibilityState={{ disabled: !!props.disabled, expanded: open() }}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          class={`flex-row items-center justify-between rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted border-transparent' : open() ? 'bg-accent border-border' : 'bg-card border-border hover:bg-muted active:bg-muted'}`}
+          class={`flex-row items-center justify-between rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted border-transparent' : open() ? 'bg-accent border-transparent' : 'bg-card border-border hover:bg-muted active:bg-border'}`}
           style={{
             minHeight: controlMetrics().height,
             paddingHorizontal: controlMetrics().paddingHorizontal,
@@ -440,7 +440,7 @@ export function Menu(props: MenuProps) {
               accessibilityLabel={command().label}
               testID={props.testID ? `${props.testID}-${command().id}` : undefined}
               onSelect={() => props.onSelect({ id: command().id })}
-              class="group flex-row items-center rounded-(--radius) hover:bg-muted active:bg-muted focus:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-transparent"
+              class="group flex-row items-center rounded-(--radius) hover:bg-muted active:bg-border focus:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-transparent"
               style={{
                 minHeight: controlMetrics().height,
                 paddingHorizontal: controlMetrics().paddingHorizontal,
@@ -781,7 +781,7 @@ export function Accordion(props: AccordionProps) {
               <AccordionTrigger
                 accessibilityLabel={section().title}
                 testID={props.testID ? `${props.testID}-${section().id}` : undefined}
-                class="group flex-row items-center justify-between rounded-(--radius) hover:bg-muted active:bg-muted focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-muted"
+                class="group flex-row items-center justify-between rounded-(--radius) hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-muted"
                 style={{
                   minHeight: controlMetrics().height,
                   paddingHorizontal: controlMetrics().paddingHorizontal,
@@ -881,7 +881,7 @@ export function Link(props: LinkProps) {
         class={
           props.disabled || !props.href
             ? 'text-muted-foreground'
-            : 'text-foreground underline group-hover:text-primary'
+            : 'text-foreground underline group-hover:text-accent-foreground'
         }
         style={{ fontSize: controlMetrics().fontSize }}
       >

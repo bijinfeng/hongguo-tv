@@ -8,6 +8,8 @@ export function FocusedRemovalRoot(props: {
   testID?: string;
   disabled?: boolean;
   selected?: boolean;
+  /** Marks the current destination for screen readers (ARIA `aria-current="page"`). */
+  current?: boolean;
   accessibilityLabel?: string | null;
   accessibilityDescription?: string;
   expanded?: boolean;
@@ -35,6 +37,7 @@ export function FocusedRemovalRoot(props: {
       accessibilityState={{
         disabled: !!props.disabled,
         selected: !!props.selected,
+        current: props.current ? 'page' : undefined,
         expanded: props.expanded,
       }}
       disabled={props.disabled}

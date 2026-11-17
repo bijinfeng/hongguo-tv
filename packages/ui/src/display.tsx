@@ -46,9 +46,11 @@ export function UiText(props: UiTextProps) {
     <View selectable={props.selectable} class="min-w-0">
       <Text
         testID={props.testID}
-        role={['page', 'section', 'title'].includes(props.role ?? '') ? 'header' : undefined}
+        role={
+          ['display', 'page', 'section', 'title'].includes(props.role ?? '') ? 'header' : undefined
+        }
         accessibilityLevel={
-          props.role === 'page'
+          props.role === 'display' || props.role === 'page'
             ? 1
             : props.role === 'section'
               ? 2
@@ -58,7 +60,10 @@ export function UiText(props: UiTextProps) {
         }
         style={{
           fontSize: textSize(props.role),
-          lineHeight: textSize(props.role) * (props.role === 'page' ? 1.3 : 1.5),
+          lineHeight:
+            textSize(props.role) *
+            (props.role === 'display' ? 1.4 : props.role === 'page' ? 1.3 : 1.5),
+          letterSpacing: props.role === 'display' ? textSize('display') * 0.06 : undefined,
           numberOfLines: props.lines ?? 0,
           textAlign: props.align ?? 'start',
         }}

@@ -52,7 +52,7 @@ description: 内容优先、清晰克制的多端观看界面
 | `destructive`                   | 错误与危险动作，必须伴随明确文案                   |
 | `cinema-*`                      | 影院背景、文字、控制层、轨道、焦点和透明渐变配对   |
 
-新桌面与 TV 设计稿的视觉映射固定为：深色页面使用 `background`／`card`／`popover` 的黑到炭灰层级，浅色页面使用白色页面与浅灰辅助表面；`primary` 承担红果橙的主要观看动作，`accent` 只承担选中和轻量强调。组件不直接写品牌色，当前设计稿的具体值集中在 `design/prototype/visual-redesign-real/components/assets/design-theme.css`；实现阶段再同步到 `packages/ui/theme.json`。
+新桌面与 TV 设计稿的视觉映射固定为：深色页面使用 `background`／`card`／`popover` 的黑到炭灰层级，浅色页面使用白色页面与浅灰辅助表面；`primary` 承担红果橙的主要观看动作，`accent` 只承担选中和轻量强调。组件不直接写品牌色，具体值只存在于 `packages/ui/theme.json`，组件稿的 `components/assets/theme.css` 由它生成。
 
 普通文字及占位文字至少 4.5:1；大文字至少 3:1。识别控件和状态所必需的边界、图标和焦点至少与相邻颜色达到 3:1。装饰分隔线不套用控件边界要求，禁用态保留可理解文案。依据：[WCAG 非文本对比度](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)。
 
@@ -179,7 +179,7 @@ Button 新代码使用 `variant`／`size`，`primary`／`compact` 仅兼容旧�
 
 ### 默认边框控件规范
 
-基础组件和产品设计稿使用同一条边界规则：普通按钮、选集按钮和导航外的可操作选项使用 `card`／`raised` 表面、正文色和 `border` token 的 1px 边框；默认态不使用 `input` token，也不使用品牌色边框。悬停使用 `muted`，按下使用 `border`，焦点使用独立 `ring` 轮廓，不改变控件尺寸。`primary` 仅使用品牌色实底；`selected` 使用 `accent` 表面和配对文字。输入框、Select 和错误字段继续使用 `input`／`destructive` 边界，因为它们需要表达字段可编辑性或校验结果。
+基础组件和产品设计稿使用同一条边界规则：普通按钮、选集按钮和导航外的可操作选项使用 `card` 表面、正文色和 `border` token 的 1px 边框；默认态不使用 `input` token，也不使用品牌色边框。悬停使用 `muted`，按下使用 `border`，焦点使用独立 `ring` 轮廓，不改变控件尺寸。`primary` 仅使用品牌色实底；`selected` 使用 `accent` 表面和配对文字。输入框、Select 和错误字段继续使用 `input`／`destructive` 边界，因为它们需要表达字段可编辑性或校验结果。
 
 | 控件状态     | 表面／文字                      | 边界            | 说明                                 |
 | ------------ | ------------------------------- | --------------- | ------------------------------------ |

@@ -1,4 +1,4 @@
-import { Text, reduceMotion, token, type ViewRef } from 'nsh';
+import { Text, reduceMotion, token, type JSX, type ViewProps, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
@@ -16,6 +16,8 @@ export interface ButtonProps {
   disabled?: boolean;
   pending?: boolean;
   selected?: boolean;
+  /** Marks the destination the user is already on; foreground text on a muted shared surface. */
+  current?: boolean;
   expanded?: boolean;
   accessibilityDescription?: string;
   icon?: IconName;
@@ -36,6 +38,12 @@ export interface ButtonProps {
   compact?: boolean;
   /** Compatibility composition for existing episode grids. */
   episode?: boolean | 'player';
+  /** Media or decorative artwork rendered by the control; the label supplies the name. */
+  artwork?: JSX.Element;
+  /** Layout-only additions for composed actions; the control keeps its own state colors. */
+  class?: string;
+  /** Layout-only spacing override, resolved after the size metrics. */
+  style?: ViewProps['style'];
 }
 
 /** Styled semantic action; retains source-focus and removable-action adapters. */
@@ -44,32 +52,39 @@ export function Button(props: ButtonProps) {
   const size = () => controlMetrics(props.size ?? (props.compact ? 'sm' : 'md'));
   const variant = () => props.variant ?? (props.primary ? 'primary' : 'default');
   const blocked = () => !!props.disabled || !!props.pending;
+  // Emphasised surfaces stay paired with their foreground; the current destination is not one.
+  const emphasised = () => !blocked() && !props.current;
   const tone = () =>
     blocked()
       ? 'muted-foreground'
-      : props.selected
+      : emphasised() && props.selected
         ? 'accent-foreground'
         : variant() === 'primary'
           ? 'primary-foreground'
           : variant() === 'destructive'
             ? 'destructive'
             : 'foreground';
+  const selectedSurface = () => emphasised() && props.selected;
   const appearance = () =>
     blocked()
       ? 'bg-muted border-transparent'
-      : props.selected
-        ? 'bg-accent border-transparent'
-        : variant() === 'primary'
-          ? 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80'
-          : variant() === 'destructive'
-            ? 'bg-transparent border-destructive hover:bg-accent active:bg-accent'
-            : variant() === 'quiet' || variant() === 'navigation'
-              ? 'bg-transparent border-transparent hover:bg-muted active:bg-muted'
-              : props.episode
-                ? 'bg-muted border-transparent hover:bg-accent active:bg-accent'
-                : props.selectOpen !== undefined
-                  ? 'bg-card border-input hover:bg-muted active:bg-muted'
-                  : 'bg-card border-border hover:bg-muted active:bg-muted';
+      : props.current
+        ? variant() === 'quiet'
+          ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
+          : 'bg-muted border-border hover:bg-muted active:bg-border'
+        : selectedSurface()
+          ? 'bg-accent border-transparent'
+          : variant() === 'primary'
+            ? 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80'
+            : variant() === 'destructive'
+              ? 'bg-card border-border hover:bg-muted active:bg-border'
+              : variant() === 'quiet' || variant() === 'navigation'
+                ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
+                : props.episode
+                  ? 'bg-card border-border hover:bg-muted active:bg-border'
+                  : props.selectOpen !== undefined
+                    ? 'bg-card border-input hover:bg-muted active:bg-border'
+                    : 'bg-card border-border hover:bg-muted active:bg-border';
   return (
     <Root
       ref={(ref) => props.buttonRef?.(ref)}
@@ -88,6 +103,7 @@ export function Button(props: ButtonProps) {
         paddingHorizontal: props.iconOnly ? size().gap : size().paddingHorizontal,
         paddingVertical: size().paddingVertical,
         gap: size().gap,
+        ...props.style,
       }}
       testID={props.testID}
       accessibilityLabel={props.pending ? `${props.label}，处理中` : props.label}
@@ -99,17 +115,22 @@ export function Button(props: ButtonProps) {
       onBlur={props.onBlur}
       disabled={blocked()}
       selected={props.selected}
+      current={props.current}
       expanded={props.expanded}
       accessibilityDescription={props.accessibilityDescription}
-      class={`flex-row items-center ${variant() === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()}`}
+      class={`flex-row items-center ${variant() === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
     >
       <SelectFocus
         open={props.selectOpen}
         gap={size().gap}
         stretch={props.selectOpen !== undefined}
       >
+        <If when={props.artwork && props.selectOpen === undefined}>{props.artwork}</If>
         <If
-          when={(props.icon && props.selectOpen === undefined) || (props.iconOnly && props.pending)}
+          when={
+            !props.artwork &&
+            ((props.icon && props.selectOpen === undefined) || (props.iconOnly && props.pending))
+          }
         >
           <Icon
             name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
@@ -117,7 +138,7 @@ export function Button(props: ButtonProps) {
             size={props.size ?? (props.compact ? 'sm' : 'md')}
           />
         </If>
-        <If when={!props.iconOnly}>
+        <If when={!props.iconOnly && (props.artwork ? !!props.displayLabel : true)}>
           <Text
             style={{
               fontSize:
@@ -125,7 +146,7 @@ export function Button(props: ButtonProps) {
               flexShrink: props.selectOpen !== undefined || props.labelLines ? 1 : undefined,
               numberOfLines: props.labelLines ?? 0,
             }}
-            class={`${variant() === 'primary' || props.selected ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : props.selected ? 'text-accent-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : 'text-foreground'}`}
+            class={`${variant() === 'primary' || props.selected || props.current ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : selectedSurface() ? 'text-accent-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : 'text-foreground'}`}
           >
             {props.displayLabel ?? (props.pending ? '处理中…' : props.label)}
           </Text>

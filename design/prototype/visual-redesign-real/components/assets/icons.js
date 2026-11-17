@@ -2,6 +2,8 @@
 export const icons = {
   'arrow-left':
     '<!-- @license lucide-static v0.468.0 - ISC -->\n<svg\n  class="lucide lucide-arrow-left"\n  xmlns="http://www.w3.org/2000/svg"\n  width="24"\n  height="24"\n  viewBox="0 0 24 24"\n  fill="none"\n  stroke="currentColor"\n  stroke-width="2"\n  stroke-linecap="round"\n  stroke-linejoin="round"\n>\n  <path d="m12 19-7-7 7-7" />\n  <path d="M19 12H5" />\n</svg>\n',
+  'arrow-up-right':
+    '<!-- @license lucide-static v0.468.0 - ISC -->\n<svg\n  class="lucide lucide-arrow-up-right"\n  xmlns="http://www.w3.org/2000/svg"\n  width="24"\n  height="24"\n  viewBox="0 0 24 24"\n  fill="none"\n  stroke="currentColor"\n  stroke-width="2"\n  stroke-linecap="round"\n  stroke-linejoin="round"\n>\n  <path d="M7 7h10v10" />\n  <path d="M7 17 17 7" />\n</svg>\n',
   bell: '<!-- @license lucide-static v0.468.0 - ISC -->\n<svg\n  class="lucide lucide-bell"\n  xmlns="http://www.w3.org/2000/svg"\n  width="24"\n  height="24"\n  viewBox="0 0 24 24"\n  fill="none"\n  stroke="currentColor"\n  stroke-width="2"\n  stroke-linecap="round"\n  stroke-linejoin="round"\n>\n  <path d="M10.268 21a2 2 0 0 0 3.464 0" />\n  <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />\n</svg>\n',
   bookmark:
     '<!-- @license lucide-static v0.468.0 - ISC -->\n<svg\n  class="lucide lucide-bookmark"\n  xmlns="http://www.w3.org/2000/svg"\n  width="24"\n  height="24"\n  viewBox="0 0 24 24"\n  fill="none"\n  stroke="currentColor"\n  stroke-width="2"\n  stroke-linecap="round"\n  stroke-linejoin="round"\n>\n  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />\n</svg>\n',

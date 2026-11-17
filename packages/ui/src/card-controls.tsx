@@ -35,6 +35,8 @@ export function CardControls(props: {
   class?: string;
   children?: JSX.Element;
   vertical?: boolean;
+  /** Member spacing in host units; defaults to the shared control gap. */
+  gap?: number;
   onPreviousFromFirst?: () => void;
   onNavigate?: () => void;
 }) {
@@ -117,7 +119,7 @@ export function CardControls(props: {
       <View
         role="toolbar"
         accessibilityLabel={props.label}
-        style={{ gap: Product() === 'tv' ? tvUnit(12) : 12 }}
+        style={{ gap: props.gap ?? (Product() === 'tv' ? tvUnit(12) : 12) }}
         class={`${props.vertical ? 'flex-col' : 'flex-row'} ${props.class ?? ''}`}
       >
         {props.children}
@@ -134,6 +136,8 @@ export function CardRoot(props: {
   accessibilityDescription?: string;
   expanded?: boolean;
   selected?: boolean;
+  /** Marks the current destination for screen readers (ARIA `aria-current="page"`). */
+  current?: boolean;
   disabled?: boolean;
   style?: ViewProps['style'];
   class?: string;
@@ -145,6 +149,7 @@ export function CardRoot(props: {
   const member = Group()?.register(() => !props.disabled);
   if (!member) {
     const Root =
+      props.current !== undefined ||
       props.onFocus ||
       props.onBlur ||
       props.expanded !== undefined ||
@@ -156,7 +161,11 @@ export function CardRoot(props: {
         ref={(ref) => props.ref?.(ref)}
         testID={props.testID}
         accessibilityLabel={props.accessibilityLabel}
-        {...{ accessibilityDescription: props.accessibilityDescription, expanded: props.expanded }}
+        {...{
+          accessibilityDescription: props.accessibilityDescription,
+          expanded: props.expanded,
+          current: props.current,
+        }}
         selected={props.selected}
         disabled={props.disabled}
         onFocus={props.onFocus}
@@ -190,6 +199,7 @@ export function CardRoot(props: {
       accessibilityHint={props.accessibilityDescription}
       accessibilityState={{
         selected: !!props.selected,
+        current: props.current ? 'page' : undefined,
         disabled: !!props.disabled,
         expanded: props.expanded,
       }}

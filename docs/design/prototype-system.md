@@ -40,18 +40,19 @@
 
 以上为浏览器原型的打磨范围，正式 NSH 还原及真实宿主验收分别记录。修改前评分、优先问题、具体修复与最终证据见[综合评估及打磨记录](../history/2026-11-15/design/prototype-comprehensive-review.md)。
 
-沿用根目录 DESIGN.md 的视觉身份，未修改生产主题、组件或设计系统快照。原型的 CSS 不是生产主题的第二编辑源；移植到 NSH 时仍由 `packages/ui/theme.json`、共享 UI 控件与动效管理视觉值。
+沿用根目录 DESIGN.md 的视觉身份；本轮已把红果橙主题同步到 `packages/ui/theme.json` 并还原到共享控件。原型的 CSS 不是生产主题的第二编辑源，组件板 `components/assets/theme.css` 由 `packages/ui/theme.json` 生成；移植到 NSH 时仍由 `packages/ui/theme.json`、共享 UI 控件与动效管理视觉值。
 
 图标遵循根目录 [统一图标规范](../../DESIGN.md#统一图标规范--2026-11-14)：设计原型与产品统一采用固定版本的 Lucide 官方资源和名称映射，不再手写路径。当前两套浏览器设计已迁移到 `shared/icons.js` 的官方生成资源与公共映射，不再保留页面手绘图标。
 
-| 原型角色   | 浅色      | 深色      |
-| ---------- | --------- | --------- |
-| background | `#f8f8f7` | `#161816` |
-| foreground | `#20211f` | `#f3f4ef` |
-| card       | `#ffffff` | `#20231f` |
-| primary    | `#c52e39` | `#f2777d` |
-| accent     | `#fbe8e9` | `#42282a` |
-| ring       | `#b42130` | `#ffa6ab` |
+| 原型角色        | 浅色      | 深色      |
+| --------------- | --------- | --------- |
+| background      | `#ffffff` | `#000000` |
+| foreground      | `#171717` | `#f5f5f5` |
+| card            | `#ffffff` | `#131414` |
+| primary         | `#fa7705` | `#fa7705` |
+| accent          | `#fff1e8` | `#3a2415` |
+| border          | `#e5e5e5` | `#2a2c2c` |
+| ring            | `#c85e00` | `#ff9233` |
 
 应用内颜色引用语义变量；播放器另有 cinema、on-cinema、cinema-muted、cinema-control、scrim 角色。渐变只用于封面和播控的文字可读性。未新增装饰投影、渐变文字或标题上方的装饰标签。
 

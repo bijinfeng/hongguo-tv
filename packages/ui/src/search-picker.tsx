@@ -91,7 +91,7 @@ export function SearchSuggestionRow(props: {
           ? { minHeight: tvUnit(72), padding: tvUnit(12), gap: tvUnit(16) }
           : { minHeight: 48 }
       }
-      class={`flex-row items-center gap-3 rounded-(--radius) border-2 border-transparent px-3 py-2 hover:bg-muted active:bg-accent focus:border-ring focus:bg-accent ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
+      class={`flex-row items-center gap-3 rounded-(--radius) border-2 border-transparent px-3 py-2 hover:bg-muted active:bg-border focus:border-ring focus:bg-accent ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
       <Icon name={props.icon} />
       <View class="flex-1 gap-1">

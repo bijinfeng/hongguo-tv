@@ -161,7 +161,7 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
       await app.press('id:gallery-sheet-controls');
       const color = (label = '已选择观看') =>
         app.spanStyle(`id:gallery-primary-selected >> text:${label}`).color;
-      const selectedColor = theme === 'light' ? '#9f202aff' : '#ffb5b9ff';
+      const selectedColor = theme === 'light' ? '#a34b00ff' : '#ffb36dff';
       expect(color()).toBe(selectedColor);
       if (options.host !== 'android') {
         await app.hover('id:gallery-primary-selected');
@@ -170,11 +170,11 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
       if (options.host && options.artifacts)
         await app.screenshot(`${options.artifacts}/primary-selected-${theme}.png`);
       await app.press('id:gallery-primary-selected');
-      expect(color('选择观看')).toBe(theme === 'light' ? '#ffffffff' : '#311216ff');
+      expect(color('选择观看')).toBe('#111111ff');
       await app.press('id:gallery-primary-selected');
       await app.press('id:gallery-toggle-pending');
       expect(app.enabled('id:gallery-primary-selected')).toBe(false);
-      expect(color('处理中…')).toBe(theme === 'light' ? '#686a64ff' : '#a6ada0ff');
+      expect(color('处理中…')).toBe(theme === 'light' ? '#686868ff' : '#a0a0a0ff');
       await expect(app.press('id:gallery-primary-selected')).rejects.toMatchObject({
         code: 'ERR_NSH_TEST_DISABLED',
       });
@@ -205,7 +205,7 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
   test('selection groups retain their selected value through disabled state and recovery', async () => {
     for (const theme of ['light', 'dark'] as const) {
       const app = await open(entry, settings(theme));
-      const muted = theme === 'light' ? '#686a64ff' : '#a6ada0ff';
+      const muted = theme === 'light' ? '#686868ff' : '#a0a0a0ff';
       for (const [sheet, group] of [
         ['forms', 'choice'],
         ['navigation', 'tabs'],

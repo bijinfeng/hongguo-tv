@@ -18,7 +18,7 @@
 
 两端共用以下控件规则：普通边框按钮使用 `card` 表面、`foreground` 文字和 `border` 1px 边界；悬停与按下只改变表面颜色；选中使用 `accent` 配对；主动作使用 `primary`；焦点始终使用独立 `ring` 轮廓。搜索输入和 Select 保留 `input` 边界，搜索组合只有一条外框。桌面稿的 44px 控件、TV 稿的 60px 控件，以及 TV 更强的焦点轮廓属于端型密度，不改变这套语义。
 
-桌面稿中的搜索栏、描边操作、选集网格和 TV 稿中的主舞台、导航、选集面板都要回到 `design/prototype/visual-redesign-real/shared/controls.css` 与 `packages/ui/src` 的对应组件。当前阶段只更新组件设计稿，设计稿 token 位于 `design/prototype/visual-redesign-real/components/assets/design-theme.css`；实现阶段再把确认后的值同步到共享来源。
+桌面稿中的搜索栏、描边操作、选集网格和 TV 稿中的主舞台、导航、选集面板都要回到 `design/prototype/visual-redesign-real/shared/controls.css` 与 `packages/ui/src` 的对应组件。组件稿只消费由 `packages/ui/theme.json` 生成的 `components/assets/theme.css`；两处状态规则必须同时修改，不在页面另补颜色。
 
 ## 公共设计与平台适配
 

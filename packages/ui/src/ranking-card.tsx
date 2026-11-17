@@ -53,7 +53,7 @@ export function RankingCard(props: RankingCardProps) {
       selected={props.selected}
       onFocus={props.onFocus}
       onPress={props.onPress}
-      class={`flex-row items-center border border-transparent border-b-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 active:opacity-80 ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-muted'}`}
+      class={`flex-row items-center border border-transparent border-b-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
       style={{
         paddingVertical: unit(20, 28),
         gap: unit(20, 28),
