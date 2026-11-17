@@ -19,6 +19,7 @@ description: 内容优先、清晰克制的多端观看界面
 | 公共视觉与交互规则 | 本文件；任务相关的原型、组件交接补充组合细节，不能覆盖公共规则                                                                                                               |
 | 运行时颜色         | [theme.json](packages/ui/theme.json)，先改此源，再同步浏览器主题                                                                                                             |
 | 普通控件档位／文字 | [foundation.ts](packages/ui/src/foundation.ts)、[typography.ts](packages/ui/src/typography.ts)、[display.tsx](packages/ui/src/display.tsx)；表格是对照，修改同步源码与本规范 |
+| Token 名称与用法   | [design-tokens.md](docs/design/design-tokens.md)（提案）；只定义层级、名称、使用条件，数值仍以上述来源为准                                                                   |
 | 实际公共 API       | [UI 包规范](packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                                     |
 | 已验证行为与限制   | [VALIDATION.md](VALIDATION.md)、[组件实施验收](docs/design/component-implementation.md)                                                                                      |
 
@@ -38,25 +39,26 @@ description: 内容优先、清晰克制的多端观看界面
 
 页面和控件只消费语义 token，裸色只定义在 `packages/ui/theme.json`。浅色、深色分别配对，影院语境独立于页面外观。
 
-| 角色                            | 用途                                               |
-| ------------------------------- | -------------------------------------------------- |
-| `background`／`foreground`      | 外壳、正文与标题                                   |
-| `card`／`card-foreground`       | 普通内容与控件表面                                 |
-| `popover`／`popover-foreground` | 菜单、选择列表与弹层                               |
-| `muted`／`muted-foreground`     | 弱化表面、次要信息和禁用内容                       |
-| `primary`／`primary-foreground` | 当前区域的主要观看或提交动作                       |
-| `accent`／`accent-foreground`   | 选中项与轻量强调，不能替代焦点                     |
-| `border`                        | 内容分区及装饰性边界；不承担唯一的可操作性识别     |
-| `input`                         | 输入框、复选／单选等必要控件边界；与装饰分隔线分开 |
-| `ring`                          | 独立可见焦点，可与选中或错误同时出现               |
-| `destructive`                   | 错误与危险动作，必须伴随明确文案                   |
-| `cinema-*`                      | 影院背景、文字、控制层、轨道、焦点和透明渐变配对   |
+| 角色                                          | 用途                                                         |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| `background`／`foreground`                    | 外壳、正文与标题                                             |
+| `card`／`card-foreground`                     | 普通内容与控件表面                                           |
+| `popover`／`popover-foreground`               | 菜单、选择列表与弹层                                         |
+| `muted`／`muted-foreground`                   | 弱化表面、次要信息和禁用内容                                 |
+| `primary`／`primary-foreground`               | 当前区域的主要观看或提交动作                                 |
+| `primary-strong`／`primary-strong-foreground` | 复选、部分选中与开关的小面积选中实底及其标记                 |
+| `accent`／`accent-foreground`                 | 选中项与轻量强调，不能替代焦点                               |
+| `border`                                      | 内容分区、装饰性边界与禁用控件边界；不承担可操作识别         |
+| `input`                                       | 输入、下拉、复选、按钮、选集共用的控件边界；与内容分隔线分开 |
+| `ring`                                        | 独立可见焦点，可与选中或错误同时出现                         |
+| `destructive`                                 | 错误与危险动作，必须伴随明确文案                             |
+| `cinema-*`                                    | 影院背景、文字、控制层、轨道、焦点和透明渐变配对             |
 
-新桌面与 TV 设计稿的视觉映射固定为：深色页面使用 `background`／`card`／`popover` 的黑到炭灰层级，浅色页面使用白色页面与浅灰辅助表面；`primary` 承担红果橙的主要观看动作，`accent` 只承担选中和轻量强调。组件不直接写品牌色，具体值只存在于 `packages/ui/theme.json`，组件稿的 `components/assets/theme.css` 由它生成。
+新桌面与 TV 设计稿的视觉映射固定为：深色页面使用 `background`／`card`／`popover` 的黑到炭灰层级，浅色页面使用白色页面与浅灰辅助表面；`primary` 承担红果橙的主要观看动作；`primary-strong` 只用于复选、部分选中和开关这类需要与浅色标记成对的小面积实底；`accent` 只承担选中和轻量强调。组件不直接写品牌色，具体值只存在于 `packages/ui/theme.json`，组件稿的 `components/assets/theme.css` 由它生成。
 
-普通文字及占位文字至少 4.5:1；大文字至少 3:1。识别控件和状态所必需的边界、图标和焦点至少与相邻颜色达到 3:1。装饰分隔线不套用控件边界要求，禁用态保留可理解文案。依据：[WCAG 非文本对比度](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)。
+普通文字及占位文字至少 4.5:1；大文字至少 3:1。识别控件和状态所必需的边界、图标和焦点至少与相邻颜色达到 3:1。选中实底与它的勾选标记、开关轨道与拇指同样按 3:1 成对量测，不用过浅的实底换取白色标记。装饰分隔线不套用控件边界要求，禁用态保留可理解文案。依据：[WCAG 非文本对比度](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)。
 
-`input` 在浅深色的 `background`、`card`、`muted`、`popover` 表面均须达到 3:1；使用其他承载表面时重新量测。影院滑杆和焦点使用影院角色另验。对比度计算验证 token 配对，真实宿主还要观察细线、缩放、焦点裁切和状态组合。
+控件边界（`input`）在浅色取与分隔线同族的浅灰，在深色比分隔线高一档，让输入框、下拉、复选和按钮读作同一种线；可操作识别由表面、文字、形状和独立的 3:1 焦点环承担，边界不单独承担识别。禁用控件边界与内容分隔线使用 `border`；进入 `muted` 表面的控件按禁用处理。影院滑杆和焦点使用影院角色另验。对比度计算验证 token 配对，真实宿主还要观察细线、缩放、焦点裁切和状态组合。
 
 修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步组件稿的生成主题；不手改生成 CSS，不在页面另补颜色。
 
@@ -179,20 +181,21 @@ Button 新代码使用 `variant`／`size`，`primary`／`compact` 仅兼容旧�
 
 ### 默认边框控件规范
 
-基础组件和产品设计稿使用同一条边界规则：普通按钮、选集按钮和导航外的可操作选项使用 `card` 表面、正文色和 `border` token 的 1px 边框；默认态不使用 `input` token，也不使用品牌色边框。悬停使用 `muted`，按下使用 `border`，焦点使用独立 `ring` 轮廓，不改变控件尺寸。`primary` 仅使用品牌色实底；`selected` 使用 `accent` 表面和配对文字。输入框、Select 和错误字段继续使用 `input`／`destructive` 边界，因为它们需要表达字段可编辑性或校验结果。
+基础组件和产品设计稿使用同一条边界规则：普通按钮、选集按钮和导航外的可操作选项使用 `card` 表面、正文色和 `input` token 的 1px 边框，与输入框、下拉共用同一条控件边界；默认态不使用品牌色边框。悬停使用 `muted`，按下使用 `border`，焦点使用独立 `ring` 轮廓，不改变控件尺寸。`primary` 仅使用品牌色实底；`selected` 使用 `accent` 表面和配对文字。输入框、Select 和错误字段继续使用 `input`／`destructive` 边界，因为它们需要表达字段可编辑性或校验结果。
 
-| 控件状态     | 表面／文字                      | 边界            | 说明                                 |
-| ------------ | ------------------------------- | --------------- | ------------------------------------ |
-| 默认边框按钮 | `card`／`foreground`            | `border`，1px   | 普通动作、选集、可操作选项           |
-| 悬停／按下   | `muted`／`foreground`           | `border`        | 只改变颜色，不位移或放大             |
-| 选中         | `accent`／`accent-foreground`   | `accent` 或透明 | 必须保留可读文字和语义标记           |
-| 主要动作     | `primary`／`primary-foreground` | 透明            | 当前区域唯一主要决策动作             |
-| 输入／Select | `card`／`foreground`            | `input`，1px    | 与按钮边界分开，搜索组合只有一条外框 |
+| 控件状态     | 表面／文字                                    | 边界                    | 说明                                     |
+| ------------ | --------------------------------------------- | ----------------------- | ---------------------------------------- |
+| 默认边框按钮 | `card`／`foreground`                          | `input`，1px            | 普通动作、选集、可操作选项               |
+| 悬停／按下   | `muted`／`foreground`                         | `border`                | 只改变颜色，不位移或放大                 |
+| 选中         | `accent`／`accent-foreground`                 | `accent` 或透明         | 必须保留可读文字和语义标记               |
+| 主要动作     | `primary`／`primary-foreground`               | 透明                    | 当前区域唯一主要决策动作                 |
+| 复选／开关   | `primary-strong`／`primary-strong-foreground` | `primary-strong` 或透明 | 标记、横杠与拇指和实底成对 ≥3:1          |
+| 输入／Select | `card`／`foreground`                          | `input`，1px            | 与按钮共用控件边界，搜索组合只有一条外框 |
 
 ### 输入、导航与弹层
 
 - 搜索组合只有一条边界；输入和提交同高，清空是独立动作，不能双重描边。字段提供名称、错误关联，IME 编辑优先。
-- Select 的当前值靠起始端，箭头在末端，中间允许文字收缩；普通触发器使用 input 边界，影院触发器保留影院配对。两端共用此内部结构，保留来源焦点适配。
+- Select 的当前值靠起始端，箭头在末端，中间允许文字收缩；普通触发器使用 input 边界，影院触发器保留影院配对；箭头使用 muted-foreground，比当前值低一层。两端共用此内部结构，保留来源焦点适配。
 - Tabs 的可用未选项使用正文色；禁用项使用 muted 表面与 muted-foreground，保留名称。选中且禁用时保留字重与下划线，配对改为禁用色。ChoiceGroup 禁用同样覆盖强调配对，但保留勾选标记；标记槽始终占位，切换不移动文字。focus 始终独立，不以降低整个区域透明度表示禁用。
 - 滚动承载为外轮廓留安全区，覆盖首末行及两侧；安全区按实际 outline 与 offset 取足够值，不能因 TV 缩放而小于轮廓范围。
 - 桌面 Tab 进入区域，方向键依控件语义处理。NSH 0.5 Tabs 方向激活；Select 候选移动不提交，确认才选择。
@@ -206,7 +209,7 @@ Button 新代码使用 `variant`／`size`，`primary`／`compact` 仅兼容旧�
 - 字段的可见名称与可访问名称一致；错误不仅变红，还提供具体原因并关联到输入。`Field` 负责排版和可见反馈，不自动向任意 children 注入属性；调用方给 `TextInput` 显式传入相同 label、invalid 和 description（优先错误，其次帮助）。组合控件负责完整传递。
 - TV 的进入编辑目标与编辑中的输入保持名称、值、禁用、错误和说明的一致性。禁用阻止操作；只读允许阅读当前值；两者不能互代。实际读屏遍历与遥控焦点分别验收。
 - pending 是动作正在进行，disabled 是当前不可操作。等待需有可见状态和可访问忙碌表达，既可由按钮也可由所属状态区域提供；仅把按钮变灰不够。保留输入与选择、防止重复提交，结束后表达实际结果和可用恢复动作，不宣告尚未完成的成功。
-- 选择控件禁用后仍能辨认既有选中／部分选中／开关值；标记、前景与底色成对验证。禁用态不直接套用可操作控件的对比度合规结论，但不能因此隐藏用户已有值。
+- 选择控件禁用后仍能辨认既有选中／部分选中／开关值；标记、前景与底色成对验证。禁用选中使用 `accent` 实底与 `accent-foreground` 标记／拇指，禁用未选中使用 `muted` 表面与 `border` 边界，禁用开关关闭态使用 `border` 轨道与 `muted-foreground` 拇指，保留开关结构。禁用态不直接套用可操作控件的对比度合规结论，但不能因此隐藏用户已有值。
 - 错误、加载完成等关键状态在适当时机播报，不抢焦点；进度变化不逐帧播报。隐藏与非活动内容退出焦点和可访问遍历，弹层关闭、列表删除后恢复有效来源。
 
 状态按组件职责验收，不给所有组件硬加 pending／error 等 API：动作检查 selected＋disabled／pending 和恢复；输入检查错误＋焦点、只读、禁用和 IME；选择检查 checked／mixed＋disabled；弹层检查打开、取消、失败、来源消失与焦点返回；反馈检查未知总量与减少动态效果；内容检查长文、缺图和稳定身份。浅深主题与适用端型都要覆盖，行为、外观和语义分开记录。
@@ -289,6 +292,7 @@ Button 新代码使用 `variant`／`size`，`primary`／`compact` 仅兼容旧�
 - 榜单／子榜／面板使用共享 Button 和 CardControls：hover、pressed、selected 复用控件 fast token，减少动态时即时反馈；焦点独立于选择。
 - 首次成功内容用 ContentArrival（180ms／8pt／ease-out），减少动态时关闭位移；续页和虚拟行回收不重播进入。
 - 加载文案在原位置更新，pending 保留来源目标；失败用现有 Notice，重试保留已完成条目；无弹层、拖动或声音。
+- 官方榜头部沿用设计稿暗红渐变（`#5c120d → #8f2417 → #3b1311`）与白色文字，不加装饰投影；来源 Tabs 在头部之上，雷达头部只保留控件带，不重复标题区。
 - 验收须观察 Web、macOS、TV 的浅深与大字状态，未观察项不可算通过。
 
 ### 系列选季动效清单

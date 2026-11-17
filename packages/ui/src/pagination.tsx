@@ -28,7 +28,7 @@ function itemSurface(item: PaginationItemState) {
   if (item.kind === 'ellipsis') return 'bg-transparent border-transparent';
   if (item.disabled) return item.current ? 'bg-muted border-border' : 'bg-muted border-transparent';
   if (item.current) return 'bg-accent border-transparent';
-  return 'bg-card border-border hover:bg-muted active:bg-border';
+  return 'bg-card border-input hover:bg-muted active:bg-border';
 }
 
 /** The current page keeps its place while the whole pager is inert. */

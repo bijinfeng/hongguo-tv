@@ -22,7 +22,11 @@ const readonly = (app: App) => {
 };
 
 /** Explicit graphical acceptance: every business response comes from the local HTTP fixture. */
-export function registerRankingsHostTests(entry: string, artifacts: string, host: 'web' | 'macos') {
+export function registerRankingsHostTests(
+  entry: string,
+  artifacts: string,
+  host: 'headless' | 'web' | 'macos',
+) {
   for (const [width, height] of [
     [1180, 780],
     [1440, 1000],
@@ -46,9 +50,17 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
         return app;
       };
       const capture = async (app: App, name: string) => {
+        if (host === 'headless') return;
         await app.wait(250);
         await app.screenshot(`${artifacts}/${name}-${suffix}.png`);
       };
+      /** Headless has no host focus handoff: press the control its focus would press. */
+      const pressFocusedOr = async (app: App, selector: string) => {
+        if (host === 'headless') await app.press(selector);
+        else await app.keyboard.press('enter');
+      };
+      /** Guards are no-ops at the start; a negative drag there is not an error worth failing. */
+      const resetFilters = (app: App) => app.scroll('id:ranking-filters', -4000).catch(() => {});
 
       test(`rankings HTTP ${host} ${suffix}: dynamic selectors, identity destinations, exact retry and later source`, async () => {
         const app = await newApp();
@@ -68,7 +80,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           await app.back();
           await app.waitFor('id:ranking-actor:101');
           await app.wait(180);
-          await app.keyboard.press('enter');
+          await pressFocusedOr(app, 'id:ranking-actor:101');
           await app.waitFor('id:actor-works');
           await app.back();
           await app.waitFor('id:ranking-actor:101');
@@ -78,7 +90,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           await app.back();
           await app.waitFor('id:ranking-drama:101');
           await app.wait(180);
-          await app.keyboard.press('enter');
+          await pressFocusedOr(app, 'id:ranking-drama:101');
           await app.waitFor('id:episode-1011');
           await app.back();
           await app.waitFor('id:ranking-drama:101');
@@ -93,7 +105,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           await app.waitUntil(() => params(app).get('rank_sub') === ids.deep);
           await app.waitFor('id:ranking-drama:101');
           const period = `panel:${JSON.stringify([ids.weekly])}:period & raw:0`;
-          await app.scroll('id:ranking-filters', -4000);
+          await resetFilters(app);
           await app.press(choice(period, ids.panel));
           await app.waitUntil(() => params(app).get('rank_panel') === ids.panel);
           await app.waitFor('id:ranking-drama:101');
@@ -105,7 +117,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
             () => params(app).has('rank_panel') && params(app).get('rank_panel') === '',
           );
           await app.waitFor('id:ranking-drama:101');
-          await app.scroll('id:ranking-filters', -4000);
+          await resetFilters(app);
           await app.press(choice('rank', ''));
           await app.waitFor('这个榜单暂时没有内容');
           expect(params(app).has('rank')).toBe(true);
@@ -114,7 +126,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           expect(params(app).has('rank_panel')).toBe(false);
           await capture(app, 'empty');
 
-          await app.scroll('id:ranking-filters', -4000);
+          await resetFilters(app);
           await app.press(choice('rank', ids.weekly));
           await app.waitFor('id:ranking-drama:101');
           await app.press('id:ranking-more');
@@ -123,7 +135,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           expect(params(app).get('offset')).toBe('20');
           expect(params(app).get('shown')).toBe('101,102');
           await capture(app, 'continuation-error');
-          await app.keyboard.press('enter');
+          await pressFocusedOr(app, 'id:ranking-more');
           await app.waitFor('加载更多');
           expect(reads(app).at(-1)!.url).toBe(failedPath);
           expect(reads(app).filter((request) => request.url === failedPath).length).toBe(2);
@@ -138,7 +150,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           await app.waitFor('id:ranking-drama:201');
           await capture(app, 'terminal');
 
-          await app.scroll('id:ranking-filters', -4000);
+          await resetFilters(app);
           await app.press(choice('rank', ids.later));
           await app.waitFor('id:ranking-drama:500');
           expect(app.shows('id:ranking-drama:540')).toBe(false);
@@ -154,7 +166,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
           await app.back();
           await app.waitFor(`id:ranking-drama:${later}`);
           await capture(app, 'later-return');
-          await app.keyboard.press('enter');
+          await pressFocusedOr(app, `id:ranking-drama:${later}`);
           await app.waitFor(`id:episode-${later}1`);
           await app.back();
           await app.waitFor(`id:ranking-drama:${later}`);
@@ -164,7 +176,8 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
         }
       }, 120000);
 
-      if (width === 1180 && colorScheme === 'light')
+      // Host keyboard focus handoff needs a real window; headless runs the flows above instead.
+      if (host !== 'headless' && width === 1180 && colorScheme === 'light')
         for (const newerIntent of [false, true])
           test(`rankings HTTP ${host}: delayed terminal ${newerIntent ? 'newer selector intent' : 'owned primary focus'}`, async () => {
             const app = await newApp();
@@ -200,7 +213,10 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
             }
           }, 60000);
 
-      if ((width === 1180 && colorScheme === 'light') || (width === 1440 && colorScheme === 'dark'))
+      if (
+        host !== 'headless' &&
+        ((width === 1180 && colorScheme === 'light') || (width === 1440 && colorScheme === 'dark'))
+      )
         test(`rankings HTTP ${host} ${suffix}: 32 panels, eight subrankings and results remain reachable`, async () => {
           const app = await newApp();
           try {
@@ -215,8 +231,8 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
             await app.waitUntil(() => params(app).get('rank_sub') === 'sub/8 & raw');
             await app.waitFor('id:ranking-drama:901');
             await capture(app, 'dense-subrankings');
-            await app.scroll('id:ranking-filters', -400);
             const group = `panel:${JSON.stringify([ids.dense])}:group/31:31`;
+            await app.scroll('id:ranking-filters', -400);
             await app.press(choice(group, 'choice/31 & raw'));
             await app.waitUntil(() => params(app).get('rank_panel') === 'choice/31 & raw');
             await app.waitFor('id:ranking-drama:901');
@@ -231,7 +247,7 @@ export function registerRankingsHostTests(entry: string, artifacts: string, host
             await app.press('id:ranking-more');
             await app.waitFor('重试加载更多');
             await capture(app, 'dense-recovery');
-            await app.keyboard.press('enter');
+            await pressFocusedOr(app, 'id:ranking-more');
             await app.waitFor('加载更多');
             readonly(app);
           } finally {

@@ -16,7 +16,11 @@ import { Product, controlMetrics, tvUnit } from './foundation';
 
 export type RadarTableColumn = { key: string; title: string; numeric?: boolean };
 export type RadarTableRow = { id: string; title: string; cells: Record<string, string> };
-export type RadarTableRef = { restore: (id: string, owns: () => boolean) => void };
+export type RadarTableRef = {
+  restore: (id: string, owns: () => boolean) => void;
+  /** Move the visible column window; the caller owns where the column controls live. */
+  scrollColumns: (to: 'start' | 'end') => void;
+};
 
 /** Controlled comparison rows. The caller owns data, selection, pending reads and navigation. */
 export interface RadarTableProps {
@@ -27,15 +31,24 @@ export interface RadarTableProps {
   active: boolean;
   /** A new collection resets scroll; refreshing the same collection preserves it. */
   collection?: string;
+  /**
+   * `header` renders the column controls above the table (previews and most callers).
+   * `external` lets the page compose them in its own control band.
+   */
+  columnControls?: 'header' | 'external';
   tableRef: (ref: RadarTableRef) => void;
   onOpen: (event: { id: string }) => void;
   onSource: (event: { id: string }) => void;
   onNavigate: () => void;
 }
 
-/** A read-only comparison table; each title is the same native button on every host. */
+/**
+ * A read-only comparison table. Desktop keeps the title as the row action; TV makes the whole
+ * row one focusable action so a d-pad never has to enter a table cell grid.
+ */
 export function RadarTable(props: RadarTableProps) {
   const product = Product();
+  const tv = product === 'tv';
   let list: ListRef | undefined;
   let columns: ScrollRef | undefined;
   let waiting: { id: string; owns: () => boolean } | undefined;
@@ -44,58 +57,104 @@ export function RadarTable(props: RadarTableProps) {
   const offset = signal(0);
   let frame = 0;
   let disposed = false;
-  const unit = (value: number) => (product === 'tv' ? tvUnit(value) : value);
+  const unit = (value: number) => (tv ? tvUnit(value) : value);
   const safe = () => unit(8);
-  const rowHeight = () => (product === 'tv' ? tvUnit(120) : 84);
-  const headerHeight = () => (product === 'tv' ? tvUnit(72) : 48);
-  const width = (column: RadarTableColumn) => {
-    const wideNumber = ['hot', 'd_hot', 'd_fav', 'd7_hot', 'r_hot'].includes(column.key);
-    return product === 'tv'
-      ? tvUnit(
-          column.key === 'title'
-            ? 400
-            : column.key === 'rank'
-              ? 88
-              : column.key === 'type'
-                ? 96
-                : column.key === 'streak'
-                  ? 280
-                  : wideNumber
-                    ? 440
-                    : 180,
-        )
-      : column.key === 'title'
-        ? 240
-        : column.key === 'rank'
-          ? 64
-          : column.key === 'type'
-            ? 72
-            : column.key === 'streak'
-              ? 160
-              : wideNumber
-                ? 280
-                : 136;
+  const rowHeight = () => (tv ? tvUnit(120) : 84);
+  const headerHeight = () => (tv ? tvUnit(72) : 48);
+  const weight = (column: RadarTableColumn) => {
+    switch (column.key) {
+      case 'title':
+        return 3.2;
+      case 'rank':
+        return 0.62;
+      case 'type':
+        return 0.82;
+      case 'delta':
+        return 1.2;
+      case 'streak':
+        return 1.5;
+      case 'd7_hot':
+        return 1.75;
+      case 'r_hot':
+        return 1.35;
+      default:
+        return 1.55;
+    }
   };
-  const contentWidth = () =>
-    Math.max(
-      viewport(),
-      props.columns.reduce((sum, column) => sum + width(column), safe() * 2),
-    );
+  const fixedWidth = (column: RadarTableColumn) => {
+    const wideNumber = ['hot', 'd_hot', 'd_fav', 'd7_hot', 'r_hot'].includes(column.key);
+    if (tv)
+      return tvUnit(
+        column.key === 'title'
+          ? 400
+          : column.key === 'rank'
+            ? 88
+            : column.key === 'type'
+              ? 96
+              : column.key === 'streak'
+                ? 280
+                : wideNumber
+                  ? 440
+                  : 180,
+      );
+    return column.key === 'title'
+      ? 240
+      : column.key === 'rank'
+        ? 64
+        : column.key === 'type'
+          ? 72
+          : column.key === 'streak'
+            ? 160
+            : wideNumber
+              ? 280
+              : 136;
+  };
+  /** TV columns share the viewport by weight; the desktop table keeps its fixed columns. */
+  const widths = () => {
+    const map = new Map<string, number>();
+    if (!tv) {
+      for (const column of props.columns) map.set(column.key, fixedWidth(column));
+      return map;
+    }
+    const available = Math.max(0, viewport() - safe() * 2);
+    const total = props.columns.reduce((sum, column) => sum + weight(column), 0) || 1;
+    let used = 0;
+    props.columns.forEach((column, index) => {
+      const last = index === props.columns.length - 1;
+      const width = last
+        ? Math.max(0, available - used)
+        : Math.floor((available * weight(column)) / total);
+      map.set(column.key, width);
+      used += width;
+    });
+    return map;
+  };
+  const contentWidth = () => {
+    if (tv) return viewport();
+    let total = safe() * 2;
+    for (const column of props.columns) total += fixedWidth(column);
+    return Math.max(viewport(), total);
+  };
   const scrollColumns = (x: number) => {
+    if (tv) {
+      offset.set(0);
+      return;
+    }
     const next = Math.max(0, Math.min(x, contentWidth() - viewport()));
     offset.set(next);
     columns?.scrollTo({ x: next, animated: false });
   };
   const showTitle = () => {
+    if (tv) return;
     let start = safe();
     for (const column of props.columns) {
       if (column.key === 'title') {
-        const end = start + width(column) + safe();
+        const end = start + fixedWidth(column) + safe();
         if (start - safe() < offset()) scrollColumns(start - safe());
         else if (end > offset() + viewport()) scrollColumns(end - viewport());
         break;
       }
-      start += width(column);
+      start += fixedWidth(column);
     }
   };
   const restore = () => {
@@ -127,6 +186,9 @@ export function RadarTable(props: RadarTableProps) {
       list?.scrollToIndex({ index, animated: false, viewPosition: 0.5, viewOffset: safe() });
       restore();
     },
+    scrollColumns(to) {
+      scrollColumns(to === 'start' ? 0 : contentWidth());
+    },
   });
   let collection = props.collection;
   effect(() => {
@@ -143,89 +205,274 @@ export function RadarTable(props: RadarTableProps) {
     cancelAnimationFrame(frame);
     refs.clear();
   });
-  return (
-    <View class="flex-1 min-h-0" style={{ padding: safe() }}>
-      <View class="items-end pb-2">
-        <CardControls label="表格列" onNavigate={props.onNavigate}>
-          <IconButton
-            testID="radar-columns-prev"
-            label="显示前面的列"
-            icon="back"
-            variant="quiet"
-            size="sm"
-            onPress={() => {
-              props.onNavigate();
-              scrollColumns(0);
-            }}
-          />
-          <IconButton
-            testID="radar-columns-next"
-            label="显示后面的列"
-            icon="forward"
-            variant="quiet"
-            size="sm"
-            onPress={() => {
-              props.onNavigate();
-              scrollColumns(contentWidth());
-            }}
-          />
-        </CardControls>
+  const tone = (column: RadarTableColumn, value: string) => {
+    if (column.key === 'type' || column.key === 'streak') return 'muted' as const;
+    if (column.key === 'delta' && (value.startsWith('下降') || value === '持平'))
+      return 'muted' as const;
+    if (column.key === 'rank' && value === '1') return 'selected' as const;
+    return 'default' as const;
+  };
+  const header = () => (
+    <Scroll
+      horizontal
+      ref={(ref) => {
+        columns = ref;
+      }}
+      style={{ height: headerHeight() }}
+      class="shrink-0 border-b border-border"
+      accessibilityLabel="榜单雷达列标题"
+      onScroll={({ offset: current }) => {
+        if (!tv) offset.set(current.x);
+      }}
+    >
+      <View
+        role="row"
+        style={{
+          width: contentWidth(),
+          minHeight: headerHeight(),
+          paddingHorizontal: safe(),
+          paddingVertical: safe(),
+        }}
+        class="flex-row items-center shrink-0"
+      >
+        <Each of={props.columns} key={(column) => column.key}>
+          {(column) => (
+            <View
+              role="columnheader"
+              style={{
+                width: widths().get(column().key) ?? 0,
+                paddingHorizontal:
+                  column().key === 'title' ? controlMetrics('sm').paddingHorizontal : unit(12),
+              }}
+              class="shrink-0"
+            >
+              <UiText
+                testID={`radar-column-${column().key}`}
+                role="meta"
+                align={column().numeric ? 'end' : 'start'}
+                lines={1}
+              >
+                {column().title}
+              </UiText>
+            </View>
+          )}
+        </Each>
       </View>
+    </Scroll>
+  );
+  const desktopRow = (item: () => RadarTableRow) => {
+    let ref: ViewRef | undefined;
+    effect(() => {
+      const id = item().id;
+      if (ref) refs.set(id, ref);
+      if (id === waiting?.id) restore();
+      cleanup(() => {
+        if (refs.get(id) === ref) refs.delete(id);
+      });
+    });
+    return (
+      <View
+        role="row"
+        class="w-full overflow-hidden border-b border-border"
+        onLayout={() => {
+          if (waiting?.id === item().id) restore();
+        }}
+      >
+        <View
+          style={{
+            width: contentWidth(),
+            transform: [{ translateX: -offset() }],
+            minHeight: rowHeight(),
+            paddingHorizontal: safe(),
+            paddingVertical: safe(),
+          }}
+          class="flex-row items-center"
+        >
+          <Each of={props.columns} key={(column) => column.key}>
+            {(column) => (
+              <View
+                role="cell"
+                style={{
+                  width: widths().get(column().key) ?? 0,
+                  paddingHorizontal: column().key === 'title' ? 0 : unit(12),
+                }}
+                class="shrink-0"
+              >
+                <If
+                  when={column().key === 'title'}
+                  else={
+                    <UiText
+                      role={column().numeric ? 'numeric' : 'meta'}
+                      tone={tone(column(), item().cells[column().key] ?? '—')}
+                      align={column().numeric ? 'end' : 'start'}
+                    >
+                      {item().cells[column().key] ?? '—'}
+                    </UiText>
+                  }
+                >
+                  <View class="w-full items-start">
+                    <Button
+                      testID={`radar-entry-${item().id}`}
+                      buttonRef={(node) => {
+                        ref = node;
+                        refs.set(item().id, node);
+                        if (waiting?.id === item().id) restore();
+                      }}
+                      size="sm"
+                      variant="quiet"
+                      label={item().title}
+                      labelLines={2}
+                      displayLabel={props.pending === item().id ? '正在读取详情…' : undefined}
+                      accessibilityDescription="查看详情"
+                      selected={props.selected === item().id}
+                      onFocus={() => {
+                        if (props.pending && props.pending !== item().id) props.onNavigate();
+                        props.onSource({ id: item().id });
+                      }}
+                      onBlur={() => {
+                        if (props.pending === item().id) props.onNavigate();
+                      }}
+                      onPress={() => props.onOpen({ id: item().id })}
+                    />
+                  </View>
+                </If>
+              </View>
+            )}
+          </Each>
+        </View>
+      </View>
+    );
+  };
+  const tvRow = (item: () => RadarTableRow) => {
+    let ref: ViewRef | undefined;
+    effect(() => {
+      const id = item().id;
+      if (ref) refs.set(id, ref);
+      if (id === waiting?.id) restore();
+      cleanup(() => {
+        if (refs.get(id) === ref) refs.delete(id);
+      });
+    });
+    return (
+      <View
+        role="row"
+        class="w-full overflow-hidden border-b border-border"
+        onLayout={() => {
+          if (waiting?.id === item().id) restore();
+        }}
+      >
+        <Button
+          testID={`radar-entry-${item().id}`}
+          buttonRef={(node) => {
+            ref = node;
+            refs.set(item().id, node);
+            if (waiting?.id === item().id) restore();
+          }}
+          size="sm"
+          variant="quiet"
+          label={item().title}
+          accessibilityDescription="查看详情"
+          selected={props.selected === item().id}
+          class="w-full justify-start"
+          style={{
+            width: '100%',
+            minHeight: rowHeight(),
+            borderRadius: 0,
+            paddingHorizontal: 0,
+            paddingVertical: 0,
+          }}
+          artwork={
+            <View
+              class="flex-row items-center"
+              style={{
+                width: '100%',
+                minHeight: rowHeight(),
+                paddingHorizontal: safe(),
+                paddingVertical: safe(),
+              }}
+            >
+              <Each of={props.columns} key={(column) => column.key}>
+                {(column) => (
+                  <View
+                    role="cell"
+                    style={{ width: widths().get(column().key) ?? 0, paddingHorizontal: unit(12) }}
+                    class="shrink-0"
+                  >
+                    <If
+                      when={column().key === 'title'}
+                      else={
+                        <UiText
+                          role={column().numeric ? 'numeric' : 'meta'}
+                          tone={tone(column(), item().cells[column().key] ?? '—')}
+                          align={column().numeric ? 'end' : 'start'}
+                          lines={1}
+                        >
+                          {item().cells[column().key] ?? '—'}
+                        </UiText>
+                      }
+                    >
+                      <UiText role="body" lines={1}>
+                        {props.pending === item().id ? '正在读取详情…' : item().title}
+                      </UiText>
+                    </If>
+                  </View>
+                )}
+              </Each>
+            </View>
+          }
+          onFocus={() => {
+            if (props.pending && props.pending !== item().id) props.onNavigate();
+            props.onSource({ id: item().id });
+          }}
+          onBlur={() => {
+            if (props.pending === item().id) props.onNavigate();
+          }}
+          onPress={() => props.onOpen({ id: item().id })}
+        />
+      </View>
+    );
+  };
+  return (
+    <View class="flex-1 min-h-0">
+      <If when={props.columnControls !== 'external'}>
+        <View class="items-end pb-2">
+          <CardControls label="表格列" onNavigate={props.onNavigate}>
+            <IconButton
+              testID="radar-columns-prev"
+              label="显示前面的列"
+              icon="back"
+              variant="quiet"
+              size="sm"
+              onPress={() => {
+                props.onNavigate();
+                scrollColumns(0);
+              }}
+            />
+            <IconButton
+              testID="radar-columns-next"
+              label="显示后面的列"
+              icon="forward"
+              variant="quiet"
+              size="sm"
+              onPress={() => {
+                props.onNavigate();
+                scrollColumns(contentWidth());
+              }}
+            />
+          </CardControls>
+        </View>
+      </If>
       {/* Keep the virtual List in its own viewport; only the header owns horizontal scrolling. */}
       <View
         testID="radar-table"
         role="table"
-        class="flex-1 min-h-0 min-w-0 border border-border rounded-(--radius) bg-background overflow-hidden"
+        class="flex-1 min-h-0 min-w-0 border-t border-border overflow-hidden"
         onLayout={({ bounds }) => {
-          const width = Math.max(0, bounds.size.width - 2);
+          const width = Math.max(0, bounds.size.width);
           if (width !== viewport()) viewport.set(width);
         }}
       >
-        <Scroll
-          horizontal
-          ref={(ref) => {
-            columns = ref;
-          }}
-          style={{ height: headerHeight() }}
-          class="shrink-0 bg-muted border-b border-border"
-          accessibilityLabel="榜单雷达列标题"
-          onScroll={({ offset: current }) => {
-            offset.set(current.x);
-          }}
-        >
-          <View
-            role="row"
-            style={{
-              width: contentWidth(),
-              minHeight: headerHeight(),
-              paddingHorizontal: safe(),
-              paddingVertical: safe(),
-            }}
-            class="flex-row items-center shrink-0"
-          >
-            <Each of={props.columns} key={(column) => column.key}>
-              {(column) => (
-                <View
-                  role="columnheader"
-                  style={{
-                    width: width(column()),
-                    paddingHorizontal:
-                      column().key === 'title' ? controlMetrics('sm').paddingHorizontal : unit(12),
-                  }}
-                  class="shrink-0"
-                >
-                  <UiText
-                    testID={`radar-column-${column().key}`}
-                    role="meta"
-                    align={column().numeric ? 'end' : 'start'}
-                  >
-                    {column().title}
-                  </UiText>
-                </View>
-              )}
-            </Each>
-          </View>
-        </Scroll>
+        {header()}
         <List
           testID="radar-rows"
           ref={(ref) => {
@@ -235,8 +482,11 @@ export function RadarTable(props: RadarTableProps) {
           keyExtractor={(item) => item.id}
           estimatedItemSize={rowHeight()}
           class="flex-1 min-h-0 min-w-0 w-full"
-          accessibilityLabel="榜单雷达数据，标题可打开详情"
+          accessibilityLabel={
+            tv ? '榜单雷达数据，每一行可打开详情' : '榜单雷达数据，标题可打开详情'
+          }
           onWheel={(event) => {
+            if (tv) return;
             const distance = event.delta.x || (event.modifiers.shift ? event.delta.y : 0);
             if (distance) {
               props.onNavigate();
@@ -253,92 +503,7 @@ export function RadarTable(props: RadarTableProps) {
             if (waiting) restore();
           }}
         >
-          {(item) => {
-            let ref: ViewRef | undefined;
-            effect(() => {
-              const id = item().id;
-              if (ref) refs.set(id, ref);
-              if (id === waiting?.id) restore();
-              cleanup(() => {
-                if (refs.get(id) === ref) refs.delete(id);
-              });
-            });
-            return (
-              <View
-                role="row"
-                class="w-full overflow-hidden border-b border-border"
-                onLayout={() => {
-                  if (waiting?.id === item().id) restore();
-                }}
-              >
-                <View
-                  style={{
-                    width: contentWidth(),
-                    transform: [{ translateX: -offset() }],
-                    minHeight: rowHeight(),
-                    paddingHorizontal: safe(),
-                    paddingVertical: safe(),
-                  }}
-                  class="flex-row items-center"
-                >
-                  <Each of={props.columns} key={(column) => column.key}>
-                    {(column) => (
-                      <View
-                        role="cell"
-                        style={{
-                          width: width(column()),
-                          paddingHorizontal: column().key === 'title' ? 0 : unit(12),
-                        }}
-                        class="shrink-0"
-                      >
-                        <If
-                          when={column().key === 'title'}
-                          else={
-                            <UiText
-                              role={column().numeric ? 'numeric' : 'meta'}
-                              tone="default"
-                              align={column().numeric ? 'end' : 'start'}
-                            >
-                              {item().cells[column().key] ?? '—'}
-                            </UiText>
-                          }
-                        >
-                          <View class="w-full items-start">
-                            <Button
-                              testID={`radar-entry-${item().id}`}
-                              buttonRef={(node) => {
-                                ref = node;
-                                refs.set(item().id, node);
-                                if (waiting?.id === item().id) restore();
-                              }}
-                              size="sm"
-                              variant="quiet"
-                              label={item().title}
-                              labelLines={2}
-                              displayLabel={
-                                props.pending === item().id ? '正在读取详情…' : undefined
-                              }
-                              accessibilityDescription="查看详情"
-                              selected={props.selected === item().id}
-                              onFocus={() => {
-                                if (props.pending && props.pending !== item().id)
-                                  props.onNavigate();
-                                props.onSource({ id: item().id });
-                              }}
-                              onBlur={() => {
-                                if (props.pending === item().id) props.onNavigate();
-                              }}
-                              onPress={() => props.onOpen({ id: item().id })}
-                            />
-                          </View>
-                        </If>
-                      </View>
-                    )}
-                  </Each>
-                </View>
-              </View>
-            );
-          }}
+          {(item) => (tv ? tvRow(item) : desktopRow(item))}
         </List>
       </View>
     </View>

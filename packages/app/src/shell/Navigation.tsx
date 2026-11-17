@@ -1,3 +1,4 @@
+import { View } from 'nsh';
 import { Button, CardControls, tvUnit, type IconName } from '@hongguo/ui';
 import type { Section, Store } from '../store';
 
@@ -39,6 +40,9 @@ const desktopRail: NavItem[] = [
     testID: 'nav-calendar',
     selected: (store) => store.activePage('calendar'),
   },
+];
+
+const desktopLibrary: NavItem[] = [
   {
     name: 'history',
     label: '观看记录',
@@ -77,6 +81,12 @@ const tvRail: NavItem[] = [
     selected: (store) => store.activePage('discover') || store.activePage('search'),
   },
   {
+    name: 'rankings',
+    label: '排行榜',
+    testID: 'nav-rank',
+    selected: (store) => store.activePage('rankings'),
+  },
+  {
     name: 'history',
     label: '观看记录',
     testID: 'nav-history',
@@ -90,38 +100,55 @@ const tvRail: NavItem[] = [
 
 /**
  * Primary navigation shared by the desktop rail and the TV header.
- * `layout` picks the draft order and labels; the focus group stays one toolbar.
+ * Desktop groups follow the draft; one toolbar keeps arrow navigation across groups.
  */
 export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
-  const items = () => (props.layout === 'tv' ? tvRail : desktopRail);
+  const groups = () =>
+    props.layout === 'tv'
+      ? [{ label: '主导航', items: tvRail }]
+      : [
+          { label: '主要导航', items: desktopRail },
+          { label: '我的片单', items: desktopLibrary },
+        ];
   return (
     <CardControls
       label="主导航"
       onNavigate={props.store.noteFocusIntent}
       vertical={props.layout === 'desktop'}
       class={props.layout === 'tv' ? 'items-center' : undefined}
-      gap={props.layout === 'tv' ? tvUnit(34) : 8}
+      gap={props.layout === 'tv' ? tvUnit(34) : 34}
     >
-      <Each of={items()} key={(item) => item.name}>
-        {(item) => {
-          const on = item().selected(props.store);
-          return (
-            <Button
-              testID={item().testID}
-              buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
-              variant={props.layout === 'tv' ? 'quiet' : 'navigation'}
-              icon={item().icon}
-              label={item().label}
-              current={on}
-              class={
-                props.layout === 'desktop'
-                  ? 'w-full justify-start'
-                  : `rounded-none border-b-2 ${on ? 'border-b-foreground' : 'border-b-transparent'}`
-              }
-              onPress={() => props.store.navigate(item().name)}
-            />
-          );
-        }}
+      <Each of={groups()} key={(group) => group.label}>
+        {(group) => (
+          <View
+            role="group"
+            accessibilityLabel={group().label}
+            class={props.layout === 'tv' ? 'flex-row items-center' : 'flex-col'}
+            style={{ gap: props.layout === 'tv' ? tvUnit(34) : 8 }}
+          >
+            <Each of={group().items} key={(item) => item.name}>
+              {(item) => {
+                const on = item().selected(props.store);
+                return (
+                  <Button
+                    testID={item().testID}
+                    buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
+                    variant={props.layout === 'tv' ? 'quiet' : 'navigation'}
+                    icon={item().icon}
+                    label={item().label}
+                    current={on}
+                    class={
+                      props.layout === 'desktop'
+                        ? 'w-full justify-start'
+                        : `rounded-none border-b-2 ${on ? 'border-b-foreground' : 'border-b-transparent'}`
+                    }
+                    onPress={() => props.store.navigate(item().name)}
+                  />
+                );
+              }}
+            </Each>
+          </View>
+        )}
       </Each>
     </CardControls>
   );

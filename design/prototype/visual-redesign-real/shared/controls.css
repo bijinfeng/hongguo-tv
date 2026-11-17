@@ -57,7 +57,7 @@ button:disabled {
 .ui-button {
   min-height: var(--control);
   padding: 0 var(--pad);
-  border: 1px solid var(--border);
+  border: 1px solid var(--input);
   background: var(--card);
   color: var(--foreground);
   display: var(--button-display, inline-flex);
@@ -132,7 +132,7 @@ button:disabled {
   visibility: hidden;
 }
 .choice-group [role='radio'] {
-  border-color: var(--border);
+  border-color: var(--input);
 }
 .choice-group [role='radio'][aria-checked='true'] {
   font-weight: 600;
@@ -255,6 +255,9 @@ button:disabled {
   gap: 24px;
   cursor: pointer;
 }
+.select-trigger .icon {
+  color: var(--muted-foreground);
+}
 
 .popup {
   position: absolute;
@@ -315,12 +318,12 @@ button:disabled {
 }
 
 .switch[aria-checked='true'] {
-  background: var(--primary);
+  background: var(--primary-strong);
 }
 
 .switch[aria-checked='true'] span {
   transform: translateX(20px);
-  background: var(--primary-foreground);
+  background: var(--primary-strong-foreground);
 }
 
 :root[data-platform='tv'] .switch {
@@ -361,7 +364,7 @@ button:disabled {
   margin: 0;
   width: 22px;
   height: 22px;
-  border: 1px solid var(--muted-foreground);
+  border: 1px solid var(--input);
   border-radius: 5px;
   background: var(--card);
   display: grid;
@@ -369,16 +372,16 @@ button:disabled {
 }
 
 .check-label input:checked {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
 }
 
 .check-label input:checked::after {
   content: '';
   width: 10px;
   height: 6px;
-  border-left: 2px solid var(--primary-foreground);
-  border-bottom: 2px solid var(--primary-foreground);
+  border-left: 2px solid var(--primary-strong-foreground);
+  border-bottom: 2px solid var(--primary-strong-foreground);
   transform: translateY(-2px) rotate(-45deg);
 }
 
@@ -538,7 +541,7 @@ dialog :is(button, input, select, textarea):focus {
   min-height: 48px;
   padding: 0;
   background: var(--card);
-  border-color: var(--border);
+  border-color: var(--input);
   font-variant-numeric: tabular-nums;
 }
 .episodes button:not(:disabled):not([aria-current]):hover {
@@ -607,14 +610,14 @@ textarea.field-input {
   background: var(--muted-foreground);
 }
 .switch[aria-checked='true']:hover {
-  background: var(--primary);
+  background: var(--primary-strong);
 }
 input[type='checkbox'] {
   appearance: none;
   margin: 0;
   width: 22px;
   height: 22px;
-  border: 1px solid var(--muted-foreground);
+  border: 1px solid var(--input);
   border-radius: 5px;
   background: var(--card);
   display: grid;
@@ -622,23 +625,28 @@ input[type='checkbox'] {
   flex: none;
 }
 input[type='checkbox']:checked {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
 }
 input[type='checkbox']:checked::after {
   content: '';
   width: 10px;
   height: 6px;
-  border-left: 2px solid var(--primary-foreground);
-  border-bottom: 2px solid var(--primary-foreground);
+  border-left: 2px solid var(--primary-strong-foreground);
+  border-bottom: 2px solid var(--primary-strong-foreground);
   transform: translateY(-2px) rotate(-45deg);
 }
 input[type='checkbox']:disabled {
   background: var(--muted);
-  border-color: var(--input);
+  border-color: var(--border);
+}
+input[type='checkbox']:disabled:checked,
+input[type='checkbox']:disabled:indeterminate {
+  background: var(--accent);
+  border-color: var(--border);
 }
 input[type='checkbox']:disabled::after {
-  border-color: var(--muted-foreground);
+  border-color: var(--accent-foreground);
 }
 .selection-indicator {
   display: inline-grid;
@@ -652,14 +660,20 @@ input[type='checkbox']:disabled::after {
   display: none;
 }
 .selection-indicator > .icon {
-  color: var(--muted-foreground);
+  color: var(--accent-foreground);
   pointer-events: none;
 }
 .switch-hit:disabled .switch {
-  background: var(--muted);
+  background: var(--border);
+}
+.switch-hit:disabled .switch[aria-checked='true'] {
+  background: var(--accent);
 }
 .switch-hit:disabled .switch span {
   background: var(--muted-foreground);
+}
+.switch-hit:disabled .switch[aria-checked='true'] span {
+  background: var(--accent-foreground);
 }
 :root[data-platform='tv'] input[type='checkbox'] {
   width: 28px;

@@ -411,7 +411,7 @@ export function Menu(props: MenuProps) {
           accessibilityLabel={props.label}
           accessibilityState={{ disabled: !!props.disabled, expanded: open() }}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          class={`flex-row items-center justify-between rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted border-transparent' : open() ? 'bg-accent border-transparent' : 'bg-card border-border hover:bg-muted active:bg-border'}`}
+          class={`flex-row items-center justify-between rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted border-transparent' : open() ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
           style={{
             minHeight: controlMetrics().height,
             paddingHorizontal: controlMetrics().paddingHorizontal,

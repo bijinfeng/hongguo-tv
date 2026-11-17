@@ -33,7 +33,7 @@ export function ChoiceGroup(props: ChoiceGroupProps) {
               accessibilityLabel={option().label}
               testID={props.testID ? `${props.testID}-${option().value}` : undefined}
               onChange={() => props.onChange({ value: option().value })}
-              class={`flex-row items-center justify-center rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled || option().disabled ? 'bg-muted border-transparent' : props.value === option().value ? 'bg-accent border-transparent' : 'bg-card border-border hover:bg-muted active:bg-border'}`}
+              class={`flex-row items-center justify-center rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled || option().disabled ? 'bg-muted border-transparent' : props.value === option().value ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
               style={{
                 minHeight: controlMetrics().height,
                 paddingHorizontal: controlMetrics().paddingHorizontal,

@@ -1,19 +1,18 @@
-import { Scroll, View, cleanup, signal, type ViewRef } from 'nsh';
+import { View, cleanup, type ViewRef } from 'nsh';
 import {
   Button,
   ContentArrival,
-  FilterChoices,
   Notice,
   RadarTable,
-  Tabs,
   UiText,
   tvUnit,
   type ProductTarget,
   type RadarTableColumn,
   type RadarTableRef,
 } from '@hongguo/ui';
-import type { Drama, RadarKind } from '@hongguo/core-client';
-import type { RadarCategory, RadarController, RadarMetric, RadarView } from '../radar';
+import type { Drama } from '@hongguo/core-client';
+import type { RadarController } from '../radar';
+import { RadarPending, RadarToolbar } from './rankings/RadarToolbar';
 
 const snapshotColumns: RadarTableColumn[] = [
   { key: 'rank', title: '名次', numeric: true },
@@ -46,14 +45,11 @@ export function Radar(props: {
   focusGuard: () => () => boolean;
   onPrimary: (ref: ViewRef) => void;
 }) {
-  const availableHeight = signal(0);
   let table: RadarTableRef | undefined;
-  let refresh: ViewRef | undefined;
   let disposed = false;
   cleanup(() => {
     disposed = true;
     table = undefined;
-    refresh = undefined;
   });
   const source = (id: string) => {
     const collection = props.radar.key();
@@ -93,217 +89,116 @@ export function Radar(props: {
       ? `快照日期 ${bucket.rank_date}${snapshot?.growth ? ` · 指标日期 ${snapshot.growth.date}` : ''}`
       : '';
   };
-  const controlsHeight = () => {
-    const limit = props.target === 'tv' ? tvUnit(360) : 256;
-    if (!availableHeight()) return limit;
-    const tableHeight =
-      selectedBranch() && props.radar.rows().length
-        ? props.target === 'tv'
-          ? tvUnit(280)
-          : 200
-        : 0;
-    return Math.max(0, Math.min(limit, availableHeight() - tableHeight - 16));
-  };
+  const rows = () => props.radar.rows();
+  const listed = () => !!selectedBranch() && rows().length > 0;
+  const tv = props.target === 'tv';
   return (
-    <View
-      testID="radar-page"
-      class="flex-1 min-h-0 gap-4"
-      onLayout={({ bounds }) => availableHeight.set(bounds.size.height)}
-    >
-      <Scroll testID="radar-controls" style={{ maxHeight: controlsHeight(), flexShrink: 0 }}>
-        <View class="gap-3">
-          <View class="flex-row items-center justify-between gap-4">
-            <Tabs
-              label="雷达视图"
-              testID="radar-view"
-              value={props.radar.view()}
-              options={[
-                { value: 'snapshot', label: '官方快照' },
-                { value: 'growth', label: '飙升榜' },
-              ]}
-              onChange={({ value }) => {
-                props.onNavigate();
-                props.radar.changeView(value as RadarView);
-              }}
-            />
+    <View testID="radar-page" class="flex-1 min-h-0 gap-4">
+      <RadarToolbar
+        radar={props.radar}
+        target={props.target}
+        active={props.active}
+        meta={dates()}
+        onSource={props.onSource}
+        onNavigate={props.onNavigate}
+        onPrimary={props.onPrimary}
+        showColumns={!tv && listed()}
+        onColumns={(to) => table?.scrollColumns(to)}
+      />
+      <View class="gap-3" style={{ flexShrink: 0 }}>
+        <If when={props.radar.error()}>
+          <View class="flex-row flex-wrap items-center gap-x-4 gap-y-2">
+            <UiText tone="error">
+              {props.radar.data() ? '刷新失败，保留最近成功数据' : props.radar.error()}
+            </UiText>
             <Button
-              testID="radar-refresh"
-              icon="refresh-cw"
-              label="刷新"
+              testID="radar-retry"
+              label="重试"
               size="sm"
-              pending={props.radar.loading()}
-              displayLabel={props.radar.loading() ? '正在刷新…' : undefined}
-              buttonRef={(ref) => {
-                refresh = ref;
-                props.onPrimary(ref);
-              }}
-              onFocus={() =>
-                props.onSource(() => {
-                  if (!disposed && props.active) refresh?.focus();
-                })
-              }
               onPress={() => {
                 props.onNavigate();
                 props.radar.refresh();
               }}
             />
           </View>
-          <UiText role="meta">
-            {dates() ? `${dates()} · 来源：hongguo-radar 外部聚合` : '来源：hongguo-radar 外部聚合'}
-          </UiText>
-          <If
-            when={props.radar.view() === 'snapshot'}
-            else={
-              <View class={props.target === 'tv' ? 'flex-row gap-6' : 'gap-2'}>
-                <FilterChoices
-                  label="排序"
-                  testID="radar-metric"
-                  value={props.radar.metric()}
-                  active={props.active}
-                  items={[
-                    { value: 'd_hot', title: '热度增量' },
-                    { value: 'd_fav', title: '收藏增量' },
-                    { value: 'r_hot', title: '热度增长率' },
-                  ]}
-                  onSource={props.onSource}
-                  onNavigate={props.onNavigate}
-                  onChange={(value) => {
-                    props.onNavigate();
-                    props.radar.changeMetric(value as RadarMetric);
-                  }}
-                />
-                <FilterChoices
-                  label="类型"
-                  testID="radar-type"
-                  value={props.radar.type()}
-                  active={props.active}
-                  items={[
-                    { value: 'all', title: '全部' },
-                    { value: 'real', title: '真人' },
-                    { value: 'ai', title: 'AI' },
-                    { value: 'comic', title: '漫剧' },
-                    { value: 'unknown', title: '未知' },
-                  ]}
-                  onSource={props.onSource}
-                  onNavigate={props.onNavigate}
-                  onChange={(value) => {
-                    props.onNavigate();
-                    props.radar.changeType(value as RadarKind | 'all');
-                  }}
-                />
-              </View>
-            }
-          >
-            <FilterChoices
-              label="分类"
-              testID="radar-category"
-              value={props.radar.category()}
-              active={props.active}
-              items={[
-                { value: 'hot', title: '综合' },
-                { value: 'real', title: '真人' },
-                { value: 'ai', title: 'AI' },
-                { value: 'comic', title: '漫剧' },
-              ]}
-              onSource={props.onSource}
-              onNavigate={props.onNavigate}
-              onChange={(value) => {
-                props.onNavigate();
-                props.radar.changeCategory(value as RadarCategory);
-              }}
-            />
-          </If>
-          <If when={props.radar.error()}>
-            <View class="flex-row items-center gap-4">
-              <UiText tone="error">
-                {props.radar.data() ? '刷新失败，保留最近成功数据' : props.radar.error()}
+        </If>
+        <If
+          when={
+            (selectedBranch() && stale()) ||
+            growthUnavailable() ||
+            props.radar.data()?.cache_write_failed
+          }
+        >
+          <View class="flex-row flex-wrap gap-x-4 gap-y-2">
+            <If when={selectedBranch() && stale()}>
+              <UiText testID="radar-stale" role="meta">
+                {`显示最近成功数据${fetched() ? ` · 获取于 ${fetched()}` : ''}`}
               </UiText>
-              <Button
-                testID="radar-retry"
-                label="重试"
-                size="sm"
-                onPress={() => {
-                  props.onNavigate();
-                  props.radar.refresh();
-                }}
-              />
-            </View>
-          </If>
-          <If
-            when={
-              (selectedBranch() && stale()) ||
-              growthUnavailable() ||
-              props.radar.data()?.cache_write_failed
-            }
-          >
-            <View class="flex-row flex-wrap gap-2">
-              <If when={selectedBranch() && stale()}>
-                <UiText
-                  testID="radar-stale"
-                  role="meta"
-                >{`显示最近成功数据${fetched() ? ` · 获取于 ${fetched()}` : ''}`}</UiText>
-              </If>
-              <If when={growthUnavailable()}>
-                <UiText testID="radar-growth-status" role="meta">
-                  {!props.radar.data()?.growth
-                    ? '增长数据暂不可用，快照仍可查看'
-                    : `增长指标使用最近成功数据${props.radar.data()?.growth_fetched_at ? ` · 获取于 ${props.radar.data()!.growth_fetched_at}` : ''}`}
-                </UiText>
-              </If>
-              <If when={props.radar.data()?.cache_write_failed}>
-                <UiText testID="radar-cache-warning" role="meta">
-                  本次数据未能保存，下次启动可能需要重新读取
-                </UiText>
-              </If>
-            </View>
-          </If>
-          <If when={props.radar.detailError()}>
-            <View class="flex-row items-center gap-4">
-              <UiText tone="error">{props.radar.detailError()!.message}</UiText>
-              <Button
-                testID="radar-detail-retry"
-                label="重试详情"
-                size="sm"
-                displayLabel={
-                  props.radar.pending() === props.radar.detailError()!.id
-                    ? '正在读取详情…'
-                    : undefined
-                }
-                onPress={() => open(props.radar.detailError()!.id)}
-              />
-            </View>
-          </If>
-          <If when={props.radar.loading() && !props.radar.data()}>
-            <UiText role="body" tone="muted">
-              正在读取雷达…
-            </UiText>
-          </If>
-          <If when={props.radar.data() && !selectedBranch()}>
-            <Notice
-              testID="radar-branch-unavailable"
-              message={
-                props.radar.view() === 'snapshot'
-                  ? '官方快照暂不可用，飙升榜仍可查看'
-                  : '增长数据暂不可用，官方快照仍可查看'
+            </If>
+            <If when={growthUnavailable()}>
+              <UiText testID="radar-growth-status" role="meta">
+                {!props.radar.data()?.growth
+                  ? '增长数据暂不可用，快照仍可查看'
+                  : `增长指标使用最近成功数据${props.radar.data()?.growth_fetched_at ? ` · 获取于 ${props.radar.data()!.growth_fetched_at}` : ''}`}
+              </UiText>
+            </If>
+            <If when={props.radar.data()?.cache_write_failed}>
+              <UiText testID="radar-cache-warning" role="meta">
+                本次数据未能保存，下次启动可能需要重新读取
+              </UiText>
+            </If>
+          </View>
+        </If>
+        <If when={props.radar.detailError()}>
+          <View class="flex-row flex-wrap items-center gap-x-4 gap-y-2">
+            <UiText tone="error">{props.radar.detailError()!.message}</UiText>
+            <Button
+              testID="radar-detail-retry"
+              label="重试详情"
+              size="sm"
+              displayLabel={
+                props.radar.pending() === props.radar.detailError()!.id
+                  ? '正在读取详情…'
+                  : undefined
               }
+              onPress={() => open(props.radar.detailError()!.id)}
             />
-          </If>
-          <If when={selectedBranch() && !props.radar.rows().length}>
-            <UiText testID="radar-empty" tone="muted">
-              当前分类暂无数据
-            </UiText>
-          </If>
+          </View>
+        </If>
+      </View>
+      <If when={props.radar.loading() && !props.radar.data()}>
+        <RadarPending target={props.target} />
+      </If>
+      <If when={props.radar.data() && !selectedBranch()}>
+        <Notice
+          testID="radar-branch-unavailable"
+          message={
+            props.radar.view() === 'snapshot'
+              ? '官方快照暂不可用，飙升榜仍可查看'
+              : '增长数据暂不可用，官方快照仍可查看'
+          }
+        />
+      </If>
+      <If when={selectedBranch() && !rows().length}>
+        <View
+          class="flex-1 min-h-0 items-center justify-center gap-2 border-t border-border"
+          style={{ paddingVertical: tv ? tvUnit(64) : 48 }}
+        >
+          <UiText testID="radar-empty" tone="muted">
+            当前分类暂无数据
+          </UiText>
         </View>
-      </Scroll>
-      <If when={selectedBranch() && props.radar.rows().length > 0}>
+      </If>
+      <If when={listed()}>
         <ContentArrival class="flex-1 min-h-0">
           <RadarTable
             columns={props.radar.view() === 'snapshot' ? snapshotColumns : growthColumns}
-            rows={props.radar.rows()}
+            rows={rows()}
             selected={props.radar.selected()}
             pending={props.radar.pending()}
             active={props.active}
             collection={props.radar.key()}
+            columnControls="external"
             tableRef={(ref) => {
               table = ref;
             }}

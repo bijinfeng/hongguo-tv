@@ -402,6 +402,13 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     testID="gallery-disabled-switch"
                   />
                   <Switch
+                    label="关闭且禁用"
+                    checked={false}
+                    disabled
+                    onChange={() => result.set('不应触发')}
+                    testID="gallery-disabled-switch-off"
+                  />
+                  <Switch
                     label="自动连播"
                     checked={enabled()}
                     onChange={({ checked: value }) => enabled.set(value)}

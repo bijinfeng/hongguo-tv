@@ -39,20 +39,20 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 ## 模块与接口
 
-| 模块                                                | 责任                                                                |
-| --------------------------------------------------- | ------------------------------------------------------------------- |
-| foundation                                          | Product 上下文、端型尺寸表、TV 换算                                 |
-| icon / assets/lucide                                | 官方 Lucide 资源、稳定语义别名、原生渲染                            |
-| button                                              | Button／IconButton，有限 variant 与 size                            |
-| text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                  |
-| select / checkbox / switch                          | 受控选择、复选与开关；开关支持隐藏可视标签并按端缩放                |
-| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）                          |
-| overlay                                             | Dialog／Confirm／SidePanel、Menu／Popover、提示、操作栏、折叠、链接 |
-| display / frequent                                  | 字级、静态表面、反馈与高频基础组合                                  |
-| settings-row / settings-section                     | 设置行与分区：分隔列表或独立卡片，控件和值由调用方提供              |
-| content / player                                    | 既有内容与影院控件的兼容组合                                        |
-| card-controls / select-focus / focused-removal-root | 已有宿主焦点问题的内部适配                                          |
-| dev / test                                          | 显式验收入口和行为测试，不挂载到产品路由                            |
+| 模块                                                | 责任                                                                                                                                                 |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| foundation                                          | Product 上下文、端型尺寸表、TV 换算；token 名称与使用规则见 [design tokens](../../docs/design/design-tokens.md)（提案，数值源仍是 foundation/theme） |
+| icon / assets/lucide                                | 官方 Lucide 资源、稳定语义别名、原生渲染                                                                                                             |
+| button                                              | Button／IconButton，有限 variant 与 size                                                                                                             |
+| text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                                                                                                   |
+| select / checkbox / switch                          | 受控选择、复选与开关；开关支持隐藏可视标签并按端缩放                                                                                                 |
+| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）                                                                                                           |
+| overlay                                             | Dialog／Confirm／SidePanel、Menu／Popover、提示、操作栏、折叠、链接                                                                                  |
+| display / frequent                                  | 字级、静态表面、反馈与高频基础组合                                                                                                                   |
+| settings-row / settings-section                     | 设置行与分区：分隔列表或独立卡片，控件和值由调用方提供                                                                                               |
+| content / player                                    | 既有内容与影院控件的兼容组合                                                                                                                         |
+| card-controls / select-focus / focused-removal-root | 已有宿主焦点问题的内部适配                                                                                                                           |
+| dev / test                                          | 显式验收入口和行为测试，不挂载到产品路由                                                                                                             |
 
 `src/index.tsx` 只做公共导出。内部文件直接导入拥有者，禁止反向导入 barrel 造成循环。只有包根用于产品；`./preview` 与 `./testing` 是开发入口，不能用于业务页面。新增控件与 Props 同名、公开事件用对象载荷，值由调用方控制，行为局部状态只保留一份。props 和信号在绑定／回调读取，不在组件 body 解构为快照。
 
@@ -87,7 +87,7 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 包根导出 `RankingCard`／`RankingCardProps`。它是受控的榜位媒体行，不持有榜单请求、筛选、分页、导航或账号状态。`title`、`cover`、`subtitle`、`metadata`、`rank` 和 `actionLabel` 都由调用方提供；只有真实正整数 rank 显示，缺失／非法值保留空榜位 lane，不补破折号、不按行号推算。`kind="actor"` 使用共享 Avatar lg，默认 drama 使用 Cover。剧目和演员的目的地由 app 决定。
 
-桌面与 TV 共用一个整行动作、selected 和焦点契约。桌面封面 64×86／行内间距 20，TV 封面 96×128／行内间距 28，TV 值均经 `tvUnit()` 换算；演员沿用 Avatar lg 的 68／84 尺寸，不在行内覆盖基础头像尺寸。标题、简介和元信息各最多两行，完整文本保留在无障碍名称／说明中。hover 使用 muted，selected 使用 accent 成对前景，pressed 加深／降低透明度，键盘焦点使用独立外环；颜色过渡读取 fast token，减少动态时关闭。
+桌面与 TV 共用一个整行动作、selected 和焦点契约。`subtitle` 渲染为标题下方两行说明，`metadata` 与标题同行弱化呈现。桌面封面 86×116、行内间距 20、名次 lane 42；TV 行更紧凑：封面 70×94、行内间距 12、行内边距 14、名次 lane 36，TV 值均经 `tvUnit()` 换算。演员沿用 Avatar lg 尺寸，不在行内覆盖基础头像尺寸。标题、简介和元信息各最多两行，完整文本保留在无障碍名称／说明中。hover 使用 muted，selected 使用 accent 成对前景，pressed 加深／降低透明度，键盘焦点使用独立外环；颜色过渡读取 fast token，减少动态时关闭。
 
 `buttonRef`、`testID` 和 `onFocus` 只提供通用输入与定位接口；kind:id、虚拟行安全区、滚动锚点、受控选择、来源恢复和较新输入意图保护归 app。不要在页面重画榜位、头像或动作，也不要把整行拆成多个可聚焦目标。
 
@@ -101,6 +101,23 @@ TV 入口仅将 `value` 换为 `tv`。普通控件使用同一尺寸表：桌面
 
 app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标签与横滚安全区，`createSeasons` 负责浏览选择及严格相邻后继，`createSeasonDetail` 负责身份与类型绑定的详情缓存。预告与不可播仍可浏览摘要，但不能读可播选集、准备媒体或写观看历史。独立组件样例为 `dev/SeasonChoices.tsx` 与三端 `SeasonChoicePreview.tsx`；组合样例为三端 `SeasonComponentsPreview.tsx`，测试经相邻 `.test.tsx` 运行，不进入产品路由。
 
+### Pagination
+
+包根导出 `Pagination`／`PaginationProps`，承接已知总页数的受控翻页。`page` 从 1 开始，`totalPages` 是总页数；`onChange({ page })` 只报告目标页，不自行改页、不发请求、不写 URL。`visiblePages` 是页码窗口，base 按至少 5 处理，奇数窗口让当前页居中；`compact` 只保留上一页、位置与下一页；`disabled` 冻结整组动作但保留当前位置；`size` 只接受 `md`／`sm`。`page` 与 `totalPages` 会按整数限制到合法范围；总页数不足 2 时不渲染，避免只剩禁用的首尾箭头。
+
+桌面与 TV 共用同一套语义和几何：高度、内距、间距、圆角、字级与图标来自 `controlMetrics`，与同档 `Button` 等高，TV 边界与尺寸经 `tvUnit()` 换算。普通档的上一页／下一页显示方向图标与文字，紧凑档只显示图标但保留无障碍名称；页码使用等宽数字，当前页使用 `accent` 表面与配对前景，悬停 `muted`、按下 `border`，焦点使用独立外环。省略号不是按钮、不进入焦点。禁用时动作不可激活，当前页仍以边界和前景保留位置；减少动态效果时取消颜色过渡。上一页／下一页的可见文字固定为中文，完整无障碍名称由 base 提供。
+
+```tsx
+<Pagination
+  page={page()}
+  totalPages={21}
+  visiblePages={7}
+  onChange={({ page: next }) => page.set(next)}
+/>
+```
+
+已知页数的样例在 Gallery 的“已知页数／紧凑分页／分页禁用”，单页开关验证不足 2 页时不渲染；行为回归在 `ui:test` 的 composition recipes。未知总数和游标追加仍由 `Button` 的 pending／`displayLabel` 或列表加载状态承接，不把“加载更多”伪装成总页数，也不代替产品自己的滚动锚点与返回恢复。
+
 ### PosterCard 的可用高度
 
 `availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。TV 沿用既有可用高度与字体缩放规则。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。
@@ -111,7 +128,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 安装图标和 Web favicon 共用 [品牌资源](assets/brand/README.md)，由三端 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
-主题唯一源是 `theme.json`。必要控件边界使用 `input`，在浅深色的 background／card／muted／popover 上至少 3:1；装饰分隔使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
+主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
 
 浏览器产品设计稿与组件板复用 `design/prototype/visual-redesign-real/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 
@@ -127,9 +144,9 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ### RadarTable
 
-包根导出 `RadarTable`、`RadarTableProps`、`RadarTableColumn`、`RadarTableRow` 和 `RadarTableRef`。它是只读比较表，不是可编辑网格；桌面与 TV 共用列、标题动作、受控状态与恢复契约，仅通过 Product 调整尺寸。标题是唯一的行内动作，完整标题保留为无障碍名称，视觉摘要不改变 ID；数值列靠右，其余列靠左。横向按钮始终可见，不依赖拖动或 hover 才能查看后面的列。
+包根导出 `RadarTable`、`RadarTableProps`、`RadarTableColumn`、`RadarTableRow` 和 `RadarTableRef`。它是只读比较表，不是可编辑网格；桌面与 TV 共用列、受控状态与恢复契约，仅通过 Product 调整尺寸。桌面把标题作为唯一的行内动作；TV 把整行做成同一个焦点动作（完整标题仍是无障碍名称），DPAD 只上下移动行。数值列靠右，其余列靠左。横向按钮始终可见，不依赖拖动或 hover 才能查看后面的列；调用方可用 `columnControls="external"` 把列按钮放进自己的控件带，并通过 `RadarTableRef.scrollColumns('start' | 'end')` 驱动同一偏移。
 
-内部由独立的表头水平 `Scroll` 和垂直虚拟 `List` 组成，二者为兄弟节点。表头真实横向滚动的 offset 同步到各行宽内容的 `translateX`；行外框保持列表视口宽度，表头与行共用列宽和两侧 inset，所有宿主共用此结构。NSH 0.5.0／0.5.1 的 `DataTable` 自定义行位于零尺寸原点容器之下，在 Android 原生树可见而 Accessibility 树无法到达（0.5.1 只改动 web 缩放滚动条，未涉及该结构）；把虚拟 List 放入水平 Scroll 又出现后续行子树零尺寸，因此列表直接拥有独立垂直视口。这里使用公开原语保留真实标题按钮，不修改引擎或绕过可访问性验收。纵向仍按稳定字符串 ID 回查当前索引，回收行的事件始终读取 `item()`；后段恢复使用 `ListRef.scrollToIndex`，横向恢复只移动到完整显示标题列的位置。该替换仍需实际 check／build、行为与宿主回归验证。
+表格不使用卡片容器：表头上方只有一条 hairline，行与行之间是 hairline 分隔，表头底色即页面底色。内部由独立的表头水平 `Scroll` 和垂直虚拟 `List` 组成，二者为兄弟节点。桌面表头真实横向滚动的 offset 同步到各行宽内容的 `translateX`；行外框保持列表视口宽度，表头与行共用列宽和两侧 inset。TV 按视口权重分配列宽、内容不横向滚动，行内合并为单个可聚焦按钮。NSH 0.5.0／0.5.1 的 `DataTable` 自定义行位于零尺寸原点容器之下，在 Android 原生树可见而 Accessibility 树无法到达（0.5.1 只改动 web 缩放滚动条，未涉及该结构）；把虚拟 List 放入水平 Scroll 又出现后续行子树零尺寸，因此列表直接拥有独立垂直视口。这里使用公开原语保留真实标题按钮，不修改引擎或绕过可访问性验收。纵向仍按稳定字符串 ID 回查当前索引，回收行的事件始终读取 `item()`；后段恢复使用 `ListRef.scrollToIndex`，横向恢复只移动到完整显示标题列的位置。该替换仍需实际 check／build、行为与宿主回归验证。
 
 `columns` 提供稳定 key、标题与 `numeric`，`rows` 提供稳定且唯一的字符串 `id`、完整 `title` 和已格式化的字符串 `cells`。组件不解析、排序、连接或补造业务指标；缺失 cell 显示“—”，调用方传入的“0”、负数及超出 JavaScript 安全整数范围的字符串原样显示。`selected` 与 `pending` 由同一外部 owner 提供；`onOpen({ id })` 只报告打开请求，`onSource({ id })` 只报告获得焦点的准确身份，外部拒绝请求不会改变 selected。读取中改变标题的视觉文案，完整可访问名称仍保留。
 
@@ -141,6 +158,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
   selected={selected()}
   pending={pending()}
   active={active()}
+  columnControls="external"
   tableRef={(ref) => {
     table = ref;
   }}
@@ -150,11 +168,13 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 />
 ```
 
+`columnControls` 默认 `"header"`，在表格上方渲染列按钮；预览与独立样例保持该默认值。传 `"external"` 时组件不渲染列按钮，由调用方在控件带里组合并使用 `tableRef.scrollColumns(...)`，桌面产品页采用后者。
+
 `tableRef` 取得的 `restore(id, owns)` 会定位标题列与目标行；调用时和异步挂载后都核对 `active` 与 `owns()`，拒绝缺失行、失效 owner、已卸载或非活动表格的恢复。`active` 仅约束焦点恢复，不等同 disabled；业务宿主仍负责隐藏／禁用非活动页面并拒绝后台请求。`onNavigate()` 通知调用方横向操作或读取期间的焦点变化，取消读取及较新输入意图归调用方。数据日期、来源、错误、空表说明及详情返回路径也归 app，基础包不导入业务服务。
 
 可选 `collection` 标识当前比较集合（例如榜单维度、类型和列集）；它变化时回到首行、首列并撤销旧的等待恢复，受控 `selected` 不变，也不产生打开请求。同一集合的刷新或 `pending` 文案变化保持滚动位置。独立样例传入 `wide`／`compact`，行为测试在后段行验证读取文案仍可见，再验证切换集合后首行重新可见；这些可见性断言不替代真实宿主的滚动坐标与焦点检查。
 
-标题复用 `Button` 的可选 `labelLines={2}`，在父容器宽度内两行省略，完整 `label` 仍是无障碍名称。普通按钮不传此属性时保持原布局。返回在可行范围居中显示目标行，保留相邻上下文和焦点安全区；横向列按钮、表头原生滚动条与正文横向滚轮共用列偏移。
+标题复用 `Button` 的可选 `labelLines={2}`，在父容器宽度内两行省略，完整 `label` 仍是无障碍名称；TV 整行动作以 `artwork` 承载行内容，`label` 仍是完整标题。普通按钮不传此属性时保持原布局。返回在可行范围居中显示目标行，保留相邻上下文和焦点安全区；横向列按钮、表头原生滚动条与正文横向滚轮共用列偏移。
 
 独立样例 `dev/RadarTables.tsx` 经 `@hongguo/ui/preview/radar-table` 导出；测试经 `@hongguo/ui/testing/radar-table` 导出。三端显式入口为 `apps/*/RadarTablePreview.tsx` 及相邻 `.test.tsx`，不进入产品路由或 Gallery。样例提供 32 条合成数据、外部接受／拒绝、相邻大 ID、完整长标题、缺失／零／负数／极值、读取中、空表、列集切换、横向按钮与可重复的后段行恢复；不发请求、不写历史或媒体状态。样例不增加动效，沿用基础按钮状态和表格原有滚动行为。
 

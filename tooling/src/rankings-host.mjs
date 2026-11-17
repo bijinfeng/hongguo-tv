@@ -4,7 +4,7 @@ import { executable, root, run, rustEnvironment } from './process.mjs';
 import { rankingsFixture } from './rankings-fixture.mjs';
 
 const [host, ...raw] = process.argv.slice(2);
-if (!['web', 'macos'].includes(host)) throw new Error('Expected web|macos');
+if (!['headless', 'web', 'macos'].includes(host)) throw new Error('Expected headless|web|macos');
 const foreground = raw.includes('--foreground');
 if (foreground && host !== 'macos') throw new Error('--foreground is available only on macos');
 const filterIndex = raw.indexOf('--filter');
@@ -48,8 +48,7 @@ registerRankingsHostTests('./${name}.tsx', ${JSON.stringify(artifacts)}, '${host
     [
       'test',
       `.nsh/${name}.test.tsx`,
-      '--target',
-      host,
+      ...(host === 'headless' ? [] : ['--target', host]),
       ...(foreground ? ['--foreground'] : []),
       ...(filter ? ['--filter', filter] : []),
     ],

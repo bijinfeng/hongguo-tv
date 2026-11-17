@@ -544,7 +544,7 @@ export function Progress(props: ProgressProps) {
         value={percentage()}
         indeterminate={unknown()}
         onLayout={({ bounds }) => width.set(bounds.size.width)}
-        trackClass="bg-input overflow-hidden"
+        trackClass="bg-border overflow-hidden"
         trackStyle={{ height: unit(6), borderRadius: unit(3) }}
         indicatorClass={`h-full bg-primary ${unknown() ? 'w-[28%]' : ''}`}
         indicatorStyle={unknown() ? motion.style : undefined}

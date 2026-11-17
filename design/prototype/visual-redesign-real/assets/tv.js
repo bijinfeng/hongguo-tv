@@ -9,8 +9,6 @@
     season = 11,
     episodePage = 0,
     episode = 1,
-    feedChannel = "16",
-    feedIndex = 0,
     position = 0,
     playing = false,
     controls = true,
@@ -19,6 +17,19 @@
     previousFocus = null,
     interval = null,
     toastTimer;
+  let rankSource = "official",
+    rankKind = "hot",
+    rankLoading = false,
+    radarView = "snapshot",
+    radarCategory = "hot",
+    radarMetric = "d_hot",
+    radarType = "all",
+    radarLoading = false,
+    radarRefreshing = false,
+    radarEmpty = false,
+    radarError = false,
+    radarVisited = false,
+    radarTimer = null;
   const read = (k, f) => {
       try {
         return JSON.parse(localStorage.getItem("night-theater:" + k)) ?? f;
@@ -59,29 +70,196 @@
       .map((d) => card(d))
       .join("")}</div></section></div>`;
   }
-  function tvFeedItems(channel = feedChannel) {
-    if (channel === "45") {
-      return read("logged", false)
-        ? library.following.map((id) => T.get(id)).filter(Boolean)
-        : null;
-    }
-    if (channel === "36") return [];
-    if (channel === "39") return T.dramas.filter((d) => !["玄幻", "脑洞"].includes(d.genre));
-    return T.dramas;
+  const TV_RANK_KINDS = [
+    ["hot", "热播榜"],
+    ["zhen", "臻果榜"],
+    ["reserve", "预约榜"],
+    ["new", "新剧榜"],
+    ["rising", "热搜榜"],
+    ["must", "必看榜"],
+    ["fav", "收藏榜"],
+  ];
+  const TV_RADAR_HEAT = 9223411,
+    TV_RADAR_DHOT = 9007,
+    TV_RADAR_DFAV = 1204,
+    TV_RADAR_D7 = 7021;
+  const TV_RADAR_CHANGES = [
+    "新进",
+    "上升 2",
+    "持平",
+    "下降 1",
+    "上升 3",
+    "持平",
+    "下降 2",
+    "上升 1",
+  ];
+  const TV_RADAR_SNAPSHOT_COLUMNS = [
+    ["名次", "96px", "num"],
+    ["变化", "150px", ""],
+    ["短剧", "minmax(0,1fr)", ""],
+    ["类型", "130px", ""],
+    ["热度", "200px", "num"],
+    ["热度增量", "180px", "num"],
+    ["收藏增量", "180px", "num"],
+    ["连续在榜", "160px", "num"],
+  ];
+  const TV_RADAR_GROWTH_COLUMNS = [
+    ["排序", "96px", "num"],
+    ["短剧", "minmax(0,1fr)", ""],
+    ["类型", "130px", ""],
+    ["热度", "200px", "num"],
+    ["热度增量", "180px", "num"],
+    ["增长率", "150px", "num"],
+    ["收藏增量", "180px", "num"],
+    ["7日热度增量", "220px", "num"],
+  ];
+  const tvRadarNumber = (n) => n.toLocaleString("en-US");
+  function tvRankItems() {
+    return T.dramas.slice(0, 8);
   }
-  function feed() {
-    const channels = [["16", "推荐"], ["39", "真人剧"], ["36", "漫剧"], ["45", "关注"]];
-    const list = tvFeedItems();
-    const d = list?.length ? list[feedIndex % list.length] : null;
-    return `<section class="tv-page tv-feed" data-od-id="tv-feed"><div class="tv-feed-head"><h1>刷剧</h1><div class="filters" role="tablist" aria-label="刷剧频道">${channels
-      .map(([id, label]) => `<button class="chip ${feedChannel === id ? "active" : ""}" role="tab" aria-selected="${feedChannel === id}" data-tv-feed-channel="${id}">${label}</button>`)
-      .join("")}</div></div>${
-      feedChannel === "45" && !read("logged", false)
-        ? `<div class="tv-feed-empty"><h2>登录后查看关注</h2><button class="btn primary" data-tv-action="account-login">登录账号</button></div>`
-        : d
-          ? `<div class="tv-feed-feature"><div class="tv-feed-cover">${T.poster(d)}</div><div class="tv-feed-copy"><div class="meta"><span>${d.genre} · ${d.tone}</span><span>${T.status(d)}</span></div><h2>${d.title}</h2>${d.description ? `<p>${d.description}</p>` : ""}<div class="row"><button class="btn primary" data-tv-play="${d.id}">${I("play")}立即观看</button><button class="btn outline" data-tv-open="${d.id}">${I("list-video")}选集与详情</button><button class="btn ghost" data-tv-feed-next>${I("skip-forward")}下一部</button></div></div></div>`
-          : `<div class="tv-feed-empty"><h2>暂无公开内容</h2><button class="btn outline" data-tv-feed-channel="16">回到推荐</button></div>`
-    }</section>`;
+  function tvRankTemplate(columns) {
+    return columns.map((column) => column[1]).join(" ");
+  }
+  function tvRankKind() {
+    return TV_RANK_KINDS.find(([id]) => id === rankKind) ?? TV_RANK_KINDS[0];
+  }
+  function tvRankSources() {
+    return `<div class="tv-rank-sources" role="tablist" aria-label="榜单来源">${[
+      ["official", "红果榜"],
+      ["radar", "榜单雷达"],
+    ]
+      .map(
+        ([id, label]) =>
+          `<button class="tv-rank-source ${rankSource === id ? "active" : ""}" role="tab" aria-selected="${rankSource === id}" data-tv-rank-source="${id}">${label}</button>`,
+      )
+      .join("")}</div>`;
+  }
+  function tvRankHeroSkeleton() {
+    return `<section class="tv-rank-hero tv-rank-hero-skeleton" role="status" aria-label="正在加载榜单"><div class="tv-rank-hero-copy"><span class="tv-skel" style="width:320px;height:56px"></span><span class="tv-skel" style="width:420px;height:20px"></span></div></section>`;
+  }
+  function tvRankHero() {
+    const [id, label] = tvRankKind();
+    const title = id === "hot" ? "红果热播榜" : "红果 · " + label;
+    const d = tvRankItems()[0];
+    return `<section class="tv-rank-hero" data-od-id="tv-rank-hero"><div class="tv-rank-hero-copy"><h1>${title}</h1><p>每日更新，按公开目录整理当前值得看的短剧。</p></div><div class="tv-rank-hero-art" aria-hidden="true">${d ? T.poster(d) : ""}</div></section>`;
+  }
+  function tvRankKindRow() {
+    return `<div class="tv-rank-kinds" role="tablist" aria-label="榜单类型">${TV_RANK_KINDS.map(
+      ([id, label]) =>
+        `<button class="chip ${id === rankKind ? "active" : ""}" role="tab" aria-selected="${id === rankKind}" data-tv-rank-kind="${id}">${label}</button>`,
+    ).join("")}</div>`;
+  }
+  function tvRankRow(d, index) {
+    return `<button class="tv-rank-row" data-tv-open="${d.id}" aria-label="第 ${index + 1} 名，${T.esc(d.title)}"><span class="tv-rank-num${index === 0 ? " first" : ""}">${index + 1}</span><span class="tv-rank-cover">${T.poster(d)}</span><span class="tv-rank-copy"><span class="tv-rank-line"><span class="tv-rank-title">${T.esc(d.title)}</span><span class="tv-rank-meta">${d.genre} · ${d.tone}</span></span><span class="tv-rank-desc">${T.esc(d.description || "公开目录短剧，可进入详情查看选集。")}</span></span></button>`;
+  }
+  function officialTvRankings() {
+    if (rankLoading)
+      return `${tvRankHeroSkeleton()}<div class="tv-rank-list">${Array.from(
+        { length: 4 },
+        () =>
+          `<div class="tv-rank-row tv-rank-row-skeleton"><span class="tv-skel" style="width:56px;height:40px"></span><span class="tv-skel" style="width:72px;height:99px"></span><span class="tv-skel tv-skel-grow" style="height:20px"></span></div>`,
+      ).join("")}</div>`;
+    return `${tvRankHero()}${tvRankKindRow()}<section class="tv-rank-list" data-tv-scroll="vertical" aria-label="榜单排行">${tvRankItems().map(tvRankRow).join("")}</section>`;
+  }
+  function tvRadarMatches(d, category) {
+    if (category === "hot" || category === "all") return true;
+    if (category === "real") return !["玄幻", "脑洞"].includes(d.genre);
+    if (category === "ai") return d.tags.includes("AI");
+    if (category === "comic") return d.tags.includes("漫剧");
+    return !d.tags.includes("AI") && !d.tags.includes("漫剧");
+  }
+  function tvRadarMetricValue(i) {
+    if (radarMetric === "d_fav") return TV_RADAR_DFAV - i * 97;
+    if (radarMetric === "r_hot") return 12.4 - i * 0.9;
+    return TV_RADAR_DHOT - i * 173;
+  }
+  function tvRadarRows() {
+    if (radarEmpty) return [];
+    const growth = radarView === "growth";
+    let rows = T.dramas.map((d, i) => ({
+      d,
+      i,
+      heat: TV_RADAR_HEAT - i * 137021,
+      dHot: TV_RADAR_DHOT - i * 173,
+      dFav: TV_RADAR_DFAV - i * 97,
+      rate: 12.4 - i * 0.9,
+      d7: TV_RADAR_D7 - i * 211,
+      streak: Math.max(1, 12 - i),
+      change: TV_RADAR_CHANGES[i % TV_RADAR_CHANGES.length],
+    }));
+    rows = rows.filter(({ d }) =>
+      tvRadarMatches(d, growth ? radarType : radarCategory),
+    );
+    if (growth) rows.sort((a, b) => tvRadarMetricValue(b.i) - tvRadarMetricValue(a.i));
+    return rows;
+  }
+  function tvRadarRow(row, index, columns) {
+    const cells = [
+      `<span class="tv-radar-cell num tv-radar-rank${index === 0 ? " first" : ""}">${index + 1}</span>`,
+    ];
+    if (radarView === "snapshot")
+      cells.push(
+        `<span class="tv-radar-cell tv-radar-delta ${row.change.startsWith("上升") ? "up" : row.change.startsWith("下降") ? "down" : "flat"}">${row.change}</span>`,
+      );
+    cells.push(`<span class="tv-radar-cell tv-radar-name">${T.esc(row.d.title)}</span>`);
+    cells.push(`<span class="tv-radar-cell tv-radar-type">${row.d.genre}</span>`);
+    cells.push(`<span class="tv-radar-cell num">${tvRadarNumber(row.heat)}</span>`);
+    cells.push(`<span class="tv-radar-cell num">+${tvRadarNumber(row.dHot)}</span>`);
+    if (radarView === "snapshot")
+      cells.push(
+        `<span class="tv-radar-cell num">+${tvRadarNumber(row.dFav)}</span>`,
+        `<span class="tv-radar-cell num">${row.streak} 天</span>`,
+      );
+    else
+      cells.push(
+        `<span class="tv-radar-cell num">+${row.rate.toFixed(1)}%</span>`,
+        `<span class="tv-radar-cell num">+${tvRadarNumber(row.dFav)}</span>`,
+        `<span class="tv-radar-cell num">+${tvRadarNumber(row.d7)}</span>`,
+      );
+    return `<button class="tv-radar-row" data-tv-open="${row.d.id}" style="--cols:${tvRankTemplate(columns)}" aria-label="第 ${index + 1} 名，${T.esc(row.d.title)}，查看详情">${cells.join("")}</button>`;
+  }
+  function tvRadarTable() {
+    const columns =
+      radarView === "snapshot" ? TV_RADAR_SNAPSHOT_COLUMNS : TV_RADAR_GROWTH_COLUMNS;
+    const rows = tvRadarRows();
+    return `<div class="tv-radar-table"><div class="tv-radar-head" style="--cols:${tvRankTemplate(columns)}">${columns.map(([label, , variant]) => `<span class="tv-radar-th${variant === "num" ? " num" : ""}">${label}</span>`).join("")}</div><div class="tv-radar-body" data-tv-scroll="vertical">${rows.length ? rows.map((row, index) => tvRadarRow(row, index, columns)).join("") : `<p class="tv-radar-empty">当前分类暂无数据</p>`}</div></div>`;
+  }
+  function tvRadarChips(items, active, attribute) {
+    return items
+      .map(
+        ([id, label]) =>
+          `<button class="chip ${active === id ? "active" : ""}" aria-pressed="${active === id}" ${attribute}="${id}">${label}</button>`,
+      )
+      .join("");
+  }
+  function tvRadarFilters() {
+    if (radarView === "growth")
+      return `<div class="tv-radar-filter"><span class="tv-radar-label">排序</span>${tvRadarChips([["d_hot", "热度增量"], ["d_fav", "收藏增量"], ["r_hot", "热度增长率"]], radarMetric, "data-tv-radar-metric")}<span class="tv-radar-label">类型</span>${tvRadarChips([["all", "全部"], ["real", "真人"], ["ai", "AI"], ["comic", "漫剧"], ["unknown", "未知"]], radarType, "data-tv-radar-type")}</div>`;
+    return `<div class="tv-radar-filter"><span class="tv-radar-label">分类</span>${tvRadarChips([["hot", "综合"], ["real", "真人"], ["ai", "AI"], ["comic", "漫剧"]], radarCategory, "data-tv-radar-category")}</div>`;
+  }
+  function tvRadarSkeleton() {
+    const columns =
+      radarView === "snapshot" ? TV_RADAR_SNAPSHOT_COLUMNS : TV_RADAR_GROWTH_COLUMNS;
+    return `<div class="tv-radar-skeleton" role="status" aria-label="正在加载榜单"><div class="tv-radar-skel-controls"><span class="tv-skel" style="width:160px;height:56px"></span><span class="tv-skel" style="width:160px;height:56px"></span><span class="tv-skel" style="width:110px;height:56px"></span></div><div class="tv-radar-head" style="--cols:${tvRankTemplate(columns)}">${columns.map((_, i) => `<span class="tv-radar-th"><span class="tv-skel" style="display:inline-block;width:${i === 2 ? 96 : 56}px;height:16px"></span></span>`).join("")}</div>${Array.from(
+      { length: 8 },
+      () =>
+        `<div class="tv-radar-row tv-radar-row-skeleton" style="--cols:${tvRankTemplate(columns)}"><span class="tv-skel" style="width:36px;height:28px"></span><span class="tv-skel" style="width:64px;height:20px"></span><span class="tv-skel tv-skel-grow" style="height:20px"></span><span class="tv-skel" style="width:72px;height:20px"></span><span class="tv-skel" style="width:96px;height:20px"></span><span class="tv-skel" style="width:88px;height:20px"></span><span class="tv-skel" style="width:88px;height:20px"></span><span class="tv-skel" style="width:64px;height:20px"></span></div>`,
+    ).join("")}</div>`;
+  }
+  function tvRadarBand() {
+    const meta = radarLoading
+      ? "正在读取雷达…"
+      : `来源：hongguo-radar 外部聚合 · ${radarView === "snapshot" ? "快照日期 2026-11-16 · 指标日期 2026-11-16" : "指标日期 2026-11-16 · 对比 2026-11-09 · 采样间隔 7 天"}`;
+    const notice = radarError
+      ? `<div class="tv-radar-notice" role="status">${I("circle-alert")}<span>刷新失败，显示最近成功的数据</span><button class="btn outline" data-tv-radar-refresh>重试</button></div>`
+      : "";
+    const controls = radarLoading
+      ? ""
+      : `<div class="tv-radar-controls"><div class="tv-radar-views" role="tablist" aria-label="雷达视图">${[["snapshot", "官方快照"], ["growth", "飙升榜"]].map(([id, label]) => `<button class="tv-rank-source ${radarView === id ? "active" : ""}" role="tab" aria-selected="${radarView === id}" data-tv-radar-view="${id}">${label}</button>`).join("")}</div><button class="btn outline" data-tv-radar-refresh ${radarRefreshing ? "disabled" : ""}>${radarRefreshing ? "正在刷新…" : "刷新"}</button></div><div class="tv-radar-filters">${tvRadarFilters()}</div>`;
+    return `<div class="tv-radar-band"><div class="tv-radar-meta"><p>${meta}<span class="tv-radar-tag">设计样例</span></p></div>${notice}${controls}${radarLoading ? tvRadarSkeleton() : tvRadarTable()}</div>`;
+  }
+  function rankingsTv() {
+    return `<section class="tv-rank-page" data-od-id="tv-rankings">${tvRankSources()}<div class="tv-rank-body">${rankSource === "radar" ? tvRadarBand() : officialTvRankings()}</div></section>`;
   }
   function settings() {
     return `<section class="tv-page"><h1>设置</h1><div class="setting-line"><div><h3>我的账号</h3><p>账号状态仅用于演示</p></div><button class="btn outline" data-tv-route="account">查看账号</button></div><div class="setting-line"><div><h3>界面主题</h3><p>深色模式 / 浅色模式</p></div><button class="btn outline" data-tv-action="theme">${document.documentElement.dataset.theme === "dark" ? "切换到浅色" : "切换到深色"}</button></div><div class="setting-line"><div><h3>自动播放下一集</h3><p>模拟播放结束后继续下一集</p></div><button class="switch" data-tv-action="autoplay" role="switch" aria-label="自动播放下一集" aria-checked="${read("autoplay", true)}"></button></div><div class="setting-line"><div><h3>自动检查更新</h3></div><button class="switch" data-tv-action="auto-updates" role="switch" aria-label="自动检查更新" aria-checked="${read("auto-updates", true)}"></button></div><div class="setting-line"><div><h3>应用版本</h3><p>0.1.0 · 已是最新版本</p></div><button class="btn outline" data-tv-action="check-updates">检查更新</button></div></section>`;
@@ -127,15 +305,15 @@
     $("#tv-main").innerHTML =
       page === "home"
         ? home()
-        : page === "feed"
-          ? feed()
         : page === "account"
           ? account()
           : page === "settings"
             ? settings()
             : page === "player"
               ? player()
-              : listing();
+              : page === "rankings"
+                ? rankingsTv()
+                : listing();
     document.querySelectorAll(".tv-nav-item").forEach((b) => {
       b.classList.toggle(
         "active",
@@ -161,6 +339,9 @@
     target?.focus({ preventScroll: true });
   }
   function route(p) {
+    clearTimeout(radarTimer);
+    radarLoading = false;
+    radarRefreshing = false;
     $("#tv-main").inert = false;
     $(".tv-header").inert = false;
     overlay = "";
@@ -365,23 +546,6 @@
         ?.focus({ preventScroll: true });
       return;
     }
-    if (b.dataset.tvFeedChannel) {
-      feedChannel = b.dataset.tvFeedChannel;
-      feedIndex = 0;
-      render();
-      document
-        .querySelector(`[data-tv-feed-channel="${feedChannel}"]`)
-        ?.focus({ preventScroll: true });
-      return;
-    }
-    if (b.hasAttribute("data-tv-feed-next")) {
-      const list = tvFeedItems();
-      if (list?.length) {
-        feedIndex = (feedIndex + 1) % list.length;
-        render();
-      }
-      return;
-    }
     if (b.dataset.tvToggle) {
       const kind = b.dataset.tvToggle,
         id = b.dataset.id,
@@ -436,6 +600,85 @@
       document
         .querySelector(`[data-tv-season="${restore}"]`)
         ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.tvRankSource) {
+      rankSource = b.dataset.tvRankSource;
+      render();
+      if (rankSource === "radar" && !radarVisited) {
+        radarVisited = true;
+        radarLoading = true;
+        render();
+        radarTimer = setTimeout(() => {
+          radarLoading = false;
+          if (page === "rankings") render();
+          document
+            .querySelector('[data-tv-rank-source="radar"]')
+            ?.focus({ preventScroll: true });
+        }, 600);
+      }
+      document
+        .querySelector(`[data-tv-rank-source="${rankSource}"]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.tvRankKind) {
+      rankKind = b.dataset.tvRankKind;
+      render();
+      document
+        .querySelector(`[data-tv-rank-kind="${rankKind}"]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.tvRadarView) {
+      radarView = b.dataset.tvRadarView;
+      render();
+      document
+        .querySelector(`[data-tv-radar-view="${radarView}"]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.tvRadarCategory) {
+      radarCategory = b.dataset.tvRadarCategory;
+      render();
+      document
+        .querySelector(`[data-tv-radar-category="${radarCategory}"]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.tvRadarMetric) {
+      radarMetric = b.dataset.tvRadarMetric;
+      render();
+      document
+        .querySelector(`[data-tv-radar-metric="${radarMetric}"]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.tvRadarType) {
+      radarType = b.dataset.tvRadarType;
+      render();
+      document
+        .querySelector(`[data-tv-radar-type="${radarType}"]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (b.hasAttribute("data-tv-radar-refresh")) {
+      if (radarRefreshing) return;
+      radarRefreshing = true;
+      render();
+      document
+        .querySelector("[data-tv-radar-refresh]")
+        ?.focus({ preventScroll: true });
+      radarTimer = setTimeout(() => {
+        radarRefreshing = false;
+        if (page === "rankings") {
+          render();
+          toast("榜单已更新（设计样例）");
+          document
+            .querySelector("[data-tv-radar-refresh]")
+            ?.focus({ preventScroll: true });
+        }
+      }, 900);
       return;
     }
     switch (b.dataset.tvAction) {
@@ -582,6 +825,20 @@
           rail.scrollTop += (b.bottom - r.bottom + 18) / scale;
         if (b.top < r.top) rail.scrollTop -= (r.top - b.top + 18) / scale;
       }
+      const scroller = best.closest("[data-tv-scroll]");
+      if (scroller) {
+        const sr = scroller.getBoundingClientRect(),
+          br = best.getBoundingClientRect(),
+          scale = $("#tv-stage").getBoundingClientRect().width / 1920;
+        if (br.bottom > sr.bottom)
+          scroller.scrollTop += (br.bottom - sr.bottom + 14) / scale;
+        if (br.top < sr.top)
+          scroller.scrollTop -= (sr.top - br.top + 14) / scale;
+        if (br.right > sr.right)
+          scroller.scrollLeft += (br.right - sr.right + 14) / scale;
+        if (br.left < sr.left)
+          scroller.scrollLeft -= (sr.left - br.left + 14) / scale;
+      }
     }
   }
   document.addEventListener("keydown", (e) => {
@@ -652,6 +909,39 @@
       if (!controls) $(".tv-player")?.focus({ preventScroll: true });
     }
   });
+  {
+    const query = new URLSearchParams(location.search);
+    const theme = query.get("theme");
+    if (theme) document.documentElement.dataset.theme = theme;
+    const state = query.get("state");
+    const wantsRankings = [
+      "rank",
+      "view",
+      "category",
+      "metric",
+      "type",
+      "kind",
+      "state",
+    ].some((key) => query.get(key));
+    if (wantsRankings) {
+      page = "rankings";
+      if (query.get("rank") === "radar") {
+        rankSource = "radar";
+        radarVisited = true;
+      }
+      if (query.get("view")) radarView = query.get("view");
+      if (query.get("category")) radarCategory = query.get("category");
+      if (query.get("metric")) radarMetric = query.get("metric");
+      if (query.get("type")) radarType = query.get("type");
+      if (query.get("kind")) rankKind = query.get("kind");
+      if (rankSource === "official" && state === "loading") rankLoading = true;
+      if (rankSource === "radar") {
+        radarLoading = state === "loading";
+        radarEmpty = state === "empty";
+        radarError = state === "error";
+      }
+    }
+  }
   render();
   focusDefault();
   window.TVPreview = {

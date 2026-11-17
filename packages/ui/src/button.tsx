@@ -71,20 +71,20 @@ export function Button(props: ButtonProps) {
       : props.current
         ? variant() === 'quiet'
           ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
-          : 'bg-muted border-border hover:bg-muted active:bg-border'
+          : 'bg-muted border-input hover:bg-muted active:bg-border'
         : selectedSurface()
           ? 'bg-accent border-transparent'
           : variant() === 'primary'
             ? 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80'
             : variant() === 'destructive'
-              ? 'bg-card border-border hover:bg-muted active:bg-border'
+              ? 'bg-card border-input hover:bg-muted active:bg-border'
               : variant() === 'quiet' || variant() === 'navigation'
                 ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
                 : props.episode
-                  ? 'bg-card border-border hover:bg-muted active:bg-border'
+                  ? 'bg-card border-input hover:bg-muted active:bg-border'
                   : props.selectOpen !== undefined
                     ? 'bg-card border-input hover:bg-muted active:bg-border'
-                    : 'bg-card border-border hover:bg-muted active:bg-border';
+                    : 'bg-card border-input hover:bg-muted active:bg-border';
   return (
     <Root
       ref={(ref) => props.buttonRef?.(ref)}
@@ -152,7 +152,8 @@ export function Button(props: ButtonProps) {
           </Text>
         </If>
         <If when={props.icon && props.selectOpen !== undefined}>
-          <Icon name={props.icon!} color={token(tone())} size={props.size ?? 'md'} />
+          {/* The Select chevron is a secondary affordance; the value text keeps the foreground. */}
+          <Icon name={props.icon!} color={token('muted-foreground')} size={props.size ?? 'md'} />
         </If>
       </SelectFocus>
     </Root>

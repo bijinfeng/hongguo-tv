@@ -79,24 +79,26 @@ dialog .input-with-icon .ui-input:focus {
   content: '';
   width: 10px;
   height: 2px;
-  background: var(--primary-foreground);
+  background: var(--primary-strong-foreground);
   border: 0;
   transform: none;
 }
 .check-label input:indeterminate {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
 }
 .check-label input:disabled {
-  border-color: var(--input);
+  border-color: var(--border);
   background: var(--muted);
 }
+.check-label input:disabled:checked,
+.check-label input:disabled:indeterminate {
+  background: var(--accent);
+  border-color: var(--border);
+}
 .check-label input:disabled::after {
-  border-color: var(--muted-foreground);
+  border-color: var(--accent-foreground);
 }
 .switch-hit:disabled {
   cursor: default;
-}
-.switch-hit:disabled .switch {
-  background: var(--input);
 }

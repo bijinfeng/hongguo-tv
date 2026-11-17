@@ -36,7 +36,7 @@ export function DateChoice(props: DateChoiceProps) {
           selected={props.selected}
           onPress={props.onPress}
           onFocus={props.onFocus}
-          class="flex-1 items-center justify-center rounded-(--radius) border border-border bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+          class="flex-1 items-center justify-center rounded-(--radius) border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
           style={{
             minWidth: Product() === 'tv' ? tvUnit(164) : 86,
             minHeight: Product() === 'tv' ? tvUnit(132) : 96,

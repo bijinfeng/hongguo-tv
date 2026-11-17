@@ -135,8 +135,8 @@ export function registerRadarHostTests(entry: string, artifacts: string, host: '
           await app.press('id:nav-home');
           await app.press('id:nav-rank');
           await app.waitFor('id:radar-table');
-          await app.press('账号');
-          await app.waitFor('尚未登录');
+          await app.press('我的账号');
+          await app.waitFor('id:account-login-open');
           await app.back();
           await app.waitFor('id:radar-table');
           await app.wait(180);
@@ -145,16 +145,16 @@ export function registerRadarHostTests(entry: string, artifacts: string, host: '
           await app.waitUntil(() => reads(app, '/api/v1/radar').length > beforePrimary);
           await app.waitUntil(() => !app.texts().includes('正在刷新…'));
           // Returning installs refresh's onFocus source before its Radar owner is destroyed.
-          await app.press('账号');
-          await app.waitFor('尚未登录');
+          await app.press('我的账号');
+          await app.waitFor('id:account-login-open');
           await app.back();
           await app.waitFor('id:radar-table');
           await app.wait(180);
           await app.press('id:ranking-view-official');
           await app.waitFor('id:ranking-drama:101');
           const radarReadsAfterSwitch = reads(app, '/api/v1/radar').length;
-          await app.press('账号');
-          await app.waitFor('尚未登录');
+          await app.press('我的账号');
+          await app.waitFor('id:account-login-open');
           await app.back();
           await app.waitFor('id:ranking-drama:101');
           await app.wait(180);

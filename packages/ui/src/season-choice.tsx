@@ -27,7 +27,7 @@ export function SeasonChoice(props: SeasonChoiceProps) {
       selected={props.selected}
       onPress={props.onPress}
       onFocus={props.onFocus}
-      class={`shrink-0 items-start border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent border-transparent' : 'bg-card border-border hover:bg-muted active:bg-border'}`}
+      class={`shrink-0 items-start border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
       style={{
         minHeight: metrics().height,
         minWidth: Product() === 'tv' ? tvUnit(180) : undefined,

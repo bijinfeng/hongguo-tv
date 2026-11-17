@@ -142,6 +142,9 @@ export async function rankingsFixture({ port = 0, terminalDelayMs = 1600 } = {})
         episodes: [1, 2].map((index) => ({ index, video_id: `${id}${index}`, locked: false })),
       });
     }
+    // Browsing home warms a category read in headless hosts before the rail is pressed.
+    if (url.pathname === '/api/v1/category')
+      return ok({ items: [], filters: [], has_more: false, session_id: '', next_offset: 0 });
     if (url.pathname === '/api/v1/actors/works') {
       const id = params.get('actor_id');
       if (!['101', '202'].includes(id) || [...params.keys()].some((key) => key !== 'actor_id'))
