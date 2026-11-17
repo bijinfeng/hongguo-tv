@@ -1,4 +1,4 @@
-import { Scroll, View, signal, type JSX, type ViewRef, type ScrollRef } from 'nsh';
+import { Scroll, Text, View, signal, token, type JSX, type ViewRef, type ScrollRef } from 'nsh';
 import {
   Product,
   tvUnit,
@@ -50,14 +50,11 @@ import {
   PosterCard,
   ContinueCard,
   Cover,
-  CinemaControls,
   CinemaButton,
   CinemaSlider,
   CinemaSelect,
   CinemaText,
-  CinemaSettingRow,
-  EpisodeRail,
-  EpisodeRange,
+  EpisodePanel,
   type ProductTarget,
   type RemovableChip,
   type ToastMessage,
@@ -109,6 +106,13 @@ function Section(props: { title: string; children?: JSX.Element }) {
   );
 }
 
+function clock(seconds: number) {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes < 10 ? '0' : ''}${minutes}:${rest < 10 ? '0' : ''}${rest}`;
+}
+
 /** Isolated acceptance fixture. It composes the public package without business or host settings. */
 export function ComponentGallery(props: ComponentGalleryProps) {
   const sheet = signal<GallerySheet>(props.sheet ?? 'foundation');
@@ -144,7 +148,10 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   const selectedAction = signal(true);
   const pendingAction = signal(false);
   const rate = signal('1');
-  const range = signal(0);
+  const position = signal(36);
+  const volume = signal(60);
+  const episode = signal(12);
+  const episodePanel = signal(false);
   let dialogSource: ViewRef | undefined;
   let confirmSource: ViewRef | undefined;
   let panelSource: ViewRef | undefined;
@@ -648,74 +655,164 @@ export function ComponentGallery(props: ComponentGalleryProps) {
               <GalleryBusinessRecipes />
             </If>
             <If when={sheet() === 'cinema'}>
-              <Section title="播放器控件">
-                <Surface variant="cinema">
-                  <View class="relative" style={{ minHeight: unit(240, 420), gap: unit(16, 24) }}>
-                    <CinemaText variant="title">春山不负 · 第 12 集</CinemaText>
-                    <CinemaControls>
-                      <View class="gap-4">
-                        <CinemaSlider
-                          label="播放进度"
-                          value={slider()}
-                          max={100}
-                          onChange={(value) => slider.set(value)}
-                          testID="gallery-cinema-slider"
+              <Section title="影院控件">
+                <View class="bg-cinema" style={{ padding: unit(32), borderRadius: unit(12) }}>
+                  <View
+                    class="flex-row items-center justify-between"
+                    style={{ gap: unit(24), marginBottom: unit(32) }}
+                  >
+                    <View class="flex-row items-baseline" style={{ gap: unit(8) }}>
+                      <CinemaText variant="title">重返1998</CinemaText>
+                      <Text
+                        class="text-cinema-muted tabular-nums"
+                        style={{ fontSize: unit(14, 20) }}
+                      >
+                        第 {episode()} 集
+                      </Text>
+                    </View>
+                    <CinemaButton
+                      label="关闭播放"
+                      icon="x"
+                      iconOnly
+                      quiet
+                      onPress={() => result.set('关闭播放')}
+                    />
+                  </View>
+                  <View class="flex-row items-center" style={{ gap: unit(20) }}>
+                    <CinemaText variant="time">{clock(position())}</CinemaText>
+                    <View class="flex-1 min-w-0" style={{ gap: unit(8) }}>
+                      <Text class="text-cinema-foreground" style={{ fontSize: unit(14, 20) }}>
+                        播放进度
+                      </Text>
+                      <CinemaSlider
+                        label="播放进度"
+                        value={position()}
+                        max={120}
+                        onChange={(value) => position.set(value)}
+                        testID="gallery-cinema-slider"
+                      />
+                    </View>
+                    <CinemaText variant="time">{clock(120)}</CinemaText>
+                  </View>
+                  <View
+                    class="flex-row flex-wrap items-center justify-between"
+                    style={{ gap: unit(24), marginTop: unit(24) }}
+                  >
+                    <View class="flex-row items-center" style={{ gap: unit(16) }}>
+                      <CinemaButton
+                        label={playing() ? '暂停' : '播放'}
+                        icon={playing() ? 'pause' : 'play'}
+                        iconOnly
+                        onPress={() => playing.set(!playing())}
+                        testID="gallery-play"
+                      />
+                      <CinemaButton
+                        label="下一集"
+                        icon="skip-forward"
+                        iconOnly
+                        disabled={episode() >= 18}
+                        onPress={() => episode.set(Math.min(18, episode() + 1))}
+                      />
+                      <View class="flex-row items-center" style={{ gap: unit(20) }}>
+                        <Icon
+                          name={volume() === 0 ? 'volume-x' : 'volume-2'}
+                          color={token('cinema-foreground')}
                         />
-                        <View class="flex-row flex-wrap items-center gap-3">
-                          <CinemaButton
-                            label={playing() ? '暂停' : '播放'}
-                            icon={playing() ? 'pause' : 'play'}
-                            onPress={() => playing.set(!playing())}
-                            testID="gallery-play"
+                        <View style={{ width: unit(120) }}>
+                          <CinemaSlider
+                            label="音量"
+                            value={volume()}
+                            max={100}
+                            compact
+                            onChange={(value) => volume.set(value)}
                           />
-                          <CinemaButton label="上一集" icon="back" disabled onPress={() => {}} />
-                          <CinemaButton
-                            label="下一集"
-                            icon="skip-forward"
-                            onPress={() => result.set('下一集')}
-                          />
-                          <CinemaText>12:36 / 24:00</CinemaText>
                         </View>
-                        <CinemaSettingRow label="倍速">
-                          <CinemaSelect
-                            label="播放倍速"
-                            value={rate()}
-                            items={[
-                              { value: '1', title: '1.0×' },
-                              { value: '1.5', title: '1.5×' },
-                              { value: '2', title: '2.0×' },
-                            ]}
-                            onChange={(value) => rate.set(value)}
-                          />
-                        </CinemaSettingRow>
                       </View>
-                    </CinemaControls>
+                    </View>
+                    <View class="flex-row items-center" style={{ gap: unit(16) }}>
+                      <View style={{ width: unit(200) }}>
+                        <CinemaSelect
+                          label="播放速度"
+                          value={rate()}
+                          items={[
+                            { value: '0.75', title: '0.75×' },
+                            { value: '1', title: '1.0×' },
+                            { value: '1.25', title: '1.25×' },
+                            { value: '1.5', title: '1.5×' },
+                            { value: '2', title: '2.0×' },
+                          ]}
+                          onChange={(value) => rate.set(value)}
+                        />
+                      </View>
+                      <CinemaButton
+                        label="选集"
+                        onPress={() => episodePanel.set(true)}
+                        testID="gallery-open-episode-panel"
+                      />
+                      <CinemaButton
+                        label="全屏"
+                        icon="maximize"
+                        iconOnly
+                        onPress={() => result.set('切换全屏')}
+                      />
+                    </View>
                   </View>
-                </Surface>
-                <EpisodeRange
-                  value={range()}
-                  count={80}
-                  pageSize={20}
-                  onChange={(value) => range.set(value)}
-                />
-                <EpisodeRail>
-                  <View class="flex-row flex-wrap" style={{ gap: unit(12) }}>
-                    <Each of={[1, 2, 3, 4, 5, 6]}>
-                      {(episode) => (
-                        <View style={{ width: (unit(316, 640) - 2 - unit(36)) / 4 }}>
-                          <Button
-                            label={String(episode())}
-                            episode
-                            selected={episode() === 3}
-                            onPress={() => result.set(`选择第 ${episode()} 集`)}
-                          />
-                        </View>
-                      )}
-                    </Each>
+                </View>
+                <UiText role="meta">
+                  {`${props.target === 'tv' ? '确认进入调整，左右预览，再次确认提交，返回取消。' : '可拖动或用方向键调整，结束调整后提交。'}样例进度 00:36 / 02:00，无真实视频。`}
+                </UiText>
+              </Section>
+              <Section title="选集">
+                <View style={{ gap: unit(12) }}>
+                  <Each of={[0, 1, 2]}>
+                    {(row) => (
+                      <View class="flex-row" style={{ gap: unit(12) }}>
+                        <Each of={[1, 2, 3, 4, 5, 6]}>
+                          {(column) => (
+                            <View class="flex-1">
+                              <Button
+                                label={String(row() * 6 + column())}
+                                episode
+                                selected={episode() === row() * 6 + column()}
+                                onPress={() => episode.set(row() * 6 + column())}
+                              />
+                            </View>
+                          )}
+                        </Each>
+                      </View>
+                    )}
+                  </Each>
+                  <View
+                    class="flex-row items-center"
+                    style={{ gap: unit(16), marginTop: unit(12) }}
+                  >
+                    <Button label="下一集" icon="skip-forward" disabled onPress={() => {}} />
+                    <UiText role="meta">已是最后一集</UiText>
                   </View>
-                </EpisodeRail>
+                </View>
+              </Section>
+              <Section title="播放状态">
                 <GalleryCinemaRecipe />
               </Section>
+              <EpisodePanel open={episodePanel()} onClose={() => episodePanel.set(false)} cinema>
+                <CinemaText variant="title">选集 · 示例</CinemaText>
+                <View class="flex-row" style={{ gap: unit(12) }}>
+                  <Each of={[1, 2, 3, 4]}>
+                    {(number) => (
+                      <View class="flex-1">
+                        <CinemaButton
+                          label={`第 ${number()} 集`}
+                          selected={number() === episode()}
+                          onPress={() => {
+                            episode.set(number());
+                            episodePanel.set(false);
+                          }}
+                        />
+                      </View>
+                    )}
+                  </Each>
+                </View>
+              </EpisodePanel>
             </If>
             <If when={sheet() === 'feedback'}>
               <Section title="加载与反馈">

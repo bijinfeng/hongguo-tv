@@ -305,6 +305,19 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
           await app.screenshot(
             `${options.artifacts}/components-${options.target ?? 'desktop'}-${screen}-${theme}.png`,
           );
+          if (screen === 'cinema') {
+            await app.press('id:gallery-open-episode-panel');
+            await app.screenshot(
+              `${options.artifacts}/components-${options.target ?? 'desktop'}-${screen}-${theme}-panel.png`,
+            );
+            await app.keyboard.press('escape');
+            await app.waitFor('text:选集 · 示例', { state: 'gone' });
+            await app.scroll('id:gallery-scroll', 900);
+            await app.screenshot(
+              `${options.artifacts}/components-${options.target ?? 'desktop'}-${screen}-${theme}-bottom.png`,
+            );
+            await app.scroll('id:gallery-scroll', -900);
+          }
           if (['forms', 'content', 'feedback'].includes(screen)) {
             await app.scroll('id:gallery-scroll', 1000);
             await app.screenshot(
@@ -323,5 +336,5 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
       }
       app.dispose();
     }
-  });
+  }, 90_000);
 }

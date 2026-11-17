@@ -26,6 +26,8 @@ export function CinemaButton(props: {
   label: string;
   icon?: IconName;
   iconOnly?: boolean;
+  /** Transparent resting fill for dismissive actions such as closing the player. */
+  quiet?: boolean;
   disabled?: boolean;
   selected?: boolean;
   onPress: () => void;
@@ -52,7 +54,7 @@ export function CinemaButton(props: {
         borderRadius: controlMetrics().radius,
         gap: controlMetrics().gap,
       }}
-      class={`flex-row items-center justify-center border border-transparent bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
+      class={`flex-row items-center justify-center border border-transparent ${props.quiet ? 'bg-transparent' : 'bg-cinema-control'} hover:bg-cinema-hover active:bg-cinema-active focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
       <If when={props.icon}>
         <Icon

@@ -16,7 +16,6 @@ import {
   DownloadProgress,
   StoryFeature,
   ResultCard,
-  EpisodePanel,
   CinemaStageAction,
   CinemaText,
   CinemaButton,
@@ -397,42 +396,20 @@ export function GalleryTransferRecipe() {
 }
 
 export function GalleryCinemaRecipe() {
-  const open = signal(false);
   const paused = signal(true);
   return (
-    <View class="gap-4">
-      <View
-        class="relative bg-cinema rounded-(--radius) overflow-hidden"
-        style={{ height: Product() === 'tv' ? tvUnit(220) : 180 }}
-      >
-        <View class="p-4">
-          <CinemaText>{paused() ? '已暂停 · 示例画面' : '播放中 · 示例画面'}</CinemaText>
-        </View>
-        <CinemaStageAction
-          label="切换播放状态"
-          showPlay={paused()}
-          onPress={() => paused.set(!paused())}
-        />
+    <View
+      class="relative bg-cinema rounded-(--radius) overflow-hidden"
+      style={{ height: Product() === 'tv' ? tvUnit(220) : 180 }}
+    >
+      <View class="p-4">
+        <CinemaText>{paused() ? '已暂停 · 示例画面' : '播放中 · 示例画面'}</CinemaText>
       </View>
-      <Button
-        label="打开播放器选集"
-        onPress={() => open.set(true)}
-        testID="gallery-open-episode-panel"
+      <CinemaStageAction
+        label="切换播放状态"
+        showPlay={paused()}
+        onPress={() => paused.set(!paused())}
       />
-      <EpisodePanel open={open()} onClose={() => open.set(false)} cinema>
-        <CinemaText variant="title">选集 · 示例</CinemaText>
-        <Row>
-          <Each of={[1, 2, 3, 4]}>
-            {(number) => (
-              <CinemaButton
-                label={`第 ${number()} 集`}
-                selected={number() === 2}
-                onPress={() => open.set(false)}
-              />
-            )}
-          </Each>
-        </Row>
-      </EpisodePanel>
     </View>
   );
 }
