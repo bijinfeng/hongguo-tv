@@ -107,12 +107,12 @@ export function PosterCard(props: {
         borderRadius: controlMetrics().radius,
         gap: Product() === 'tv' ? tvUnit(14) : 12,
       }}
-      class="flex-1 rounded-(--radius) hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 active:opacity-80 selected:bg-accent"
+      class="group flex-1 rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
     >
       <Cover
         src={props.cover}
         title={props.title}
-        class="w-full"
+        class={`w-full group-hover:opacity-95 group-active:opacity-85 ${reduceMotion() ? '' : 'transition-opacity duration-100'}`}
         height={
           Product() === 'tv' &&
           !(props.width && props.width > 0 && props.availableHeight === undefined)

@@ -26,9 +26,9 @@ export function SearchInput(props: SearchInputProps) {
         fontSize: controlMetrics().fontSize,
         paddingHorizontal: props.embedded ? 4 : controlMetrics().paddingHorizontal,
         paddingVertical: controlMetrics().paddingVertical,
-        outlineWidth: focused() ? 2 : props.embedded ? 0 : 1,
+        outlineWidth: props.embedded ? 0 : focused() ? 2 : 1,
         outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
-        outlineOffset: focused() ? 3 : -1,
+        outlineOffset: props.embedded ? 0 : focused() ? 3 : -1,
       }}
       testID="search-input"
       ref={props.inputRef}

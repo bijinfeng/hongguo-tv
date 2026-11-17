@@ -18,8 +18,8 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
         gap: geometry.gap,
       }}
     >
-      <View style={{ paddingHorizontal: 9 }}>
-        <Logo mark={props.logoMark} />
+      <View class="items-center" style={{ paddingHorizontal: 9 }}>
+        <Logo mark={props.logoMark} size="compact" />
       </View>
       <View class="flex-1">
         <Navigation store={props.store} layout="desktop" />

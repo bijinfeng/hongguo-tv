@@ -1,4 +1,14 @@
-import { View, Text, signal, effect, cleanup, keymap, type InputRef, type ViewRef } from 'nsh';
+import {
+  View,
+  Text,
+  signal,
+  effect,
+  cleanup,
+  keymap,
+  token,
+  type InputRef,
+  type ViewRef,
+} from 'nsh';
 import { Button, SearchInput, SearchPicker, SearchSuggestionRow, tvUnit } from '@hongguo/ui';
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
@@ -137,8 +147,19 @@ export function SearchForm(props: { store: Store }) {
         }}
         class={
           props.store.target === 'desktop'
-            ? 'flex-row items-center gap-2 rounded-(--radius) bg-muted px-1 h-12'
+            ? 'flex-row items-center gap-2 bg-muted'
             : 'flex-row gap-3'
+        }
+        style={
+          props.store.target === 'desktop'
+            ? {
+                minHeight: 44,
+                paddingHorizontal: 12,
+                borderWidth: 1,
+                borderRadius: 8,
+                borderColor: token(focused() ? 'ring' : 'border'),
+              }
+            : undefined
         }
       >
         <If when={props.store.target === 'desktop'}>

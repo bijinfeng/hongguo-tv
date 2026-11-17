@@ -1,5 +1,5 @@
 import { Image, View, windowSize } from 'nsh';
-import { Button, CardControls, UiText, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, Icon, Surface, UiText, tvUnit } from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../../store';
 import { historyLabel } from '../History';
@@ -97,28 +97,33 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
 }
 
 function ContinueEmpty(props: { store: Store }) {
+  const tv = () => props.store.target === 'tv';
   return (
-    <View
-      class="rounded-(--radius) border border-border bg-card"
-      style={{ padding: props.store.target === 'tv' ? tvUnit(32) : 24, gap: 12 }}
-    >
-      <UiText role="title">今晚的故事，从这里开始</UiText>
-      <UiText role="body" tone="muted" lines={2}>
-        看过的剧会留在这里，随时接着上次的进度继续。
-      </UiText>
-      <View class="items-start">
-        <Button
-          label="去找一部"
-          icon="search"
-          variant="quiet"
-          testID="home-continue-discover"
-          onPress={() => {
-            props.store.navigate('discover');
-            props.store.restoreFocus();
-          }}
-        />
+    <Surface variant="muted" class="flex-row items-center">
+      <View
+        class="shrink-0 items-center justify-center rounded-full bg-accent"
+        style={{ width: tv() ? tvUnit(64) : 44, height: tv() ? tvUnit(64) : 44 }}
+      >
+        <Icon name="search" />
       </View>
-    </View>
+      <View class="min-w-0 flex-1" style={{ gap: tv() ? tvUnit(4) : 4 }}>
+        <UiText role="title">还没有观看记录</UiText>
+        <UiText role="body" tone="muted" lines={2}>
+          挑一部剧，之后可以从这里接着看。
+        </UiText>
+      </View>
+      <Button
+        label="去找剧"
+        icon="search"
+        variant="primary"
+        size={tv() ? 'md' : 'sm'}
+        testID="home-continue-discover"
+        onPress={() => {
+          props.store.navigate('discover');
+          props.store.restoreFocus();
+        }}
+      />
+    </Surface>
   );
 }
 
@@ -132,7 +137,7 @@ export function ContinueSection(props: { store: Store }) {
   return (
     <View>
       <View class="flex-row items-center justify-between" style={{ marginBottom: 16 }}>
-        <UiText role="section">{tv() ? '接着上次的故事' : '继续观看'}</UiText>
+        <UiText role={tv() ? 'section' : 'title'}>{tv() ? '接着上次的故事' : '继续观看'}</UiText>
         <Button
           label="全部记录"
           icon="forward"
