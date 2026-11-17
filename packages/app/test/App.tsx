@@ -1,5 +1,3 @@
-import { registerFeedUiTests } from './feed-ui';
-import { registerFeedTests } from './feed';
 import { registerLibraryFavoritesTests } from './library-favorites';
 import { registerFollowingTests } from './following';
 import { registerReservationTests } from './reservations';
@@ -79,8 +77,6 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
   registerFollowingTests(target, entry);
   registerReservationTests(target, entry);
   registerCategoryTests();
-  registerFeedTests();
-  registerFeedUiTests(target, entry);
   test('Escape cancels history confirmation before page navigation and preserves its source', async () => {
     const network = (request: StubRequest) => {
       if (new URL(request.url).pathname === '/api/v1/library')

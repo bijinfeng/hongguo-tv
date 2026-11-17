@@ -216,25 +216,7 @@ function MediaView(props: {
   );
 }
 
-export type PlayerCheckpoint = { position: number; paused: boolean };
-export function Player(props: {
-  drama: Drama;
-  episode: Episode;
-  store: Store;
-  active?: boolean;
-  /** Feed owns story/episode navigation; media and progress still belong to this player. */
-  feed?: {
-    checkpoint?: PlayerCheckpoint;
-    onCheckpoint: (checkpoint: PlayerCheckpoint) => void;
-    onEpisode: (episode: Episode) => void;
-    onSeason: (drama: Drama, episode: Episode) => void;
-    onLeave: () => void;
-    onNext: () => void;
-    nextLabel: string;
-    nextDisabled: boolean;
-    nextRef: (ref: ViewRef) => void;
-  };
-}) {
+export function Player(props: { drama: Drama; episode: Episode; store: Store; active?: boolean }) {
   const tv = props.store.target === 'tv';
   const active = () => props.active !== false;
   const seasons = createSeasons(props.store.request, () => props.drama, active);
@@ -254,7 +236,7 @@ export function Player(props: {
     activity.reset();
     advancing.set(false);
   };
-  const paused = signal(props.feed?.checkpoint?.paused ?? false);
+  const paused = signal(false);
   const completed = signal(false);
   const position = signal(0);
   const duration = signal(0);
@@ -269,7 +251,7 @@ export function Player(props: {
   const menuOpen = signal(false);
   const layer = signal<TvLayer>('controls');
   const preview = signal<number | undefined>(undefined);
-  const keyboardEngaged = signal(!!props.feed);
+  const keyboardEngaged = signal(false);
   const interaction = signal(0);
   const window = isAvailable ? currentWindow() : undefined;
   const fullScreen = () => window?.state()?.placement.mode === 'fullScreen';
@@ -279,7 +261,7 @@ export function Player(props: {
   let panelRef: ViewRef | undefined;
   let moreRef: ViewRef | undefined;
   let stageRef: ViewRef | undefined;
-  let restorePosition = props.feed?.checkpoint?.position ?? 0;
+  let restorePosition = 0;
   let seekingTo: number | undefined;
   let hadBackground = false;
   let firstLoad = true;
@@ -325,10 +307,6 @@ export function Player(props: {
   });
   const checkpoint = () => {
     session.save();
-    props.feed?.onCheckpoint({
-      position: loaded() ? position() : restorePosition,
-      paused: paused(),
-    });
   };
   const lease = playbackLease<Media>({
     pending() {
@@ -417,10 +395,7 @@ export function Player(props: {
     statistics.reset();
     void statistics.flush(true);
     checkpoint();
-    if (props.feed) {
-      if (drama.series_id === props.drama.series_id) props.feed.onEpisode(episode);
-      else props.feed.onSeason(drama, episode);
-    } else props.store.nav.replace({ name: 'player', drama, episode });
+    props.store.nav.replace({ name: 'player', drama, episode });
   };
   const selectEpisode = (drama: Drama, episode: Episode) => {
     cancelSuccessor();
@@ -501,8 +476,7 @@ export function Player(props: {
     statistics.reset();
     void statistics.flush(true);
     if (fullScreen()) window?.setMode(previousMode);
-    if (props.feed) props.feed.onLeave();
-    else props.store.nav.pop();
+    props.store.nav.pop();
   };
   const back = () => {
     cancelSuccessor();
@@ -671,7 +645,7 @@ export function Player(props: {
 
   return (
     <View testID="player" class={tv ? 'flex-1 bg-cinema' : 'flex-1'}>
-      <If when={!tv && !fullScreen() && !props.feed}>
+      <If when={!tv && !fullScreen()}>
         <View class="px-10 pt-6 pb-5 gap-4 items-start">
           <Button label="返回" variant="quiet" compact icon="back" onPress={leave} />
           <Text class="text-2xl font-semibold text-foreground">
@@ -682,7 +656,7 @@ export function Player(props: {
       <View
         class="flex-1 min-h-0 flex-row gap-6"
         style={{
-          paddingHorizontal: tv || fullScreen() || props.feed ? 0 : 40,
+          paddingHorizontal: tv || fullScreen() ? 0 : 40,
         }}
       >
         <Scroll
@@ -691,7 +665,7 @@ export function Player(props: {
           contentStyle={{
             width: '100%',
             flexGrow: 1,
-            paddingBottom: tv || fullScreen() || props.feed ? 0 : 40,
+            paddingBottom: tv || fullScreen() ? 0 : 40,
           }}
         >
           <View class="flex-1 min-w-0" style={{ height: tv ? '100%' : undefined }}>
@@ -710,9 +684,7 @@ export function Player(props: {
                     ? windowSize().height
                     : fullScreen()
                       ? Math.max(0, windowSize().height - 96)
-                      : props.feed
-                        ? 520
-                        : 456,
+                      : 456,
                 }}
               >
                 <Each of={media() ? [media()!] : []} key={(value) => value.revision}>
@@ -1057,28 +1029,6 @@ export function Player(props: {
                 </View>
               </CinemaControls>
             </View>
-            <If when={!tv && !fullScreen()}>
-              <View class="flex-row items-center gap-3 pt-4 flex-wrap">
-                <If when={props.feed}>
-                  <View class="gap-1 flex-1 min-w-0">
-                    <Text class="text-xl font-semibold text-foreground line-clamp-1">
-                      {props.drama.title}
-                    </Text>
-                    <Text class="text-sm text-muted-foreground">第 {props.episode.index} 集</Text>
-                  </View>
-                </If>
-                <If when={props.feed}>
-                  <Button
-                    testID="feed-next"
-                    label={props.feed!.nextLabel}
-                    icon="next"
-                    disabled={props.feed!.nextDisabled}
-                    buttonRef={props.feed!.nextRef}
-                    onPress={() => props.feed?.onNext()}
-                  />
-                </If>
-              </View>
-            </If>
             <If when={props.store.warning()}>
               <Notice error message={props.store.warning()} retry={session.retry} />
             </If>

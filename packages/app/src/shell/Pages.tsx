@@ -16,7 +16,6 @@ import { Notifications } from '../pages/Notifications';
 import { Account } from '../pages/Account';
 import { SettingsPage } from '../pages/SettingsPage';
 import { Home } from '../pages/Home';
-import { Feed } from '../pages/Feed';
 import { Calendar } from '../pages/Calendar';
 import { Rankings } from '../pages/Rankings';
 
@@ -110,13 +109,6 @@ function Browse(props: { store: Store }) {
           focusGuard={props.store.focusGuard}
           onPrimary={(ref) => props.store.primaryRef('rankings', ref)}
         />
-      </View>
-      <View
-        class={props.store.section() === 'feed' ? 'flex-1' : 'hidden'}
-        accessibilityElementsHidden={props.store.section() !== 'feed'}
-        disabled={props.store.section() !== 'feed'}
-      >
-        <Feed store={props.store} />
       </View>
     </View>
   );

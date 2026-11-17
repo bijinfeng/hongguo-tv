@@ -19,13 +19,6 @@ const desktopRail: NavItem[] = [
     selected: (store) => store.activePage('home'),
   },
   {
-    name: 'feed',
-    label: '刷剧',
-    icon: 'play',
-    testID: 'nav-feed',
-    selected: (store) => store.activePage('feed'),
-  },
-  {
     name: 'discover',
     label: '找剧',
     icon: 'search',
@@ -76,12 +69,6 @@ const tvRail: NavItem[] = [
     label: '发现',
     testID: 'nav-home',
     selected: (store) => store.activePage('home'),
-  },
-  {
-    name: 'feed',
-    label: '刷剧',
-    testID: 'nav-feed',
-    selected: (store) => store.activePage('feed'),
   },
   {
     name: 'discover',

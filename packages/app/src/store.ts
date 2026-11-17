@@ -45,7 +45,6 @@ export type FocusSource = (receive: (id: string | undefined) => void) => () => v
 
 export type Section =
   | 'home'
-  | 'feed'
   | 'discover'
   | 'search'
   | 'calendar'
@@ -76,8 +75,7 @@ export function createStore(
   const libraryKind = signal<'history' | 'favorites'>('history');
   const activePage = (name: Section) =>
     nav.routes().at(-1)?.name === 'browse' && section() === name;
-  const playing = () =>
-    nav.routes().at(-1)?.name === 'player' || (target === 'desktop' && activePage('feed'));
+  const playing = () => nav.routes().at(-1)?.name === 'player';
   const sources = new Map<number, () => void>();
   const primary = new Map<Section, ViewRef>();
   let frame = 0;

@@ -23,8 +23,6 @@
     "./testing/suggestions-host": "./test/SuggestionsHost.tsx",
     "./testing/category-state": "./test/CategoryState.tsx",
     "./testing/category-host": "./test/CategoryHost.tsx",
-    "./testing/feed-state": "./test/FeedState.tsx",
-    "./testing/feed-host": "./test/FeedHost.tsx",
     "./testing/updates-state": "./test/UpdatesState.tsx",
     "./testing/calendar-state": "./test/CalendarState.tsx",
     "./testing/calendar-host": "./test/CalendarHost.tsx",

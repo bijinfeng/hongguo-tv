@@ -5,7 +5,6 @@ import type { Section, Store } from '../store';
 
 const breadcrumbs: { section: Section; label: string }[] = [
   { section: 'home', label: '发现' },
-  { section: 'feed', label: '刷剧' },
   { section: 'discover', label: '找剧' },
   { section: 'search', label: '找剧' },
   { section: 'history', label: '观看记录' },

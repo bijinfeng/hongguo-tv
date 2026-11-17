@@ -41,17 +41,6 @@ export function Discover(props: { store: Store }) {
         >
           {props.store.target === 'tv' ? '找剧' : '找一部想看的'}
         </Text>
-        <If when={props.store.target === 'tv'}>
-          <Button
-            label="刷剧"
-            icon="play"
-            testID="discover-feed"
-            onPress={() => {
-              props.store.navigate('feed');
-              props.store.restoreFocus();
-            }}
-          />
-        </If>
       </View>
       <View class={props.store.target === 'tv' ? 'flex-row gap-4' : 'gap-3'}>
         <Each of={dimensions} key={(dimension) => dimension.key}>

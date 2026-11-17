@@ -36,9 +36,7 @@ export function App(props: {
     cleanup(
       BackHandler.on('press', () => {
         if (store.handleCalendarBack()) return true;
-        if (!store.activePage('feed')) return false;
-        store.back();
-        return true;
+        return false;
       }),
     );
   keymap.bind(
