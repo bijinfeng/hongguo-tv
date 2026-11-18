@@ -53,6 +53,7 @@ import {
   CinemaSelect,
   CinemaText,
   EpisodePanel,
+  space,
   type ProductTarget,
   type RemovableChip,
   type ToastMessage,
@@ -80,6 +81,12 @@ export interface ComponentGalleryProps {
   target: ProductTarget;
   /** Initial sheet. Native tests switch using gallery-sheet-* controls. */
   sheet?: GallerySheet;
+  /**
+   * Renders every group at once instead of one at a time, so a visual pass captures the whole
+   * gallery in one window without switching sheets; the group bar then scrolls to a group
+   * (`reveal`) rather than swapping it. Behaviour tests keep the one-at-a-time default.
+   */
+  flat?: boolean;
 }
 
 const options = [
@@ -95,9 +102,14 @@ const initialChips: RemovableChip[] = [
 const synopsis =
   '一场意外让她回到故事的起点。面对熟悉的选择，她决定重新出发，在平凡生活中找到属于自己的答案。旧日误会逐渐解开，新的相遇也在春山之间悄然发生。';
 
-function Section(props: { title: string; children?: JSX.Element }) {
+function Section(props: {
+  title: string;
+  children?: JSX.Element;
+  /** Lets the flat gallery scroll a whole group into view by its first section. */
+  viewRef?: (ref: ViewRef) => void;
+}) {
   return (
-    <View class="gap-4">
+    <View class="gap-4" ref={props.viewRef}>
       <UiText role="section">{props.title}</UiText>
       {props.children}
     </View>
@@ -114,6 +126,21 @@ function clock(seconds: number) {
 /** Isolated acceptance fixture. It composes the public package without business or host settings. */
 export function ComponentGallery(props: ComponentGalleryProps) {
   const sheet = signal<GallerySheet>(props.sheet ?? 'foundation');
+  /** In flat mode every group is mounted, so a group is a scroll anchor rather than a swap. */
+  const shown = (id: GallerySheet) => props.flat || sheet() === id;
+  /** Scrolls to a laid-out group in flat mode; a stack page may not exist yet, so it waits a turn. */
+  const anchor = (id: GallerySheet) => {
+    void Promise.resolve().then(() => {
+      anchors.get(id)?.reveal({ vertical: 'start', animated: false });
+    });
+  };
+  const anchors = new Map<GallerySheet, ViewRef>();
+  const select = (id: GallerySheet) => {
+    sheet.set(id);
+    result.set('');
+    if (props.flat) anchor(id);
+    else scroll?.scrollTo({ y: 0, animated: false });
+  };
   const query = signal('');
   const searchPending = signal(false);
   const title = signal('春山不负');
@@ -177,11 +204,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 selected={sheet() === item().id}
                 variant="navigation"
                 testID={`gallery-sheet-${item().id}`}
-                onPress={() => {
-                  sheet.set(item().id);
-                  result.set('');
-                  scroll?.scrollTo({ y: 0, animated: false });
-                }}
+                onPress={() => select(item().id)}
               />
             )}
           </Each>
@@ -191,8 +214,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
             class="gap-8"
             style={{ padding: Math.max(8, unit(8, 8)), paddingBottom: unit(32, 48) }}
           >
-            <If when={sheet() === 'foundation'}>
-              <Section title="文字与表面">
+            <If when={shown('foundation')}>
+              <Section title="文字与表面" viewRef={(ref) => anchors.set('foundation', ref)}>
                 <UiText role="page">春山不负</UiText>
                 <UiText role="section">继续观看</UiText>
                 <UiText role="title">第 12 集</UiText>
@@ -225,9 +248,69 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   <Spinner label="加载中" />
                 </View>
               </Section>
+              <Section title="控件档位">
+                <View class="flex-row flex-wrap items-center" style={{ gap: space('lg') }}>
+                  <Checkbox
+                    label="小号"
+                    size="sm"
+                    checked={checked()}
+                    onChange={({ checked: value }) => checked.set(value)}
+                  />
+                  <Checkbox
+                    label="中号"
+                    size="md"
+                    checked={checked()}
+                    onChange={({ checked: value }) => checked.set(value)}
+                  />
+                  <Checkbox
+                    label="大号"
+                    size="lg"
+                    checked={checked()}
+                    onChange={({ checked: value }) => checked.set(value)}
+                  />
+                  <Switch
+                    label="小号"
+                    size="sm"
+                    checked={checked()}
+                    onChange={({ checked: value }) => checked.set(value)}
+                  />
+                  <Switch
+                    label="中号"
+                    size="md"
+                    checked={checked()}
+                    onChange={({ checked: value }) => checked.set(value)}
+                  />
+                  <Switch
+                    label="大号"
+                    size="lg"
+                    checked={checked()}
+                    onChange={({ checked: value }) => checked.set(value)}
+                  />
+                </View>
+                <Slider
+                  label="小号音量"
+                  size="sm"
+                  value={volume()}
+                  max={100}
+                  onChange={({ value }) => volume.set(value)}
+                />
+                <Slider
+                  label="中号音量"
+                  value={volume()}
+                  max={100}
+                  onChange={({ value }) => volume.set(value)}
+                />
+                <Slider
+                  label="大号音量"
+                  size="lg"
+                  value={volume()}
+                  max={100}
+                  onChange={({ value }) => volume.set(value)}
+                />
+              </Section>
             </If>
-            <If when={sheet() === 'controls'}>
-              <Section title="按钮状态">
+            <If when={shown('controls')}>
+              <Section title="按钮状态" viewRef={(ref) => anchors.set('controls', ref)}>
                 <View class="flex-row flex-wrap items-center gap-3">
                   <Button
                     label="开始观看"
@@ -259,6 +342,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     onPress={() => result.set('不应触发')}
                   />
                   <Button label="小按钮" size="sm" onPress={() => result.set('小按钮已触发')} />
+                  <Button label="大按钮" size="lg" onPress={() => result.set('大按钮已触发')} />
+                </View>
+                <View class="flex-row flex-wrap items-center gap-3">
+                  <Button label="sm" size="sm" onPress={() => result.set('sm')} />
+                  <Button label="md" onPress={() => result.set('md')} />
+                  <Button label="lg" size="lg" onPress={() => result.set('lg')} />
                 </View>
                 <View class="flex-row flex-wrap items-center gap-3">
                   <Button
@@ -292,8 +381,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 </ActionBar>
               </Section>
             </If>
-            <If when={sheet() === 'forms'}>
-              <Section title="输入与搜索">
+            <If when={shown('forms')}>
+              <Section title="输入与搜索" viewRef={(ref) => anchors.set('forms', ref)}>
                 <SearchField
                   activation={props.target === 'tv' ? 'confirm' : 'direct'}
                   label="搜索短剧、演员"
@@ -311,6 +400,25 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   variant="quiet"
                   onPress={() => searchPending.set(!searchPending())}
                 />
+                <FieldGroup label="输入档位">
+                  <TextInput
+                    label="小号输入框"
+                    value={title()}
+                    onChange={({ value }) => title.set(value)}
+                    size="sm"
+                  />
+                  <TextInput
+                    label="中号输入框"
+                    value={title()}
+                    onChange={({ value }) => title.set(value)}
+                  />
+                  <TextInput
+                    label="大号输入框"
+                    value={title()}
+                    onChange={({ value }) => title.set(value)}
+                    size="lg"
+                  />
+                </FieldGroup>
                 <FieldGroup label="输入状态">
                   <TextInput
                     activation={props.target === 'tv' ? 'confirm' : 'direct'}
@@ -482,8 +590,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
               </Section>
               <GallerySearchRecipe />
             </If>
-            <If when={sheet() === 'navigation'}>
-              <Section title="导航与内容组织">
+            <If when={shown('navigation')}>
+              <Section title="导航与内容组织" viewRef={(ref) => anchors.set('navigation', ref)}>
                 <Tabs
                   label="内容分类"
                   value={tab()}
@@ -539,8 +647,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
               </Section>
               <GalleryNavigationRecipes />
             </If>
-            <If when={sheet() === 'layers'}>
-              <Section title="弹层与轻反馈">
+            <If when={shown('layers')}>
+              <Section title="弹层与轻反馈" viewRef={(ref) => anchors.set('layers', ref)}>
                 <View class="flex-row flex-wrap gap-3">
                   <Button
                     label="打开对话框"
@@ -571,7 +679,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     items={[
                       { id: 'details', label: '查看详情' },
                       { id: 'unavailable', label: '暂不可用', disabled: true },
-                      { id: 'remove', label: '移除记录', separatorBefore: true, destructive: true },
+                      {
+                        id: 'remove',
+                        label: '移除记录',
+                        separatorBefore: true,
+                        destructive: true,
+                      },
                     ]}
                     onSelect={({ id }) => result.set(`已选择：${id}`)}
                     testID="gallery-menu"
@@ -614,8 +727,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 />
               </Section>
             </If>
-            <If when={sheet() === 'content'}>
-              <Section title="内容与回退">
+            <If when={shown('content')}>
+              <Section title="内容与回退" viewRef={(ref) => anchors.set('content', ref)}>
                 <View class="flex-row gap-6" style={{ maxWidth: unit(620, 860) }}>
                   <View style={{ width: unit(180, 260) }}>
                     <PosterCard
@@ -683,8 +796,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
               </Section>
               <GalleryBusinessRecipes />
             </If>
-            <If when={sheet() === 'cinema'}>
-              <Section title="影院控件">
+            <If when={shown('cinema')}>
+              <Section title="影院控件" viewRef={(ref) => anchors.set('cinema', ref)}>
                 <View class="bg-cinema" style={{ padding: unit(32), borderRadius: unit(12) }}>
                   <View
                     class="flex-row items-center justify-between"
@@ -843,8 +956,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 </View>
               </EpisodePanel>
             </If>
-            <If when={sheet() === 'feedback'}>
-              <Section title="加载与反馈">
+            <If when={shown('feedback')}>
+              <Section title="加载与反馈" viewRef={(ref) => anchors.set('feedback', ref)}>
                 <InlineStatus status="loading" message="正在加载短剧" />
                 <InlineStatus status="success" message="设置已保存" />
                 <InlineStatus

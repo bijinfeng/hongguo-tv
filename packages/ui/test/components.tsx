@@ -294,6 +294,7 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
           'cinema',
           'feedback',
         ];
+    // One window per theme covers every sheet: a graphical host has no reason to reopen the app.
     for (const theme of ['light', 'dark'] as const) {
       const app = await open(entry, settings(theme));
       for (const screen of screens) {
@@ -330,9 +331,50 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
               }
             }
           }
+          // A scrolled sheet would otherwise open half-way down for the next group.
+          await app.scroll('id:gallery-scroll', -6000).catch(() => {});
         }
       }
       app.dispose();
     }
   }, 90_000);
+}
+
+/**
+ * The graphical host's whole visual pass: with `flat`, every group is mounted at once, so one
+ * tall viewport captures the entire gallery. Both themes are captured from the same app through
+ * `setColorScheme`, so the pass costs one window rather than one per theme. The last group proves
+ * nothing was cut off; a short viewport fails rather than saving half a page. Behaviour stays with
+ * the headless `ui:test` suite, which keeps the one-group-at-a-time gallery.
+ */
+export function registerComponentVisualSweep(entry: string, options: ComponentTestOptions) {
+  if (!options.artifacts) throw new Error('The visual sweep needs an artifact directory');
+  const tv = options.target === 'tv';
+  test('component gallery: whole gallery in both themes', async () => {
+    const app = await open(entry, {
+      platform: options.host === 'android' ? 'android' : 'macos',
+      width: tv ? 1920 : 1440,
+      // Long enough for every flat group: the last one must be on screen, checked below.
+      height: tv ? 4400 : 5200,
+      colorScheme: 'light',
+      reducedMotion: options.reducedMotion ?? true,
+      clock: {},
+      network: {},
+    });
+    try {
+      await app.waitFor('id:gallery-scroll', { timeout: 20_000 });
+      for (const theme of ['light', 'dark'] as const) {
+        await app.setColorScheme(theme);
+        // Covers above must settle before the frame counts as evidence.
+        await app.wait(600);
+        // The last group's own content: if it is on screen, nothing below was cut off.
+        expect(app.shows('text:更新下载进度')).toBe(true);
+        await app.screenshot(
+          `${options.artifacts}/components-${options.target ?? 'desktop'}-all-${theme}.png`,
+        );
+      }
+    } finally {
+      app.dispose();
+    }
+  }, 180_000);
 }

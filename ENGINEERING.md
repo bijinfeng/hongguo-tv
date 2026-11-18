@@ -59,7 +59,8 @@ NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)
 
 - `packages/ui/src/index.tsx` 仅导出；内部直接导入组件所属模块，禁止循环回引自身入口。`./preview` 与 `./testing` 仅用于显式开发入口。
 - 一个package共用API／值／状态，端型主题由 app 的 `nsh.json` 选择（`theme.json`／`theme.tv.json`，由 DESIGN.md 生成），尺寸集中于 foundation 并读主题 token；组件不读端型，TV 行为由调用方传显式 props；只有真实输入／宿主边界适配，不复制业务控制器，不拆 desktop-ui／tv-ui。
-- `pnpm ui:check` 同时检查并构建三端验收入口；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host` 在macOS观察桌面／TV密度与浅深主题，宿主窗口默认后台、不抢键盘；`pnpm ui:preview` 才激活前台，每个端复用固定端口，重复启动替换上一次预览，不再叠加窗口。它不代表Android TV或遥控／输入法验收。
+- `pnpm ui:check` 同时检查并构建三端验收入口；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host:desktop`／`ui:host:tv` 在macOS分别观察桌面临时密度与TV密度，一条命令只开一个后台窗口、不抢键盘；`pnpm ui:preview` 才激活前台，每个端复用固定端口，重复启动替换上一次预览，不再叠加窗口。它不代表Android TV或遥控／输入法验收。
+- `pnpm visual:tv` 是常规视觉验收入口：TV 页面与组件板一次出齐，默认无头 Chrome 零窗口，`--android` 在固定模拟器上验证 Android 自身绘制。截图不等于逐帧动效、读屏、遥控或真实数据验收；`ui:host:*` 只在需要观察 AppKit 窗口时使用。
 - 产品设计稿与浏览器组件板使用 `design/prototype/visual-redesign-real/shared/` 资源；新增原型先扩共用组件，不在页面复刻视觉。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
 
 ## 3. Rust

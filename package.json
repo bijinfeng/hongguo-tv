@@ -27,6 +27,7 @@
     "test:tv-native-startup": "node tooling/src/native-startup-host.mjs",
     "test:tv-native-business": "node tooling/src/tv-native-business.mjs",
     "test:tv-native-retry": "node tooling/src/native-startup-remote.mjs",
+    "visual:tv": "node tooling/src/visual-sweep.mjs",
     "verify": "node tooling/src/cli.mjs verify && node tooling/src/release.mjs check",
     "security": "node tooling/src/cli.mjs security",
     "codegen": "node tooling/src/codegen.mjs",
@@ -59,7 +60,8 @@
     "ui:icons:check": "node tooling/src/ui-icons.mjs --check",
     "ui:check": "node tooling/src/ui-components.mjs check",
     "ui:test": "node tooling/src/ui-components.mjs test",
-    "ui:host": "node tooling/src/ui-components.mjs host",
+    "ui:host:desktop": "node tooling/src/ui-components.mjs host-desktop",
+    "ui:host:tv": "node tooling/src/ui-components.mjs host-tv",
     "ui:preview": "node tooling/src/ui-components.mjs preview"
   },
   "devDependencies": {

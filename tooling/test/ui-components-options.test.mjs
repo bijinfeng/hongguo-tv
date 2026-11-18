@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   hostArgs,
+  hostProducts,
   previewArgs,
   previewPorts,
   uiComponentsOptions,
@@ -13,11 +14,17 @@ test('UI component commands default to every product without an explicit target'
     target: 'desktop',
     explicit: false,
   });
-  assert.deepEqual(uiComponentsOptions(['host', '--target', 'tv']), {
-    command: 'host',
-    target: 'tv',
-    explicit: true,
+  assert.deepEqual(uiComponentsOptions(['host-tv']), {
+    command: 'host-tv',
+    target: 'desktop',
+    explicit: false,
   });
+});
+
+test('each host command runs one product, so a run opens one window', () => {
+  assert.deepEqual(hostProducts, { 'host-desktop': 'web', 'host-tv': 'tv' });
+  // A host product comes from the command itself; a target would be a second, contradicting one.
+  assert.throws(() => uiComponentsOptions(['host-tv', '--target', 'desktop']), /Unknown option/);
 });
 
 test('preview passes display, window size and port to the dev host', () => {
@@ -42,10 +49,10 @@ test('every product previews on its own fixed port', () => {
 });
 
 test('host windows accept a display but never an interactive-only option', () => {
-  assert.equal(uiComponentsOptions(['host', '--display', '2']).display, 2);
+  assert.equal(uiComponentsOptions(['host-desktop', '--display', '2']).display, 2);
   assert.throws(
-    () => uiComponentsOptions(['host', '--window-size', '1280x800']),
-    /Unknown option --window-size for host/,
+    () => uiComponentsOptions(['host-desktop', '--window-size', '1280x800']),
+    /Unknown option --window-size for host-desktop/,
   );
   assert.throws(() => uiComponentsOptions(['test', '--display', '2']), /Unknown option --display/);
 });
@@ -68,7 +75,10 @@ test('UI component options fail closed', () => {
     () => uiComponentsOptions(['preview', '--port', '70000']),
     /Expected --port 1-65535/,
   );
-  assert.throws(() => uiComponentsOptions(['build']), /Expected check\|test\|host\|preview/);
+  assert.throws(
+    () => uiComponentsOptions(['build']),
+    /Expected check\|test\|host-desktop\|host-tv\|preview/,
+  );
 });
 
 test('preview reuses one fixed port per product and forwards only explicit overrides', () => {

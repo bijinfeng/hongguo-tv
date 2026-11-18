@@ -48,7 +48,8 @@
     "./testing/reservations-state": "./test/ReservationState.tsx",
     "./testing/reservations-state-tests": "./test/reservations-state.tsx",
     "./testing/notifications-state": "./test/NotificationsState.tsx",
-    "./testing/notifications-state-tests": "./test/notifications-state.tsx"
+    "./testing/notifications-state-tests": "./test/notifications-state.tsx",
+    "./testing/visual-sweep": "./test/visual-sweep.tsx"
   },
   "dependencies": {
     "@hongguo/core-client": "workspace:*",

@@ -47,7 +47,9 @@ check／build／test 可加 `--target web|desktop|tv`，默认三端。开发中
 
 | 入口                                                  | 范围与限制                                                                                                          |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `pnpm ui:check`／`ui:test`／`ui:host`／`ui:preview`   | 基础组件三端检查、行为、macOS 可见宿主与显式预览；宿主默认后台，预览固定端口单实例；不等于 Android 遥控／系统输入法 |
+| `pnpm ui:check`／`ui:test`／`ui:preview`              | 基础组件三端检查、公共控件行为与显式预览；预览固定端口单实例；不等于 Android 遥控／系统输入法                                   |
+| `pnpm ui:host:desktop`／`ui:host:tv`                  | 唯一需要 AppKit 窗口的路径，拆成两条各开一个窗口：桌面临时密度 / TV 密度各一张整板截图（平铺全部组、浅深各一）；行为断言留在无头 `ui:test`；密度来自 manifest 主题，不是页面切换 |
+| `pnpm visual:tv`                                      | 全部视觉证据一次出齐：TV 八个页面 × 浅深 + 扁平平铺的组件板，**同一命令、同一 fixture、单个 app 实例**。默认 `--web` 无头 Chrome（零窗口），`--android` 用固定 API34 模拟器；组件板平铺后一张高视口截全，不再逐个切换分组。产物与证明边界见 `artifacts/tv-visual/<host>/manifest.json` |
 | `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                                                           |
 | `pnpm dev:fixture:web`／`desktop`／`tv`               | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收                                                    |
 | `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                                                             |
