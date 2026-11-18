@@ -1,5 +1,5 @@
 import { View } from 'nsh';
-import { Button, CardControls, tvUnit, type IconName } from '@hongguo/ui';
+import { Button, CardControls, type IconName } from '@hongguo/ui';
 import type { Section, Store } from '../store';
 
 type NavItem = {
@@ -116,7 +116,7 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
       onNavigate={props.store.noteFocusIntent}
       vertical={props.layout === 'desktop'}
       class={props.layout === 'tv' ? 'items-center' : undefined}
-      gap={props.layout === 'tv' ? tvUnit(34) : 34}
+      gap={props.layout === 'tv' ? 17 : 34}
     >
       <Each of={groups()} key={(group) => group.label}>
         {(group) => (
@@ -124,7 +124,7 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
             role="group"
             accessibilityLabel={group().label}
             class={props.layout === 'tv' ? 'flex-row items-center' : 'flex-col'}
-            style={{ gap: props.layout === 'tv' ? tvUnit(34) : 8 }}
+            style={{ gap: props.layout === 'tv' ? 17 : 8 }}
           >
             <Each of={group().items} key={(item) => item.name}>
               {(item) => {
@@ -134,6 +134,7 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                     testID={item().testID}
                     buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
                     variant={props.layout === 'tv' ? 'quiet' : 'navigation'}
+                    align={props.layout === 'tv' ? 'center' : 'start'}
                     icon={item().icon}
                     label={item().label}
                     current={on}

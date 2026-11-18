@@ -1,7 +1,7 @@
 import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { Button, Cover, EpisodeRange, Notice, StoryFeature, UiText, tvUnit } from '@hongguo/ui';
+import { Button, Cover, EpisodeRange, Notice, StoryFeature, UiText } from '@hongguo/ui';
 import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
@@ -119,8 +119,8 @@ export function Detail(props: {
       class="flex-1"
       contentStyle={{
         paddingHorizontal: props.store.target === 'tv' ? 0 : 40,
-        paddingBottom: props.store.target === 'tv' ? tvUnit(32) : 40,
-        paddingTop: props.store.target === 'tv' ? tvUnit(12) : 12,
+        paddingBottom: props.store.target === 'tv' ? 16 : 40,
+        paddingTop: props.store.target === 'tv' ? 6 : 12,
         gap: 32,
         width: '100%',
         alignItems: 'stretch',
@@ -177,7 +177,7 @@ export function Detail(props: {
             meta={meta()}
             description={current().intro}
           >
-            <View class="flex-row flex-wrap items-center" style={{ gap: tvUnit(16) }}>
+            <View class="flex-row flex-wrap items-center" style={{ gap: 8 }}>
               <Button
                 testID="detail-start"
                 primary
@@ -243,8 +243,8 @@ export function Detail(props: {
         </If>
         <View
           style={{
-            maxWidth: props.store.target === 'tv' ? tvUnit(1220) : 1000,
-            gap: props.store.target === 'tv' ? tvUnit(24) : 20,
+            maxWidth: props.store.target === 'tv' ? 610 : 1000,
+            gap: props.store.target === 'tv' ? 12 : 20,
           }}
         >
           <UiText role="section">选集</UiText>
@@ -299,7 +299,7 @@ export function Detail(props: {
           </If>
           <View
             class="flex-row flex-wrap"
-            style={{ rowGap: props.store.target === 'tv' ? tvUnit(20) : 12 }}
+            style={{ rowGap: props.store.target === 'tv' ? 10 : 12 }}
           >
             <Each
               of={episodes().slice(segment() * pageSize, (segment() + 1) * pageSize)}
@@ -311,7 +311,7 @@ export function Detail(props: {
                   <View
                     style={{
                       width: `${100 / columns()}%`,
-                      paddingRight: props.store.target === 'tv' ? tvUnit(20) : 12,
+                      paddingRight: props.store.target === 'tv' ? 10 : 12,
                     }}
                   >
                     <Button

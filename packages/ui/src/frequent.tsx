@@ -1,10 +1,8 @@
 import { Text, View, cleanup, effect, signal, token, type ViewRef } from 'nsh';
 import { Button } from './button';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { controlMetrics, space } from './foundation';
 import { UiText } from './display';
 import { textSize } from './typography';
-
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 /** Text stays with the caller; an optional expanded value makes disclosure controlled. */
 export interface ExpandableTextProps {
@@ -136,13 +134,13 @@ export function RemovableChipGroup(props: RemovableChipGroupProps) {
     }
   });
   return (
-    <View testID={props.testID} style={{ gap: unit(16) }}>
+    <View testID={props.testID} style={{ gap: space('md') }}>
       <View
         ref={(ref) => (groupRef = ref)}
         role="group"
         accessibilityLabel={props.label}
         focusable={!props.values.length && !props.emptyAction}
-        style={{ gap: unit(12), minHeight: controlMetrics().height }}
+        style={{ gap: space('sm'), minHeight: controlMetrics().height }}
         class="flex-row flex-wrap items-center rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring"
       >
         <Each of={props.values} key={(value) => value.id}>
@@ -174,7 +172,7 @@ export function RemovableChipGroup(props: RemovableChipGroupProps) {
           <UiText>{props.emptyLabel ?? '未设置筛选条件'}</UiText>
         </If>
       </View>
-      <View class="flex-row flex-wrap items-center" style={{ gap: unit(16) }}>
+      <View class="flex-row flex-wrap items-center" style={{ gap: space('md') }}>
         <If when={props.onClear}>
           <Button
             label={props.clearLabel ?? '清空条件'}

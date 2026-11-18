@@ -1,12 +1,5 @@
 import { View } from 'nsh';
-import {
-  Cover,
-  SkeletonBlock,
-  SkeletonRegion,
-  UiText,
-  tvUnit,
-  type ProductTarget,
-} from '@hongguo/ui';
+import { Cover, SkeletonBlock, SkeletonRegion, UiText, type ProductTarget } from '@hongguo/ui';
 
 /** Copy from the desktop draft; the product only lists public catalog titles. */
 const HERO_DESCRIPTION = '每日更新，按公开目录整理当前值得看的短剧。';
@@ -14,15 +7,15 @@ const HERO_DESCRIPTION = '每日更新，按公开目录整理当前值得看的
 function heroMetrics(target: ProductTarget) {
   return target === 'tv'
     ? {
-        minHeight: tvUnit(260),
-        padding: tvUnit(24),
-        copyGap: tvUnit(16),
-        copyMax: tvUnit(1100),
-        artRight: tvUnit(24),
-        artWidth: tvUnit(170),
-        coverWidth: tvUnit(112),
-        coverHeight: tvUnit(154),
-        radius: tvUnit(12),
+        minHeight: 130,
+        padding: 12,
+        copyGap: 8,
+        copyMax: 550,
+        artRight: 12,
+        artWidth: 85,
+        coverWidth: 56,
+        coverHeight: 77,
+        radius: 6,
       }
     : {
         minHeight: 236,
@@ -126,10 +119,10 @@ export function RankingsHeroSkeleton(props: { target: ProductTarget }) {
           }}
         >
           <SkeletonBlock
-            width={props.target === 'tv' ? tvUnit(420) : 280}
-            height={props.target === 'tv' ? tvUnit(66) : 44}
+            width={props.target === 'tv' ? 210 : 280}
+            height={props.target === 'tv' ? 33 : 44}
           />
-          <SkeletonBlock width="72%" height={props.target === 'tv' ? tvUnit(24) : 16} />
+          <SkeletonBlock width="72%" height={props.target === 'tv' ? 12 : 16} />
         </View>
         <View
           style={{

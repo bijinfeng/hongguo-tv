@@ -1,6 +1,6 @@
 import { Text, View, signal, effect, cleanup, keymap, type ViewRef } from 'nsh';
 import { Slider as BaseSlider } from 'nsh/base';
-import { Product, tvUnit, controlMetrics } from './foundation';
+import { controlMetrics, space } from './foundation';
 
 /** A controlled numeric preview with a separate completion event. */
 export interface SliderProps {
@@ -18,17 +18,22 @@ export interface SliderProps {
   disabled?: boolean;
   /** Preview changes, including cancellation back to the entry value. */
   onChange: (event: { value: number }) => void;
-  /** Final value when pointer/key adjustment completes, or TV confirms. */
+  /**
+   * `direct` adjusts in place with pointer or keys. `confirm` moves focus to one stable
+   * adjustment stop, previews with left/right, applies on confirm and rolls back on cancel.
+   */
+  activation?: 'direct' | 'confirm';
+  /** Final value when adjustment completes, or when confirm applies the preview. */
   onChangeEnd?: (event: { value: number }) => void;
-  /** TV returned while adjusting; value is restored before this callback. */
+  /** Adjustment cancelled; the value is restored before this callback. */
   onCancel?: () => void;
   /** Stable automation identifier. */
   testID?: string;
 }
 
-/** Shared slider; TV confirms adjustment before preview and returns to roll it back. */
+/** Shared slider; confirm mode previews before applying and rolls back when cancelled. */
 export function Slider(props: SliderProps) {
-  const target = Product();
+  const confirm = () => props.activation === 'confirm';
   const editing = signal(false);
   const focused = signal(false);
   let entryValue = 0;
@@ -60,9 +65,9 @@ export function Slider(props: SliderProps) {
   effect(() => {
     if (props.disabled && editing()) cancel();
   });
-  // NSH 0.5 exposes only the slider shell ref, not its thumb: TV owns one stable adjustment stop.
+  // NSH 0.5 exposes only the slider shell ref, not its thumb: confirm mode owns one stable stop.
   effect(() => {
-    if (target !== 'tv' || !focused() || props.disabled) return;
+    if (!confirm() || !focused() || props.disabled) return;
     const enter = keymap.bind('enter', activate);
     const adjust = editing()
       ? keymap.bind(
@@ -82,17 +87,17 @@ export function Slider(props: SliderProps) {
   return (
     <View
       ref={(ref) => (adjustment = ref)}
-      testID={target === 'tv' && props.testID ? `${props.testID}-adjust` : undefined}
-      role={target === 'tv' ? 'adjustable' : undefined}
-      accessibilityLabel={target === 'tv' ? props.label : undefined}
+      testID={confirm() && props.testID ? `${props.testID}-adjust` : undefined}
+      role={confirm() ? 'adjustable' : undefined}
+      accessibilityLabel={confirm() ? props.label : undefined}
       accessibilityHint={
-        target === 'tv' ? (editing() ? '左右调整；确认应用，返回取消' : '确认后调整') : undefined
+        confirm() ? (editing() ? '左右调整；确认应用，返回取消' : '确认后调整') : undefined
       }
       accessibilityValue={
-        target === 'tv' ? { min: props.min ?? 0, max: props.max, now: props.value } : undefined
+        confirm() ? { min: props.min ?? 0, max: props.max, now: props.value } : undefined
       }
       accessibilityActions={
-        target === 'tv'
+        confirm()
           ? [
               { name: 'increment', label: '增大' },
               { name: 'decrement', label: '减小' },
@@ -100,14 +105,14 @@ export function Slider(props: SliderProps) {
           : undefined
       }
       onAccessibilityAction={({ actionName }) => {
-        if (target !== 'tv' || props.disabled || !['increment', 'decrement'].includes(actionName))
+        if (!confirm() || props.disabled || !['increment', 'decrement'].includes(actionName))
           return;
         const value = preview(actionName === 'increment' ? 1 : -1);
         if (!editing()) props.onChangeEnd?.({ value });
       }}
       disabled={props.disabled}
-      focusable={target === 'tv' && !props.disabled}
-      onPress={target === 'tv' ? activate : undefined}
+      focusable={confirm() && !props.disabled}
+      onPress={confirm() ? activate : undefined}
       onFocus={() => focused.set(true)}
       onBlur={() => {
         focused.set(false);
@@ -115,12 +120,12 @@ export function Slider(props: SliderProps) {
       }}
       class="min-w-0 gap-2 rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
     >
-      <If when={target === 'tv'}>
+      <If when={confirm()}>
         <Text class="text-foreground" style={{ fontSize: controlMetrics().fontSize }}>
           {props.label}：{props.value}
         </Text>
       </If>
-      <View accessibilityElementsHidden={target === 'tv'}>
+      <View accessibilityElementsHidden={confirm()}>
         <BaseSlider
           testID={props.testID}
           accessibilityLabel={props.label}
@@ -128,23 +133,23 @@ export function Slider(props: SliderProps) {
           min={props.min ?? 0}
           max={props.max}
           step={props.step ?? 1}
-          disabled={props.disabled || target === 'tv'}
+          disabled={props.disabled || confirm()}
           onChange={({ value }) => {
             if (typeof value === 'number') props.onChange({ value });
           }}
           onChangeEnd={({ value }) => {
-            if (target !== 'tv' && typeof value === 'number') props.onChangeEnd?.({ value });
+            if (!confirm() && typeof value === 'number') props.onChangeEnd?.({ value });
           }}
           class="min-w-0"
           trackClass="justify-center"
           trackStyle={{ minHeight: controlMetrics().height }}
           indicatorClass="rounded-full bg-border"
-          indicatorStyle={{ height: Product() === 'tv' ? tvUnit(6) : 4 }}
+          indicatorStyle={{ height: space('xxs') }}
           rangeClass="rounded-full bg-primary"
-          thumbClass={`rounded-full border border-input bg-card hover:bg-accent active:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted' : target === 'desktop' ? 'disabled:bg-muted' : ''}`}
+          thumbClass={`rounded-full border border-input bg-card hover:bg-accent active:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted' : confirm() ? '' : 'disabled:bg-muted'}`}
           thumbStyle={{
-            width: Product() === 'tv' ? tvUnit(24) : 16,
-            height: Product() === 'tv' ? tvUnit(24) : 16,
+            width: space('md'),
+            height: space('md'),
           }}
         />
       </View>

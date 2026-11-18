@@ -1,26 +1,26 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { executable, nsh, nativeTarget, root, run, rustEnvironment } from './process.mjs';
+import { hostArgs, previewArgs, uiComponentsOptions } from './ui-components-options.mjs';
 
-const [command, ...rest] = process.argv.slice(2);
-if (!['check', 'test', 'host', 'preview'].includes(command))
-  throw new Error('Expected check|test|host|preview');
-let target = 'desktop';
-if (rest.length) {
-  if (rest.length !== 2 || rest[0] !== '--target' || !['desktop', 'web', 'tv'].includes(rest[1]))
-    throw new Error('Expected --target desktop|web|tv');
-  target = rest[1];
-}
+const { command, target, explicit, display, windowSize, port } = uiComponentsOptions(
+  process.argv.slice(2),
+);
 const entry = 'BaseComponentsPreview.tsx';
 if (command === 'check') {
-  for (const product of rest.length ? [target] : ['web', 'desktop', 'tv']) {
+  for (const product of explicit ? [target] : ['web', 'desktop', 'tv']) {
     await nsh('check', product);
     await nsh('build', product, [entry]);
   }
 } else if (command === 'preview') {
-  await nsh('run', target, [entry, '--target', nativeTarget(target)]);
+  // The fixed port keeps one session per product: a repeat replaces its dev session and window.
+  await nsh(
+    'run',
+    target,
+    previewArgs(entry, target, nativeTarget(target), { port, display, windowSize }),
+  );
 } else {
-  const selected = rest.length
+  const selected = explicit
     ? [target]
     : command === 'host'
       ? ['web', 'tv']
@@ -36,9 +36,6 @@ if (command === 'check') {
       test,
       `import {registerComponentTests,registerOverlayTests} from '@hongguo/ui/testing';\nregisterComponentTests('../${entry}', ${JSON.stringify({ artifacts, host, target: product === 'tv' ? 'tv' : 'desktop' })});\nregisterOverlayTests('../${entry}', ${JSON.stringify({ target: product === 'tv' ? 'tv' : 'desktop' })});\n`,
     );
-    await run(executable('nsh'), ['test', test, ...(host ? ['--target', host] : [])], {
-      cwd,
-      env: rustEnvironment(),
-    });
+    await run(executable('nsh'), hostArgs(test, host, display), { cwd, env: rustEnvironment() });
   }
 }

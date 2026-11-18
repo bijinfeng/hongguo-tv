@@ -21,8 +21,6 @@ import {
   CinemaButton,
   CardControls,
   ActionBar,
-  Product,
-  tvUnit,
   Pagination,
 } from '../src/index';
 
@@ -72,7 +70,7 @@ export function GallerySearchRecipe() {
       <If when={shown()}>
         <SearchPicker
           anchor={input}
-          width={Product() === 'tv' ? tvUnit(720) : 560}
+          width={560}
           onDismiss={() => shown.set(false)}
           onCancel={() => {
             shown.set(false);
@@ -251,6 +249,7 @@ export function GalleryBusinessRecipes() {
           onChange={(value) => genre.set(value)}
         />
         <FilterChoices
+          variant="select"
           label="排序"
           testID="gallery-filter-sort"
           value={sort()}
@@ -398,10 +397,7 @@ export function GalleryTransferRecipe() {
 export function GalleryCinemaRecipe() {
   const paused = signal(true);
   return (
-    <View
-      class="relative bg-cinema rounded-(--radius) overflow-hidden"
-      style={{ height: Product() === 'tv' ? tvUnit(220) : 180 }}
-    >
+    <View class="relative bg-cinema rounded-(--radius) overflow-hidden" style={{ height: 180 }}>
       <View class="p-4">
         <CinemaText>{paused() ? '已暂停 · 示例画面' : '播放中 · 示例画面'}</CinemaText>
       </View>

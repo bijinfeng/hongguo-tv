@@ -3,7 +3,7 @@ import { CardRoot } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
 import { Icon, type IconName } from './icon';
-import { Product, controlMetrics, tvUnit, type ControlSize } from './foundation';
+import { controlMetrics, type ControlSize, space, border } from './foundation';
 
 /** Limited visual hierarchy. Navigation remains a compatibility variant. */
 export type ButtonVariant = 'default' | 'primary' | 'quiet' | 'destructive' | 'navigation';
@@ -38,6 +38,8 @@ export interface ButtonProps {
   compact?: boolean;
   /** Compatibility composition for existing episode grids. */
   episode?: boolean | 'player';
+  /** `start` aligns label and icon to the leading edge; centered otherwise. */
+  align?: 'start' | 'center';
   /** Media or decorative artwork rendered by the control; the label supplies the name. */
   artwork?: JSX.Element;
   /** Layout-only additions for composed actions; the control keeps its own state colors. */
@@ -89,17 +91,11 @@ export function Button(props: ButtonProps) {
     <Root
       ref={(ref) => props.buttonRef?.(ref)}
       style={{
-        minHeight: props.episode
-          ? Product() === 'tv'
-            ? tvUnit(80)
-            : props.episode === 'player'
-              ? 42
-              : 48
-          : size().height,
+        minHeight: props.episode ? (props.episode === 'player' ? 42 : space('3xl')) : size().height,
         minWidth: props.iconOnly ? size().height : undefined,
         maxWidth: props.labelLines ? '100%' : undefined,
         borderRadius: size().radius,
-        borderWidth: Product() === 'tv' ? tvUnit(1) : 1,
+        borderWidth: border,
         paddingHorizontal: props.iconOnly ? size().gap : size().paddingHorizontal,
         paddingVertical: size().paddingVertical,
         gap: size().gap,
@@ -118,7 +114,7 @@ export function Button(props: ButtonProps) {
       current={props.current}
       expanded={props.expanded}
       accessibilityDescription={props.accessibilityDescription}
-      class={`flex-row items-center ${variant() === 'navigation' && Product() === 'desktop' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
+      class={`flex-row items-center ${props.align === 'start' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
     >
       <SelectFocus
         open={props.selectOpen}
@@ -141,8 +137,7 @@ export function Button(props: ButtonProps) {
         <If when={!props.iconOnly && (props.artwork ? !!props.displayLabel : true)}>
           <Text
             style={{
-              fontSize:
-                variant() === 'navigation' && Product() === 'tv' ? tvUnit(24) : size().fontSize,
+              fontSize: size().fontSize,
               flexShrink: props.selectOpen !== undefined || props.labelLines ? 1 : undefined,
               numberOfLines: props.labelLines ?? 0,
             }}

@@ -1,7 +1,7 @@
 import { View, batch, signal } from 'nsh';
 import { Button } from '../src/button';
 import { UiText } from '../src/display';
-import { Product, type ProductTarget } from '../src/foundation';
+import { type ProductTarget } from '../src/foundation';
 import {
   RadarTable,
   type RadarTableColumn,
@@ -86,7 +86,7 @@ export function RadarTables(props: { target: ProductTarget }) {
     restore(first);
   };
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 min-h-0 bg-background p-8 gap-3">
         <UiText role="section">只读表格基础组件验收</UiText>
         <View class="flex-row flex-wrap gap-3">
@@ -153,6 +153,7 @@ export function RadarTables(props: { target: ProductTarget }) {
           <UiText>暂无条目</UiText>
         </If>
         <RadarTable
+          focusMode={props.target === 'tv' ? 'row' : 'cell'}
           collection={wide() ? 'wide' : 'compact'}
           columns={
             wide()
@@ -179,6 +180,6 @@ export function RadarTables(props: { target: ProductTarget }) {
           }}
         />
       </View>
-    </Product.Provider>
+    </>
   );
 }

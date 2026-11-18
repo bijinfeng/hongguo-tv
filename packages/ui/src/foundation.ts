@@ -1,26 +1,85 @@
-import { context, windowSize } from 'nsh';
+import { token } from 'nsh';
 
 /** Product input/density family, independent of the host operating system. */
 export type ProductTarget = 'desktop' | 'tv';
-/** Inject once at the app surface; controls read this in reactive bindings. */
-export const Product = context<ProductTarget>('desktop');
-/** Approved control heights in desktop points and TV reference units. */
-export const uiScale = { desktop: { control: 44 }, tv: { control: 60 } } as const;
-/** Convert the approved 1920-wide TV design into the current logical viewport. */
-export const tvUnit = (value: number) => (value * windowSize().width) / 1920;
-/** The finite sizes shared by ordinary controls; TV keeps one comfortable target. */
-export type ControlSize = 'md' | 'sm';
-/** One size selects geometry, type and icon together; values are logical units. */
-export function controlMetrics(size: ControlSize = 'md') {
-  const tv = Product() === 'tv';
-  const scale = (value: number) => (tv ? tvUnit(value) : value);
+
+/** The finite sizes shared by ordinary controls; a size is geometry only. */
+export type ControlSize = 'sm' | 'md' | 'lg';
+
+/** Token names per control size; the values come from the app's theme file. */
+const controlTokens = {
+  sm: {
+    height: 'control-sm-height',
+    fontSize: 'control-sm-font',
+    paddingHorizontal: 'control-sm-padding-x',
+    paddingVertical: 'control-sm-padding-y',
+    gap: 'control-sm-gap',
+    radius: 'control-sm-radius',
+    iconSize: 'control-sm-icon',
+  },
+  md: {
+    height: 'control-md-height',
+    fontSize: 'control-md-font',
+    paddingHorizontal: 'control-md-padding-x',
+    paddingVertical: 'control-md-padding-y',
+    gap: 'control-md-gap',
+    radius: 'control-md-radius',
+    iconSize: 'control-md-icon',
+  },
+  lg: {
+    height: 'control-lg-height',
+    fontSize: 'control-lg-font',
+    paddingHorizontal: 'control-lg-padding-x',
+    paddingVertical: 'control-lg-padding-y',
+    gap: 'control-lg-gap',
+    radius: 'control-lg-radius',
+    iconSize: 'control-lg-icon',
+  },
+} as const;
+
+/** Control geometry for one size, read from the current theme. */
+export const controlMetrics = (size: ControlSize = 'md') => {
+  const names = controlTokens[size];
   return {
-    height: scale(tv ? 60 : size === 'sm' ? 36 : 44),
-    fontSize: scale(tv ? 22 : size === 'sm' ? 14 : 16),
-    paddingHorizontal: scale(tv ? 24 : size === 'sm' ? 12 : 16),
-    paddingVertical: scale(tv ? 12 : 8),
-    gap: scale(tv ? 12 : 8),
-    radius: scale(12),
-    iconSize: scale(tv ? 26 : size === 'sm' ? 18 : 20),
+    height: token(names.height),
+    fontSize: token(names.fontSize),
+    paddingHorizontal: token(names.paddingHorizontal),
+    paddingVertical: token(names.paddingVertical),
+    gap: token(names.gap),
+    radius: token(names.radius),
+    iconSize: token(names.iconSize),
   };
-}
+};
+
+const spaceTokens = {
+  none: 'space-none',
+  xxs: 'space-xxs',
+  xs: 'space-xs',
+  sm: 'space-sm',
+  md: 'space-md',
+  lg: 'space-lg',
+  xl: 'space-xl',
+  '2xl': 'space-2xl',
+  '3xl': 'space-3xl',
+} as const;
+
+export type SpaceToken = keyof typeof spaceTokens;
+
+/** One step of the spacing scale in the current theme. */
+export const space = (name: SpaceToken) => token(spaceTokens[name]);
+
+const radiusTokens = {
+  sm: 'radius-sm',
+  md: 'radius-md',
+  lg: 'radius-lg',
+  xl: 'radius-xl',
+  full: 'radius-full',
+} as const;
+
+export type RadiusToken = keyof typeof radiusTokens;
+
+/** One step of the corner radius scale in the current theme. */
+export const radius = (name: RadiusToken) => token(radiusTokens[name]);
+
+/** Hairline border, always one point. */
+export const border = 1;

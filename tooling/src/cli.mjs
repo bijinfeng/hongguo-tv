@@ -19,6 +19,7 @@ import {
 } from './process.mjs';
 import { boundaries } from './boundaries.mjs';
 import { codegen } from './codegen.mjs';
+import { designTokens } from './design-tokens.mjs';
 import { dev } from './dev.mjs';
 import { fixtureDev } from './fixture-dev.mjs';
 import { packageTvHost, tvHostEnvironment } from './tv-host.mjs';
@@ -307,6 +308,7 @@ try {
       await fmt(true);
       await lint();
       await codegen(true);
+      await designTokens(true);
       await check();
       await build();
       await test();

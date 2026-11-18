@@ -1,5 +1,5 @@
 import { List, View, signal, effect, cleanup, type ListRef, type ViewRef } from 'nsh';
-import { CardControls, PosterCard, tvUnit, type ProductTarget } from '@hongguo/ui';
+import { CardControls, PosterCard, type ProductTarget } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 
 /** Shared stable-slot grid / TV shelf, with identity-based return anchors. */
@@ -79,21 +79,19 @@ export function PosterCollection(props: {
       }))}
       keyExtractor={(row) => row.id}
       horizontal={props.target === 'tv'}
-      estimatedItemSize={props.target === 'tv' ? tvUnit(276) : ((width() - 84) / 4) * 1.35 + 84}
+      estimatedItemSize={props.target === 'tv' ? 138 : ((width() - 84) / 4) * 1.35 + 84}
       class="flex-1"
       style={props.target === 'desktop' ? { width: '100%', maxWidth: 1100 } : undefined}
       contentStyle={{
-        gap: props.target === 'tv' ? tvUnit(12) : 12,
+        gap: props.target === 'tv' ? 6 : 12,
         paddingHorizontal: props.target === 'tv' ? 0 : 8,
-        paddingVertical: props.target === 'tv' ? tvUnit(8) : 0,
+        paddingVertical: props.target === 'tv' ? 4 : 0,
       }}
     >
       {(row) => (
         <View
           style={
-            props.target === 'tv'
-              ? { width: tvUnit(276), paddingHorizontal: tvUnit(8) }
-              : { paddingVertical: 8 }
+            props.target === 'tv' ? { width: 138, paddingHorizontal: 4 } : { paddingVertical: 8 }
           }
         >
           <CardControls onNavigate={props.onNavigate} label={props.label} class="w-full gap-7">
@@ -136,10 +134,7 @@ export function PosterCollection(props: {
                             refs.set(drama().series_id, node);
                           }}
                           testID={`drama-${drama().series_id}`}
-                          availableHeight={Math.max(
-                            0,
-                            height() - (props.target === 'tv' ? tvUnit(16) : 32),
-                          )}
+                          availableHeight={Math.max(0, height() - (props.target === 'tv' ? 8 : 32))}
                           width={(width() - 84) / 4 - 4}
                           title={drama().title}
                           cover={drama().cover_fallback || drama().cover}

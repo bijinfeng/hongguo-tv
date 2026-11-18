@@ -1,5 +1,5 @@
 import { Text, View, type JSX } from 'nsh';
-import { Product, tvUnit, controlMetrics } from './foundation';
+import { controlMetrics } from './foundation';
 
 /** A visible field label, control and its adjacent help or error. The caller owns validation. */
 export interface FieldProps {
@@ -27,7 +27,7 @@ export function Field(props: FieldProps) {
         <Text
           role={props.error ? 'alert' : 'text'}
           class={props.error ? 'text-destructive' : 'text-muted-foreground'}
-          style={{ fontSize: Product() === 'tv' ? tvUnit(20) : 14 }}
+          style={{ fontSize: 14 }}
         >
           {props.error || props.description}
         </Text>
@@ -49,28 +49,17 @@ export function FieldGroup(props: FieldGroupProps) {
       accessibilityDescription={props.error || props.description}
       class="min-w-0 gap-4"
     >
-      <Text
-        role="header"
-        class="text-foreground font-semibold"
-        style={{ fontSize: Product() === 'tv' ? tvUnit(24) : 18 }}
-      >
+      <Text role="header" class="text-foreground font-semibold" style={{ fontSize: 18 }}>
         {props.label}
       </Text>
       <If when={props.description && !props.error}>
-        <Text
-          class="text-muted-foreground"
-          style={{ fontSize: Product() === 'tv' ? tvUnit(20) : 14 }}
-        >
+        <Text class="text-muted-foreground" style={{ fontSize: 14 }}>
           {props.description}
         </Text>
       </If>
       {props.children}
       <If when={props.error}>
-        <Text
-          role="alert"
-          class="text-destructive"
-          style={{ fontSize: Product() === 'tv' ? tvUnit(20) : 14 }}
-        >
+        <Text role="alert" class="text-destructive" style={{ fontSize: 14 }}>
           {props.error}
         </Text>
       </If>

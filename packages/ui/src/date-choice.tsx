@@ -1,6 +1,6 @@
 import { Text, reduceMotion, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
-import { Product, tvUnit } from './foundation';
+import { space, border } from './foundation';
 import { motionTokens } from './motion';
 
 function dateParts(value: string) {
@@ -38,31 +38,32 @@ export function DateChoice(props: DateChoiceProps) {
           onFocus={props.onFocus}
           class="flex-1 items-center justify-center rounded-(--radius) border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
           style={{
-            minWidth: Product() === 'tv' ? tvUnit(164) : 86,
-            minHeight: Product() === 'tv' ? tvUnit(132) : 96,
-            ...(Product() === 'tv' ? { borderRadius: tvUnit(12), borderWidth: tvUnit(1) } : {}),
+            minWidth: 86,
+            minHeight: 96,
+            borderRadius: space('sm'),
+            borderWidth: border,
             flexShrink: 0,
-            padding: Product() === 'tv' ? tvUnit(16) : 12,
-            gap: Product() === 'tv' ? tvUnit(6) : 4,
+            padding: space('sm'),
+            gap: space('xxs'),
             transitionProperty: 'colors',
             transitionDuration: reduceMotion() ? 0 : motionTokens.fast,
           }}
         >
           <Text
             class={`text-sm text-center ${props.selected ? 'text-accent-foreground' : 'text-muted-foreground'}`}
-            style={Product() === 'tv' ? { fontSize: tvUnit(22) } : undefined}
+            style={{ fontSize: 14 }}
           >
             {props.label}
           </Text>
           <Text
             class={`text-xl font-semibold text-center tabular-nums ${props.selected ? 'text-accent-foreground' : 'text-foreground'}`}
-            style={Product() === 'tv' ? { fontSize: tvUnit(32) } : undefined}
+            style={{ fontSize: 20 }}
           >
             {String(date().day)}
           </Text>
           <Text
             class={`text-sm text-center ${props.selected ? 'text-accent-foreground' : 'text-muted-foreground'}`}
-            style={Product() === 'tv' ? { fontSize: tvUnit(20) } : undefined}
+            style={{ fontSize: 14 }}
           >
             {`${date().month} 月`}
           </Text>

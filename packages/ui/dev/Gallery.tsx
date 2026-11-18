@@ -1,7 +1,5 @@
 import { Scroll, Text, View, signal, token, type JSX, type ViewRef, type ScrollRef } from 'nsh';
 import {
-  Product,
-  tvUnit,
   UiText,
   Surface,
   Badge,
@@ -158,14 +156,14 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   let scroll: ScrollRef | undefined;
   let sliderReset: ViewRef | undefined;
   let toastId = 0;
-  const unit = (desktop: number, tv = desktop) => (props.target === 'tv' ? tvUnit(tv) : desktop);
+  const unit = (desktop: number, _tv = desktop) => desktop;
   const submit = () => result.set(query().trim() ? `搜索：${query().trim()}` : '请输入短剧或演员');
   const notify = () => {
     toastId += 1;
     toasts.set([...toasts(), { id: String(toastId), message: '设置已保存' }]);
   };
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background" style={{ padding: unit(32, 48), gap: unit(24, 24) }}>
         <View class="gap-2">
           <UiText role="page">基础组件验收</UiText>
@@ -297,6 +295,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
             <If when={sheet() === 'forms'}>
               <Section title="输入与搜索">
                 <SearchField
+                  activation={props.target === 'tv' ? 'confirm' : 'direct'}
                   label="搜索短剧、演员"
                   placeholder="短剧、演员"
                   value={query()}
@@ -314,13 +313,21 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 />
                 <FieldGroup label="输入状态">
                   <TextInput
+                    activation={props.target === 'tv' ? 'confirm' : 'direct'}
                     label="短剧名称"
                     value={title()}
                     onChange={({ value }) => title.set(value)}
                     testID="gallery-title"
                   />
-                  <TextInput label="只读信息" value="共 80 集" readonly onChange={() => {}} />
                   <TextInput
+                    activation={props.target === 'tv' ? 'confirm' : 'direct'}
+                    label="只读信息"
+                    value="共 80 集"
+                    readonly
+                    onChange={() => {}}
+                  />
+                  <TextInput
+                    activation={props.target === 'tv' ? 'confirm' : 'direct'}
                     label="不可编辑"
                     value="暂不可用"
                     disabled
@@ -329,6 +336,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   />
                   <Field label="短剧名称错误示例" error="请输入短剧名称">
                     <TextInput
+                      activation={props.target === 'tv' ? 'confirm' : 'direct'}
                       label="短剧名称错误示例"
                       value=""
                       invalid
@@ -443,6 +451,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   }}
                 />
                 <Slider
+                  activation={props.target === 'tv' ? 'confirm' : 'direct'}
                   label="音量"
                   value={slider()}
                   min={0}
@@ -521,7 +530,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 </Disclosure>
                 <Link label="项目文档" href="https://github.com/aston314/hongguo-tv" />
                 <Link label="链接不可用" disabled />
-                <KeyHint keyLabel="Enter" remoteLabel="确认" label="打开所选内容" />
+                <KeyHint
+                  keyLabel="Enter"
+                  remoteLabel="确认"
+                  remote={props.target === 'tv'}
+                  label="打开所选内容"
+                />
               </Section>
               <GalleryNavigationRecipes />
             </If>
@@ -565,7 +579,15 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   <Popover label="观看记录说明" testID="gallery-popover">
                     <UiText>记录保存在当前设备，可随时移除。</UiText>
                   </Popover>
-                  <View tooltip={<Tooltip label="关闭当前面板" testID="gallery-tooltip" />}>
+                  <View
+                    tooltip={
+                      <Tooltip
+                        label="关闭当前面板"
+                        testID="gallery-tooltip"
+                        disabled={props.target === 'tv'}
+                      />
+                    }
+                  >
                     <IconButton
                       label="关闭面板"
                       icon="x"
@@ -944,6 +966,6 @@ export function ComponentGallery(props: ComponentGalleryProps) {
           testID="gallery-toasts"
         />
       </View>
-    </Product.Provider>
+    </>
   );
 }

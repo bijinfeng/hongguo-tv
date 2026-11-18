@@ -2,11 +2,10 @@ import { Scroll, View, batch, signal, type ViewRef } from 'nsh';
 import { Button } from '../src/button';
 import { CardControls } from '../src/card-controls';
 import { UiText } from '../src/display';
-import { Product, type ProductTarget } from '../src/foundation';
 import { SeasonChoice } from '../src/season-choice';
 
 /** Synthetic presentation facts only; no catalog, media or history ownership. */
-export function SeasonChoices(props: { target: ProductTarget }) {
+export function SeasonChoices() {
   const selected = signal('one');
   const requested = signal('none');
   const presses = signal(0);
@@ -30,7 +29,7 @@ export function SeasonChoices(props: { target: ProductTarget }) {
     );
   };
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background p-8 gap-4">
         <View class="flex-row flex-wrap gap-3">
           <Button testID="choice-reject" label="拒绝选择" onPress={() => accepted.set(false)} />
@@ -95,6 +94,6 @@ export function SeasonChoices(props: { target: ProductTarget }) {
           </View>
         </Scroll>
       </View>
-    </Product.Provider>
+    </>
   );
 }

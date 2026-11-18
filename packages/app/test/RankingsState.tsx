@@ -1,5 +1,5 @@
 import { Text, View, cleanup, signal } from 'nsh';
-import { Button, Product, type ProductTarget } from '@hongguo/ui';
+import { Button, type ProductTarget } from '@hongguo/ui';
 import { Rankings } from '../src/pages/Rankings';
 import type { RankItem, RankOption, RankResult } from '@hongguo/core-client';
 import { createRankings, rankingIdentity, type RankingDimension } from '../src/rankings';
@@ -236,7 +236,7 @@ function RankingsLayoutFixture(props: { target: ProductTarget }) {
     () => true,
   );
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background">
         <Rankings
           rankings={rankings}
@@ -252,6 +252,6 @@ function RankingsLayoutFixture(props: { target: ProductTarget }) {
         <Text class="line-clamp-1">{opened()}</Text>
         <Text class="line-clamp-1">{queries()}</Text>
       </View>
-    </Product.Provider>
+    </>
   );
 }

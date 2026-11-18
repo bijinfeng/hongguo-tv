@@ -1,5 +1,5 @@
 import { Image, Text, View, token, windowSize } from 'nsh';
-import { Button, CardControls, SkeletonBlock, SkeletonRegion, UiText, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from '../../store';
 
@@ -109,10 +109,10 @@ function TvArt(props: { drama: Drama; second?: Drama }) {
       accessibilityElementsHidden
       style={{
         position: 'absolute',
-        right: -tvUnit(88),
-        top: -tvUnit(36),
-        width: tvUnit(1040),
-        height: tvUnit(520),
+        right: -44,
+        top: -18,
+        width: 520,
+        height: 260,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundImage:
@@ -122,11 +122,11 @@ function TvArt(props: { drama: Drama; second?: Drama }) {
       <Text
         style={{
           position: 'absolute',
-          right: tvUnit(150),
-          top: -tvUnit(15),
-          fontSize: tvUnit(330),
-          lineHeight: tvUnit(330) * 1.4,
-          letterSpacing: tvUnit(330) * 0.1,
+          right: 75,
+          top: -7.5,
+          fontSize: 165,
+          lineHeight: 165 * 1.4,
+          letterSpacing: 165 * 0.1,
           fontWeight: 'normal',
           color: 'rgba(255, 255, 255, 0.07)',
         }}
@@ -135,17 +135,17 @@ function TvArt(props: { drama: Drama; second?: Drama }) {
       </Text>
       <Poster
         drama={props.second}
-        width={tvUnit(238)}
-        shift={-tvUnit(85)}
-        offsetY={tvUnit(5)}
+        width={119}
+        shift={-42.5}
+        offsetY={2.5}
         rotate="-10deg"
         opacity={0.8}
       />
       <Poster
         drama={props.drama}
-        width={tvUnit(275)}
-        shift={tvUnit(125)}
-        offsetY={-tvUnit(5)}
+        width={137.5}
+        shift={62.5}
+        offsetY={-2.5}
         rotate="8deg"
         shadow="12px 18px 35px rgba(0, 0, 0, 0.42)"
       />
@@ -165,8 +165,8 @@ function HeroSkeleton(props: { tv: boolean }) {
       testID="home-hero-pending"
       class={`overflow-hidden rounded-(--radius) bg-card ${props.tv ? '' : 'flex-row'}`}
       style={{
-        minHeight: props.tv ? tvUnit(450) : size().minHeight,
-        marginBottom: props.tv ? tvUnit(24) : 0,
+        minHeight: props.tv ? 225 : size().minHeight,
+        marginBottom: props.tv ? 12 : 0,
         flexDirection: props.tv ? 'column' : 'row',
         alignItems: props.tv ? 'flex-start' : 'stretch',
         justifyContent: props.tv ? 'center' : undefined,
@@ -176,31 +176,27 @@ function HeroSkeleton(props: { tv: boolean }) {
         class="justify-center"
         style={
           props.tv
-            ? { width: tvUnit(790), paddingBottom: tvUnit(8), gap: tvUnit(18) }
+            ? { width: 395, paddingBottom: 4, gap: 9 }
             : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: size().padLeft, gap: 12 }
         }
       >
         <SkeletonBlock
-          width={props.tv ? tvUnit(140) : 108}
-          height={props.tv ? tvUnit(20) : 12}
-          radius={props.tv ? tvUnit(10) : 6}
+          width={props.tv ? 70 : 108}
+          height={props.tv ? 10 : 12}
+          radius={props.tv ? 5 : 6}
         />
-        <SkeletonBlock
-          width="62%"
-          height={props.tv ? tvUnit(52) : 44}
-          radius={props.tv ? tvUnit(8) : 6}
-        />
-        <SkeletonBlock width="82%" height={props.tv ? tvUnit(20) : 12} radius={4} />
-        <View class="flex-row" style={{ gap: props.tv ? tvUnit(18) : 12 }}>
+        <SkeletonBlock width="62%" height={props.tv ? 26 : 44} radius={props.tv ? 4 : 6} />
+        <SkeletonBlock width="82%" height={props.tv ? 10 : 12} radius={4} />
+        <View class="flex-row" style={{ gap: props.tv ? 9 : 12 }}>
           <SkeletonBlock
-            width={props.tv ? tvUnit(220) : 140}
-            height={props.tv ? tvUnit(62) : 44}
-            radius={props.tv ? tvUnit(12) : 8}
+            width={props.tv ? 110 : 140}
+            height={props.tv ? 31 : 44}
+            radius={props.tv ? 6 : 8}
           />
           <SkeletonBlock
-            width={props.tv ? tvUnit(168) : 104}
-            height={props.tv ? tvUnit(62) : 44}
-            radius={props.tv ? tvUnit(12) : 8}
+            width={props.tv ? 84 : 104}
+            height={props.tv ? 31 : 44}
+            radius={props.tv ? 6 : 8}
           />
         </View>
       </View>
@@ -243,11 +239,11 @@ export function HomeHero(props: { store: Store }) {
   };
   const introStyle = () =>
     tv()
-      ? { fontSize: tvUnit(23), lineHeight: tvUnit(23) * 1.85, maxWidth: tvUnit(644) }
+      ? { fontSize: 11.5, lineHeight: 11.5 * 1.85, maxWidth: 322 }
       : { fontSize: 14, lineHeight: 14 * 1.85, maxWidth: 392 };
   const copyStyle = () => {
     return tv()
-      ? { width: tvUnit(790), paddingBottom: tvUnit(8) }
+      ? { width: 395, paddingBottom: 4 }
       : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: desktopHero().padLeft };
   };
   return (
@@ -267,31 +263,27 @@ export function HomeHero(props: { store: Store }) {
             flexDirection: tv() ? 'column' : 'row',
             alignItems: tv() ? 'flex-start' : 'stretch',
             justifyContent: tv() ? 'center' : undefined,
-            minHeight: tv() ? tvUnit(450) : desktopHero().minHeight,
-            marginBottom: tv() ? tvUnit(24) : 0,
+            minHeight: tv() ? 225 : desktopHero().minHeight,
+            marginBottom: tv() ? 12 : 0,
           }}
         >
           <View class="justify-center" style={{ ...copyStyle(), position: 'relative', zIndex: 1 }}>
-            <View style={{ marginBottom: tv() ? tvUnit(10) : 9 }}>
+            <View style={{ marginBottom: tv() ? 5 : 9 }}>
               <UiText role="meta">{meta()}</UiText>
             </View>
-            <View style={{ marginBottom: tv() ? tvUnit(33) : 25 }}>
+            <View style={{ marginBottom: tv() ? 16.5 : 25 }}>
               <UiText role="display" lines={2}>
                 {drama().title}
               </UiText>
             </View>
             <If when={drama().intro}>
-              <View style={{ marginBottom: tv() ? tvUnit(31) : 25 }}>
+              <View style={{ marginBottom: tv() ? 15.5 : 25 }}>
                 <Text class="text-muted-foreground" style={{ ...introStyle(), numberOfLines: 2 }}>
                   {drama().intro}
                 </Text>
               </View>
             </If>
-            <CardControls
-              label="精选"
-              onNavigate={props.store.noteFocusIntent}
-              gap={tv() ? tvUnit(18) : 12}
-            >
+            <CardControls label="精选" onNavigate={props.store.noteFocusIntent} gap={tv() ? 9 : 12}>
               <Button
                 variant="primary"
                 icon="play"

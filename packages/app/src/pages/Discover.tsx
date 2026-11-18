@@ -1,5 +1,5 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, CardControls, FilterChoices, Notice, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, FilterChoices, Notice } from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
@@ -28,7 +28,7 @@ export function Discover(props: { store: Store }) {
       class="flex-1"
       style={
         props.store.target === 'tv'
-          ? { paddingTop: tvUnit(32), gap: tvUnit(28) }
+          ? { paddingTop: 16, gap: 14 }
           : desktopContentFrame({ top: 24, gap: 28 })
       }
     >
@@ -37,7 +37,7 @@ export function Discover(props: { store: Store }) {
           role="header"
           accessibilityLevel={1}
           class="text-3xl font-semibold text-foreground"
-          style={props.store.target === 'tv' ? { fontSize: tvUnit(38) } : undefined}
+          style={props.store.target === 'tv' ? { fontSize: 19 } : undefined}
         >
           {props.store.target === 'tv' ? '找剧' : '找一部想看的'}
         </Text>
@@ -46,6 +46,7 @@ export function Discover(props: { store: Store }) {
         <Each of={dimensions} key={(dimension) => dimension.key}>
           {(dimension) => (
             <FilterChoices
+              variant={props.store.target === 'tv' ? 'select' : 'chips'}
               onSource={props.store.categorySource}
               onNavigate={props.store.noteFocusIntent}
               label={dimension().label}
@@ -68,7 +69,7 @@ export function Discover(props: { store: Store }) {
         <View class="items-start gap-4">
           <Text
             class="text-base text-muted-foreground"
-            style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+            style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
           >
             {category.data()?.has_more
               ? '本页暂无内容，可以继续浏览'

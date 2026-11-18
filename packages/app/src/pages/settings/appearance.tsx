@@ -1,8 +1,6 @@
-import { Product, Select, SettingsRow, SettingsSection, tvUnit } from '@hongguo/ui';
+import { Select, SettingsRow, SettingsSection } from '@hongguo/ui';
 import type { Store } from '../../store';
 import type { ThemeMode } from '../../settings';
-
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 const themeOptions = [
   { value: 'system', label: '跟随系统' },
@@ -27,7 +25,7 @@ export function SettingsAppearance(props: { store: Store }) {
           disabled={!settings.loaded()}
           onChange={(event) => settings.setTheme((event.value as ThemeMode) ?? 'system')}
           testID="settings-theme"
-          style={{ minWidth: unit(200) }}
+          style={{ minWidth: 200 }}
         />
       </SettingsRow>
     </SettingsSection>

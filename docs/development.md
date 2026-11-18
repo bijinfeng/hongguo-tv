@@ -45,16 +45,16 @@ HTTP 开发 API 仅监听 loopback，校验精确 Host／Origin，不能直接�
 
 check／build／test 可加 `--target web|desktop|tv`，默认三端。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
 
-| 入口                                                  | 范围与限制                                                               |
-| ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| `pnpm ui:check`／`ui:test`／`ui:host`                 | 基础组件三端检查、行为与 macOS 可见宿主；不等于 Android 遥控／系统输入法 |
-| `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                |
-| `pnpm dev:fixture:web`／`desktop`／`tv`                | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收         |
-| `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                  |
-| `pnpm test:tv-native-startup`／`test:tv-native-retry` | 原生入口合成启动／失败／重试，不是独立真实业务                           |
-| `pnpm test:tv-native-business`                        | 当前原生 APK、官网媒体、SQLite、进程重启；需要唯一固定 TV API34 模拟器   |
-| `pnpm test:desktop-updates`／`test:tv-updates`        | 更新状态／宿主适配，不创建线上 Release，不代替正式签名 N-1→N 升级        |
-| `pnpm coverage`／`pnpm fuzz`                          | 运行范围和要求见 ENGINEERING；fuzz 先安装仓库要求的独立 nightly          |
+| 入口                                                  | 范围与限制                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pnpm ui:check`／`ui:test`／`ui:host`／`ui:preview`   | 基础组件三端检查、行为、macOS 可见宿主与显式预览；宿主默认后台，预览固定端口单实例；不等于 Android 遥控／系统输入法 |
+| `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                                                           |
+| `pnpm dev:fixture:web`／`desktop`／`tv`               | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收                                                    |
+| `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                                                             |
+| `pnpm test:tv-native-startup`／`test:tv-native-retry` | 原生入口合成启动／失败／重试，不是独立真实业务                                                                      |
+| `pnpm test:tv-native-business`                        | 当前原生 APK、官网媒体、SQLite、进程重启；需要唯一固定 TV API34 模拟器                                              |
+| `pnpm test:desktop-updates`／`test:tv-updates`        | 更新状态／宿主适配，不创建线上 Release，不代替正式签名 N-1→N 升级                                                   |
+| `pnpm coverage`／`pnpm fuzz`                          | 运行范围和要求见 ENGINEERING；fuzz 先安装仓库要求的独立 nightly                                                     |
 
 真实匿名流程使用现有工具，不注入合成响应或直接伪造观看记录：
 

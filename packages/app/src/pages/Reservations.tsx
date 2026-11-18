@@ -9,7 +9,7 @@ import {
   type ListRef,
   type ViewRef,
 } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, ContentArrival, Cover, Notice, UiText } from '@hongguo/ui';
 import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
@@ -245,15 +245,13 @@ export function Reservations(props: { store: Store }) {
       testID="reservations-page"
       class="flex-1"
       style={{
-        ...(props.store.target === 'tv'
-          ? { paddingTop: tvUnit(32) }
-          : desktopContentFrame({ top: 24 })),
-        gap: props.store.target === 'tv' ? tvUnit(16) : 16,
+        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
+        gap: props.store.target === 'tv' ? 8 : 16,
       }}
     >
       <View
         class="flex-row flex-wrap items-center justify-between"
-        style={{ gap: props.store.target === 'tv' ? tvUnit(16) : 16 }}
+        style={{ gap: props.store.target === 'tv' ? 8 : 16 }}
       >
         <UiText role="page">预约</UiText>
         <Button
@@ -324,9 +322,9 @@ export function Reservations(props: { store: Store }) {
             testID="reservations-list"
             each={items()}
             keyExtractor={reservationItemId}
-            estimatedItemSize={(props.store.target === 'tv' ? tvUnit(240) : 200) * fontScale()}
+            estimatedItemSize={(props.store.target === 'tv' ? 120 : 200) * fontScale()}
             class="flex-1"
-            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}
+            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
             onLayout={() => {
               if (waiting) reveal();
             }}
@@ -380,14 +378,14 @@ function ReservationRow(props: {
       testID={`reservations-row-${reservationItemId(props.item)}`}
       class="flex-row flex-wrap items-center border-b border-border"
       style={{
-        gap: props.store.target === 'tv' ? tvUnit(20) : 20,
-        paddingVertical: props.store.target === 'tv' ? tvUnit(20) : 20,
+        gap: props.store.target === 'tv' ? 10 : 20,
+        paddingVertical: props.store.target === 'tv' ? 10 : 20,
       }}
     >
       <View
         style={{
-          width: props.store.target === 'tv' ? tvUnit(108) : 88,
-          height: props.store.target === 'tv' ? tvUnit(152) : 112,
+          width: props.store.target === 'tv' ? 54 : 88,
+          height: props.store.target === 'tv' ? 76 : 112,
         }}
       >
         <Cover
@@ -396,7 +394,7 @@ function ReservationRow(props: {
           class="w-full h-full"
         />
       </View>
-      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}>
+      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 6 : 12 }}>
         <UiText role="content-title">{title()}</UiText>
         <If when={reservationPublishLabel(props.item)}>
           <UiText tone="muted">{reservationPublishLabel(props.item)}</UiText>

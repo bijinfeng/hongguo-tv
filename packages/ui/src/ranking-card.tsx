@@ -2,7 +2,7 @@ import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { Cover } from './content';
 import { Avatar, UiText } from './display';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { controlMetrics, space, border } from './foundation';
 import { Icon } from './icon';
 import { motionTokens } from './motion';
 import { textSize } from './typography';
@@ -44,7 +44,6 @@ export function RankingCard(props: RankingCardProps) {
     props.rank !== undefined && Number.isInteger(props.rank) && props.rank > 0
       ? props.rank
       : undefined;
-  const unit = (desktop: number, tv = desktop) => (Product() === 'tv' ? tvUnit(tv) : desktop);
   const tone = () => (props.selected ? 'selected' : 'default');
   return (
     <CardRoot
@@ -59,19 +58,15 @@ export function RankingCard(props: RankingCardProps) {
       onPress={props.onPress}
       class={`flex-row items-center border border-transparent border-b-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
       style={{
-        paddingVertical: unit(22, 14),
-        gap: unit(20, 12),
+        paddingVertical: 22,
+        gap: 20,
         borderRadius: controlMetrics().radius,
-        borderWidth: unit(1),
+        borderWidth: border,
         transitionProperty: 'colors',
         transitionDuration: reduceMotion() ? 0 : motionTokens.fast,
       }}
     >
-      <View
-        accessibilityElementsHidden
-        class="shrink-0 items-center"
-        style={{ minWidth: unit(42, 36) }}
-      >
+      <View accessibilityElementsHidden class="shrink-0 items-center" style={{ minWidth: 42 }}>
         <If when={rank() !== undefined}>
           <Text
             class={`tabular-nums text-center ${props.selected ? 'text-accent-foreground' : rank() === 1 ? 'text-primary' : 'text-muted-foreground'}`}
@@ -88,23 +83,23 @@ export function RankingCard(props: RankingCardProps) {
         <If
           when={props.kind === 'actor'}
           else={
-            <View style={{ width: unit(86, 70) }}>
-              <Cover src={props.cover} title={props.title} height={unit(116, 94)} />
+            <View style={{ width: 86 }}>
+              <Cover src={props.cover} title={props.title} height={116} />
             </View>
           }
         >
           <Avatar src={props.cover} name={props.title} size="lg" accessibilityLabel="" />
         </If>
       </View>
-      <View class="flex-1 min-w-0" style={{ gap: unit(8) }}>
+      <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
         <View
           style={{
             display: 'flex',
             flexDirection: 'row',
             flexWrap: 'wrap',
             alignItems: 'baseline',
-            columnGap: unit(12),
-            rowGap: unit(4),
+            columnGap: space('sm'),
+            rowGap: space('xxs'),
           }}
         >
           <Text

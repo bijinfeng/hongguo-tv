@@ -1,6 +1,6 @@
 import { Text, signal, effect, type ViewProps, type ViewRef } from 'nsh';
 import { Select as BaseSelect } from 'nsh/base';
-import { Product, tvUnit, controlMetrics } from './foundation';
+import { controlMetrics } from './foundation';
 import { Button } from './button';
 import { type ChoiceOption } from './choice';
 
@@ -71,7 +71,7 @@ export function Select(props: SelectProps) {
         />
       }
       popupClass="bg-popover border border-border rounded-(--radius) p-2"
-      popupStyle={{ minWidth: Product() === 'tv' ? tvUnit(240) : 180 }}
+      popupStyle={{ minWidth: 180 }}
       empty={
         <Text
           class="px-3 py-2 text-muted-foreground"

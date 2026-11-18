@@ -1,11 +1,11 @@
 import { View, cleanup, signal } from 'nsh';
-import { Button, Logo, UiText, tvUnit } from '@hongguo/ui';
+import { Button, Logo, UiText } from '@hongguo/ui';
 import type { Store } from '../store';
 import { Navigation } from './Navigation';
 import type { ImageAsset } from 'nsh';
 
-/** Design draft: 132px header, 88px inline padding, 112px brand gap, 56px icon targets. */
-const geometry = { header: 132, inline: 88, gap: 112, actions: 56 };
+/** TV header geometry in points (the 132/88/112/56 draft halved to device points). */
+const geometry = { header: 66, inline: 44, gap: 56, actions: 28 };
 
 function clock(): string {
   const now = new Date();
@@ -17,7 +17,7 @@ export function TvHelp() {
   return (
     <View
       class="flex-row items-center border-t border-border"
-      style={{ height: tvUnit(75), paddingHorizontal: tvUnit(88) }}
+      style={{ height: 37.5, paddingHorizontal: 44 }}
     >
       <UiText role="meta">方向键 移动焦点 · 确认 进入 · 返回 / Esc 返回</UiText>
     </View>
@@ -33,17 +33,17 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
     <View
       class="flex-row items-center"
       style={{
-        height: tvUnit(geometry.header),
-        paddingHorizontal: tvUnit(geometry.inline),
-        gap: tvUnit(geometry.gap),
+        height: geometry.header,
+        paddingHorizontal: geometry.inline,
+        gap: geometry.gap,
       }}
     >
       <Logo mark={props.logoMark} />
       <View class="flex-1">
         <Navigation store={props.store} layout="tv" />
       </View>
-      <View class="flex-row items-center" style={{ gap: tvUnit(25) }}>
-        <View style={{ width: tvUnit(geometry.actions), height: tvUnit(geometry.actions) }}>
+      <View class="flex-row items-center" style={{ gap: 12.5 }}>
+        <View style={{ width: geometry.actions, height: geometry.actions }}>
           <Button
             testID="nav-search"
             icon="search"
@@ -54,7 +54,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
             onPress={props.store.openSearch}
           />
         </View>
-        <View style={{ width: tvUnit(geometry.actions), height: tvUnit(geometry.actions) }}>
+        <View style={{ width: geometry.actions, height: geometry.actions }}>
           <Button
             testID="nav-settings"
             icon="settings"
@@ -64,7 +64,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
             onPress={() => props.store.settingsPage()}
           />
         </View>
-        <View style={{ width: tvUnit(geometry.actions), height: tvUnit(geometry.actions) }}>
+        <View style={{ width: geometry.actions, height: geometry.actions }}>
           <Button
             icon="user"
             iconOnly

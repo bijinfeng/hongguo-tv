@@ -1,5 +1,4 @@
 import { View, windowSize, type JSX } from 'nsh';
-import { tvUnit } from '@hongguo/ui';
 import type { Store } from '../store';
 
 /** Draft gutters: 3.5vw, kept between 24 and 64 on desktop. */
@@ -28,13 +27,13 @@ export function ContentColumn(props: {
   top?: number;
   bottom?: number;
 }) {
-  const gap = () => (props.store.target === 'tv' ? tvUnit(24) : 24);
+  const gap = () => (props.store.target === 'tv' ? 12 : 24);
   return (
     <View
       class="w-full"
       style={
         props.store.target === 'tv'
-          ? { paddingBottom: props.bottom ?? tvUnit(90), gap: gap() }
+          ? { paddingBottom: props.bottom ?? 45, gap: gap() }
           : {
               ...desktopContentFrame({ top: props.top ?? 16, bottom: props.bottom ?? 48 }),
               gap: gap(),

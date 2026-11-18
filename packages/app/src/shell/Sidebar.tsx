@@ -27,6 +27,7 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
       <CardControls label="账号" onNavigate={props.store.noteFocusIntent} vertical>
         <Button
           variant="navigation"
+          align="start"
           icon="user"
           label="我的账号"
           current={props.store.nav.routes().at(-1)?.name === 'account'}
@@ -34,6 +35,7 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
         />
         <Button
           variant="navigation"
+          align="start"
           icon="settings"
           label="设置"
           testID="nav-settings"

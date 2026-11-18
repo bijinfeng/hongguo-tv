@@ -1,6 +1,6 @@
 import { cleanup, effect, View, keymap, type ImageAsset } from 'nsh';
 import { BackHandler } from 'nsh/mobile';
-import { Product, type ProductTarget } from '@hongguo/ui';
+import { type ProductTarget } from '@hongguo/ui';
 import { createUpdates, type UpdateAdapter } from './updates';
 import { createStore, type FocusSource } from './store';
 import { DesktopShell } from './shell/DesktopShell';
@@ -45,7 +45,7 @@ export function App(props: {
   );
   props.onReady?.();
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View
         testID={`app-${props.target}`}
         onTouchStartCapture={store.noteFocusIntent}
@@ -58,7 +58,7 @@ export function App(props: {
           <TvShell store={store} logoMark={props.logoMark} updates={updates} />
         </If>
       </View>
-    </Product.Provider>
+    </>
   );
 }
 

@@ -5,7 +5,6 @@ import {
   SkeletonBlock,
   SkeletonRegion,
   UiText,
-  tvUnit,
   type ProductTarget,
 } from '@hongguo/ui';
 import type { RankingChoices } from '../../rankings';
@@ -41,7 +40,7 @@ function RankingGroupSelector(props: {
         horizontal
         class="flex-1"
         style={{ height: props.rowHeight }}
-        contentStyle={{ padding: props.target === 'tv' ? tvUnit(8) : 8 }}
+        contentStyle={{ padding: props.target === 'tv' ? 4 : 8 }}
       >
         <View onLayout={({ bounds }) => props.onContentHeight(bounds.size.height)}>
           <CardControls
@@ -136,7 +135,7 @@ export function RankingsToolbar(props: {
   return (
     <View class="border-b border-border" style={{ flexShrink: 0 }}>
       <Scroll testID="ranking-filters" style={{ height: props.height }}>
-        <View style={{ gap: props.gap, paddingBottom: props.target === 'tv' ? tvUnit(10) : 10 }}>
+        <View style={{ gap: props.gap, paddingBottom: props.target === 'tv' ? 5 : 10 }}>
           <Each of={props.groups} key={(group) => group.id}>
             {(group) => (
               <RankingGroupSelector
@@ -166,7 +165,7 @@ export function RankingsToolbarSkeleton(props: {
   rowHeight: number;
 }) {
   const rows = [0, 1, 2];
-  const rowHeight = Math.max(props.rowHeight, props.target === 'tv' ? tvUnit(76) : 68);
+  const rowHeight = Math.max(props.rowHeight, props.target === 'tv' ? 38 : 68);
   const widths = [
     [72, 64, 56, 68],
     [72, 64],

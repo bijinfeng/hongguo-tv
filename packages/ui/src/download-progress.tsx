@@ -1,8 +1,6 @@
 import { View } from 'nsh';
 import { Progress, UiText } from './display';
-import { Product, tvUnit } from './foundation';
-
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
+import { space } from './foundation';
 
 /** Byte counts supplied by the updater; the component owns no download state. */
 export interface DownloadProgressProps {
@@ -13,7 +11,7 @@ export interface DownloadProgressProps {
 /** Shares range and unknown-total motion with Progress; byte counts update in place. */
 export function DownloadProgress(props: DownloadProgressProps) {
   return (
-    <View style={{ gap: unit(12) }}>
+    <View style={{ gap: space('sm') }}>
       <Progress
         accessibilityLabel="更新下载进度"
         value={props.received}

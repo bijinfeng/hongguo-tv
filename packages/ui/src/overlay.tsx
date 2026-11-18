@@ -35,7 +35,7 @@ import {
   type ToastTransitionStatus,
 } from 'nsh/base';
 import { Button } from './button';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { controlMetrics, space } from './foundation';
 import { Icon, type IconName } from './icon';
 
 /** A controlled popup's requested state; the caller commits it before a later opening. */
@@ -54,7 +54,6 @@ export interface DialogChangeEvent {
   reason: DialogChangeReason;
 }
 
-const unit = (desktop: number, tv = desktop) => (Product() === 'tv' ? tvUnit(tv) : desktop);
 const popupClass = 'rounded-(--radius) border border-border bg-popover text-popover-foreground';
 const popupMotion = () => (reduceMotion() ? '' : 'transition-opacity duration-100');
 
@@ -110,7 +109,7 @@ export interface DialogProps {
 
 /** A themed NSH dialog, with shared dimensions and native modal behavior. */
 export function Dialog(props: DialogProps) {
-  const focusInset = () => Math.max(6, unit(8));
+  const focusInset = () => Math.max(6, space('xs'));
   recoverSource(
     () => props.open,
     () => props.returnFocus?.(),
@@ -138,10 +137,10 @@ export function Dialog(props: DialogProps) {
       class="m-auto rounded-(--radius) bg-popover"
       backdropClass="bg-cinema/40"
       style={{
-        width: Math.max(0, Math.min(unit(480, 800), windowSize().width - unit(48, 96))),
-        maxHeight: Math.max(0, windowSize().height - unit(64, 96)),
-        padding: unit(32, 32),
-        gap: unit(24, 24),
+        width: Math.max(0, Math.min(480, windowSize().width - space('3xl'))),
+        maxHeight: Math.max(0, windowSize().height - 64),
+        padding: space('xl'),
+        gap: space('lg'),
         borderRadius: controlMetrics().radius,
       }}
     >
@@ -149,7 +148,7 @@ export function Dialog(props: DialogProps) {
         <Text
           role="header"
           class="flex-1 min-w-0 font-semibold text-popover-foreground"
-          style={{ fontSize: unit(24, 32) }}
+          style={{ fontSize: space('lg') }}
         >
           {props.title}
         </Text>
@@ -172,7 +171,7 @@ export function Dialog(props: DialogProps) {
         class="min-h-0 shrink"
         style={{
           margin: -focusInset(),
-          maxHeight: Math.max(0, windowSize().height - unit(240, 320) + focusInset() * 2),
+          maxHeight: Math.max(0, windowSize().height - 240 + focusInset() * 2),
         }}
         contentClass="gap-4"
         contentStyle={{ padding: focusInset() }}
@@ -231,7 +230,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         if (!event.open) props.onCancel?.();
       }}
       footer={
-        <View class="flex-row flex-wrap justify-end" style={{ gap: unit(12, 16) }}>
+        <View class="flex-row flex-wrap justify-end" style={{ gap: space('sm') }}>
           <Button
             label={props.cancelLabel ?? '取消'}
             buttonRef={(ref) => {
@@ -302,9 +301,9 @@ export function SidePanel(props: SidePanelProps) {
       closeOnSwipe={false}
       popupClass="bg-popover"
       popupStyle={{
-        width: Math.min(unit(440, 640), windowSize().width),
-        padding: unit(32, 32),
-        gap: unit(24, 24),
+        width: Math.min(440, windowSize().width),
+        padding: space('xl'),
+        gap: space('lg'),
       }}
       backdropClass="bg-cinema/40"
       onOpenChange={props.onOpenChange}
@@ -321,7 +320,7 @@ export function SidePanel(props: SidePanelProps) {
         <Text
           role="header"
           class="flex-1 min-w-0 font-semibold text-popover-foreground"
-          style={{ fontSize: unit(24, 32) }}
+          style={{ fontSize: space('lg') }}
         >
           {props.title}
         </Text>
@@ -387,13 +386,13 @@ export function Menu(props: MenuProps) {
     <BaseMenu
       testID={props.testID}
       open={open() && !props.disabled}
-      offset={unit(8, 12)}
-      margin={unit(12, 24)}
+      offset={space('xs')}
+      margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
-        minWidth: unit(200, 280),
-        maxWidth: Math.max(0, windowSize().width - unit(24, 48)),
-        padding: unit(8, 8),
+        minWidth: 200,
+        maxWidth: Math.max(0, windowSize().width - space('lg')),
+        padding: space('xs'),
         borderRadius: controlMetrics().radius,
       }}
       popupStartingClass={reduceMotion() ? '' : 'opacity-0'}
@@ -503,13 +502,13 @@ export function Popover(props: PopoverProps) {
       testID={props.testID}
       open={open()}
       align="start"
-      offset={unit(8, 12)}
-      margin={unit(12, 24)}
+      offset={space('xs')}
+      margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
-        width: Math.max(0, Math.min(unit(320, 480), windowSize().width - unit(24, 48))),
-        padding: unit(24, 24),
-        gap: unit(16, 16),
+        width: Math.max(0, Math.min(320, windowSize().width - space('lg'))),
+        padding: space('lg'),
+        gap: space('md'),
         borderRadius: controlMetrics().radius,
       }}
       popupStartingClass={reduceMotion() ? '' : 'opacity-0'}
@@ -547,25 +546,27 @@ export interface TooltipProps {
   open?: boolean;
   /** Stable selector. */
   testID?: string;
+  /** Suppresses the hint where instructions must stay visible instead. */
+  disabled?: boolean;
 }
 
-/** A pointer/keyboard hint, disabled on TV where instructions stay visible. */
+/** A pointer/keyboard hint; callers disable it where persistent instructions replace it. */
 export function Tooltip(props: TooltipProps) {
   return (
     <BaseTooltip
       open={props.open}
-      disabled={Product() === 'tv'}
+      disabled={props.disabled}
       testID={props.testID}
       class={`${popupClass} ${popupMotion()}`}
       style={{
-        maxWidth: unit(320, 480),
-        paddingHorizontal: unit(12, 16),
-        paddingVertical: unit(8, 12),
+        maxWidth: 320,
+        paddingHorizontal: space('sm'),
+        paddingVertical: space('xs'),
       }}
       startingClass={reduceMotion() ? '' : 'opacity-0'}
       endingClass={reduceMotion() ? '' : 'opacity-0'}
     >
-      <Text class="text-popover-foreground" style={{ fontSize: unit(14, 20) }}>
+      <Text class="text-popover-foreground" style={{ fontSize: 14 }}>
         {props.label}
       </Text>
     </BaseTooltip>
@@ -596,7 +597,7 @@ export function Toast(props: ToastProps) {
       onDismissRequest={props.onDismiss}
       swipeDirection={props.onDismiss ? 'right' : null}
       class={`${popupClass} flex-row items-center ${popupMotion()}`}
-      style={{ padding: unit(16, 24), gap: unit(16, 24) }}
+      style={{ padding: space('md'), gap: space('md') }}
       startingClass={reduceMotion() ? '' : 'opacity-0'}
       endingClass={reduceMotion() ? '' : 'opacity-0'}
     >
@@ -650,9 +651,9 @@ export function ToastRegion(props: ToastRegionProps) {
       <Overlay
         class="absolute"
         style={{
-          right: unit(24, 48),
-          bottom: unit(24, 48),
-          width: Math.max(0, Math.min(unit(360, 600), windowSize().width - unit(48, 96))),
+          right: space('lg'),
+          bottom: space('lg'),
+          width: Math.max(0, Math.min(360, windowSize().width - space('3xl'))),
         }}
       >
         <ToastStack
@@ -661,8 +662,8 @@ export function ToastRegion(props: ToastRegionProps) {
           motion={{
             duration: reduceMotion() ? 0 : 180,
             exitDuration: reduceMotion() ? 0 : 100,
-            expandedGap: unit(12, 16),
-            collapsedPeek: unit(8, 12),
+            expandedGap: space('sm'),
+            collapsedPeek: space('xs'),
           }}
           onExpandedChange={props.onExpandedChange}
           onCancel={() => {
@@ -707,7 +708,7 @@ export function ActionBar(props: ActionBarProps) {
       disabled={props.disabled}
       testID={props.testID}
       class="flex-row flex-wrap items-center"
-      style={{ gap: unit(12, 16) }}
+      style={{ gap: space('sm') }}
     >
       {props.children}
     </BaseToolbar>
@@ -720,7 +721,7 @@ export function ActionBarGroup(props: { label: string; children?: JSX.Element })
     <ToolbarGroup
       accessibilityLabel={props.label}
       class="flex-row items-center"
-      style={{ gap: unit(8, 12) }}
+      style={{ gap: space('xs') }}
     >
       {props.children}
     </ToolbarGroup>
@@ -729,7 +730,7 @@ export function ActionBarGroup(props: { label: string; children?: JSX.Element })
 
 /** A noninteractive line between meaningful action groups. */
 export function ActionBarSeparator() {
-  return <ToolbarSeparator class="w-px bg-border" style={{ height: unit(24, 32) }} />;
+  return <ToolbarSeparator class="w-px bg-border" style={{ height: space('lg') }} />;
 }
 
 /** A stable, controlled expandable section. */
@@ -806,8 +807,8 @@ export function Accordion(props: AccordionProps) {
                 class="gap-4"
                 style={{
                   paddingHorizontal: controlMetrics().paddingHorizontal,
-                  paddingTop: unit(8, 8),
-                  paddingBottom: unit(24, 24),
+                  paddingTop: space('xs'),
+                  paddingBottom: space('lg'),
                 }}
               >
                 {section().content}
@@ -897,6 +898,8 @@ export interface KeyHintProps {
   keyLabel: string;
   /** Equivalent remote wording, such as 确认 or 返回. */
   remoteLabel: string;
+  /** Shows the remote wording and drops the keycap monospace treatment. */
+  remote?: boolean;
   /** The existing command's short meaning. */
   label: string;
   /** Stable selector. */
@@ -906,18 +909,18 @@ export interface KeyHintProps {
 /** A hint with no focus target and no shortcut registration. */
 export function KeyHint(props: KeyHintProps) {
   return (
-    <View testID={props.testID} class="flex-row items-center" style={{ gap: unit(8, 12) }}>
+    <View testID={props.testID} class="flex-row items-center" style={{ gap: space('xs') }}>
       <Text
-        class={`rounded bg-muted text-foreground ${Product() === 'tv' ? '' : 'font-mono'}`}
+        class={`rounded bg-muted text-foreground ${props.remote ? '' : 'font-mono'}`}
         style={{
-          fontSize: unit(14, 20),
-          paddingHorizontal: unit(8, 12),
-          paddingVertical: unit(4, 4),
+          fontSize: 14,
+          paddingHorizontal: space('xs'),
+          paddingVertical: space('xxs'),
         }}
       >
-        {Product() === 'tv' ? props.remoteLabel : props.keyLabel}
+        {props.remote ? props.remoteLabel : props.keyLabel}
       </Text>
-      <Text class="text-muted-foreground" style={{ fontSize: unit(14, 20) }}>
+      <Text class="text-muted-foreground" style={{ fontSize: 14 }}>
         {props.label}
       </Text>
     </View>

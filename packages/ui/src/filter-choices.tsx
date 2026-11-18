@@ -2,12 +2,14 @@ import { Text, View, Scroll, signal, effect, cleanup, type ViewRef } from 'nsh';
 import { Select } from 'nsh/base';
 import { Button } from './button';
 import { CardControls } from './card-controls';
-import { Product, tvUnit } from './foundation';
+import { space } from './foundation';
 
-/** Approved desktop choice row / TV selector. The caller owns the service value. */
+/** Approved inline choice row or single selector. The caller owns the service value. */
 export function FilterChoices(props: {
   label: string;
   testID: string;
+  /** `chips` shows every choice in a row; `select` opens one selector. */
+  variant?: 'chips' | 'select';
   value: string;
   items: { value: string; title: string }[];
   onChange: (value: string) => void;
@@ -24,7 +26,7 @@ export function FilterChoices(props: {
   const title = () => props.items.find((item) => item.value === props.value)?.title ?? '';
   return (
     <If
-      when={Product() === 'tv'}
+      when={props.variant === 'select'}
       else={
         <View class="flex-row items-start gap-6">
           <View class="w-10 pt-2">
@@ -108,7 +110,7 @@ export function FilterChoices(props: {
         }
         popupClass="bg-popover border border-border rounded-(--radius) p-2"
         itemClass="p-3 text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
-        itemStyle={{ fontSize: tvUnit(24) }}
+        itemStyle={{ fontSize: space('md') }}
       />
     </If>
   );

@@ -1,5 +1,5 @@
 import { Scroll, View, fontScale, reduceMotion, signal, type ViewRef } from 'nsh';
-import { CardControls, Notice, Product, SeasonChoice, controlMetrics, tvUnit } from '@hongguo/ui';
+import { CardControls, Notice, SeasonChoice, controlMetrics, space } from '@hongguo/ui';
 import type { SeasonsController } from './seasons';
 import type { Drama, SeriesSeason } from '@hongguo/core-client';
 
@@ -15,7 +15,7 @@ export interface SeasonPickerProps {
 export function SeasonPicker(props: SeasonPickerProps) {
   const contentHeight = signal(0);
   const size = () => (props.compact ? 'sm' : 'md');
-  const inset = () => (Product() === 'tv' ? tvUnit(8) : 8);
+  const inset = () => space('xs');
   const choose = (id: string) => {
     if (props.seasons.select(id)) props.onChange?.(id);
   };

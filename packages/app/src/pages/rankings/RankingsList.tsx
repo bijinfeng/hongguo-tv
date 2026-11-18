@@ -4,8 +4,8 @@ import {
   RankingCard,
   SkeletonBlock,
   SkeletonRegion,
-  tvUnit,
   type ProductTarget,
+  space,
 } from '@hongguo/ui';
 import type { Drama, RankItem } from '@hongguo/core-client';
 import { rankingIdentity, type RankingsController } from '../../rankings';
@@ -71,7 +71,7 @@ export function RankingsList(props: RankingsListProps) {
       void Promise.all([ref.measure(), list?.measure()]).then(([card, viewport]) => {
         if (cardIntent !== intent || !owns() || !intent.owns() || refs.get(intent.id) !== ref)
           return;
-        const inset = props.target === 'tv' ? tvUnit(8) : 8;
+        const inset = props.target === 'tv' ? 4 : 8;
         if (
           !card ||
           !viewport ||
@@ -132,7 +132,7 @@ export function RankingsList(props: RankingsListProps) {
       }}
       testID="ranking-results"
       class="flex-1"
-      style={{ width: '100%', maxWidth: props.target === 'tv' ? tvUnit(1250) : 1100 }}
+      style={{ width: '100%', maxWidth: props.target === 'tv' ? 625 : 1100 }}
       onLayout={() => {
         if (cardIntent) restoreCard();
       }}
@@ -150,14 +150,14 @@ export function RankingsList(props: RankingsListProps) {
         items: items().slice(index * columns(), (index + 1) * columns()),
       }))}
       keyExtractor={(row) => row.id}
-      estimatedItemSize={props.target === 'tv' ? tvUnit(200) : 176}
+      estimatedItemSize={props.target === 'tv' ? 100 : 176}
       contentStyle={{
-        gap: props.target === 'tv' ? tvUnit(8) : 0,
-        paddingHorizontal: props.target === 'tv' ? tvUnit(8) : 8,
+        gap: props.target === 'tv' ? 4 : 0,
+        paddingHorizontal: props.target === 'tv' ? 4 : 8,
       }}
     >
       {(row) => (
-        <View style={{ paddingVertical: props.target === 'tv' ? tvUnit(8) : 8 }}>
+        <View style={{ paddingVertical: props.target === 'tv' ? 4 : 8 }}>
           <CardControls
             label="榜单条目"
             class={props.target === 'tv' ? 'w-full gap-3' : 'w-full gap-6'}
@@ -223,10 +223,10 @@ export function RankingsList(props: RankingsListProps) {
 /** First-paint rows that keep the approved ranking row geometry; no shimmer or entrance. */
 export function RankingsPending(props: { target: ProductTarget }) {
   const tv = () => props.target === 'tv';
-  const unit = (desktop: number, tvValue = desktop) => (tv() ? tvUnit(tvValue) : desktop);
+  const unit = (desktop: number, _tvValue = desktop) => desktop;
   return (
     <SkeletonRegion label="正在加载榜单" testID="ranking-pending" class="flex-1">
-      <View style={{ gap: tv() ? tvUnit(8) : 0, paddingHorizontal: tv() ? tvUnit(8) : 8 }}>
+      <View style={{ gap: tv() ? 4 : 0, paddingHorizontal: tv() ? 4 : 8 }}>
         <Each of={[0, 1, 2, 3, 4]}>
           {(slot) => (
             <View
@@ -235,13 +235,13 @@ export function RankingsPending(props: { target: ProductTarget }) {
                 gap: unit(20, 28),
                 flexDirection: 'row',
                 alignItems: 'center',
-                borderBottomWidth: unit(1),
+                borderBottomWidth: 1,
               }}
               class="border-b-border"
             >
-              <SkeletonBlock width={unit(24)} height={unit(24)} radius={unit(4)} />
-              <SkeletonBlock width={unit(86, 96)} height={unit(116, 128)} radius={unit(12)} />
-              <View style={{ flex: 1, gap: unit(8) }}>
+              <SkeletonBlock width={space('lg')} height={space('lg')} radius={space('xxs')} />
+              <SkeletonBlock width={unit(86, 96)} height={unit(116, 128)} radius={space('sm')} />
+              <View style={{ flex: 1, gap: space('xs') }}>
                 <SkeletonBlock width={slot() % 2 ? '52%' : '38%'} height={unit(20, 24)} />
                 <SkeletonBlock width="82%" height={unit(14, 20)} />
                 <SkeletonBlock width="64%" height={unit(14, 20)} />

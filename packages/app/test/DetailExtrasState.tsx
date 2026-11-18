@@ -1,5 +1,5 @@
 import { Scroll, View, signal, type ScrollRef, type ViewRef } from 'nsh';
-import { Button, Product, UiText, type ProductTarget } from '@hongguo/ui';
+import { Button, UiText, type ProductTarget } from '@hongguo/ui';
 import type { Drama, SeriesDetail } from '@hongguo/core-client';
 import { DetailExtras } from '../src/DetailExtras';
 import type { Store } from '../src/store';
@@ -69,7 +69,7 @@ export function DetailExtrasStateFixture(props: { target: ProductTarget }) {
     },
   };
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background p-8 gap-4">
         <View class="flex-row flex-wrap gap-3">
           <Button
@@ -159,6 +159,6 @@ export function DetailExtrasStateFixture(props: { target: ProductTarget }) {
           </If>
         </Scroll>
       </View>
-    </Product.Provider>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import { Text, View, reduceMotion, token } from 'nsh';
 import { Pagination as BasePagination, type PaginationItemState } from 'nsh/base';
 import { Icon } from './icon';
-import { Product, controlMetrics, tvUnit, type ControlSize } from './foundation';
+import { controlMetrics, type ControlSize, border } from './foundation';
 
 /** Hongguo's themed page navigation; paging behavior and semantics stay in `nsh/base`. */
 export interface PaginationProps {
@@ -69,7 +69,7 @@ export function Pagination(props: PaginationProps) {
               minWidth: metrics.height,
               paddingHorizontal: props.compact ? metrics.gap : metrics.paddingHorizontal,
               borderRadius: metrics.radius,
-              borderWidth: Product() === 'tv' ? tvUnit(1) : 1,
+              borderWidth: border,
               gap: metrics.gap,
             }}
           >

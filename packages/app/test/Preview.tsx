@@ -5,7 +5,6 @@ import {
   Cover,
   Notice,
   PosterCard,
-  Product,
   SearchInput,
   type ProductTarget,
   CinemaButton,
@@ -18,12 +17,12 @@ import {
 } from '@hongguo/ui';
 
 /** Internal controls fixture: never mounted by a product entry. */
-export function ControlPreview(props: { target: ProductTarget }) {
+export function ControlPreview() {
   const value = signal('');
   const selected = signal(0);
   let input: InputRef | undefined;
   return (
-    <Product.Provider value={props.target}>
+    <>
       <Scroll class="flex-1 bg-background" contentStyle={{ padding: 24, gap: 24 }}>
         <View class="gap-5">
           <Text class="text-3xl font-semibold text-foreground">控件预览</Text>
@@ -68,7 +67,7 @@ export function ControlPreview(props: { target: ProductTarget }) {
           <Notice error message="搜索失败，请稍后重试。" retry={() => selected.set(0)} />
         </View>
       </Scroll>
-    </Product.Provider>
+    </>
   );
 }
 
@@ -88,7 +87,7 @@ export function PlayerControlPreview(props: { target: ProductTarget }) {
     requestAnimationFrame(() => panelTrigger?.focus());
   };
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background">
         <View class="p-4 items-start">
           <Button label="控件预览" onPress={() => hidden.update((value) => !value)} />
@@ -164,6 +163,6 @@ export function PlayerControlPreview(props: { target: ProductTarget }) {
           <Notice error message="播放失败，请重试。" retry={closePanel} />
         </EpisodePanel>
       </View>
-    </Product.Provider>
+    </>
   );
 }

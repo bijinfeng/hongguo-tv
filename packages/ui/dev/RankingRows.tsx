@@ -2,7 +2,7 @@ import { Scroll, View, batch, signal, type ViewRef } from 'nsh';
 import { Button } from '../src/button';
 import { CardControls } from '../src/card-controls';
 import { UiText } from '../src/display';
-import { Product, type ProductTarget } from '../src/foundation';
+import { type ProductTarget } from '../src/foundation';
 import { RankingCard } from '../src/ranking-card';
 
 const rows = [
@@ -45,7 +45,7 @@ export function RankingRows(props: { target: ProductTarget }) {
     });
   };
   return (
-    <Product.Provider value={target()}>
+    <>
       <View class="flex-1 bg-background p-8 gap-4">
         <UiText role="section">榜单卡片基础组件验收</UiText>
         <View class="flex-row flex-wrap gap-3">
@@ -100,6 +100,6 @@ export function RankingRows(props: { target: ProductTarget }) {
           </View>
         </Scroll>
       </View>
-    </Product.Provider>
+    </>
   );
 }

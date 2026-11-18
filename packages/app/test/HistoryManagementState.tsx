@@ -1,5 +1,5 @@
 import { Text, View, signal, type ViewRef } from 'nsh';
-import { Button, Product, type ProductTarget } from '@hongguo/ui';
+import { Button, type ProductTarget } from '@hongguo/ui';
 import type { Library, LibraryKind } from '@hongguo/core-client';
 import { History } from '../src/pages/History';
 import type { HistoryOperation } from '../src/library-state';
@@ -196,7 +196,7 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
     favoritesManagement: management('favorites'),
   } as unknown as Store;
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background gap-3 p-4">
         <View class="flex-row flex-wrap gap-3">
           <Each of={['success', 'partial', 'unresolved', 'slow', 'interrupt'] as const}>
@@ -337,6 +337,6 @@ export function HistoryManagementStateFixture(props: { target: ProductTarget }) 
           <History store={ports} />
         </View>
       </View>
-    </Product.Provider>
+    </>
   );
 }

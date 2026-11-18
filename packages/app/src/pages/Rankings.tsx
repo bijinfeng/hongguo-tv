@@ -5,7 +5,6 @@ import {
   Notice,
   Tabs,
   UiText,
-  tvUnit,
   controlMetrics,
   type ProductTarget,
 } from '@hongguo/ui';
@@ -41,13 +40,13 @@ type OfficialProps = Omit<RankingsProps, 'radar' | 'view' | 'onView'> & {
 function OfficialRankings(props: OfficialProps) {
   const availableHeight = signal(0);
   const selectorHeights = signal<Record<string, number>>({});
-  const filterGap = () => (props.target === 'tv' ? tvUnit(4) : 4);
+  const filterGap = () => (props.target === 'tv' ? 2 : 4);
   /** The row already includes its chip padding: 8 keeps three rows inside the 192 budget. */
   const selectorHeight = () =>
     Math.max(
       controlMetrics('sm').height,
       ...props.rankings.groups().map((group) => selectorHeights()[group.id] ?? 0),
-    ) + (props.target === 'tv' ? tvUnit(8) : 8);
+    ) + (props.target === 'tv' ? 4 : 8);
   const measureSelector = (id: string, height: number) => {
     const prior = selectorHeights();
     if (prior[id] === height) return;
@@ -64,7 +63,7 @@ function OfficialRankings(props: OfficialProps) {
     if (!count) return 0;
     const row = selectorHeight();
     const gap = filterGap();
-    const limit = props.target === 'tv' ? tvUnit(252) : 192;
+    const limit = props.target === 'tv' ? 126 : 192;
     const budget = Math.min(availableHeight() > 0 ? availableHeight() * 0.32 : limit, limit);
     const rows = Math.min(count, Math.max(1, Math.floor((budget + gap) / (row + gap))));
     return Math.min(budget, rows * row + (rows - 1) * gap);
@@ -133,7 +132,7 @@ function OfficialRankings(props: OfficialProps) {
       testID="rankings-page"
       onLayout={({ bounds }) => availableHeight.set(bounds.size.height)}
       class="flex-1 min-h-0 gap-7"
-      style={props.target === 'tv' ? { gap: tvUnit(28) } : undefined}
+      style={props.target === 'tv' ? { gap: 14 } : undefined}
     >
       <If when={props.hero}>
         <If when={unknown()}>
@@ -154,7 +153,7 @@ function OfficialRankings(props: OfficialProps) {
           <If when={unknown()}>
             <RankingsToolbarSkeleton
               target={props.target}
-              height={filterHeight() || (props.target === 'tv' ? tvUnit(252) : 188)}
+              height={filterHeight() || (props.target === 'tv' ? 126 : 188)}
               rowHeight={selectorHeight()}
             />
           </If>
@@ -263,7 +262,7 @@ export function Rankings(props: RankingsProps) {
       class="flex-1 min-h-0"
       style={
         props.target === 'tv'
-          ? { paddingTop: tvUnit(32), gap: tvUnit(28) }
+          ? { paddingTop: 16, gap: 14 }
           : desktopContentFrame({ top: 24, gap: 28 })
       }
     >

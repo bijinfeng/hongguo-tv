@@ -5,7 +5,6 @@ import {
   Notice,
   RadarTable,
   UiText,
-  tvUnit,
   type ProductTarget,
   type RadarTableColumn,
   type RadarTableRef,
@@ -182,7 +181,7 @@ export function Radar(props: {
       <If when={selectedBranch() && !rows().length}>
         <View
           class="flex-1 min-h-0 items-center justify-center gap-2 border-t border-border"
-          style={{ paddingVertical: tv ? tvUnit(64) : 48 }}
+          style={{ paddingVertical: tv ? 32 : 48 }}
         >
           <UiText testID="radar-empty" tone="muted">
             当前分类暂无数据
@@ -192,6 +191,7 @@ export function Radar(props: {
       <If when={listed()}>
         <ContentArrival class="flex-1 min-h-0">
           <RadarTable
+            focusMode={props.target === 'tv' ? 'row' : 'cell'}
             columns={props.radar.view() === 'snapshot' ? snapshotColumns : growthColumns}
             rows={rows()}
             selected={props.radar.selected()}

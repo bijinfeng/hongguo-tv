@@ -226,9 +226,7 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
         expect(app.spanStyle(`id:gallery-${group}-city >> text:都市`).fontWeight).toBe(600);
       }
       await app.press('id:gallery-sheet-feedback');
-      expect(app.spanStyle('text:12.0 MB / 32.0 MB').fontSize).toBe(
-        options.target === 'tv' ? 22 : 16,
-      );
+      expect(app.spanStyle('text:12.0 MB / 32.0 MB').fontSize).toBe(16);
       app.dispose();
     }
   });

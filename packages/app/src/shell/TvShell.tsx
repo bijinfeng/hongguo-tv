@@ -1,5 +1,5 @@
 import { View, type ImageAsset } from 'nsh';
-import { tvUnit } from '@hongguo/ui';
+import {} from '@hongguo/ui';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
 import { Pages } from './Pages';
@@ -13,7 +13,7 @@ export function TvShell(props: { store: Store; logoMark: ImageAsset; updates?: U
       <If when={!playing()}>
         <TvHeader store={props.store} logoMark={props.logoMark} />
       </If>
-      <View class="flex-1 min-h-0" style={{ paddingHorizontal: playing() ? 0 : tvUnit(88) }}>
+      <View class="flex-1 min-h-0" style={{ paddingHorizontal: playing() ? 0 : 88 }}>
         <Pages store={props.store} updates={props.updates} />
       </View>
       <If when={!playing()}>

@@ -9,7 +9,7 @@ import {
   type InputRef,
   type ViewRef,
 } from 'nsh';
-import { Button, SearchInput, SearchPicker, SearchSuggestionRow, tvUnit } from '@hongguo/ui';
+import { Button, SearchInput, SearchPicker, SearchSuggestionRow } from '@hongguo/ui';
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
 import type { Store } from './store';
@@ -209,7 +209,7 @@ export function SearchForm(props: { store: Store }) {
           testID="search-validation"
           role="alert"
           class="text-sm text-destructive"
-          style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+          style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
         >
           {props.store.searchError()}
         </Text>

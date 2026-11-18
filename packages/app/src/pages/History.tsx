@@ -21,7 +21,7 @@ import {
   Surface,
   Tabs,
   UiText,
-  tvUnit,
+  space,
 } from '@hongguo/ui';
 import type { FavoriteEntry, Library, LibraryKind } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -84,8 +84,8 @@ export function HistoryItem(props: {
     >
       <View
         style={{
-          width: props.store.target === 'tv' ? tvUnit(108) : 88,
-          height: props.store.target === 'tv' ? tvUnit(152) : 112,
+          width: props.store.target === 'tv' ? 54 : 88,
+          height: props.store.target === 'tv' ? 76 : 112,
         }}
       >
         <Cover
@@ -99,7 +99,7 @@ export function HistoryItem(props: {
           when={props.managing}
           else={
             <Text
-              style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+              style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
               class={`${props.store.target === 'tv' ? 'text-xl' : 'text-base'} font-semibold text-foreground`}
             >
               {props.entry.drama.title}
@@ -117,7 +117,7 @@ export function HistoryItem(props: {
         </If>
         <If when={progress()}>
           <Text
-            style={props.store.target === 'tv' ? { fontSize: tvUnit(20) } : undefined}
+            style={props.store.target === 'tv' ? { fontSize: 10 } : undefined}
             class="text-sm text-muted-foreground"
           >
             {historyProgress(progress())}
@@ -224,7 +224,6 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
   const localError = signal('');
   let resetRef: ViewRef | undefined;
   const state = () => props.store.watchStatistics;
-  const unit = (value: number) => (props.store.target === 'tv' ? tvUnit(value) : value);
   effect(() => {
     if (props.open) void state().ensure();
   });
@@ -268,9 +267,9 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
   return (
     <If when={props.open}>
       <Surface testID="watch-statistics-panel" variant="page">
-        <View class="flex-row items-center justify-between" style={{ gap: unit(12) }}>
+        <View class="flex-row items-center justify-between" style={{ gap: space('sm') }}>
           <UiText role="section">观看统计</UiText>
-          <View class="flex-row" style={{ gap: unit(8) }}>
+          <View class="flex-row" style={{ gap: space('xs') }}>
             <Button
               testID="watch-statistics-reset"
               label="重置统计"
@@ -310,38 +309,37 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
             <Notice message="这个周期还没有观看统计。开始观看后会显示在这里。" />
           </If>
           <If when={hasPeriodData()}>
-            <View class="flex-row flex-wrap" style={{ gap: unit(20) }}>
-              <View class="min-w-[160px]" style={{ gap: unit(4) }}>
+            <View class="flex-row flex-wrap" style={{ gap: 20 }}>
+              <View class="min-w-[160px]" style={{ gap: space('xxs') }}>
                 <UiText role="meta" tone="muted">
                   累计观看
                 </UiText>
                 <UiText role="numeric">{statisticsDuration(total())}</UiText>
               </View>
-              <View class="min-w-[160px]" style={{ gap: unit(4) }}>
+              <View class="min-w-[160px]" style={{ gap: space('xxs') }}>
                 <UiText role="meta" tone="muted">
                   统计起点
                 </UiText>
                 <UiText role="numeric">{state().snapshot()?.since ?? '—'}</UiText>
               </View>
             </View>
-            <View style={{ gap: unit(8) }}>
+            <View style={{ gap: space('xs') }}>
               <UiText role="meta" tone="muted">
                 最近 7 天
               </UiText>
               <View
                 class="flex-row items-end"
-                style={{ height: props.store.target === 'tv' ? tvUnit(112) : 88, gap: unit(8) }}
+                style={{ height: props.store.target === 'tv' ? 56 : 88, gap: space('xs') }}
               >
                 <Each of={bars()} key={(bar) => bar.day}>
                   {(bar) => (
-                    <View class="flex-1 items-center" style={{ gap: unit(4) }}>
+                    <View class="flex-1 items-center" style={{ gap: space('xxs') }}>
                       <View
                         class="w-full rounded-(--radius) bg-accent"
                         style={{
                           height: Math.max(
                             4,
-                            (bar().value / maxBar()) *
-                              (props.store.target === 'tv' ? tvUnit(84) : 64),
+                            (bar().value / maxBar()) * (props.store.target === 'tv' ? 42 : 64),
                           ),
                         }}
                         accessible
@@ -355,8 +353,8 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
                 </Each>
               </View>
             </View>
-            <View class="flex-row flex-wrap" style={{ gap: unit(16) }}>
-              <View class="flex-1 min-w-[220px]" style={{ gap: unit(8) }}>
+            <View class="flex-row flex-wrap" style={{ gap: space('md') }}>
+              <View class="flex-1 min-w-[220px]" style={{ gap: space('xs') }}>
                 <UiText role="meta" tone="muted">
                   内容类型
                 </UiText>
@@ -368,7 +366,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
                   )}
                 </Each>
               </View>
-              <View class="flex-1 min-w-[220px]" style={{ gap: unit(8) }}>
+              <View class="flex-1 min-w-[220px]" style={{ gap: space('xs') }}>
                 <UiText role="meta" tone="muted">
                   题材
                 </UiText>
@@ -424,7 +422,6 @@ export function History(props: { store: Store }) {
   let sourceEpoch = 0;
   let submitting = false;
   const dialogJob = signal<number | undefined>(undefined);
-  const unit = (value: number) => (props.store.target === 'tv' ? tvUnit(value) : value);
   let returnSource: { key: string; owner: string; epoch: number; owns: () => boolean } | undefined;
   let waiting: (NonNullable<typeof returnSource> & { align: 'center' | 'nearest' }) | undefined;
   const refs = new Map<string, ViewRef>();
@@ -811,22 +808,20 @@ export function History(props: { store: Store }) {
       testID="history-page"
       class="flex-1"
       style={{
-        ...(props.store.target === 'tv'
-          ? { paddingTop: tvUnit(32) }
-          : desktopContentFrame({ top: 24 })),
-        gap: unit(16),
+        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
+        gap: space('md'),
       }}
     >
-      <View class="flex-row flex-wrap items-center justify-between" style={{ gap: unit(16) }}>
+      <View class="flex-row flex-wrap items-center justify-between" style={{ gap: space('md') }}>
         <Text
           role="header"
           accessibilityLevel={1}
-          style={props.store.target === 'tv' ? { fontSize: tvUnit(44) } : { fontSize: 32 }}
+          style={props.store.target === 'tv' ? { fontSize: 22 } : { fontSize: 32 }}
           class={`${props.store.target === 'tv' ? 'text-4xl' : 'text-3xl'} font-semibold text-foreground`}
         >
           我的片库
         </Text>
-        <View class="flex-row flex-wrap" style={{ gap: unit(8) }}>
+        <View class="flex-row flex-wrap" style={{ gap: space('xs') }}>
           <Button
             testID="history-statistics"
             label={statisticsOpen() ? '收起统计' : '观看统计'}
@@ -863,7 +858,7 @@ export function History(props: { store: Store }) {
       <WatchStatisticsPanel store={props.store} open={statisticsOpen()} onClose={closeStatistics} />
       <LibrarySyncNotice store={props.store} active={present()} testID="history-library-sync" />
       <If when={managing()}>
-        <View class="flex-row flex-wrap items-center" style={{ gap: unit(12) }}>
+        <View class="flex-row flex-wrap items-center" style={{ gap: space('sm') }}>
           <Checkbox
             label="全选"
             testID="history-select-all"
@@ -913,7 +908,7 @@ export function History(props: { store: Store }) {
         <Notice message="另一栏目仍有未完成的管理操作，请切换栏目确认。" />
       </If>
       <If when={operationMessage() || localError()}>
-        <View testID="history-operation" style={{ gap: unit(12) }}>
+        <View testID="history-operation" style={{ gap: space('sm') }}>
           <Notice
             message={localError() || operationMessage()}
             error={!!localError() || operation()?.status !== 'pending'}
@@ -970,11 +965,9 @@ export function History(props: { store: Store }) {
         testID="history-list"
         each={entries()}
         keyExtractor={(entry) => `${category()}:${entry.drama.series_id}`}
-        estimatedItemSize={
-          props.store.target === 'tv' ? tvUnit(managing() ? 270 : 202) : managing() ? 210 : 154
-        }
+        estimatedItemSize={managing() ? 210 : 154}
         class="flex-1"
-        contentStyle={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12, padding: 8 }}
+        contentStyle={{ gap: props.store.target === 'tv' ? 6 : 12, padding: 8 }}
       >
         {(entry) => (
           <HistoryItem

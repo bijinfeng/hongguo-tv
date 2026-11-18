@@ -8,7 +8,6 @@ import {
   SkeletonRegion,
   Surface,
   UiText,
-  tvUnit,
 } from '@hongguo/ui';
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../../store';
@@ -76,9 +75,9 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
     return (
       <View
         class="border border-border rounded-(--radius) bg-card"
-        style={{ width: tvUnit(326), padding: tvUnit(10), gap: tvUnit(12) }}
+        style={{ width: 163, padding: 5, gap: 6 }}
       >
-        {coverButton(tvUnit(306))}
+        {coverButton(153)}
         <UiText role="body" lines={1}>
           {entry().drama.title}
         </UiText>
@@ -117,11 +116,11 @@ function ContinueEmpty(props: { store: Store }) {
     <Surface variant="muted" class="flex-row items-center">
       <View
         class="shrink-0 items-center justify-center rounded-full bg-accent"
-        style={{ width: tv() ? tvUnit(64) : 44, height: tv() ? tvUnit(64) : 44 }}
+        style={{ width: tv() ? 32 : 44, height: tv() ? 32 : 44 }}
       >
         <Icon name="search" />
       </View>
-      <View class="min-w-0 flex-1" style={{ gap: tv() ? tvUnit(4) : 4 }}>
+      <View class="min-w-0 flex-1" style={{ gap: tv() ? 2 : 4 }}>
         <UiText role="title">还没有观看记录</UiText>
         <UiText role="body" tone="muted" lines={2}>
           挑一部剧，之后可以从这里接着看。
@@ -151,7 +150,7 @@ function ContinueSkeleton(props: { store: Store }) {
       label="正在加载观看记录"
       testID="home-continue-pending"
       class="flex-row"
-      style={{ gap: tv() ? tvUnit(28) : 18 }}
+      style={{ gap: tv() ? 14 : 18 }}
     >
       <Each
         of={Array.from({ length: count() }, (_, index) => index)}
@@ -161,17 +160,17 @@ function ContinueSkeleton(props: { store: Store }) {
           tv() ? (
             <View
               class="border border-border rounded-(--radius) bg-card"
-              style={{ width: tvUnit(326), padding: tvUnit(10), gap: tvUnit(12) }}
+              style={{ width: 163, padding: 5, gap: 6 }}
             >
-              <SkeletonBlock width={tvUnit(306)} height={tvUnit(306) * 0.625} radius={8} />
-              <View class="justify-center" style={{ height: tvUnit(33) }}>
-                <SkeletonBlock width="72%" height={tvUnit(22)} radius={4} />
+              <SkeletonBlock width={153} height={153 * 0.625} radius={8} />
+              <View class="justify-center" style={{ height: 16.5 }}>
+                <SkeletonBlock width="72%" height={11} radius={4} />
               </View>
-              <View class="justify-center" style={{ height: tvUnit(30) }}>
-                <SkeletonBlock width="46%" height={tvUnit(20)} radius={4} />
+              <View class="justify-center" style={{ height: 15 }}>
+                <SkeletonBlock width="46%" height={10} radius={4} />
               </View>
               <SkeletonBlock width="100%" height={2} radius={1} />
-              <SkeletonBlock width={tvUnit(168)} height={tvUnit(48)} radius={tvUnit(12)} />
+              <SkeletonBlock width={84} height={24} radius={6} />
             </View>
           ) : (
             <View style={{ width: continueTileWidth() }}>
@@ -235,7 +234,7 @@ export function ContinueSection(props: { store: Store }) {
         />
       </View>
       <If when={entries().length > 0}>
-        <View class="flex-row" style={{ gap: tv() ? tvUnit(28) : 18 }}>
+        <View class="flex-row" style={{ gap: tv() ? 14 : 18 }}>
           <Each of={entries()} key={(entry: Entry) => entry.drama.series_id}>
             {(entry) =>
               tv() ? (

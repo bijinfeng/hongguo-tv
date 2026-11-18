@@ -1,5 +1,5 @@
 import { Text, View, signal, host } from 'nsh';
-import { Button, Product } from '@hongguo/ui';
+import { Button } from '@hongguo/ui';
 import { configureTransport, type HistoryChange } from '@hongguo/core-client';
 import { createStore } from '../src/store';
 import { createUpdates, type AppUpdate, type InstallState } from '../src/updates';
@@ -96,7 +96,7 @@ export function UpdatesStateFixture() {
     },
   );
   return (
-    <Product.Provider value={host.params.tv ? 'tv' : 'desktop'}>
+    <>
       <View class="flex-1 bg-background">
         <If when={!host.params.presentation}>
           <Text testID="state">{`phase:${updates.phase()}`}</Text>
@@ -159,7 +159,7 @@ export function UpdatesStateFixture() {
           <UpdatesPage updates={updates} tv={host.params.tv === true} />
         </If>
       </View>
-    </Product.Provider>
+    </>
   );
 }
 

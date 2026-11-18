@@ -11,7 +11,7 @@ import {
   type ViewRef,
 } from 'nsh';
 import { Input as BaseInput } from 'nsh/base';
-import { Product, controlMetrics } from './foundation';
+import { controlMetrics } from './foundation';
 import { Button } from './button';
 import { Icon } from './icon';
 import { Field } from './field';
@@ -28,6 +28,11 @@ export interface TextInputProps {
   onSubmit?: () => void;
   /** Empty-text hint, not the field's accessible name. */
   placeholder?: string;
+  /**
+   * `direct` edits in place. `confirm` keeps the field as one focus stop: confirm opens
+   * editing, and return leaves editing without discarding the draft.
+   */
+  activation?: 'direct' | 'confirm';
   /** Allows selection and copying without edits. */
   readonly?: boolean;
   /** Blocks interaction without erasing the current text. */
@@ -52,7 +57,7 @@ export interface TextInputProps {
 
 /** Input and an optional trailing action share one border and one minimum height. */
 function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => void }) {
-  const target = Product();
+  const confirm = () => props.activation === 'confirm';
   const focused = signal(false);
   const editing = signal(false);
   const composing = signal(false);
@@ -75,7 +80,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
     focusLater(() => input?.focus());
   };
   effect(() => {
-    if (target !== 'tv' || !focused() || props.readonly || composing() || props.disabled) return;
+    if (!confirm() || !focused() || props.readonly || composing() || props.disabled) return;
     const enter = keymap.bind(
       'enter',
       () => {
@@ -102,31 +107,29 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
   return (
     <View
       ref={(ref) => (navigation = ref)}
-      testID={
-        target === 'tv' && !props.readonly && props.testID ? `${props.testID}-activate` : undefined
-      }
-      role={target === 'tv' && !props.readonly && !editing() ? 'button' : undefined}
+      testID={confirm() && !props.readonly && props.testID ? `${props.testID}-activate` : undefined}
+      role={confirm() && !props.readonly && !editing() ? 'button' : undefined}
       accessibilityLabel={
-        target === 'tv' && !props.readonly && !editing()
+        confirm() && !props.readonly && !editing()
           ? `${props.label}：${props.value || props.placeholder || '未输入'}`
           : undefined
       }
       accessibilityDescription={
-        target === 'tv' && !props.readonly && !editing() ? props.description : undefined
+        confirm() && !props.readonly && !editing() ? props.description : undefined
       }
       accessibilityState={
-        target === 'tv' && !props.readonly && !editing()
+        confirm() && !props.readonly && !editing()
           ? { disabled: !!props.disabled, invalid: !!props.invalid }
           : undefined
       }
       disabled={props.disabled}
-      focusable={target === 'tv' && !editing() && !props.disabled && !props.readonly}
-      onPress={target === 'tv' && !props.readonly && !editing() ? startEditing : undefined}
+      focusable={confirm() && !editing() && !props.disabled && !props.readonly}
+      onPress={confirm() && !props.readonly && !editing() ? startEditing : undefined}
       onFocus={() => {
-        if (target === 'tv') focused.set(true);
+        if (confirm()) focused.set(true);
       }}
       onBlur={() => {
-        if (target === 'tv' && !editing()) focused.set(false);
+        if (confirm() && !editing()) focused.set(false);
       }}
       class={`flex-row items-center min-w-0 rounded-(--radius) ${props.disabled ? 'bg-muted' : 'bg-card'}`}
       style={{
@@ -142,7 +145,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           <Icon name="search" />
         </View>
       </If>
-      <If when={target !== 'tv' || editing() || !!props.readonly}>
+      <If when={!confirm() || editing() || !!props.readonly}>
         <BaseInput
           ref={(ref) => {
             input = ref;
@@ -158,8 +161,8 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           }}
           submitBehavior="submit"
           placeholder={props.placeholder}
-          readonly={!!props.readonly || (target === 'tv' && !editing())}
-          focusable={target !== 'tv' || editing() || !!props.readonly}
+          readonly={!!props.readonly || (confirm() && !editing())}
+          focusable={!confirm() || editing() || !!props.readonly}
           disabled={props.disabled}
           keyboardType={props.keyboardType}
           maxLength={props.maxLength}
@@ -185,7 +188,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           }}
         />
       </If>
-      <If when={target === 'tv' && !editing() && !props.readonly}>
+      <If when={confirm() && !editing() && !props.readonly}>
         <View
           class="flex-1 min-w-0 justify-center"
           style={{
@@ -212,7 +215,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           testID={props.testID ? `${props.testID}-clear` : undefined}
           onPress={() => {
             props.onClear?.();
-            if (target === 'tv' && !editing()) startEditing();
+            if (confirm() && !editing()) startEditing();
             else input?.focus();
           }}
         />
@@ -221,7 +224,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
   );
 }
 
-/** A single line input; desktop edits directly, TV confirms editing and returns without clearing. */
+/** A single line input; direct editing, or confirm mode where return leaves the draft intact. */
 export function TextInput(props: TextInputProps) {
   return InputFrame(props);
 }
@@ -261,6 +264,7 @@ export function SearchField(props: SearchFieldProps) {
               onCompositionChange={props.onCompositionChange}
               testID={props.testID}
               inputRef={props.inputRef}
+              activation={props.activation}
               search
               onClear={() => (props.onClear ? props.onClear() : props.onChange({ value: '' }))}
             />

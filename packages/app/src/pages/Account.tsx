@@ -6,12 +6,10 @@ import {
   Dialog,
   Field,
   Notice,
-  Product,
   Select,
   Tabs,
   TextInput,
   UiText,
-  tvUnit,
 } from '@hongguo/ui';
 import type { Store } from '../store';
 import { errorMessage } from '../error-messages';
@@ -30,9 +28,10 @@ const loginStatus: Record<string, string> = {
   failed: '登录未完成，请重试',
 };
 
-/** Shared account flow; Product supplies the existing desktop/TV control adaptations. */
+/** Shared account flow; density comes from the app root. */
 export function Account(props: {
   store: Store;
+  tv?: boolean;
   openUpdates?: (restore: () => void) => void;
   openNotifications?: (restore: () => void) => void;
 }) {
@@ -73,7 +72,6 @@ export function Account(props: {
   const blocked = () => view().busy || props.store.account.loading();
   const qrAllowed = () => props.store.account()?.qr_login_available === true;
   const phoneAllowed = () => props.store.account()?.phone_login_available === true;
-  const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
   const refresh = async () => {
     try {
       await flow.cancel();
@@ -212,7 +210,7 @@ export function Account(props: {
                   <Image
                     src={login()?.image}
                     accessibilityLabel="红果 App 登录二维码"
-                    style={{ width: unit(224), height: unit(224) }}
+                    style={{ width: 224, height: 224 }}
                   />
                 </ContentArrival>
               </If>
@@ -269,6 +267,7 @@ export function Account(props: {
               </Field>
               <Field label="手机号">
                 <TextInput
+                  activation={props.tv ? 'confirm' : 'direct'}
                   label="手机号"
                   value={view().phone}
                   keyboardType="phone-pad"
@@ -283,6 +282,7 @@ export function Account(props: {
                 <View class="flex-row items-center gap-3">
                   <View class="flex-1 min-w-0">
                     <TextInput
+                      activation={props.tv ? 'confirm' : 'direct'}
                       label="验证码"
                       value={view().code}
                       keyboardType="number-pad"
@@ -347,7 +347,7 @@ export function Account(props: {
                     <Image
                       src={login()?.sms_image}
                       accessibilityLabel="上行短信验证二维码"
-                      style={{ width: unit(224), height: unit(224) }}
+                      style={{ width: 224, height: 224 }}
                     />
                   </If>
                   <Button

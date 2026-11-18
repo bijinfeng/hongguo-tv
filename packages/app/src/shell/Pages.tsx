@@ -1,6 +1,6 @@
 import { View, reduceMotion } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
-import { Button, tvUnit } from '@hongguo/ui';
+import { Button } from '@hongguo/ui';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
 import { UpdatesPage } from '../pages/Updates';
@@ -150,9 +150,7 @@ export function Pages(props: { store: Store; updates?: Updates }) {
                   props.store.target === 'desktop' ? 'px-10 pt-6 pb-3 items-start' : 'items-start'
                 }
                 style={
-                  props.store.target === 'tv'
-                    ? { paddingTop: tvUnit(24), paddingBottom: tvUnit(12) }
-                    : undefined
+                  props.store.target === 'tv' ? { paddingTop: 12, paddingBottom: 6 } : undefined
                 }
               >
                 <Button
@@ -215,6 +213,7 @@ export function Pages(props: { store: Store; updates?: Updates }) {
             <If when={route.name === 'account'}>
               <Account
                 store={props.store}
+                tv={props.store.target === 'tv'}
                 openUpdates={
                   props.updates
                     ? (restore) => {

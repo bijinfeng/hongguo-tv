@@ -9,7 +9,7 @@ import {
   type ListRef,
   type ViewRef,
 } from 'nsh';
-import { Button, CardControls, PosterCard, UiText, tvUnit } from '@hongguo/ui';
+import { Button, CardControls, PosterCard, UiText } from '@hongguo/ui';
 import type { Drama, SeriesActor, SeriesDetail } from '@hongguo/core-client';
 import type { Store } from './store';
 
@@ -46,9 +46,9 @@ function ExtrasContent(props: DetailExtrasProps) {
   const collection = props.collection;
   const target = props.store.target;
   const relatedColumns = () => (target === 'desktop' && windowSize().width <= 800 ? 2 : 4);
-  const relatedGap = () => (target === 'tv' ? tvUnit(24) : 28);
+  const relatedGap = () => (target === 'tv' ? 12 : 28);
   const width = signal(0);
-  const inset = () => (target === 'tv' ? tvUnit(8) : 8);
+  const inset = () => (target === 'tv' ? 4 : 8);
   const cardWidth = () =>
     Math.max(
       96,
@@ -187,7 +187,7 @@ function ExtrasContent(props: DetailExtrasProps) {
                         class="min-w-0"
                         style={{
                           maxWidth: '100%',
-                          padding: target === 'tv' ? tvUnit(8) : undefined,
+                          padding: target === 'tv' ? 4 : undefined,
                         }}
                         onFocus={() => {
                           if (enabled()) props.store.noteFocusIntent();
@@ -246,7 +246,7 @@ function ExtrasContent(props: DetailExtrasProps) {
             viewport="parent"
             each={rows()}
             keyExtractor={(row) => row.key}
-            estimatedItemSize={cardWidth() * 1.35 + (target === 'tv' ? tvUnit(100) : 84)}
+            estimatedItemSize={cardWidth() * 1.35 + (target === 'tv' ? 50 : 84)}
             class="w-full"
             contentStyle={{
               padding: inset(),

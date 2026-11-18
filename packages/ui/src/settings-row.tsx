@@ -1,9 +1,9 @@
+const SETTINGS_VALUE_MIN_WIDTH = 200;
+
 import { Text, View, type JSX } from 'nsh';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { controlMetrics, space } from './foundation';
 import { UiText } from './display';
 import { textSize } from './typography';
-
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 /**
  * One setting: the label and its explanation on the start side, the confirmed value or
@@ -41,20 +41,20 @@ export function SettingsRow(props: SettingsRowProps) {
       style={
         card()
           ? {
-              gap: unit(12),
-              paddingVertical: unit(18),
-              paddingHorizontal: unit(20),
-              borderRadius: unit(12),
+              gap: space('sm'),
+              paddingVertical: space('md'),
+              paddingHorizontal: space('md'),
+              borderRadius: space('sm'),
             }
-          : { gap: unit(12), paddingVertical: unit(20) }
+          : { gap: space('sm'), paddingVertical: space('md') }
       }
       class={card() ? 'bg-card border border-border' : 'border-b border-border'}
     >
       <View
-        style={{ minHeight: controlMetrics().height, gap: unit(24) }}
+        style={{ minHeight: controlMetrics().height, gap: space('lg') }}
         class="flex-row items-center justify-between"
       >
-        <View class="flex-1 min-w-0" style={{ gap: unit(6) }}>
+        <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
           <Text class="font-semibold text-foreground" style={label()}>
             {props.label}
           </Text>
@@ -66,7 +66,7 @@ export function SettingsRow(props: SettingsRowProps) {
         </View>
         <View
           class="flex-row items-center justify-end"
-          style={{ gap: unit(12), minWidth: unit(200) }}
+          style={{ gap: space('sm'), minWidth: SETTINGS_VALUE_MIN_WIDTH }}
         >
           <If when={props.value}>
             <UiText tone="muted">{props.value}</UiText>

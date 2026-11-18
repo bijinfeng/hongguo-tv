@@ -1,5 +1,5 @@
 import { Scroll, View } from 'nsh';
-import { Notice, UiText, tvUnit } from '@hongguo/ui';
+import { Notice, UiText, space } from '@hongguo/ui';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
 import { SettingsAccount } from './settings/account';
@@ -10,7 +10,6 @@ import { SettingsUpdates } from './settings/updates';
 
 /** Settings surface: the prototype's single column, extended only with preferences that act. */
 export function SettingsPage(props: { store: Store; updates?: Updates; tv: boolean }) {
-  const unit = (value: number) => (props.tv ? tvUnit(value) : value);
   return (
     <View testID="settings-page" class="flex-1 min-h-0">
       <Scroll class="flex-1">
@@ -24,7 +23,7 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
               testID="settings-save-error"
             />
           </If>
-          <View style={{ gap: unit(32), maxWidth: props.tv ? undefined : 800 }}>
+          <View style={{ gap: space('xl'), maxWidth: props.tv ? undefined : 800 }}>
             <SettingsAppearance store={props.store} />
             <SettingsPlayback store={props.store} tv={props.tv} />
             <SettingsAccount store={props.store} />

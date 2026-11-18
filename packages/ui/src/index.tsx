@@ -1,11 +1,13 @@
 /** Stable public entry. Internal modules import owners directly, never this barrel. */
 export {
-  Product,
-  uiScale,
-  tvUnit,
+  border,
   controlMetrics,
+  radius,
+  space,
   type ProductTarget,
   type ControlSize,
+  type RadiusToken,
+  type SpaceToken,
 } from './foundation';
 export { Icon, type IconName, type IconProps } from './icon';
 export { Logo } from './branding';

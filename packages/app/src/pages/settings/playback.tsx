@@ -1,8 +1,6 @@
-import { Product, Select, SettingsRow, SettingsSection, Switch, tvUnit } from '@hongguo/ui';
+import { Select, SettingsRow, SettingsSection, Switch } from '@hongguo/ui';
 import type { Store } from '../../store';
 import { PLAYBACK_RATES, type PlaybackRate } from '../../settings';
-
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 const rateOptions = PLAYBACK_RATES.map((rate) => ({ value: rate, label: `${rate}×` }));
 
@@ -51,7 +49,7 @@ export function SettingsPlayback(props: { store: Store; tv: boolean }) {
           disabled={!settings.loaded()}
           onChange={(event) => settings.setDefaultRate((event.value as PlaybackRate) ?? '1')}
           testID="settings-rate"
-          style={{ minWidth: unit(200) }}
+          style={{ minWidth: 200 }}
         />
       </SettingsRow>
       <If when={!props.tv}>

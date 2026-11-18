@@ -1,5 +1,5 @@
 import { Image, Text, View, resource, signal, effect, lifecycle } from 'nsh';
-import { Notice, tvUnit } from '@hongguo/ui';
+import { Notice } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PosterCollection } from '../PosterCollection';
@@ -25,7 +25,7 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
       class="flex-1"
       style={
         props.store.target === 'tv'
-          ? { gap: tvUnit(28), paddingTop: tvUnit(12) }
+          ? { gap: 14, paddingTop: 6 }
           : desktopContentFrame({ top: 16, gap: 28 })
       }
     >
@@ -36,8 +36,8 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
             class="rounded-full"
             accessibilityLabel={data()?.actor.name || props.title}
             style={{
-              width: props.store.target === 'tv' ? tvUnit(96) : 72,
-              height: props.store.target === 'tv' ? tvUnit(96) : 72,
+              width: props.store.target === 'tv' ? 48 : 72,
+              height: props.store.target === 'tv' ? 48 : 72,
             }}
           />
         </If>
@@ -46,14 +46,14 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
             role="header"
             accessibilityLevel={1}
             class="text-3xl font-semibold text-foreground"
-            style={props.store.target === 'tv' ? { fontSize: tvUnit(36) } : undefined}
+            style={props.store.target === 'tv' ? { fontSize: 18 } : undefined}
           >
             {data()?.actor.name || props.title}
           </Text>
           <If when={data()?.actor.description}>
             <Text
               class="line-clamp-3 text-base text-muted-foreground"
-              style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+              style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
             >
               {data()!.actor.description}
             </Text>

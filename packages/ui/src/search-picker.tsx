@@ -10,7 +10,7 @@ import {
 } from 'nsh';
 import { CardControls, CardRoot } from './card-controls';
 import { Icon, type IconName } from './icon';
-import { Product, tvUnit } from './foundation';
+import { space } from './foundation';
 import { motionTokens } from './motion';
 
 /** Anchored, nonmodal: editing remains in the input until the user moves to a row. */
@@ -45,7 +45,7 @@ export function SearchPicker(props: {
         style={{
           ...motion.style,
           width: props.width,
-          maxHeight: Product() === 'tv' ? tvUnit(480) : 360,
+          maxHeight: 360,
         }}
         class="rounded-(--radius) border border-border bg-card p-2"
       >
@@ -86,25 +86,23 @@ export function SearchSuggestionRow(props: {
       onFocus={props.onFocus}
       onBlur={props.onBlur}
       onPress={props.onPress}
-      style={
-        Product() === 'tv'
-          ? { minHeight: tvUnit(72), padding: tvUnit(12), gap: tvUnit(16) }
-          : { minHeight: 48 }
-      }
+      style={{
+        minHeight: space('3xl'),
+        paddingHorizontal: space('sm'),
+        paddingVertical: space('xs'),
+        gap: space('sm'),
+      }}
       class={`flex-row items-center gap-3 rounded-(--radius) border-2 border-transparent px-3 py-2 hover:bg-muted active:bg-border focus:border-ring focus:bg-accent ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
       <Icon name={props.icon} />
       <View class="flex-1 gap-1">
-        <Text
-          class="line-clamp-1 text-sm text-foreground"
-          style={Product() === 'tv' ? { fontSize: tvUnit(24) } : undefined}
-        >
+        <Text class="line-clamp-1 text-sm text-foreground" style={{ fontSize: 14 }}>
           {props.label}
         </Text>
         <If when={props.meta}>
           <Text
             class="line-clamp-1 text-xs text-muted-foreground"
-            style={Product() === 'tv' ? { fontSize: tvUnit(20) } : undefined}
+            style={{ fontSize: space('sm') }}
           >
             {props.meta}
           </Text>

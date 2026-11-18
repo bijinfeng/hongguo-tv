@@ -2,8 +2,8 @@
  * Page styles live in @layer prototype-layout and may arrange controls, never restyle them.
  */
 :root {
-  --control: 44px;
-  --small: 36px;
+  --control: 40px;
+  --small: 32px;
   --body: 16px;
   --meta: 14px;
   --icon: 20px;

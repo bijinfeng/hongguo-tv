@@ -15,7 +15,7 @@ import {
 } from 'nsh';
 import { Button, Select, Sheet, Slider } from 'nsh/base';
 import { Icon, type IconName } from './icon';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { controlMetrics, space } from './foundation';
 import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
 
@@ -105,12 +105,12 @@ export function CinemaSlider(props: {
       trackClass="justify-center"
       trackStyle={{ minHeight: controlMetrics().height }}
       indicatorClass="rounded-full bg-cinema-track"
-      indicatorStyle={{ height: Product() === 'tv' ? tvUnit(6) : 4 }}
+      indicatorStyle={{ height: space('xxs') }}
       rangeClass="rounded-full bg-primary"
       thumbClass="rounded-full bg-cinema-foreground hover:bg-cinema-focus active:bg-cinema-focus focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4"
       thumbStyle={{
-        width: Product() === 'tv' ? tvUnit(24) : 16,
-        height: Product() === 'tv' ? tvUnit(24) : 16,
+        width: space('md'),
+        height: space('md'),
       }}
     />
   );
@@ -174,7 +174,7 @@ export function CinemaSelect(props: {
       }
       placement="top"
       popupClass="bg-popover border border-border rounded-(--radius) p-2"
-      popupStyle={{ minWidth: Product() === 'tv' ? tvUnit(220) : 120 }}
+      popupStyle={{ minWidth: 120 }}
       empty={
         <Text
           class="px-3 py-2 text-muted-foreground"
@@ -194,8 +194,16 @@ export function CinemaSelect(props: {
   );
 }
 
-/** TV's gradient is for legibility over moving picture, not decoration. */
-export function CinemaControls(props: { children?: JSX.Element; visible?: boolean }) {
+/**
+ * The gradient overlay is for legibility over moving picture, not decoration.
+ * `variant="overlay"` lays the controls over the picture; `bar` stacks them below it.
+ */
+export function CinemaControls(props: {
+  children?: JSX.Element;
+  visible?: boolean;
+  variant?: 'bar' | 'overlay';
+}) {
+  const overlay = () => props.variant === 'overlay';
   const motion = createMotion();
   const shown = signal(props.visible !== false);
   let revision = 0;
@@ -219,15 +227,9 @@ export function CinemaControls(props: { children?: JSX.Element; visible?: boolea
         style={{ opacity: motion.opacity }}
         accessibilityElementsHidden={props.visible === false}
         disabled={props.visible === false}
-        class={
-          !shown()
-            ? 'hidden'
-            : Product() === 'tv'
-              ? 'absolute bottom-0 left-0 right-0'
-              : 'bg-cinema'
-        }
+        class={!shown() ? 'hidden' : overlay() ? 'absolute bottom-0 left-0 right-0' : 'bg-cinema'}
       >
-        <If when={Product() === 'tv'}>
+        <If when={overlay()}>
           <Canvas
             class="absolute inset-0"
             draw={(cx, size) => {
@@ -241,10 +243,10 @@ export function CinemaControls(props: { children?: JSX.Element; visible?: boolea
         </If>
         <View
           style={{
-            paddingTop: Product() === 'tv' ? tvUnit(80) : 12,
-            paddingBottom: Product() === 'tv' ? tvUnit(32) : 12,
-            paddingHorizontal: Product() === 'tv' ? tvUnit(96) : 16,
-            gap: Product() === 'tv' ? tvUnit(24) : 6,
+            paddingTop: space('sm'),
+            paddingBottom: space('sm'),
+            paddingHorizontal: space('md'),
+            gap: 6,
           }}
         >
           {props.children}
@@ -263,13 +265,7 @@ export function CinemaText(props: {
       class={`${props.variant === 'title' ? 'font-semibold text-cinema-foreground line-clamp-2' : props.variant === 'preview' ? 'text-cinema-foreground' : 'text-cinema-muted'}`}
       style={{
         fontSize:
-          Product() === 'tv'
-            ? tvUnit(props.variant === 'title' ? 32 : props.variant === 'preview' ? 22 : 20)
-            : props.variant === 'title'
-              ? 24
-              : props.variant === 'preview'
-                ? 16
-                : 14,
+          props.variant === 'title' ? space('lg') : props.variant === 'preview' ? space('md') : 14,
       }}
     >
       {props.children}
@@ -291,7 +287,7 @@ export function EpisodePanel(props: {
         if (!open) props.onClose();
       }}
       popupClass={props.cinema ? 'bg-cinema' : 'bg-popover'}
-      popupStyle={{ width: Math.min(Product() === 'tv' ? tvUnit(640) : 440, windowSize().width) }}
+      popupStyle={{ width: Math.min(440, windowSize().width) }}
       backdropClass="bg-cinema/60"
     >
       <View
@@ -299,8 +295,8 @@ export function EpisodePanel(props: {
         accessibilityLabel={props.cinema ? '播放设置' : '选集'}
         class="flex-1"
         style={{
-          padding: Product() === 'tv' ? tvUnit(32) : 32,
-          gap: Product() === 'tv' ? tvUnit(24) : 24,
+          padding: space('xl'),
+          gap: space('lg'),
         }}
       >
         {props.children}
@@ -328,8 +324,8 @@ export function CinemaStageAction(props: {
         <View
           class="rounded-full bg-cinema/60 items-center justify-center"
           style={{
-            width: Product() === 'tv' ? tvUnit(96) : 64,
-            height: Product() === 'tv' ? tvUnit(96) : 64,
+            width: 64,
+            height: 64,
           }}
         >
           <Icon name="play" color={token('cinema-foreground')} />
@@ -341,8 +337,8 @@ export function CinemaStageAction(props: {
 
 export function CinemaSettingRow(props: { label: string; children?: JSX.Element }) {
   return (
-    <View class="flex-row items-center" style={{ gap: Product() === 'tv' ? tvUnit(24) : 16 }}>
-      <View style={{ minWidth: Product() === 'tv' ? tvUnit(120) : 80 }}>
+    <View class="flex-row items-center" style={{ gap: space('md') }}>
+      <View style={{ minWidth: 80 }}>
         <CinemaText variant="preview">{props.label}</CinemaText>
       </View>
       <View class="flex-1">{props.children}</View>
@@ -355,9 +351,9 @@ export function EpisodeRail(props: { children?: JSX.Element }) {
     <View
       class="shrink-0 bg-card border border-border rounded-(--radius) overflow-hidden"
       style={{
-        width: Math.min(Product() === 'tv' ? tvUnit(640) : 316, windowSize().width),
-        minWidth: Math.min(Product() === 'tv' ? tvUnit(520) : 280, windowSize().width),
-        height: Math.min(Product() === 'tv' ? tvUnit(720) : 552, windowSize().height),
+        width: Math.min(316, windowSize().width),
+        minWidth: Math.min(280, windowSize().width),
+        height: Math.min(552, windowSize().height),
         borderRadius: controlMetrics().radius,
       }}
     >

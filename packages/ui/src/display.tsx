@@ -12,9 +12,23 @@ import {
 } from 'nsh';
 import { Avatar as BaseAvatar, Progress as BaseProgress } from 'nsh/base';
 import { Button } from './button';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { border, controlMetrics, radius, space } from './foundation';
 import { Icon, type IconName } from './icon';
-import { textSize, type TextRole } from './typography';
+
+const BADGE_MIN_HEIGHT = 28;
+const BADGE_PADDING_X = 10;
+const BADGE_PADDING_Y = 3;
+const BADGE_GAP = 6;
+const INLINE_MIN_WIDTH = 360;
+const INLINE_IMAGE_MIN_HEIGHT = 180;
+const SLIDER_TRACK_HEIGHT = 6;
+import {
+  textLetterSpacing,
+  textLineHeight,
+  textSize,
+  textWeight,
+  type TextRole,
+} from './typography';
 export type { TextRole } from './typography';
 /** Semantic foregrounds; consumers cannot supply fonts or colors. */
 export type TextTone = 'default' | 'muted' | 'error' | 'selected' | 'cinema';
@@ -39,7 +53,6 @@ const textColor = (tone?: TextTone, role?: TextRole) =>
         : tone === 'muted' || (!tone && role === 'meta')
           ? 'text-muted-foreground'
           : 'text-foreground';
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 /** Renders one shared text role, retaining system font scaling and native selection. */
 export function UiText(props: UiTextProps) {
@@ -61,14 +74,13 @@ export function UiText(props: UiTextProps) {
         }
         style={{
           fontSize: textSize(props.role),
-          lineHeight:
-            textSize(props.role) *
-            (props.role === 'display' ? 1.4 : props.role === 'page' ? 1.3 : 1.5),
-          letterSpacing: props.role === 'display' ? textSize('display') * 0.06 : undefined,
+          lineHeight: textLineHeight(props.role),
+          letterSpacing: textLetterSpacing(props.role),
+          fontWeight: textWeight(props.role),
           numberOfLines: props.lines ?? 0,
           textAlign: props.align ?? 'start',
         }}
-        class={`${textColor(props.tone, props.role)} ${['page', 'section', 'title', 'content-title'].includes(props.role ?? '') ? 'font-semibold' : ''} ${props.role === 'numeric' ? 'tabular-nums' : ''} selection:bg-accent`}
+        class={`${textColor(props.tone, props.role)} ${props.role === 'numeric' ? 'tabular-nums' : ''} selection:bg-accent`}
       >
         {props.children}
       </Text>
@@ -90,7 +102,7 @@ export function Surface(props: SurfaceProps) {
   return (
     <View
       testID={props.testID}
-      style={{ padding: unit(24), gap: unit(12), borderRadius: unit(12) }}
+      style={{ padding: space('lg'), gap: space('sm'), borderRadius: space('sm') }}
       class={`${props.variant === 'muted' ? 'bg-muted' : props.variant === 'page' ? 'bg-background border border-border' : props.variant === 'cinema' ? 'bg-cinema' : 'bg-card'} ${props.class ?? ''}`}
     >
       {props.children}
@@ -114,11 +126,11 @@ export function Badge(props: BadgeProps) {
       accessible
       accessibilityLabel={props.label}
       style={{
-        minHeight: unit(28),
-        paddingHorizontal: unit(10),
-        paddingVertical: unit(3),
-        gap: unit(6),
-        borderRadius: unit(6),
+        minHeight: BADGE_MIN_HEIGHT,
+        paddingHorizontal: BADGE_PADDING_X,
+        paddingVertical: BADGE_PADDING_Y,
+        gap: BADGE_GAP,
+        borderRadius: radius('md'),
       }}
       class={`flex-row items-center self-start ${props.tone === 'selected' ? 'bg-accent' : 'bg-muted'}`}
     >
@@ -163,8 +175,8 @@ export function Avatar(props: AvatarProps) {
       accessibilityLabel={props.accessibilityLabel}
       testID={props.testID}
       style={{
-        width: controlMetrics().height + (props.size === 'lg' ? unit(24) : 0),
-        height: controlMetrics().height + (props.size === 'lg' ? unit(24) : 0),
+        width: controlMetrics().height + (props.size === 'lg' ? space('lg') : 0),
+        height: controlMetrics().height + (props.size === 'lg' ? space('lg') : 0),
       }}
       class="rounded-full shrink-0 overflow-hidden"
       imageClass="rounded-full object-cover"
@@ -195,8 +207,8 @@ export function Separator(props: SeparatorProps) {
       accessibilityElementsHidden
       style={
         props.axis === 'vertical'
-          ? { width: unit(1), alignSelf: 'stretch' }
-          : { height: unit(1), alignSelf: 'stretch' }
+          ? { width: border, alignSelf: 'stretch' }
+          : { height: border, alignSelf: 'stretch' }
       }
       class="bg-border shrink-0"
     />
@@ -251,7 +263,7 @@ export function InlineStatus(props: InlineStatusProps) {
   return (
     <View
       testID={props.testID}
-      style={{ minHeight: controlMetrics().height, gap: unit(12) }}
+      style={{ minHeight: controlMetrics().height, gap: space('sm') }}
       class="flex-row flex-wrap items-center"
     >
       <If
@@ -298,7 +310,7 @@ export interface NoticeProps {
 /** An in-place notice keeps error copy and retry together; it never animates on value changes. */
 export function Notice(props: NoticeProps) {
   const width = signal(Infinity);
-  const inline = () => width() >= unit(360);
+  const inline = () => width() >= INLINE_MIN_WIDTH;
   return (
     <View
       testID={props.testID}
@@ -306,10 +318,10 @@ export function Notice(props: NoticeProps) {
         if (bounds.size.width > 0) width.set(bounds.size.width);
       }}
       style={{
-        gap: unit(16),
-        paddingHorizontal: unit(24),
-        paddingVertical: unit(20),
-        borderRadius: unit(12),
+        gap: space('md'),
+        paddingHorizontal: space('lg'),
+        paddingVertical: space('md'),
+        borderRadius: space('sm'),
       }}
       class={`${inline() ? 'flex-row items-center' : 'items-start'} shrink-0 w-full min-w-0 bg-muted`}
     >
@@ -353,10 +365,10 @@ export function Empty(props: EmptyProps) {
     <View
       testID={props.testID}
       style={{
-        minHeight: unit(180),
-        paddingVertical: unit(24),
-        paddingHorizontal: unit(16),
-        gap: unit(12),
+        minHeight: INLINE_IMAGE_MIN_HEIGHT,
+        paddingVertical: space('lg'),
+        paddingHorizontal: space('md'),
+        gap: space('sm'),
       }}
       class="items-center justify-center"
     >
@@ -393,34 +405,34 @@ export function Skeleton(props: SkeletonProps) {
       accessibilityLabel={props.label ?? '正在加载内容'}
       accessibilityState={{ busy: true }}
       testID={props.testID}
-      style={{ gap: Product() === 'tv' ? tvUnit(24) : 20 }}
+      style={{ gap: 20 }}
       class="flex-row items-center"
     >
       <If when={props.variant === 'poster'}>
         <View
-          style={{ width: '100%', aspectRatio: 2 / 2.7, borderRadius: unit(12) }}
+          style={{ width: '100%', aspectRatio: 2 / 2.7, borderRadius: space('sm') }}
           class="bg-skeleton"
         />
       </If>
       <If when={props.variant === 'result'}>
         <View
           style={{
-            width: Product() === 'tv' ? tvUnit(96) : 72,
-            height: Product() === 'tv' ? tvUnit(128) : 96,
-            borderRadius: unit(8),
+            width: 72,
+            height: 96,
+            borderRadius: space('xs'),
           }}
           class="bg-skeleton shrink-0"
         />
       </If>
       <If when={props.variant !== 'poster'}>
-        <View class="flex-1" style={{ gap: unit(16) }}>
+        <View class="flex-1" style={{ gap: space('md') }}>
           <Each of={['68%', '88%', '44%']}>
             {(width) => (
               <View
                 style={{
                   width: width() as `${number}%`,
-                  height: Product() === 'tv' ? tvUnit(20) : 14,
-                  borderRadius: unit(4),
+                  height: 14,
+                  borderRadius: space('xxs'),
                 }}
                 class="bg-skeleton"
               />
@@ -452,7 +464,7 @@ export function SkeletonBlock(props: SkeletonBlockProps) {
       style={{
         width: props.width,
         height: props.height,
-        borderRadius: props.radius ?? unit(4),
+        borderRadius: props.radius ?? space('xxs'),
       }}
     />
   );
@@ -530,7 +542,7 @@ export function Progress(props: ProgressProps) {
     return () => motion.stop();
   });
   return (
-    <View testID={props.testID} style={{ gap: unit(12) }}>
+    <View testID={props.testID} style={{ gap: space('sm') }}>
       <If when={props.label}>
         <View class="flex-row flex-wrap items-center justify-between gap-4">
           <UiText>{props.label}</UiText>
@@ -545,7 +557,7 @@ export function Progress(props: ProgressProps) {
         indeterminate={unknown()}
         onLayout={({ bounds }) => width.set(bounds.size.width)}
         trackClass="bg-border overflow-hidden"
-        trackStyle={{ height: unit(6), borderRadius: unit(3) }}
+        trackStyle={{ height: SLIDER_TRACK_HEIGHT, borderRadius: radius('full') }}
         indicatorClass={`h-full bg-primary ${unknown() ? 'w-[28%]' : ''}`}
         indicatorStyle={unknown() ? motion.style : undefined}
       />
@@ -572,7 +584,7 @@ export function ResultRow(props: ResultRowProps) {
   return (
     <View
       testID={props.testID}
-      style={{ padding: unit(Product() === 'tv' ? 24 : 16), gap: unit(16), borderRadius: unit(12) }}
+      style={{ padding: space('md'), gap: space('md'), borderRadius: space('sm') }}
       class={`flex-row items-center ${props.selected ? 'bg-accent' : 'bg-card'}`}
     >
       {props.leading}

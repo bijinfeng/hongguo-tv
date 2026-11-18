@@ -23,7 +23,6 @@ import {
   Notice,
   UiText,
   PosterCard,
-  tvUnit,
   type ProductTarget,
 } from '@hongguo/ui';
 import type { CalendarItem, Drama } from '@hongguo/core-client';
@@ -247,7 +246,7 @@ export function Calendar(props: {
       class="flex-1"
       style={
         props.target === 'tv'
-          ? { paddingTop: tvUnit(32), gap: tvUnit(24) }
+          ? { paddingTop: 16, gap: 12 }
           : desktopContentFrame({ top: 24, gap: 24 })
       }
     >
@@ -289,6 +288,7 @@ export function Calendar(props: {
         when={calendar.mode() === 'calendar'}
         else={
           <FilterChoices
+            variant={props.target === 'tv' ? 'select' : 'chips'}
             label="人群"
             testID="calendar-gender"
             active={props.active}
@@ -313,14 +313,14 @@ export function Calendar(props: {
             testID="calendar-dates"
             style={{
               height: Math.max(
-                (props.target === 'tv' ? tvUnit(148) : 112) * fontScale(),
-                dateContentHeight() + (props.target === 'tv' ? tvUnit(16) : 16),
+                (props.target === 'tv' ? 74 : 112) * fontScale(),
+                dateContentHeight() + (props.target === 'tv' ? 8 : 16),
               ),
               flexShrink: 0,
             }}
             contentStyle={{
               minWidth: '100%',
-              padding: props.target === 'tv' ? tvUnit(8) : 8,
+              padding: props.target === 'tv' ? 4 : 8,
             }}
           >
             <View
@@ -426,8 +426,8 @@ export function Calendar(props: {
                 <View class="flex-row gap-5 items-start">
                   <View
                     style={{
-                      width: props.target === 'tv' ? tvUnit(100) : 80,
-                      height: props.target === 'tv' ? tvUnit(140) : 112,
+                      width: props.target === 'tv' ? 50 : 80,
+                      height: props.target === 'tv' ? 70 : 112,
                     }}
                   >
                     <Cover src={cover(item())} title={title(item())} class="w-full h-full" />
@@ -529,21 +529,19 @@ export function Calendar(props: {
             }))}
             keyExtractor={(row) => row.id}
             horizontal={props.target === 'tv'}
-            estimatedItemSize={
-              props.target === 'tv' ? tvUnit(276) : ((width() - 84) / 4) * 1.35 + 84
-            }
+            estimatedItemSize={props.target === 'tv' ? 138 : ((width() - 84) / 4) * 1.35 + 84}
             style={props.target === 'desktop' ? { width: '100%', maxWidth: 1100 } : undefined}
             contentStyle={{
-              gap: props.target === 'tv' ? tvUnit(12) : 12,
+              gap: props.target === 'tv' ? 6 : 12,
               paddingHorizontal: props.target === 'tv' ? 0 : 8,
-              paddingVertical: props.target === 'tv' ? tvUnit(8) : 0,
+              paddingVertical: props.target === 'tv' ? 4 : 0,
             }}
           >
             {(row) => (
               <View
                 style={
                   props.target === 'tv'
-                    ? { width: tvUnit(276), paddingHorizontal: tvUnit(8) }
+                    ? { width: 138, paddingHorizontal: 4 }
                     : { paddingVertical: 8 }
                 }
               >
@@ -571,7 +569,7 @@ export function Calendar(props: {
                                 selected={calendar.selected() === calendarItemId(item())}
                                 availableHeight={Math.max(
                                   0,
-                                  height() - (props.target === 'tv' ? tvUnit(16) : 32),
+                                  height() - (props.target === 'tv' ? 8 : 32),
                                 )}
                                 width={(width() - 84) / 4 - 4}
                                 buttonRef={(node) => {

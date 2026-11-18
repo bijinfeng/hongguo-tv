@@ -12,7 +12,7 @@ import {
 import { Button, IconButton } from './button';
 import { CardControls } from './card-controls';
 import { UiText } from './display';
-import { Product, controlMetrics, tvUnit } from './foundation';
+import { controlMetrics, space } from './foundation';
 
 export type RadarTableColumn = { key: string; title: string; numeric?: boolean };
 export type RadarTableRow = { id: string; title: string; cells: Record<string, string> };
@@ -36,6 +36,11 @@ export interface RadarTableProps {
    * `external` lets the page compose them in its own control band.
    */
   columnControls?: 'header' | 'external';
+  /**
+   * `cell` keeps the title as the row action and lets a pointer scroll columns.
+   * `row` makes the whole row one focus stop so a d-pad never enters a cell grid.
+   */
+  focusMode?: 'cell' | 'row';
   tableRef: (ref: RadarTableRef) => void;
   onOpen: (event: { id: string }) => void;
   onSource: (event: { id: string }) => void;
@@ -47,8 +52,7 @@ export interface RadarTableProps {
  * row one focusable action so a d-pad never has to enter a table cell grid.
  */
 export function RadarTable(props: RadarTableProps) {
-  const product = Product();
-  const tv = product === 'tv';
+  const row = props.focusMode === 'row';
   let list: ListRef | undefined;
   let columns: ScrollRef | undefined;
   let waiting: { id: string; owns: () => boolean } | undefined;
@@ -57,10 +61,9 @@ export function RadarTable(props: RadarTableProps) {
   const offset = signal(0);
   let frame = 0;
   let disposed = false;
-  const unit = (value: number) => (tv ? tvUnit(value) : value);
-  const safe = () => unit(8);
-  const rowHeight = () => (tv ? tvUnit(120) : 84);
-  const headerHeight = () => (tv ? tvUnit(72) : 48);
+  const safe = () => space('xs');
+  const rowHeight = () => 84;
+  const headerHeight = () => space('3xl');
   const weight = (column: RadarTableColumn) => {
     switch (column.key) {
       case 'title':
@@ -83,20 +86,6 @@ export function RadarTable(props: RadarTableProps) {
   };
   const fixedWidth = (column: RadarTableColumn) => {
     const wideNumber = ['hot', 'd_hot', 'd_fav', 'd7_hot', 'r_hot'].includes(column.key);
-    if (tv)
-      return tvUnit(
-        column.key === 'title'
-          ? 400
-          : column.key === 'rank'
-            ? 88
-            : column.key === 'type'
-              ? 96
-              : column.key === 'streak'
-                ? 280
-                : wideNumber
-                  ? 440
-                  : 180,
-      );
     return column.key === 'title'
       ? 240
       : column.key === 'rank'
@@ -112,7 +101,7 @@ export function RadarTable(props: RadarTableProps) {
   /** TV columns share the viewport by weight; the desktop table keeps its fixed columns. */
   const widths = () => {
     const map = new Map<string, number>();
-    if (!tv) {
+    if (!row) {
       for (const column of props.columns) map.set(column.key, fixedWidth(column));
       return map;
     }
@@ -130,13 +119,13 @@ export function RadarTable(props: RadarTableProps) {
     return map;
   };
   const contentWidth = () => {
-    if (tv) return viewport();
+    if (row) return viewport();
     let total = safe() * 2;
     for (const column of props.columns) total += fixedWidth(column);
     return Math.max(viewport(), total);
   };
   const scrollColumns = (x: number) => {
-    if (tv) {
+    if (row) {
       offset.set(0);
       return;
     }
@@ -145,7 +134,7 @@ export function RadarTable(props: RadarTableProps) {
     columns?.scrollTo({ x: next, animated: false });
   };
   const showTitle = () => {
-    if (tv) return;
+    if (row) return;
     let start = safe();
     for (const column of props.columns) {
       if (column.key === 'title') {
@@ -222,7 +211,7 @@ export function RadarTable(props: RadarTableProps) {
       class="shrink-0 border-b border-border"
       accessibilityLabel="榜单雷达列标题"
       onScroll={({ offset: current }) => {
-        if (!tv) offset.set(current.x);
+        if (!row) offset.set(current.x);
       }}
     >
       <View
@@ -242,7 +231,7 @@ export function RadarTable(props: RadarTableProps) {
               style={{
                 width: widths().get(column().key) ?? 0,
                 paddingHorizontal:
-                  column().key === 'title' ? controlMetrics('sm').paddingHorizontal : unit(12),
+                  column().key === 'title' ? controlMetrics('sm').paddingHorizontal : space('sm'),
               }}
               class="shrink-0"
             >
@@ -294,7 +283,7 @@ export function RadarTable(props: RadarTableProps) {
                 role="cell"
                 style={{
                   width: widths().get(column().key) ?? 0,
-                  paddingHorizontal: column().key === 'title' ? 0 : unit(12),
+                  paddingHorizontal: column().key === 'title' ? 0 : space('sm'),
                 }}
                 class="shrink-0"
               >
@@ -343,7 +332,7 @@ export function RadarTable(props: RadarTableProps) {
       </View>
     );
   };
-  const tvRow = (item: () => RadarTableRow) => {
+  const rowAction = (item: () => RadarTableRow) => {
     let ref: ViewRef | undefined;
     effect(() => {
       const id = item().id;
@@ -395,7 +384,10 @@ export function RadarTable(props: RadarTableProps) {
                 {(column) => (
                   <View
                     role="cell"
-                    style={{ width: widths().get(column().key) ?? 0, paddingHorizontal: unit(12) }}
+                    style={{
+                      width: widths().get(column().key) ?? 0,
+                      paddingHorizontal: space('sm'),
+                    }}
                     class="shrink-0"
                   >
                     <If
@@ -483,19 +475,19 @@ export function RadarTable(props: RadarTableProps) {
           estimatedItemSize={rowHeight()}
           class="flex-1 min-h-0 min-w-0 w-full"
           accessibilityLabel={
-            tv ? '榜单雷达数据，每一行可打开详情' : '榜单雷达数据，标题可打开详情'
+            row ? '榜单雷达数据，每一行可打开详情' : '榜单雷达数据，标题可打开详情'
           }
           onWheel={(event) => {
-            if (tv) return;
+            if (row) return;
             const distance = event.delta.x || (event.modifiers.shift ? event.delta.y : 0);
             if (distance) {
               props.onNavigate();
-              scrollColumns(offset() + distance * (event.deltaMode === 'lines' ? unit(24) : 1));
+              scrollColumns(offset() + distance * (event.deltaMode === 'lines' ? space('lg') : 1));
             }
           }}
           contentStyle={{ paddingTop: safe(), paddingBottom: safe() }}
           empty={
-            <View style={{ padding: unit(24) }}>
+            <View style={{ padding: space('lg') }}>
               <UiText role="meta">暂无条目</UiText>
             </View>
           }
@@ -503,7 +495,7 @@ export function RadarTable(props: RadarTableProps) {
             if (waiting) restore();
           }}
         >
-          {(item) => (tv ? tvRow(item) : desktopRow(item))}
+          {(item) => (row ? rowAction(item) : desktopRow(item))}
         </List>
       </View>
     </View>

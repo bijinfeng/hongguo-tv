@@ -8,7 +8,6 @@ import {
   SkeletonBlock,
   SkeletonRegion,
   UiText,
-  tvUnit,
 } from '@hongguo/ui';
 import type { Store } from '../../store';
 
@@ -137,18 +136,14 @@ function PosterSkeleton(props: { store: Store }) {
         key={(index: number) => `poster-${index}`}
       >
         {() => (
-          <View accessibilityElementsHidden style={{ width: width(), gap: tv() ? tvUnit(14) : 12 }}>
-            <SkeletonBlock
-              width={width()}
-              height={width() * 1.35}
-              radius={tv() ? tvUnit(12) : 12}
-            />
+          <View accessibilityElementsHidden style={{ width: width(), gap: tv() ? 7 : 12 }}>
+            <SkeletonBlock width={width()} height={width() * 1.35} radius={tv() ? 6 : 12} />
             <View style={{ gap: 4 }}>
-              <View class="justify-center" style={{ height: tv() ? tvUnit(36) : 27 }}>
-                <SkeletonBlock width="72%" height={tv() ? tvUnit(18) : 14} radius={4} />
+              <View class="justify-center" style={{ height: tv() ? 18 : 27 }}>
+                <SkeletonBlock width="72%" height={tv() ? 9 : 14} radius={4} />
               </View>
-              <View class="justify-center" style={{ height: tv() ? tvUnit(30) : 21 }}>
-                <SkeletonBlock width="42%" height={tv() ? tvUnit(16) : 12} radius={4} />
+              <View class="justify-center" style={{ height: tv() ? 15 : 21 }}>
+                <SkeletonBlock width="42%" height={tv() ? 8 : 12} radius={4} />
               </View>
             </View>
           </View>
@@ -177,7 +172,7 @@ function CatalogEmpty(props: { store: Store }) {
   const catalog = props.store.homeCatalog;
   const tv = () => props.store.target === 'tv';
   return (
-    <View class="items-start" style={{ gap: 12, paddingVertical: tv() ? tvUnit(24) : 24 }}>
+    <View class="items-start" style={{ gap: 12, paddingVertical: tv() ? 12 : 24 }}>
       <UiText role="title">暂时没有找到这部剧</UiText>
       <UiText role="meta" lines={2}>
         {catalog.selection().category_dim_theme || catalog.selection().genre
@@ -265,7 +260,7 @@ export function CatalogSection(props: { store: Store }) {
       {/* TV has no sidebar, so the home page carries these entries there. */}
       <If when={tv()}>
         <View style={{ marginTop: 24 }}>
-          <CardControls label="更多发现" onNavigate={props.store.noteFocusIntent} gap={tvUnit(20)}>
+          <CardControls label="更多发现" onNavigate={props.store.noteFocusIntent} gap={10}>
             <Button
               label="排行榜"
               icon="chart-no-axes-column-increasing"

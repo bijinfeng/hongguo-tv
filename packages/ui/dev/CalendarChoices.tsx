@@ -2,10 +2,9 @@ import { Text, View, signal, type ViewRef } from 'nsh';
 import { Button } from '../src/button';
 import { CardControls } from '../src/card-controls';
 import { DateChoice } from '../src/date-choice';
-import { Product, tvUnit, type ProductTarget } from '../src/foundation';
 
 /** Isolated controlled-date acceptance; no calendar service, inferred dates or business state. */
-export function CalendarChoices(props: { target: ProductTarget }) {
+export function CalendarChoices() {
   const selected = signal('20240228');
   const requested = signal('none');
   const focused = signal('none');
@@ -18,7 +17,7 @@ export function CalendarChoices(props: { target: ProductTarget }) {
     if (accepted()) selected.set(value);
   };
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background p-8 gap-6">
         <Text class="text-xl text-foreground">日期选择基础组件验收</Text>
         <CardControls label="示例日期" class="items-start">
@@ -38,10 +37,7 @@ export function CalendarChoices(props: { target: ProductTarget }) {
             )}
           </Each>
         </CardControls>
-        <View
-          class="flex-row items-start"
-          style={{ height: props.target === 'tv' ? tvUnit(144) : 108 }}
-        >
+        <View class="flex-row items-start" style={{ height: 108 }}>
           <DateChoice
             value="20000229"
             label="周二"
@@ -99,6 +95,6 @@ export function CalendarChoices(props: { target: ProductTarget }) {
         <Text class="text-base text-foreground">{`requested:${requested()} · presses:${presses()}`}</Text>
         <Text class="text-base text-foreground">{`focused:${focused()}`}</Text>
       </View>
-    </Product.Provider>
+    </>
   );
 }

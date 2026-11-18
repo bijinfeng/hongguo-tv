@@ -1,6 +1,6 @@
 import { Text, token, type ViewRef } from 'nsh';
 import { Checkbox as BaseCheckbox } from 'nsh/base';
-import { Product, tvUnit, controlMetrics } from './foundation';
+import { controlMetrics } from './foundation';
 import { Icon } from './icon';
 
 /** Controlled boolean selection; NSH handles mixed state, activation and disabled behavior. */
@@ -42,8 +42,8 @@ export function Checkbox(props: CheckboxProps) {
           : 'border-input checked:bg-primary-strong checked:border-primary-strong indeterminate:bg-primary-strong indeterminate:border-primary-strong'
       }`}
       indicatorStyle={{
-        width: Product() === 'tv' ? tvUnit(28) : 22,
-        height: Product() === 'tv' ? tvUnit(28) : 22,
+        width: 22,
+        height: 22,
       }}
       indicator={
         <If when={props.checked || props.indeterminate}>

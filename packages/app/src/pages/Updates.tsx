@@ -1,5 +1,5 @@
 import { Scroll, Text, View, cleanup, effect, signal, announce, type ViewRef } from 'nsh';
-import { Button, ContentArrival, DownloadProgress, tvUnit } from '@hongguo/ui';
+import { Button, ContentArrival, DownloadProgress } from '@hongguo/ui';
 import type { Updates, UpdatePhase } from '../updates';
 
 const titles: Record<UpdatePhase, string> = {
@@ -99,14 +99,14 @@ export function UpdatesPage(props: {
       <ContentArrival class={props.tv ? 'gap-8 py-8' : 'gap-8 px-10 py-6 max-w-4xl'}>
         <Text
           class="text-2xl font-semibold text-foreground"
-          style={props.tv ? { fontSize: tvUnit(36) } : undefined}
+          style={props.tv ? { fontSize: 18 } : undefined}
         >
           应用更新
         </Text>
         <View class="gap-6">
           <Text
             class="text-base text-muted-foreground"
-            style={props.tv ? { fontSize: tvUnit(24) } : undefined}
+            style={props.tv ? { fontSize: 12 } : undefined}
           >
             {state.version() ? `当前版本 ${state.version()}` : '正在读取当前版本'}
           </Text>
@@ -114,16 +114,13 @@ export function UpdatesPage(props: {
             <Text
               testID="update-status"
               class="text-2xl text-foreground"
-              style={props.tv ? { fontSize: tvUnit(32) } : undefined}
+              style={props.tv ? { fontSize: 16 } : undefined}
             >
               {titles[state.phase()]}
             </Text>
           </View>
           <If when={state.update()}>
-            <Text
-              class="text-lg text-foreground"
-              style={props.tv ? { fontSize: tvUnit(24) } : undefined}
-            >
+            <Text class="text-lg text-foreground" style={props.tv ? { fontSize: 12 } : undefined}>
               {`新版本 ${state.update()?.version}${state.update()?.size ? ` · ${(state.update()!.size! / 1048576).toFixed(1)} MB` : ''}`}
             </Text>
           </If>
@@ -133,7 +130,7 @@ export function UpdatesPage(props: {
           <If when={state.error()}>
             <Text
               class="text-base text-destructive"
-              style={props.tv ? { fontSize: tvUnit(24) } : undefined}
+              style={props.tv ? { fontSize: 12 } : undefined}
             >
               {state.error()}
             </Text>
@@ -141,7 +138,7 @@ export function UpdatesPage(props: {
           <If when={state.phase() === 'permission'}>
             <Text
               class="text-base text-muted-foreground"
-              style={props.tv ? { fontSize: tvUnit(24) } : undefined}
+              style={props.tv ? { fontSize: 12 } : undefined}
             >
               在系统设置中允许红果安装应用，返回后继续安装
             </Text>

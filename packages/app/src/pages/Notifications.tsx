@@ -1,5 +1,5 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Badge, Button, ContentArrival, Cover, Notice, Surface, UiText, tvUnit } from '@hongguo/ui';
+import { Badge, Button, ContentArrival, Cover, Notice, Surface, UiText } from '@hongguo/ui';
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { desktopContentFrame } from '../shell/ContentColumn';
@@ -121,20 +121,15 @@ export function Notifications(props: { store: Store }) {
       testID="notifications-page"
       class="flex-1"
       style={{
-        ...(props.store.target === 'tv'
-          ? { paddingTop: tvUnit(32) }
-          : desktopContentFrame({ top: 24 })),
-        gap: props.store.target === 'tv' ? tvUnit(16) : 16,
+        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
+        gap: props.store.target === 'tv' ? 8 : 16,
       }}
     >
       <View
         class="flex-row flex-wrap items-center justify-between"
-        style={{ gap: props.store.target === 'tv' ? tvUnit(16) : 16 }}
+        style={{ gap: props.store.target === 'tv' ? 8 : 16 }}
       >
-        <View
-          class="flex-row items-center"
-          style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}
-        >
+        <View class="flex-row items-center" style={{ gap: props.store.target === 'tv' ? 6 : 12 }}>
           <UiText role="page">更新提醒</UiText>
           <If
             when={
@@ -214,9 +209,9 @@ export function Notifications(props: { store: Store }) {
             testID="notifications-list"
             each={items()}
             keyExtractor={(item: NotificationItem) => item.id}
-            estimatedItemSize={(props.store.target === 'tv' ? tvUnit(168) : 132) * fontScale()}
+            estimatedItemSize={(props.store.target === 'tv' ? 84 : 132) * fontScale()}
             class="flex-1"
-            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? tvUnit(12) : 12 }}
+            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
             onLayout={scheduleRestore}
           >
             {(item) => {
@@ -288,18 +283,15 @@ function NotificationRow(props: {
       <View
         class="shrink-0"
         style={{
-          width: props.store.target === 'tv' ? tvUnit(72) : 64,
-          height: props.store.target === 'tv' ? tvUnit(96) : 80,
-          marginRight: props.store.target === 'tv' ? tvUnit(16) : 12,
+          width: props.store.target === 'tv' ? 36 : 64,
+          height: props.store.target === 'tv' ? 48 : 80,
+          marginRight: props.store.target === 'tv' ? 8 : 12,
         }}
       >
         <Cover src={item.drama?.cover} title={item.title} variant="poster" class="w-full h-full" />
       </View>
-      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? tvUnit(4) : 4 }}>
-        <View
-          class="flex-row items-center"
-          style={{ gap: props.store.target === 'tv' ? tvUnit(8) : 8 }}
-        >
+      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 2 : 4 }}>
+        <View class="flex-row items-center" style={{ gap: props.store.target === 'tv' ? 4 : 8 }}>
           <UiText role="title" lines={2}>
             {item.title}
           </UiText>
@@ -312,7 +304,7 @@ function NotificationRow(props: {
           <UiText role="meta" tone="muted">{`第 ${item.episode} 集`}</UiText>
         </If>
       </View>
-      <View class="shrink-0" style={{ gap: props.store.target === 'tv' ? tvUnit(12) : 8 }}>
+      <View class="shrink-0" style={{ gap: props.store.target === 'tv' ? 6 : 8 }}>
         <If when={canOpen}>
           <Button
             label="查看详情"

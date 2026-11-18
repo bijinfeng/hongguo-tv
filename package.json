@@ -31,6 +31,8 @@
     "security": "node tooling/src/cli.mjs security",
     "codegen": "node tooling/src/codegen.mjs",
     "codegen:check": "node tooling/src/codegen.mjs --check",
+    "design:codegen": "node tooling/src/design-tokens.mjs",
+    "design:check": "node tooling/src/design-tokens.mjs --check",
     "package:web": "node tooling/src/cli.mjs package --target web",
     "package:desktop": "node tooling/src/cli.mjs package --target desktop",
     "package:tv": "node tooling/src/cli.mjs package --target tv",

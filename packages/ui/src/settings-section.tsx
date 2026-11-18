@@ -1,8 +1,6 @@
 import { View, type JSX } from 'nsh';
-import { Product, tvUnit } from './foundation';
+import { space } from './foundation';
 import { UiText } from './display';
-
-const unit = (value: number) => (Product() === 'tv' ? tvUnit(value) : value);
 
 /** A settings section owns its title and the rhythm between the rows below it. */
 export interface SettingsSectionProps {
@@ -17,9 +15,9 @@ export interface SettingsSectionProps {
 export function SettingsSection(props: SettingsSectionProps) {
   const divided = () => props.variant !== 'card';
   return (
-    <View testID={props.testID} style={{ gap: unit(14) }}>
+    <View testID={props.testID} style={{ gap: space('sm') }}>
       <UiText role="section">{props.title}</UiText>
-      <View style={{ gap: divided() ? 0 : unit(10) }}>{props.children}</View>
+      <View style={{ gap: divided() ? 0 : space('xs') }}>{props.children}</View>
     </View>
   );
 }

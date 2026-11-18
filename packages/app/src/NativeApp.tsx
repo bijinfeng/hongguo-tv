@@ -1,7 +1,7 @@
 import { cleanup, resource, View, type ImageAsset } from 'nsh';
 import { configureClient, configureTransport, CoreError } from '@hongguo/core-client';
 import { createNativeTransport, type NativeSession } from '@hongguo/core-client/native';
-import { Notice, Product, type ProductTarget } from '@hongguo/ui';
+import { Notice, type ProductTarget } from '@hongguo/ui';
 import type { UpdateAdapter } from './updates';
 import { App } from './index';
 import type { FocusSource } from './store';
@@ -65,7 +65,7 @@ export function NativeApp(props: {
     if (!handedOff) transport?.close();
   });
   return (
-    <Product.Provider value={props.target}>
+    <>
       <If
         when={ready()}
         else={
@@ -112,6 +112,6 @@ export function NativeApp(props: {
           );
         }}
       </If>
-    </Product.Provider>
+    </>
   );
 }

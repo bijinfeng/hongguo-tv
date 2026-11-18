@@ -1,6 +1,6 @@
 import { Button as BaseButton } from 'nsh/base';
 import { FocusedRemovalRoot } from './focused-removal-root';
-import { Product, tvUnit } from './foundation';
+import { space } from './foundation';
 import {
   View,
   batch,
@@ -119,7 +119,7 @@ export function CardControls(props: {
       <View
         role="toolbar"
         accessibilityLabel={props.label}
-        style={{ gap: props.gap ?? (Product() === 'tv' ? tvUnit(12) : 12) }}
+        style={{ gap: props.gap ?? space('sm') }}
         class={`${props.vertical ? 'flex-col' : 'flex-row'} ${props.class ?? ''}`}
       >
         {props.children}

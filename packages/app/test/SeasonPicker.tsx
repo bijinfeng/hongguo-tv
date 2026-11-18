@@ -1,5 +1,5 @@
 import { Scroll, View, signal } from 'nsh';
-import { Button, Product, UiText, type ProductTarget } from '@hongguo/ui';
+import { Button, UiText } from '@hongguo/ui';
 import type { Drama, SeriesSeason } from '@hongguo/core-client';
 import { SeasonPicker } from '../src/SeasonPicker';
 import { createSeasons } from '../src/seasons';
@@ -109,12 +109,12 @@ function PickerFacts() {
 }
 
 /** Real-controller preview composed only from the UI package's public controls. */
-export function SeasonComponents(props: { target: ProductTarget }) {
+export function SeasonComponents() {
   return (
-    <Product.Provider value={props.target}>
+    <>
       <View class="flex-1 bg-background p-8 gap-4">
         <PickerFacts />
       </View>
-    </Product.Provider>
+    </>
   );
 }

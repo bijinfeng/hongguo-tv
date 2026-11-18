@@ -39,7 +39,6 @@ import {
   EpisodePanel,
   EpisodeRail,
   EpisodeRange,
-  tvUnit,
 } from '@hongguo/ui';
 
 type Media = Awaited<ReturnType<typeof play>>;
@@ -89,13 +88,13 @@ function Episodes(props: {
         onChange={segment.set}
       />
       <Scroll class="flex-1" contentStyle={{ width: '100%', paddingBottom: 12 }}>
-        <View class="flex-row flex-wrap" style={{ rowGap: props.target === 'tv' ? tvUnit(16) : 8 }}>
+        <View class="flex-row flex-wrap" style={{ rowGap: props.target === 'tv' ? 8 : 8 }}>
           <Each
             of={episodes().slice(segment() * size, (segment() + 1) * size)}
             key={(episode) => episode.video_id}
           >
             {(episode) => (
-              <View style={{ width: '25%', paddingRight: props.target === 'tv' ? tvUnit(16) : 8 }}>
+              <View style={{ width: '25%', paddingRight: props.target === 'tv' ? 8 : 8 }}>
                 <Button
                   testID={`player-episode-${episode().video_id}`}
                   episode="player"
@@ -865,7 +864,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                   </View>
                 </If>
               </View>
-              <CinemaControls visible={!tv || layer() !== 'hidden'}>
+              <CinemaControls
+                visible={!tv || layer() !== 'hidden'}
+                variant={tv ? 'overlay' : 'bar'}
+              >
                 <If when={tv}>
                   <View class="flex-row items-center justify-between">
                     <View class="gap-2">
@@ -885,7 +887,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                     定位到 {timeLabel(preview() ?? position())} · 确认键应用，返回键取消
                   </CinemaText>
                 </If>
-                <View class="flex-row items-center" style={{ gap: tv ? tvUnit(28) : 0 }}>
+                <View class="flex-row items-center" style={{ gap: tv ? 14 : 0 }}>
                   <CinemaSlider
                     label="播放进度"
                     value={preview() ?? position()}
@@ -905,7 +907,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                     </CinemaText>
                   </If>
                 </View>
-                <View class="flex-row items-center" style={{ gap: tv ? tvUnit(16) : 6 }}>
+                <View class="flex-row items-center" style={{ gap: tv ? 8 : 6 }}>
                   <CinemaButton
                     label={paused() || !enabled() ? '播放' : '暂停'}
                     icon={paused() || !enabled() ? 'play' : 'pause'}

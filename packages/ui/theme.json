@@ -1,7 +1,50 @@
 {
   "cssVars": {
     "theme": {
-      "radius": "12px"
+      "radius": "12px",
+      "radius-sm": "4px",
+      "radius-md": "6px",
+      "radius-lg": "8px",
+      "radius-xl": "12px",
+      "radius-full": "9999px",
+      "space-none": "0px",
+      "space-xxs": "4px",
+      "space-xs": "8px",
+      "space-sm": "12px",
+      "space-md": "16px",
+      "space-lg": "24px",
+      "space-xl": "32px",
+      "space-2xl": "40px",
+      "space-3xl": "48px",
+      "text-display": "44px",
+      "text-page": "32px",
+      "text-section": "24px",
+      "text-title": "20px",
+      "text-content-title": "18px",
+      "text-body": "16px",
+      "text-meta": "14px",
+      "text-numeric": "16px",
+      "control-sm-height": "32px",
+      "control-sm-font": "14px",
+      "control-sm-padding-x": "12px",
+      "control-sm-padding-y": "4px",
+      "control-sm-gap": "6px",
+      "control-sm-icon": "16px",
+      "control-sm-radius": "8px",
+      "control-md-height": "40px",
+      "control-md-font": "16px",
+      "control-md-padding-x": "16px",
+      "control-md-padding-y": "8px",
+      "control-md-gap": "8px",
+      "control-md-icon": "20px",
+      "control-md-radius": "12px",
+      "control-lg-height": "60px",
+      "control-lg-font": "22px",
+      "control-lg-padding-x": "24px",
+      "control-lg-padding-y": "12px",
+      "control-lg-gap": "12px",
+      "control-lg-icon": "26px",
+      "control-lg-radius": "12px"
     },
     "light": {
       "background": "#ffffff",
@@ -23,6 +66,7 @@
       "ring": "#c85e00",
       "accent": "#fff1e8",
       "accent-foreground": "#a34b00",
+      "destructive": "#c93727",
       "cinema": "#000000",
       "cinema-foreground": "#f7f7f7",
       "cinema-muted": "#9a9a9a",
@@ -31,8 +75,7 @@
       "cinema-active": "#3a3c3c",
       "cinema-track": "#676b6b",
       "cinema-focus": "#ff9233",
-      "cinema-transparent": "#00000000",
-      "destructive": "#c93727"
+      "cinema-transparent": "#00000000"
     },
     "dark": {
       "background": "#000000",
@@ -54,6 +97,7 @@
       "ring": "#ff9233",
       "accent": "#3a2415",
       "accent-foreground": "#ffb36d",
+      "destructive": "#ff6b57",
       "cinema": "#000000",
       "cinema-foreground": "#f5f5f5",
       "cinema-muted": "#9a9a9a",
@@ -62,8 +106,7 @@
       "cinema-active": "#3a3c3c",
       "cinema-track": "#676b6b",
       "cinema-focus": "#ff9233",
-      "cinema-transparent": "#00000000",
-      "destructive": "#ff6b57"
+      "cinema-transparent": "#00000000"
     }
   }
 }

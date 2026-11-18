@@ -8,7 +8,6 @@ import {
   SkeletonRegion,
   Tabs,
   UiText,
-  tvUnit,
   type ProductTarget,
 } from '@hongguo/ui';
 import type { RadarKind } from '@hongguo/core-client';
@@ -106,6 +105,7 @@ export function RadarToolbar(props: {
         else={
           <View class="gap-3">
             <FilterChoices
+              variant={tv() ? 'select' : 'chips'}
               label="排序"
               testID="radar-metric"
               value={props.radar.metric()}
@@ -123,6 +123,7 @@ export function RadarToolbar(props: {
               }}
             />
             <FilterChoices
+              variant={tv() ? 'select' : 'chips'}
               label="类型"
               testID="radar-type"
               value={props.radar.type()}
@@ -145,6 +146,7 @@ export function RadarToolbar(props: {
         }
       >
         <FilterChoices
+          variant={tv() ? 'select' : 'chips'}
           label="分类"
           testID="radar-category"
           value={props.radar.category()}
@@ -170,19 +172,19 @@ export function RadarToolbar(props: {
 /** Static geometry for the first radar read: control band, header and five row shapes. */
 export function RadarPending(props: { target: ProductTarget }) {
   const tv = props.target === 'tv';
-  const rowHeight = tv ? tvUnit(120) : 84;
-  const safe = tv ? tvUnit(8) : 8;
-  const gap = tv ? tvUnit(16) : 16;
+  const rowHeight = tv ? 60 : 84;
+  const safe = tv ? 4 : 8;
+  const gap = tv ? 8 : 16;
   return (
     <SkeletonRegion label="正在加载榜单" testID="radar-pending" class="flex-1 min-h-0 gap-3">
       <View class="flex-row items-center justify-between gap-4">
         <SkeletonBlock width="42%" height={16} radius={4} />
-        <SkeletonBlock width={tv ? tvUnit(96) : 80} height={36} radius={12} />
+        <SkeletonBlock width={tv ? 48 : 80} height={36} radius={12} />
       </View>
       <View class="flex-row items-center justify-between gap-4">
         <View class="flex-row items-center gap-4">
-          <SkeletonBlock width={tv ? tvUnit(112) : 84} height={36} radius={6} />
-          <SkeletonBlock width={tv ? tvUnit(96) : 72} height={36} radius={6} />
+          <SkeletonBlock width={tv ? 56 : 84} height={36} radius={6} />
+          <SkeletonBlock width={tv ? 48 : 72} height={36} radius={6} />
         </View>
       </View>
       <View class="flex-row flex-wrap items-center gap-2">
@@ -194,7 +196,7 @@ export function RadarPending(props: { target: ProductTarget }) {
       <View class="flex-1 min-h-0 border-t border-border">
         <View
           class="flex-row items-center border-b border-border"
-          style={{ minHeight: tv ? tvUnit(72) : 48, gap, paddingHorizontal: safe }}
+          style={{ minHeight: tv ? 36 : 48, gap, paddingHorizontal: safe }}
         >
           <SkeletonBlock width={56} height={14} radius={4} />
           <SkeletonBlock width={56} height={14} radius={4} />
@@ -209,11 +211,7 @@ export function RadarPending(props: { target: ProductTarget }) {
               style={{ minHeight: rowHeight, gap, paddingHorizontal: safe }}
             >
               <SkeletonBlock width={24} height={18} radius={4} />
-              <SkeletonBlock
-                width={tv ? tvUnit(70) : 64}
-                height={tv ? tvUnit(94) : 78}
-                radius={tv ? tvUnit(8) : 6}
-              />
+              <SkeletonBlock width={tv ? 35 : 64} height={tv ? 47 : 78} radius={tv ? 4 : 6} />
               <View class="flex-1 gap-2">
                 <SkeletonBlock width="62%" height={18} radius={4} />
                 <SkeletonBlock width="38%" height={12} radius={4} />

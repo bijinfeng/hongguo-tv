@@ -1,6 +1,6 @@
 import { Text, reduceMotion } from 'nsh';
 import { Switch as BaseSwitch } from 'nsh/base';
-import { Product, tvUnit, controlMetrics } from './foundation';
+import { controlMetrics, space } from './foundation';
 import { type CheckboxProps } from './checkbox';
 
 /** An immediately applied preference, controlled by the caller. */
@@ -23,15 +23,15 @@ export function Switch(props: SwitchProps) {
       style={{ minHeight: controlMetrics().height }}
       trackClass={`rounded-full ${props.disabled ? (props.checked ? 'bg-accent' : 'bg-border') : props.checked ? 'bg-primary-strong' : 'bg-muted-foreground'} ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
       trackStyle={{
-        width: Product() === 'tv' ? tvUnit(64) : 48,
-        height: Product() === 'tv' ? tvUnit(36) : 28,
-        padding: Product() === 'tv' ? tvUnit(4) : 3,
+        width: space('3xl'),
+        height: 28,
+        padding: 3,
       }}
       thumbClass={`rounded-full ${props.disabled ? (props.checked ? 'bg-accent-foreground' : 'bg-muted-foreground') : props.checked ? 'bg-primary-strong-foreground' : 'bg-card'} ${reduceMotion() ? '' : 'transition-transform duration-100'}`}
       thumbStyle={{
-        width: Product() === 'tv' ? tvUnit(28) : 22,
-        height: Product() === 'tv' ? tvUnit(28) : 22,
-        transform: [{ translateX: props.checked ? (Product() === 'tv' ? tvUnit(28) : 20) : 0 }],
+        width: 22,
+        height: 22,
+        transform: [{ translateX: props.checked ? 20 : 0 }],
       }}
     >
       <If when={!props.labelHidden}>

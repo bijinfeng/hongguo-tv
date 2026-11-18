@@ -1,5 +1,5 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, Controls, Notice, tvUnit } from '@hongguo/ui';
+import { Button, Controls, Notice } from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
@@ -61,7 +61,7 @@ export function Search(props: { store: Store }) {
       class="flex-1"
       style={
         props.store.target === 'tv'
-          ? { paddingTop: tvUnit(32), gap: tvUnit(28) }
+          ? { paddingTop: 16, gap: 14 }
           : { ...desktopContentFrame({ top: 24 }), gap: props.store.query() ? 28 : 16 }
       }
     >
@@ -94,8 +94,8 @@ export function Search(props: { store: Store }) {
         </View>
       </If>
       <If when={props.store.target === 'tv'}>
-        <View class="flex-row items-center justify-between" style={{ gap: tvUnit(28) }}>
-          <View class="flex-1" style={{ maxWidth: tvUnit(1100) }}>
+        <View class="flex-row items-center justify-between" style={{ gap: 14 }}>
+          <View class="flex-1" style={{ maxWidth: 550 }}>
             <SearchForm store={props.store} />
           </View>
           <If when={props.store.query()}>
@@ -109,13 +109,13 @@ export function Search(props: { store: Store }) {
         </View>
       </If>
       <If when={!props.store.query()}>
-        <View class="gap-4" style={props.store.target === 'tv' ? { gap: tvUnit(20) } : undefined}>
+        <View class="gap-4" style={props.store.target === 'tv' ? { gap: 10 } : undefined}>
           <View class="flex-row items-center justify-between">
             <Text
               role="header"
               accessibilityLevel={2}
               class="font-semibold text-foreground"
-              style={{ fontSize: props.store.target === 'tv' ? tvUnit(30) : 20 }}
+              style={{ fontSize: props.store.target === 'tv' ? 15 : 20 }}
             >
               最近搜索
             </Text>
@@ -159,7 +159,7 @@ export function Search(props: { store: Store }) {
           <If when={props.store.recent.ready() && !props.store.recent.items().length}>
             <Text
               class="text-base text-muted-foreground"
-              style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+              style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
             >
               暂无搜索记录
             </Text>
@@ -193,7 +193,7 @@ export function Search(props: { store: Store }) {
         <If when={suggestions().length || discoveries().length}>
           <Text
             class="font-semibold text-foreground"
-            style={{ fontSize: props.store.target === 'tv' ? tvUnit(30) : 20 }}
+            style={{ fontSize: props.store.target === 'tv' ? 15 : 20 }}
           >
             {discoveryTitle()}
           </Text>
@@ -235,7 +235,7 @@ export function Search(props: { store: Store }) {
         >
           <Text
             class="text-base text-muted-foreground"
-            style={props.store.target === 'tv' ? { fontSize: tvUnit(24) } : undefined}
+            style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
           >
             暂时没有推荐内容
           </Text>
