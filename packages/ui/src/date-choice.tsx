@@ -1,7 +1,8 @@
-import { Text, reduceMotion, type ViewRef } from 'nsh';
+import { Text, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
-import { space, border } from './foundation';
+import { border, controlMetrics, radius, space, weight, type ControlSize } from './foundation';
 import { motionTokens } from './motion';
+import { textSize, textWeight } from './typography';
 
 function dateParts(value: string) {
   if (!/^\d{8}$/.test(value)) return;
@@ -22,10 +23,15 @@ export interface DateChoiceProps {
   onPress: () => void;
   buttonRef?: (ref: ViewRef) => void;
   onFocus?: () => void;
+  /** Control density; the calendar cell keeps its larger date inside the tier. */
+  size?: ControlSize;
   testID?: string;
 }
 export function DateChoice(props: DateChoiceProps) {
+  const size = () => controlMetrics(props.size);
   const parts = () => dateParts(props.value);
+  const foreground = () => token(props.selected ? 'accent-foreground' : 'foreground');
+  const muted = () => token(props.selected ? 'accent-foreground' : 'muted-foreground');
   return (
     <If when={parts()}>
       {(date) => (
@@ -36,11 +42,11 @@ export function DateChoice(props: DateChoiceProps) {
           selected={props.selected}
           onPress={props.onPress}
           onFocus={props.onFocus}
-          class="flex-1 items-center justify-center rounded-(--radius) border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+          class="flex-1 items-center justify-center border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
           style={{
-            minWidth: 86,
-            minHeight: 96,
-            borderRadius: space('sm'),
+            minWidth: size().height * 2,
+            minHeight: size().height * 2.4,
+            borderRadius: radius('xl'),
             borderWidth: border,
             flexShrink: 0,
             padding: space('sm'),
@@ -50,20 +56,21 @@ export function DateChoice(props: DateChoiceProps) {
           }}
         >
           <Text
-            class={`text-sm text-center ${props.selected ? 'text-accent-foreground' : 'text-muted-foreground'}`}
-            style={{ fontSize: 14 }}
+            style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta'), color: muted() }}
           >
             {props.label}
           </Text>
           <Text
-            class={`text-xl font-semibold text-center tabular-nums ${props.selected ? 'text-accent-foreground' : 'text-foreground'}`}
-            style={{ fontSize: 20 }}
+            style={{
+              fontSize: textSize('title'),
+              fontWeight: weight.strong(),
+              color: foreground(),
+            }}
           >
             {String(date().day)}
           </Text>
           <Text
-            class={`text-sm text-center ${props.selected ? 'text-accent-foreground' : 'text-muted-foreground'}`}
-            style={{ fontSize: 14 }}
+            style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta'), color: muted() }}
           >
             {`${date().month} 月`}
           </Text>

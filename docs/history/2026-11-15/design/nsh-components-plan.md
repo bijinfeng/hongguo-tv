@@ -47,7 +47,7 @@
 | 状态／布局     | `Surface`、`Notice`、`ContentArrival`、`Progress`                               | 分清容器和入场动效；空／加载／失败采用一致反馈                                            |
 | 播放           | `CinemaButton`、`CinemaSlider`、`CinemaControls`、`EpisodePanel`／`EpisodeRail` | 影院是独立表面语境，共享行为和尺度规则；不把媒体会话放进组件                              |
 | 设置／账号基础 | 尚无统一 Field、通用 Switch、Checkbox、确认对话框外观                           | 按已有实际页面需要补齐，不一次包装全部 NSH 控件                                           |
-| 图标           | 原型和生产仍有手写路径                                                          | 后续按 [Lucide 规范](../../../../DESIGN.md#统一图标规范--2026-11-14) 迁移，当前不视为完成 |
+| 图标           | 原型和生产仍有手写路径                                                          | 后续按 [Lucide 规范](../../../../DESIGN.md#统一图标) 迁移，当前不视为完成 |
 
 `DownloadProgress` 是应用更新包的进度组件，不能据其名称恢复离线剧集下载需求。海报和选集等现有 UI 组件接收展示数据与回调，不依赖业务 store；出现剧目判断、请求或持久化时由 app 持有。
 

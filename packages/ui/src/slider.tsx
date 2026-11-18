@@ -1,6 +1,6 @@
-import { Text, View, signal, effect, cleanup, keymap, type ViewRef } from 'nsh';
+import { Text, View, signal, effect, cleanup, keymap, token, type ViewRef } from 'nsh';
 import { Slider as BaseSlider } from 'nsh/base';
-import { controlMetrics, space } from './foundation';
+import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
 
 /** A controlled numeric preview with a separate completion event. */
 export interface SliderProps {
@@ -27,12 +27,18 @@ export interface SliderProps {
   onChangeEnd?: (event: { value: number }) => void;
   /** Adjustment cancelled; the value is restored before this callback. */
   onCancel?: () => void;
+  /** Control density; the track and thumb follow the label size. */
+  size?: ControlSize;
   /** Stable automation identifier. */
   testID?: string;
 }
 
 /** Shared slider; confirm mode previews before applying and rolls back when cancelled. */
 export function Slider(props: SliderProps) {
+  const size = () => controlMetrics(props.size);
+  // The rail is a tenth of the control height and the thumb a full label size,
+  // so sm 3 / md 4 / lg 6 keeps its proportion across the three densities.
+  const track = () => Math.round(size().height / 10);
   const confirm = () => props.activation === 'confirm';
   const editing = signal(false);
   const focused = signal(false);
@@ -118,10 +124,17 @@ export function Slider(props: SliderProps) {
         focused.set(false);
         if (editing()) cancel();
       }}
-      class="min-w-0 gap-2 rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      class="focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      style={{ gap: space('xs') }}
     >
       <If when={confirm()}>
-        <Text class="text-foreground" style={{ fontSize: controlMetrics().fontSize }}>
+        <Text
+          style={{
+            fontSize: size().fontSize,
+            fontWeight: weight.regular(),
+            color: token('foreground'),
+          }}
+        >
           {props.label}：{props.value}
         </Text>
       </If>
@@ -140,16 +153,16 @@ export function Slider(props: SliderProps) {
           onChangeEnd={({ value }) => {
             if (!confirm() && typeof value === 'number') props.onChangeEnd?.({ value });
           }}
-          class="min-w-0"
           trackClass="justify-center"
-          trackStyle={{ minHeight: controlMetrics().height }}
+          trackStyle={{ minHeight: size().height }}
           indicatorClass="rounded-full bg-border"
-          indicatorStyle={{ height: space('xxs') }}
+          indicatorStyle={{ height: track() }}
           rangeClass="rounded-full bg-primary"
-          thumbClass={`rounded-full border border-input bg-card hover:bg-accent active:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted' : confirm() ? '' : 'disabled:bg-muted'}`}
+          thumbClass={`rounded-full border border-input bg-card hover:bg-accent active:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted' : ''}`}
           thumbStyle={{
-            width: space('md'),
-            height: space('md'),
+            width: size().fontSize,
+            height: size().fontSize,
+            borderWidth: border,
           }}
         />
       </View>

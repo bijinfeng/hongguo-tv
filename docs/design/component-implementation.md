@@ -51,4 +51,12 @@ DateChoice、SeasonChoice、RankingCard、RadarTable均已有真实公共实现�
 
 IME、系统字号／观看距离、真实读屏、全部hover／pressed、来源消失／长内容及逐帧动效／减少动态效果，均须按目标宿主补证。验收样例、原生check／build、真实用户流程和物理设备各有边界；未逐项证明的不标全覆盖。
 
+TV 记录还须列出设备／宿主、屏幕尺寸、输出分辨率、density、逻辑视口、系统字号和实际观看距离；macOS 的 TV 密度预览标为替代观察，不补写实际距离。目标 Android TV 默认字号与 1.3 字号下检查正文、元信息、必要操作、焦点与独立滚动，换行或控件增长后内容和返回路径仍可达；物理电视与遥控器的可读性、输入法和读屏单独记录，不从 1920 截图推定通过。
+
+组件样式已token化：`packages/ui/src`内字体、颜色、间距、圆角全部经`textSize`／`token`／`space`／`radius`读取主题，不再用裸`text-*`／`gap-*`／`rounded-*`类名或裸字号数字；有密度含义的控件（`Button`／`IconButton`／`TextInput`／`SearchField`／`Select`／`Checkbox`／`Switch`／`Radio`组`ChoiceGroup`与`Tabs`／`Slider`／`DateChoice`／`SeasonChoice`／`Pagination`／`FilterChoices`）接受`size: 'sm'|'md'|'lg'`，桌面三档为32／40／60，TV主题下三档同为48。
+
+仍保留且有意的非token写法：`rounded-full`（头像、滑杆拇指与轨道）、`rounded-none`（内嵌封面）、`rounded-(--radius)`（弹层引用生成的主题变量，等价`radius('xl')`）、`radar-table`整行按钮的`borderRadius: 0`；`display`骨架图尺寸与`player`空态图标框的固定像素属于组件配方。
+
+焦点偏移不是待统一项：按钮外扩4`space('xxs')`、输入框外扩3`focusOffset`、内嵌输入框内收1`focusOffsetInside`，三者由`foundation`统一导出。Player`padding`的按边形状、1280／1440桌面与真实遥控器上的32／40密度仍待评审。
+
 命令见[UI包验证](../../packages/ui/README.md#验证)；后续只更新本页受影响家族／缺口与证据链接，不在每份历史审查中追加同段进度。

@@ -1,6 +1,6 @@
 import { Text, token, type ViewRef } from 'nsh';
 import { Checkbox as BaseCheckbox } from 'nsh/base';
-import { controlMetrics } from './foundation';
+import { border, controlMetrics, radius, space, weight, type ControlSize } from './foundation';
 import { Icon } from './icon';
 
 /** Controlled boolean selection; NSH handles mixed state, activation and disabled behavior. */
@@ -15,6 +15,8 @@ export interface CheckboxProps {
   disabled?: boolean;
   /** Reports the requested next checked value. */
   onChange: (event: { checked: boolean }) => void;
+  /** Control density; the box follows the label size. */
+  size?: ControlSize;
   /** Stable automation identifier. */
   testID?: string;
   /** Native focus target. */
@@ -23,6 +25,9 @@ export interface CheckboxProps {
 
 /** Checkbox with a fully styled box, mixed mark and label. */
 export function Checkbox(props: CheckboxProps) {
+  const size = () => controlMetrics(props.size);
+  // The box tracks the label type size so a denser control keeps a proportionate mark.
+  const box = () => Math.round(size().fontSize * 1.4);
   return (
     <BaseCheckbox
       ref={(ref) => props.controlRef?.(ref)}
@@ -32,8 +37,8 @@ export function Checkbox(props: CheckboxProps) {
       indeterminate={props.indeterminate}
       disabled={props.disabled}
       onChange={props.onChange}
-      class="flex-row items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:text-muted-foreground"
-      style={{ minHeight: controlMetrics().height }}
+      class="flex-row items-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      style={{ minHeight: size().height, gap: space('sm') }}
       indicatorClass={`items-center justify-center rounded border ${
         props.disabled
           ? props.checked || props.indeterminate
@@ -42,21 +47,27 @@ export function Checkbox(props: CheckboxProps) {
           : 'border-input checked:bg-primary-strong checked:border-primary-strong indeterminate:bg-primary-strong indeterminate:border-primary-strong'
       }`}
       indicatorStyle={{
-        width: 22,
-        height: 22,
+        width: box(),
+        height: box(),
+        borderWidth: border,
+        borderRadius: radius('sm'),
       }}
       indicator={
         <If when={props.checked || props.indeterminate}>
           <Icon
             name={props.indeterminate ? 'minus' : 'check'}
             color={token(props.disabled ? 'accent-foreground' : 'primary-strong-foreground')}
+            size={props.size}
           />
         </If>
       }
     >
       <Text
-        class={props.disabled ? 'text-muted-foreground' : 'text-foreground'}
-        style={{ fontSize: controlMetrics().fontSize }}
+        style={{
+          fontSize: size().fontSize,
+          fontWeight: weight.regular(),
+          color: token(props.disabled ? 'muted-foreground' : 'foreground'),
+        }}
       >
         {props.label}
       </Text>

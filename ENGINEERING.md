@@ -10,7 +10,7 @@ pnpm 提供统一入口，各语言工具保留自身职责。开发机和 CI �
 | ------------ | ------------------------------------------ | ---------------------------------------------------------------------------------- |
 | Node         | `.node-version`、`engines`                 | 初始锁定当前已验证的 26.12.1；其他版本经矩阵验证后再声明支持                       |
 | pnpm         | 根 `package.json#packageManager`           | 初始锁定已验证的 `pnpm@11.1.3`；提交单一 `pnpm-lock.yaml`                          |
-| NSH          | `.nsh-version`                             | 保持 0.5.1；CLI、runtime、Rust `nsh-*` 依赖保持一致                                |
+| NSH          | `.nsh-version`                             | 保持 0.6.0；CLI、runtime、Rust `nsh-*` 依赖保持一致                                |
 | Rust         | `rust-toolchain.toml`                      | 固定 1.97.0，包含 rustfmt、clippy；宿主兼容性按目标实际构建与验收                  |
 | Rust 包      | 根 `Cargo.toml`、`Cargo.lock`              | Edition 2024、resolver 3；显式成员、共享依赖与 lints；应用锁文件提交               |
 | JS 工具      | 根 devDependencies + pnpm lock             | Oxlint、Oxfmt、Lefthook、commitlint、契约生成器使用精确版本                        |
@@ -50,7 +50,7 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 
 NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)和[组件交接](docs/design/component-design.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
 
-- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标规范」](DESIGN.md#统一图标规范--2026-11-14) 为准。生产资源、语义名称映射与 NSH 适配统一归 `packages/ui`，设计原型复用同一来源；业务页面和各端入口不复制图标路径。
+- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。生产资源、语义名称映射与 NSH 适配统一归 `packages/ui`，设计原型复用同一来源；业务页面和各端入口不复制图标路径。
 - 首次接入时固定官方包精确版本及锁文件，或记录所纳入官方资源的版本、来源和校验信息，并保留对应许可证。只打包实际使用的图标，不依赖运行时 CDN；版本升级时同步设计稿、资源和映射。
 - 采用静态 SVG 资源或构建期提取；不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。NSH 适配以锁定版本生成的 `.nsh/types/` 为准；必要转换必须可重复生成，禁止手工修改生成的几何数据。
 - 迁移时核对每个语义名称、主题颜色、尺寸、状态及可访问名称，执行对应 NSH check **和** build，并在实际宿主观察。新增依赖执行 `pnpm security`；依赖或资源落地前，本规则仅表示已确定的约束，不表示已完成迁移或验收。

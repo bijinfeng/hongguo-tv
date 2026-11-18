@@ -1,8 +1,9 @@
-import { Text, View, Scroll, signal, effect, cleanup, type ViewRef } from 'nsh';
+import { Text, View, Scroll, signal, effect, cleanup, token, type ViewRef } from 'nsh';
 import { Select } from 'nsh/base';
 import { Button } from './button';
 import { CardControls } from './card-controls';
-import { space } from './foundation';
+import { border, radius, space, type ControlSize } from './foundation';
+import { textSize, textWeight } from './typography';
 
 /** Approved inline choice row or single selector. The caller owns the service value. */
 export function FilterChoices(props: {
@@ -10,6 +11,8 @@ export function FilterChoices(props: {
   testID: string;
   /** `chips` shows every choice in a row; `select` opens one selector. */
   variant?: 'chips' | 'select';
+  /** Control density of the chips and the selector trigger. */
+  size?: ControlSize;
   value: string;
   items: { value: string; title: string }[];
   onChange: (value: string) => void;
@@ -28,15 +31,24 @@ export function FilterChoices(props: {
     <If
       when={props.variant === 'select'}
       else={
-        <View class="flex-row items-start gap-6">
-          <View class="w-10 pt-2">
-            <Text class="text-sm text-muted-foreground">{props.label}</Text>
+        <View class="flex-row items-start" style={{ gap: space('lg') }}>
+          <View style={{ width: space('2xl'), paddingTop: space('xs') }}>
+            <Text
+              style={{
+                fontSize: textSize('meta'),
+                fontWeight: textWeight('meta'),
+                color: token('muted-foreground'),
+              }}
+            >
+              {props.label}
+            </Text>
           </View>
-          <Scroll horizontal class="flex-1 h-11">
+          <Scroll horizontal class="flex-1" style={{ height: space('2xl') }}>
             <CardControls
               label={props.label}
               onNavigate={props.onNavigate}
-              class="gap-2 flex-nowrap"
+              gap={space('xs')}
+              class="flex-nowrap"
             >
               <Each of={Array.from({ length: props.items.length }, (_, index) => index)}>
                 {(slot) => {
@@ -60,7 +72,7 @@ export function FilterChoices(props: {
                         refs.set(item().value, node);
                       }}
                       onFocus={() => props.onSource?.(source())}
-                      compact
+                      size={props.size ?? 'sm'}
                       variant="quiet"
                       testID={`${props.testID}-${item().value || 'all'}`}
                       label={item().title}
@@ -104,13 +116,19 @@ export function FilterChoices(props: {
               props.value ? title() : props.label === '排序' ? '综合排序' : `全部${props.label}`
             }
             selectOpen={open()}
-            icon="down"
+            dropdown
             onPress={() => open.set(true)}
           />
         }
-        popupClass="bg-popover border border-border rounded-(--radius) p-2"
-        itemClass="p-3 text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
-        itemStyle={{ fontSize: space('md') }}
+        popupClass="bg-popover border border-border"
+        popupStyle={{ padding: space('xs'), borderRadius: radius('xl'), borderWidth: border }}
+        itemClass="text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
+        itemStyle={{
+          paddingHorizontal: space('sm'),
+          paddingVertical: space('xs'),
+          borderRadius: radius('lg'),
+          fontSize: textSize('body'),
+        }}
       />
     </If>
   );

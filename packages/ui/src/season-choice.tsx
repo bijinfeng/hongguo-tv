@@ -1,8 +1,9 @@
-import { Text, View, reduceMotion, type ViewRef } from 'nsh';
+import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { UiText } from './display';
-import { border, controlMetrics, space, type ControlSize } from './foundation';
+import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
 import { motionTokens } from './motion';
+import { textLineHeightRatio } from './typography';
 
 /** A caller-owned season choice; availability, playback and history stay outside UI. */
 export interface SeasonChoiceProps {
@@ -19,6 +20,7 @@ export interface SeasonChoiceProps {
 /** Two text levels, one target; focus never changes the caller's selection. */
 export function SeasonChoice(props: SeasonChoiceProps) {
   const metrics = () => controlMetrics(props.size);
+  const foreground = () => token(props.selected ? 'accent-foreground' : 'foreground');
   return (
     <CardRoot
       ref={(ref) => props.buttonRef?.(ref)}
@@ -30,7 +32,7 @@ export function SeasonChoice(props: SeasonChoiceProps) {
       class={`shrink-0 items-start border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
       style={{
         minHeight: metrics().height,
-        minWidth: 180,
+        minWidth: metrics().height * 4,
         borderRadius: metrics().radius,
         borderWidth: border,
         paddingHorizontal: metrics().paddingHorizontal,
@@ -42,8 +44,12 @@ export function SeasonChoice(props: SeasonChoiceProps) {
     >
       <View accessibilityElementsHidden>
         <Text
-          style={{ fontSize: metrics().fontSize, lineHeight: metrics().fontSize * 1.5 }}
-          class={`font-semibold ${props.selected ? 'text-accent-foreground' : 'text-foreground'}`}
+          style={{
+            fontSize: metrics().fontSize,
+            lineHeight: Math.round(metrics().fontSize * textLineHeightRatio('body')),
+            fontWeight: weight.strong(),
+            color: foreground(),
+          }}
         >
           {props.title}
         </Text>

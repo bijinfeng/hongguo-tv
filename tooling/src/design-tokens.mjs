@@ -208,13 +208,16 @@ const spacingFor = (blocks, surface) => {
 const themeOf = (blocks, surface) => {
   const space = spacingFor(blocks, surface);
   const radius = scale('rounded', blocks);
-  const { type } = typography(blocks);
+  const { type, ratios } = typography(blocks);
   const control = controls(blocks);
   const { light, dark } = colorsOf(blocks);
   const geometry = { radius: `${radius.xl}px` };
+  const weights = [...new Set(Object.values(ratios).map((ratio) => ratio.fontWeight))];
   for (const [name, value] of Object.entries(radius)) geometry[`radius-${name}`] = `${value}px`;
   for (const [name, value] of Object.entries(space)) geometry[`space-${name}`] = `${value}px`;
   for (const role of typeRoles) geometry[`text-${role}`] = `${type[role][surface]}px`;
+  if (weights.includes(400)) geometry['font-regular'] = 400;
+  if (weights.includes(600)) geometry['font-strong'] = 600;
   for (const size of sizes)
     for (const [prop, value] of Object.entries(control[size][surface]))
       geometry[`control-${size}-${controlKey[prop] ?? prop}`] =

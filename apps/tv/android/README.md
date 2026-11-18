@@ -1,6 +1,6 @@
 # TV emulator gate
 
-This is a thin host using the official NSH 0.5.1 embedding classes and the app's
+This is a thin host using the official NSH 0.6.0 embedding classes and the app's
 mixed `libnsh.so`. It owns the TV manifest, remote input and lifecycle. Business
 screens stay in `packages/app`; styled controls and tokens stay in `packages/ui`.
 

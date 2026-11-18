@@ -17,7 +17,7 @@ export function SettingsSection(props: SettingsSectionProps) {
   return (
     <View testID={props.testID} style={{ gap: space('sm') }}>
       <UiText role="section">{props.title}</UiText>
-      <View style={{ gap: divided() ? 0 : space('xs') }}>{props.children}</View>
+      <View style={{ gap: divided() ? space('none') : space('xs') }}>{props.children}</View>
     </View>
   );
 }

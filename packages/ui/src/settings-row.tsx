@@ -1,9 +1,9 @@
 const SETTINGS_VALUE_MIN_WIDTH = 200;
 
-import { Text, View, type JSX } from 'nsh';
-import { controlMetrics, space } from './foundation';
+import { Text, token, View, type JSX } from 'nsh';
+import { controlMetrics, radius, space } from './foundation';
 import { UiText } from './display';
-import { textSize } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 /**
  * One setting: the label and its explanation on the start side, the confirmed value or
@@ -29,11 +29,15 @@ export function SettingsRow(props: SettingsRowProps) {
   const card = () => props.variant === 'card';
   const label = () => ({
     fontSize: textSize('body'),
-    lineHeight: textSize('body') * 1.5,
+    lineHeight: textLineHeight('body'),
+    fontWeight: textWeight('body'),
+    color: token('foreground'),
   });
   const hint = () => ({
     fontSize: textSize('meta'),
-    lineHeight: textSize('meta') * 1.5,
+    lineHeight: textLineHeight('meta'),
+    fontWeight: textWeight('meta'),
+    color: token('muted-foreground'),
   });
   return (
     <View
@@ -44,7 +48,7 @@ export function SettingsRow(props: SettingsRowProps) {
               gap: space('sm'),
               paddingVertical: space('md'),
               paddingHorizontal: space('md'),
-              borderRadius: space('sm'),
+              borderRadius: radius('xl'),
             }
           : { gap: space('sm'), paddingVertical: space('md') }
       }
@@ -54,14 +58,10 @@ export function SettingsRow(props: SettingsRowProps) {
         style={{ minHeight: controlMetrics().height, gap: space('lg') }}
         class="flex-row items-center justify-between"
       >
-        <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
-          <Text class="font-semibold text-foreground" style={label()}>
-            {props.label}
-          </Text>
+        <View class="flex-1" style={{ gap: space('xs') }}>
+          <Text style={label()}>{props.label}</Text>
           <If when={props.description}>
-            <Text class="text-muted-foreground" style={hint()}>
-              {props.description}
-            </Text>
+            <Text style={hint()}>{props.description}</Text>
           </If>
         </View>
         <View
@@ -75,7 +75,14 @@ export function SettingsRow(props: SettingsRowProps) {
         </View>
       </View>
       <If when={props.error}>
-        <Text role="alert" style={{ fontSize: controlMetrics().fontSize }} class="text-destructive">
+        <Text
+          role="alert"
+          style={{
+            fontSize: textSize('meta'),
+            fontWeight: textWeight('meta'),
+            color: token('destructive'),
+          }}
+        >
           {props.error}
         </Text>
       </If>

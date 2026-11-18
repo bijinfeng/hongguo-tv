@@ -101,7 +101,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ### Pagination
 
-包根导出 `Pagination`／`PaginationProps`，承接已知总页数的受控翻页。`page` 从 1 开始，`totalPages` 是总页数；`onChange({ page })` 只报告目标页，不自行改页、不发请求、不写 URL。`visiblePages` 是页码窗口，base 按至少 5 处理，奇数窗口让当前页居中；`compact` 只保留上一页、位置与下一页；`disabled` 冻结整组动作但保留当前位置；`size` 只接受 `md`／`sm`。`page` 与 `totalPages` 会按整数限制到合法范围；总页数不足 2 时不渲染，避免只剩禁用的首尾箭头。
+包根导出 `Pagination`／`PaginationProps`，承接已知总页数的受控翻页。`page` 从 1 开始，`totalPages` 是总页数；`onChange({ page })` 只报告目标页，不自行改页、不发请求、不写 URL。`visiblePages` 是页码窗口，base 按至少 5 处理，奇数窗口让当前页居中；`compact` 只保留上一页、位置与下一页；`disabled` 冻结整组动作但保留当前位置；`size` 接受 `sm`／`md`／`lg`。`page` 与 `totalPages` 会按整数限制到合法范围；总页数不足 2 时不渲染，避免只剩禁用的首尾箭头。
 
 桌面与 TV 共用同一套语义和几何：高度、内距、间距、圆角、字级与图标来自 `controlMetrics`，与同档 `Button` 等高，TV 边界与尺寸读取主题 token。普通档的上一页／下一页显示方向图标与文字，紧凑档只显示图标但保留无障碍名称；页码使用等宽数字，当前页使用 `accent` 表面与配对前景，悬停 `muted`、按下 `border`，焦点使用独立外环。省略号不是按钮、不进入焦点。禁用时动作不可激活，当前页仍以边界和前景保留位置；减少动态效果时取消颜色过渡。上一页／下一页的可见文字固定为中文，完整无障碍名称由 base 提供。
 
@@ -142,7 +142,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ### RadarTable
 
-包根导出 `RadarTable`、`RadarTableProps`、`RadarTableColumn`、`RadarTableRow` 和 `RadarTableRef`。它是只读比较表，不是可编辑网格；桌面与 TV 共用列、受控状态与恢复契约，仅通过 `focusMode`、`size` 与密度上下文调整尺寸。桌面把标题作为唯一的行内动作；TV 把整行做成同一个焦点动作（完整标题仍是无障碍名称），DPAD 只上下移动行。数值列靠右，其余列靠左。横向按钮始终可见，不依赖拖动或 hover 才能查看后面的列；调用方可用 `columnControls="external"` 把列按钮放进自己的控件带，并通过 `RadarTableRef.scrollColumns('start' | 'end')` 驱动同一偏移。
+包根导出 `RadarTable`、`RadarTableProps`、`RadarTableColumn`、`RadarTableRow` 和 `RadarTableRef`。它是只读比较表，不是可编辑网格；桌面与 TV 共用列、受控状态与恢复契约，仅通过 `focusMode` 与主题密度调整尺寸。桌面把标题作为唯一的行内动作；TV 把整行做成同一个焦点动作（完整标题仍是无障碍名称），DPAD 只上下移动行。数值列靠右，其余列靠左。横向按钮始终可见，不依赖拖动或 hover 才能查看后面的列；调用方可用 `columnControls="external"` 把列按钮放进自己的控件带，并通过 `RadarTableRef.scrollColumns('start' | 'end')` 驱动同一偏移。
 
 表格不使用卡片容器：表头上方只有一条 hairline，行与行之间是 hairline 分隔，表头底色即页面底色。内部由独立的表头水平 `Scroll` 和垂直虚拟 `List` 组成，二者为兄弟节点。桌面表头真实横向滚动的 offset 同步到各行宽内容的 `translateX`；行外框保持列表视口宽度，表头与行共用列宽和两侧 inset。TV 按视口权重分配列宽、内容不横向滚动，行内合并为单个可聚焦按钮。NSH 0.5.0／0.5.1 的 `DataTable` 自定义行位于零尺寸原点容器之下，在 Android 原生树可见而 Accessibility 树无法到达（0.5.1 只改动 web 缩放滚动条，未涉及该结构）；把虚拟 List 放入水平 Scroll 又出现后续行子树零尺寸，因此列表直接拥有独立垂直视口。这里使用公开原语保留真实标题按钮，不修改引擎或绕过可访问性验收。纵向仍按稳定字符串 ID 回查当前索引，回收行的事件始终读取 `item()`；后段恢复使用 `ListRef.scrollToIndex`，横向恢复只移动到完整显示标题列的位置。该替换仍需实际 check／build、行为与宿主回归验证。
 

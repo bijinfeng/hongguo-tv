@@ -25,6 +25,9 @@ export const textSize = (role: TextRole = 'body'): number => token(textTokens[ro
 export const textLineHeight = (role: TextRole = 'body'): number =>
   textSize(role) * ratios[role].lineHeight;
 
+/** Line-height ratio for one text role, for control text sized from `controlMetrics`. */
+export const textLineHeightRatio = (role: TextRole = 'body'): number => ratios[role].lineHeight;
+
 /** Font weight for one text role. */
 export const textWeight = (role: TextRole = 'body'): number => ratios[role].fontWeight;
 

@@ -1,6 +1,6 @@
 import { Text, View, token } from 'nsh';
 import { Radio, RadioGroup } from 'nsh/base';
-import { controlMetrics } from './foundation';
+import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
 import { Icon } from './icon';
 import { type ChoiceOption } from './choice';
 
@@ -18,13 +18,17 @@ export interface ChoiceGroupProps {
   disabled?: boolean;
   /** Stable group identifier; each option is suffixed with its value. */
   testID?: string;
+  /** Control density shared by every option. */
+  size?: ControlSize;
 }
 
 /** A radio group with selected and focused states kept independent. */
 export function ChoiceGroup(props: ChoiceGroupProps) {
+  const size = () => controlMetrics(props.size);
+  const inactive = (option: ChoiceOption) => !!props.disabled || !!option.disabled;
   return (
     <View role="group" accessibilityLabel={props.label} testID={props.testID}>
-      <RadioGroup class="flex-row flex-wrap gap-2">
+      <RadioGroup class="flex-row flex-wrap" style={{ gap: space('xs') }}>
         <Each of={props.options} key={(option) => option.value}>
           {(option) => (
             <Radio
@@ -33,28 +37,38 @@ export function ChoiceGroup(props: ChoiceGroupProps) {
               accessibilityLabel={option().label}
               testID={props.testID ? `${props.testID}-${option().value}` : undefined}
               onChange={() => props.onChange({ value: option().value })}
-              class={`flex-row items-center justify-center rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled || option().disabled ? 'bg-muted border-transparent' : props.value === option().value ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
+              class={`flex-row items-center justify-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${inactive(option()) ? 'bg-muted border-transparent' : props.value === option().value ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
               style={{
-                minHeight: controlMetrics().height,
-                paddingHorizontal: controlMetrics().paddingHorizontal,
-                paddingVertical: controlMetrics().paddingVertical,
-                gap: controlMetrics().gap,
+                minHeight: size().height,
+                borderRadius: size().radius,
+                borderWidth: border,
+                paddingHorizontal: size().paddingHorizontal,
+                paddingVertical: size().paddingVertical,
+                gap: size().gap,
               }}
             >
               <View
                 class={props.value === option().value ? '' : 'opacity-0'}
-                style={{ width: controlMetrics().iconSize, height: controlMetrics().iconSize }}
+                style={{ width: size().iconSize, height: size().iconSize }}
               >
                 <Icon
                   name="check"
-                  color={token(
-                    props.disabled || option().disabled ? 'muted-foreground' : 'accent-foreground',
-                  )}
+                  size={props.size}
+                  color={token(inactive(option()) ? 'muted-foreground' : 'accent-foreground')}
                 />
               </View>
               <Text
-                class={`${props.value === option().value ? 'font-semibold' : ''} ${props.disabled || option().disabled ? 'text-muted-foreground' : props.value === option().value ? 'text-accent-foreground' : 'text-foreground'}`}
-                style={{ fontSize: controlMetrics().fontSize }}
+                style={{
+                  fontSize: size().fontSize,
+                  fontWeight: props.value === option().value ? weight.strong() : weight.regular(),
+                  color: token(
+                    inactive(option())
+                      ? 'muted-foreground'
+                      : props.value === option().value
+                        ? 'accent-foreground'
+                        : 'foreground',
+                  ),
+                }}
               >
                 {option().label}
               </Text>

@@ -12,11 +12,16 @@ import {
   type ViewRef,
 } from 'nsh';
 import { Select as BaseSelect } from 'nsh/base';
-import { controlMetrics, space } from './foundation';
-import { textSize } from './typography';
+import { controlMetrics, radius, space } from './foundation';
+import { textLineHeight, textSize, textWeight } from './typography';
 import { Button } from './button';
 import { CardRoot } from './card-controls';
 import { Progress } from './display';
+
+/** Continue cards keep a fixed thumbnail lane and a generous inset around the copy. */
+const CONTINUE_CARD_MIN_HEIGHT = 170;
+const CONTINUE_CARD_COVER_WIDTH = 108;
+const CONTINUE_CARD_INSET = 20;
 
 const POSTER_MIN_HEIGHT = 96;
 const POSTER_MAX_HEIGHT = 240;
@@ -46,9 +51,9 @@ export function Cover(props: CoverProps) {
       accessibilityLabel={`${props.title}封面`}
       style={{
         ...(props.height ? { height: props.height } : {}),
-        borderRadius: props.variant === 'feature' || props.variant === 'inline' ? 0 : space('sm'),
+        borderRadius: props.variant === 'feature' || props.variant === 'inline' ? 0 : radius('xl'),
       }}
-      class={`overflow-hidden rounded-(--radius) ${props.variant === 'feature' ? 'bg-cinema-control' : 'bg-muted'} justify-center items-center ${props.class ?? ''}`}
+      class={`overflow-hidden ${props.variant === 'feature' ? 'bg-cinema-control' : 'bg-muted'} justify-center items-center ${props.class ?? ''}`}
     >
       <If
         when={props.src && !failed()}
@@ -109,7 +114,7 @@ export function PosterCard(props: {
         borderRadius: controlMetrics().radius,
         gap: space('sm'),
       }}
-      class="group flex-1 rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      class="group flex-1 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
     >
       <Cover
         src={props.cover}
@@ -135,15 +140,31 @@ export function PosterCard(props: {
               )
         }
       />
-      <View class="gap-1" onLayout={({ bounds }) => textHeight.set(bounds.size.height)}>
+      <View
+        style={{ gap: space('xxs') }}
+        onLayout={({ bounds }) => textHeight.set(bounds.size.height)}
+      >
         <Text
-          style={{ fontSize: textSize('content-title') }}
-          class="text-foreground font-semibold line-clamp-2"
+          style={{
+            fontSize: textSize('content-title'),
+            lineHeight: textLineHeight('content-title'),
+            fontWeight: textWeight('content-title'),
+            color: token('foreground'),
+          }}
+          class="line-clamp-2"
         >
           {props.title}
         </Text>
         <If when={props.caption}>
-          <Text style={{ fontSize: textSize('meta') }} class="text-muted-foreground line-clamp-2">
+          <Text
+            style={{
+              fontSize: textSize('meta'),
+              lineHeight: textLineHeight('meta'),
+              fontWeight: textWeight('meta'),
+              color: token('muted-foreground'),
+            }}
+            class="line-clamp-2"
+          >
             {props.caption}
           </Text>
         </If>
@@ -180,17 +201,19 @@ export function EpisodeRange(props: {
           testID="episode-range-trigger"
           label={title()}
           selectOpen={open()}
-          icon="down"
+          dropdown
           onPress={() => open.set(true)}
         />
       }
-      popupClass="bg-popover border border-border rounded-(--radius) p-2"
-      itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
+      popupClass="bg-popover border border-border"
+      popupStyle={{ padding: space('xs'), borderRadius: radius('xl') }}
+      itemClass="text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
       itemStyle={{
         minHeight: controlMetrics().height,
         fontSize: controlMetrics().fontSize,
         paddingHorizontal: controlMetrics().paddingHorizontal,
         paddingVertical: controlMetrics().paddingVertical,
+        borderRadius: radius('lg'),
       }}
     />
   );
@@ -210,23 +233,34 @@ export function ContinueCard(props: {
   return (
     <View
       accessibilityLabel={props.accessibilityLabel}
-      class="flex-row border border-border rounded-(--radius) bg-card overflow-hidden"
+      class="flex-row border border-border bg-card overflow-hidden"
       style={{
-        minHeight: 170,
+        minHeight: CONTINUE_CARD_MIN_HEIGHT,
         borderRadius: controlMetrics().radius,
       }}
     >
-      <View style={{ width: 108 }} class="shrink-0">
+      <View style={{ width: CONTINUE_CARD_COVER_WIDTH }} class="shrink-0">
         <Cover src={props.image} title={props.title} variant="inline" class="w-full h-full" />
       </View>
-      <View class="flex-1 min-w-0 gap-1 justify-center" style={{ padding: 20 }}>
+      <View
+        class="flex-1 justify-center"
+        style={{ padding: CONTINUE_CARD_INSET, gap: space('xxs') }}
+      >
         <Text
-          class="font-semibold text-foreground line-clamp-2"
-          style={{ fontSize: textSize('content-title') }}
+          class="line-clamp-2"
+          style={{
+            fontSize: textSize('content-title'),
+            lineHeight: textLineHeight('content-title'),
+            fontWeight: textWeight('content-title'),
+            color: token('foreground'),
+          }}
         >
           {props.title}
         </Text>
-        <Text class="text-muted-foreground" style={{ fontSize: textSize('meta') }}>
+        <Text
+          class="text-muted-foreground"
+          style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+        >
           {props.subtitle}
         </Text>
         <View style={{ paddingTop: space('sm') }}>
@@ -256,10 +290,10 @@ export function StoryFeature(props: {
 }) {
   return (
     <View
-      class="relative overflow-hidden rounded-(--radius) bg-cinema"
+      class="relative overflow-hidden bg-cinema"
       style={{
         minHeight: props.detail ? DETAIL_CARD_MIN_HEIGHT : CARD_MIN_HEIGHT,
-        borderRadius: space('sm'),
+        borderRadius: radius('xl'),
       }}
     >
       <View class="absolute right-0 top-0 bottom-0 w-[48%]">
@@ -284,8 +318,12 @@ export function StoryFeature(props: {
         style={{ width: '65%', padding: space('xl'), paddingLeft: space('2xl'), gap: space('md') }}
       >
         <Text
-          style={{ fontSize: space('3xl') }}
-          class="font-semibold text-cinema-foreground line-clamp-2"
+          style={{
+            fontSize: textSize('page'),
+            fontWeight: textWeight('page'),
+            color: token('cinema-foreground'),
+          }}
+          class="line-clamp-2"
         >
           {props.title}
         </Text>
@@ -321,7 +359,7 @@ export function ResultCard(props: {
   return (
     <View
       accessibilityLabel={props.label}
-      style={{ paddingVertical: 20, gap: 20 }}
+      style={{ paddingVertical: space('md'), gap: space('md') }}
       class="flex-row items-center border border-transparent border-b-border"
     >
       {props.children}

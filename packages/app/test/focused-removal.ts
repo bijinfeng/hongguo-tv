@@ -70,7 +70,7 @@ export function registerSearchFocusTests(entry: string) {
       const app = await open(entry, {
         platform: 'macos',
         width: 1180,
-        height: 780,
+        height: 1000,
         reducedMotion: true,
         clock: {},
         network: {},

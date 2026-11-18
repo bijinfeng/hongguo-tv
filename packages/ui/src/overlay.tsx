@@ -35,8 +35,13 @@ import {
   type ToastTransitionStatus,
 } from 'nsh/base';
 import { Button } from './button';
-import { controlMetrics, space } from './foundation';
+import { controlMetrics, radius, space, weight } from './foundation';
 import { Icon, type IconName } from './icon';
+import { textSize, textWeight } from './typography';
+
+/** Popups stop short of the window edges and of a two-line hint. */
+const TOOLTIP_MAX_WIDTH = 320;
+const MENU_MIN_WIDTH = 200;
 
 /** A controlled popup's requested state; the caller commits it before a later opening. */
 export interface PopupChangeEvent {
@@ -134,7 +139,7 @@ export function Dialog(props: DialogProps) {
         props.onClose?.();
         props.returnFocus?.();
       }}
-      class="m-auto rounded-(--radius) bg-popover"
+      class="m-auto bg-popover"
       backdropClass="bg-cinema/40"
       style={{
         width: Math.max(0, Math.min(480, windowSize().width - space('3xl'))),
@@ -144,11 +149,14 @@ export function Dialog(props: DialogProps) {
         borderRadius: controlMetrics().radius,
       }}
     >
-      <View class="flex-row items-center justify-between gap-4">
+      <View class="flex-row items-center justify-between" style={{ gap: space('md') }}>
         <Text
           role="header"
-          class="flex-1 min-w-0 font-semibold text-popover-foreground"
-          style={{ fontSize: space('lg') }}
+          class="flex-1 text-popover-foreground"
+          style={{
+            fontSize: textSize('section'),
+            fontWeight: textWeight('section'),
+          }}
         >
           {props.title}
         </Text>
@@ -163,7 +171,10 @@ export function Dialog(props: DialogProps) {
         </If>
       </View>
       <If when={props.description}>
-        <Text class="text-muted-foreground" style={{ fontSize: controlMetrics().fontSize }}>
+        <Text
+          class="text-muted-foreground"
+          style={{ fontSize: textSize('body'), fontWeight: textWeight('body') }}
+        >
           {props.description}
         </Text>
       </If>
@@ -173,8 +184,7 @@ export function Dialog(props: DialogProps) {
           margin: -focusInset(),
           maxHeight: Math.max(0, windowSize().height - 240 + focusInset() * 2),
         }}
-        contentClass="gap-4"
-        contentStyle={{ padding: focusInset() }}
+        contentStyle={{ padding: focusInset(), gap: space('md') }}
       >
         {props.children}
       </Scroll>
@@ -253,7 +263,11 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       }
     >
       <If when={props.error}>
-        <Text role="alert" class="text-destructive" style={{ fontSize: controlMetrics().fontSize }}>
+        <Text
+          role="alert"
+          class="text-destructive"
+          style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+        >
           {props.error}
         </Text>
       </If>
@@ -316,11 +330,14 @@ export function SidePanel(props: SidePanelProps) {
         props.returnFocus?.();
       }}
     >
-      <View class="flex-row items-center justify-between gap-4">
+      <View class="flex-row items-center justify-between" style={{ gap: space('md') }}>
         <Text
           role="header"
-          class="flex-1 min-w-0 font-semibold text-popover-foreground"
-          style={{ fontSize: space('lg') }}
+          class="flex-1 text-popover-foreground"
+          style={{
+            fontSize: textSize('section'),
+            fontWeight: textWeight('section'),
+          }}
         >
           {props.title}
         </Text>
@@ -332,7 +349,7 @@ export function SidePanel(props: SidePanelProps) {
           onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
         />
       </View>
-      <Scroll class="flex-1 min-h-0" contentClass="gap-4 p-2">
+      <Scroll class="flex-1 min-h-0" contentStyle={{ gap: space('md'), padding: space('xs') }}>
         {props.children}
       </Scroll>
       <If when={props.footer}>{props.footer}</If>
@@ -390,7 +407,7 @@ export function Menu(props: MenuProps) {
       margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
-        minWidth: 200,
+        minWidth: MENU_MIN_WIDTH,
         maxWidth: Math.max(0, windowSize().width - space('lg')),
         padding: space('xs'),
         borderRadius: controlMetrics().radius,
@@ -405,33 +422,22 @@ export function Menu(props: MenuProps) {
       }}
       onClose={props.returnFocus}
       trigger={
-        <View
+        <Button
+          label={props.label}
+          dropdown
+          popupOpen={open()}
+          expanded={open()}
           disabled={props.disabled}
-          accessibilityLabel={props.label}
-          accessibilityState={{ disabled: !!props.disabled, expanded: open() }}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          class={`flex-row items-center justify-between rounded-(--radius) border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted border-transparent' : open() ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
-          style={{
-            minHeight: controlMetrics().height,
-            paddingHorizontal: controlMetrics().paddingHorizontal,
-            gap: controlMetrics().gap,
-          }}
-        >
-          <Text
-            class={props.disabled ? 'text-muted-foreground' : 'text-foreground'}
-            style={{ fontSize: controlMetrics().fontSize }}
-          >
-            {props.label}
-          </Text>
-          <Icon name="down" />
-        </View>
+          onPress={() => {}}
+        />
       }
     >
       <Each of={props.items} key={(command) => command.id}>
         {(command) => (
           <View>
             <If when={command().separatorBefore}>
-              <MenuSeparator class="my-2 h-px bg-border" />
+              <MenuSeparator class="h-px bg-border" style={{ marginVertical: space('xs') }} />
             </If>
             <MenuItem
               disabled={command().disabled}
@@ -439,11 +445,12 @@ export function Menu(props: MenuProps) {
               accessibilityLabel={command().label}
               testID={props.testID ? `${props.testID}-${command().id}` : undefined}
               onSelect={() => props.onSelect({ id: command().id })}
-              class="group flex-row items-center rounded-(--radius) hover:bg-muted active:bg-border focus:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-transparent"
+              class="group flex-row items-center hover:bg-muted active:bg-border focus:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-transparent"
               style={{
                 minHeight: controlMetrics().height,
                 paddingHorizontal: controlMetrics().paddingHorizontal,
                 gap: controlMetrics().gap,
+                borderRadius: controlMetrics().radius,
               }}
               indicatorClass="group items-center justify-center"
               indicatorStyle={{
@@ -461,7 +468,7 @@ export function Menu(props: MenuProps) {
               </If>
               <Text
                 class={`${command().destructive ? 'text-destructive' : 'text-popover-foreground'} group-disabled:text-muted-foreground`}
-                style={{ fontSize: controlMetrics().fontSize }}
+                style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.regular() }}
               >
                 {command().label}
               </Text>
@@ -526,7 +533,9 @@ export function Popover(props: PopoverProps) {
       trigger={
         <Button
           label={props.label}
-          icon="down"
+          dropdown
+          popupOpen={open()}
+          expanded={open()}
           buttonRef={(ref) => (trigger = ref)}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
           onPress={() => {}}
@@ -559,14 +568,17 @@ export function Tooltip(props: TooltipProps) {
       testID={props.testID}
       class={`${popupClass} ${popupMotion()}`}
       style={{
-        maxWidth: 320,
+        maxWidth: TOOLTIP_MAX_WIDTH,
         paddingHorizontal: space('sm'),
         paddingVertical: space('xs'),
       }}
       startingClass={reduceMotion() ? '' : 'opacity-0'}
       endingClass={reduceMotion() ? '' : 'opacity-0'}
     >
-      <Text class="text-popover-foreground" style={{ fontSize: 14 }}>
+      <Text
+        class="text-popover-foreground"
+        style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+      >
         {props.label}
       </Text>
     </BaseTooltip>
@@ -602,8 +614,8 @@ export function Toast(props: ToastProps) {
       endingClass={reduceMotion() ? '' : 'opacity-0'}
     >
       <Text
-        class={`flex-1 min-w-0 ${props.tone === 'error' ? 'text-destructive' : 'text-popover-foreground'}`}
-        style={{ fontSize: controlMetrics().fontSize }}
+        class={`flex-1 ${props.tone === 'error' ? 'text-destructive' : 'text-popover-foreground'}`}
+        style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.regular() }}
       >
         {props.message}
       </Text>
@@ -782,16 +794,17 @@ export function Accordion(props: AccordionProps) {
               <AccordionTrigger
                 accessibilityLabel={section().title}
                 testID={props.testID ? `${props.testID}-${section().id}` : undefined}
-                class="group flex-row items-center justify-between rounded-(--radius) hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-muted"
+                class="group flex-row items-center justify-between hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-muted"
                 style={{
                   minHeight: controlMetrics().height,
                   paddingHorizontal: controlMetrics().paddingHorizontal,
                   gap: controlMetrics().gap,
+                  borderRadius: controlMetrics().radius,
                 }}
               >
                 <Text
-                  class="flex-1 min-w-0 font-semibold text-foreground group-disabled:text-muted-foreground"
-                  style={{ fontSize: controlMetrics().fontSize }}
+                  class="flex-1 text-foreground group-disabled:text-muted-foreground"
+                  style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.strong() }}
                 >
                   {section().title}
                 </Text>
@@ -804,8 +817,8 @@ export function Accordion(props: AccordionProps) {
             </AccordionHeader>
             <AccordionPanel keepMounted reveal={false} accessibilityLabel={section().title}>
               <View
-                class="gap-4"
                 style={{
+                  gap: space('md'),
                   paddingHorizontal: controlMetrics().paddingHorizontal,
                   paddingTop: space('xs'),
                   paddingBottom: space('lg'),
@@ -875,8 +888,8 @@ export function Link(props: LinkProps) {
       accessibilityLabel={props.label}
       onOpen={props.onOpen}
       testID={props.testID}
-      class="group flex-row items-center rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-      style={{ minHeight: controlMetrics().height }}
+      class="group flex-row items-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      style={{ minHeight: controlMetrics().height, borderRadius: controlMetrics().radius }}
     >
       <Text
         class={
@@ -884,7 +897,7 @@ export function Link(props: LinkProps) {
             ? 'text-muted-foreground'
             : 'text-foreground underline group-hover:text-accent-foreground'
         }
-        style={{ fontSize: controlMetrics().fontSize }}
+        style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.regular() }}
       >
         {props.label}
       </Text>
@@ -911,16 +924,21 @@ export function KeyHint(props: KeyHintProps) {
   return (
     <View testID={props.testID} class="flex-row items-center" style={{ gap: space('xs') }}>
       <Text
-        class={`rounded bg-muted text-foreground ${props.remote ? '' : 'font-mono'}`}
+        class={`bg-muted text-foreground ${props.remote ? '' : 'font-mono'}`}
         style={{
-          fontSize: 14,
+          fontSize: textSize('meta'),
+          fontWeight: textWeight('meta'),
+          borderRadius: radius('sm'),
           paddingHorizontal: space('xs'),
           paddingVertical: space('xxs'),
         }}
       >
         {props.remote ? props.remoteLabel : props.keyLabel}
       </Text>
-      <Text class="text-muted-foreground" style={{ fontSize: 14 }}>
+      <Text
+        class="text-muted-foreground"
+        style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+      >
         {props.label}
       </Text>
     </View>

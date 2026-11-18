@@ -1,9 +1,9 @@
-import { Text, reduceMotion, token, type JSX, type ViewProps, type ViewRef } from 'nsh';
+import { Text, View, reduceMotion, token, type JSX, type ViewProps, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
 import { Icon, type IconName } from './icon';
-import { controlMetrics, type ControlSize, space, border } from './foundation';
+import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
 
 /** Limited visual hierarchy. Navigation remains a compatibility variant. */
 export type ButtonVariant = 'default' | 'primary' | 'quiet' | 'destructive' | 'navigation';
@@ -22,6 +22,10 @@ export interface ButtonProps {
   accessibilityDescription?: string;
   icon?: IconName;
   iconOnly?: boolean;
+  /** Trailing chevron affordance for a trigger that opens a list, menu or popover. */
+  dropdown?: boolean;
+  /** The trigger's popup is showing; pairs its accent surface with accent-foreground. */
+  popupOpen?: boolean;
   displayLabel?: string;
   /** Bound a long action label within its parent while retaining its full accessible name. */
   labelLines?: 1 | 2;
@@ -48,50 +52,66 @@ export interface ButtonProps {
   style?: ViewProps['style'];
 }
 
+/** Episode grids need a taller target than a toolbar control; both stay on the spacing scale. */
+const episodeHeights = { detail: space('3xl'), player: 42 } as const;
+
 /** Styled semantic action; retains source-focus and removable-action adapters. */
 export function Button(props: ButtonProps) {
   const Root = props.onFocusedRemoval ? FocusedRemovalRoot : CardRoot;
-  const size = () => controlMetrics(props.size ?? (props.compact ? 'sm' : 'md'));
+  const sizeName = () => props.size ?? (props.compact ? 'sm' : 'md');
+  const size = () => controlMetrics(sizeName());
   const variant = () => props.variant ?? (props.primary ? 'primary' : 'default');
   const blocked = () => !!props.disabled || !!props.pending;
+  // A popup trigger keeps its chevron on the trailing edge; a plain icon stays leading.
+  const dropdown = () => !!props.dropdown || props.selectOpen !== undefined;
+  const popupOpen = () => !blocked() && !!(props.popupOpen ?? props.selectOpen);
   // Emphasised surfaces stay paired with their foreground; the current destination is not one.
   const emphasised = () => !blocked() && !props.current;
-  const tone = () =>
-    blocked()
-      ? 'muted-foreground'
-      : emphasised() && props.selected
-        ? 'accent-foreground'
-        : variant() === 'primary'
-          ? 'primary-foreground'
-          : variant() === 'destructive'
-            ? 'destructive'
-            : 'foreground';
-  const selectedSurface = () => emphasised() && props.selected;
-  const appearance = () =>
-    blocked()
-      ? 'bg-muted border-transparent'
-      : props.current
-        ? variant() === 'quiet'
-          ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
-          : 'bg-muted border-input hover:bg-muted active:bg-border'
-        : selectedSurface()
-          ? 'bg-accent border-transparent'
-          : variant() === 'primary'
-            ? 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80'
-            : variant() === 'destructive'
-              ? 'bg-card border-input hover:bg-muted active:bg-border'
-              : variant() === 'quiet' || variant() === 'navigation'
-                ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
-                : props.episode
-                  ? 'bg-card border-input hover:bg-muted active:bg-border'
-                  : props.selectOpen !== undefined
-                    ? 'bg-card border-input hover:bg-muted active:bg-border'
-                    : 'bg-card border-input hover:bg-muted active:bg-border';
+  const selectedSurface = () => emphasised() && !!props.selected;
+  const tone = () => {
+    if (blocked()) return 'muted-foreground';
+    if (popupOpen()) return 'accent-foreground';
+    if (selectedSurface()) return 'accent-foreground';
+    switch (variant()) {
+      case 'primary':
+        return 'primary-foreground';
+      case 'destructive':
+        return 'destructive';
+      default:
+        return 'foreground';
+    }
+  };
+  const appearance = () => {
+    if (blocked()) return 'bg-muted border-transparent';
+    if (popupOpen()) return 'bg-accent border-transparent';
+    if (props.current) {
+      return variant() === 'quiet'
+        ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
+        : 'bg-muted border-input hover:bg-muted active:bg-border';
+    }
+    if (selectedSurface()) return 'bg-accent border-transparent';
+    switch (variant()) {
+      case 'primary':
+        return 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80';
+      case 'quiet':
+      case 'navigation':
+        return 'bg-transparent border-transparent hover:bg-muted active:bg-border';
+      default:
+        return 'bg-card border-input hover:bg-muted active:bg-border';
+    }
+  };
+  const height = () =>
+    props.episode
+      ? props.episode === 'player'
+        ? episodeHeights.player
+        : episodeHeights.detail
+      : size().height;
+  const strongLabel = () => !!props.selected || !!props.current || variant() === 'primary';
   return (
     <Root
       ref={(ref) => props.buttonRef?.(ref)}
       style={{
-        minHeight: props.episode ? (props.episode === 'player' ? 42 : space('3xl')) : size().height,
+        minHeight: height(),
         minWidth: props.iconOnly ? size().height : undefined,
         maxWidth: props.labelLines ? '100%' : undefined,
         borderRadius: size().radius,
@@ -114,7 +134,7 @@ export function Button(props: ButtonProps) {
       current={props.current}
       expanded={props.expanded}
       accessibilityDescription={props.accessibilityDescription}
-      class={`flex-row items-center ${props.align === 'start' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
+      class={`flex-row items-center ${dropdown() ? 'justify-between' : props.align === 'start' ? 'justify-start' : 'justify-center'} border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
     >
       <SelectFocus
         open={props.selectOpen}
@@ -124,31 +144,40 @@ export function Button(props: ButtonProps) {
         <If when={props.artwork && props.selectOpen === undefined}>{props.artwork}</If>
         <If
           when={
-            !props.artwork &&
-            ((props.icon && props.selectOpen === undefined) || (props.iconOnly && props.pending))
+            !props.artwork && ((props.icon && !dropdown()) || (props.iconOnly && props.pending))
           }
         >
           <Icon
             name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
             color={token(tone())}
-            size={props.size ?? (props.compact ? 'sm' : 'md')}
+            size={sizeName()}
           />
         </If>
         <If when={!props.iconOnly && (props.artwork ? !!props.displayLabel : true)}>
           <Text
             style={{
               fontSize: size().fontSize,
-              flexShrink: props.selectOpen !== undefined || props.labelLines ? 1 : undefined,
+              fontWeight: strongLabel() ? weight.strong() : weight.regular(),
+              color: token(tone()),
+              flexShrink: dropdown() || props.labelLines ? 1 : undefined,
               numberOfLines: props.labelLines ?? 0,
             }}
-            class={`${variant() === 'primary' || props.selected || props.current ? 'font-semibold' : ''} ${blocked() ? 'text-muted-foreground' : selectedSurface() ? 'text-accent-foreground' : variant() === 'primary' ? 'text-primary-foreground' : variant() === 'destructive' ? 'text-destructive' : 'text-foreground'}`}
           >
             {props.displayLabel ?? (props.pending ? '处理中…' : props.label)}
           </Text>
         </If>
-        <If when={props.icon && props.selectOpen !== undefined}>
-          {/* The Select chevron is a secondary affordance; the value text keeps the foreground. */}
-          <Icon name={props.icon!} color={token('muted-foreground')} size={props.size ?? 'md'} />
+        <If when={dropdown()}>
+          {/* The chevron is a secondary affordance; the value text keeps the foreground. */}
+          <View
+            class={reduceMotion() ? '' : 'transition-transform duration-150'}
+            style={{ transform: [{ rotate: popupOpen() ? 180 : 0 }] }}
+          >
+            <Icon
+              name={props.icon ?? 'down'}
+              color={token(popupOpen() ? 'accent-foreground' : 'muted-foreground')}
+              size={sizeName()}
+            />
+          </View>
         </If>
       </SelectFocus>
     </Root>

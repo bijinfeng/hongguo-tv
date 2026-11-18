@@ -601,6 +601,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   testID="gallery-tabs"
                 />
                 <Button
+                  class="self-start"
                   label="切换标签组可用性"
                   testID="gallery-tabs-disabled"
                   onPress={() => selectionDisabled.set(!selectionDisabled())}
@@ -710,11 +711,13 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   </View>
                 </View>
                 <Button
+                  class="self-start"
                   label="确认等待示例"
                   onPress={() => pendingConfirm.set(true)}
                   testID="gallery-open-confirm-pending"
                 />
                 <Button
+                  class="self-start"
                   label={confirmFailure() ? '确认失败已开启' : '切换确认失败'}
                   selected={confirmFailure()}
                   onPress={() => confirmFailure.set(!confirmFailure())}

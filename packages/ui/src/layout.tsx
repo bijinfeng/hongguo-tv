@@ -1,5 +1,6 @@
 import { View, reduceMotion, type JSX } from 'nsh';
 import { Toolbar } from 'nsh/base';
+import { space } from './foundation';
 import { entrance } from './motion';
 
 /** Explicit arrival only; static surfaces and recycled rows never opt in implicitly. */
@@ -22,7 +23,8 @@ export function Controls(props: {
     <Toolbar
       accessibilityLabel={props.label}
       axis={props.vertical ? 'vertical' : 'horizontal'}
-      class={`${props.vertical ? 'flex-col' : 'flex-row flex-wrap'} gap-3 ${props.class ?? ''}`}
+      class={`${props.vertical ? 'flex-col' : 'flex-row flex-wrap'} ${props.class ?? ''}`}
+      style={{ gap: space('sm') }}
     >
       {props.children}
     </Toolbar>

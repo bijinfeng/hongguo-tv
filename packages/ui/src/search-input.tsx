@@ -1,6 +1,14 @@
 import { signal, token, type InputRef, type InputHostProps } from 'nsh';
 import { Input as BaseInput } from 'nsh/base';
-import { controlMetrics } from './foundation';
+import {
+  border,
+  controlMetrics,
+  focusOffset,
+  focusOffsetInside,
+  focusRing,
+  space,
+  type ControlSize,
+} from './foundation';
 
 /** Shared application-search input; the caller supplies the current validation explanation. */
 export interface SearchInputProps {
@@ -10,6 +18,8 @@ export interface SearchInputProps {
   inputRef: (ref: InputRef) => void;
   embedded?: boolean;
   expanded?: boolean;
+  /** Control density of the field. */
+  size?: ControlSize;
   invalid?: boolean;
   description?: string;
   onFocus?: () => void;
@@ -17,18 +27,19 @@ export interface SearchInputProps {
   onCompositionChange?: InputHostProps['onCompositionChange'];
 }
 export function SearchInput(props: SearchInputProps) {
+  const size = () => controlMetrics(props.size);
   const focused = signal(false);
   return (
     <BaseInput
       style={{
-        minHeight: controlMetrics().height,
-        borderRadius: controlMetrics().radius,
-        fontSize: controlMetrics().fontSize,
-        paddingHorizontal: props.embedded ? 4 : controlMetrics().paddingHorizontal,
-        paddingVertical: controlMetrics().paddingVertical,
-        outlineWidth: props.embedded ? 0 : focused() ? 2 : 1,
+        minHeight: size().height,
+        borderRadius: size().radius,
+        fontSize: size().fontSize,
+        paddingHorizontal: props.embedded ? space('xxs') : size().paddingHorizontal,
+        paddingVertical: size().paddingVertical,
+        outlineWidth: props.embedded ? 0 : focused() ? focusRing : border,
         outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
-        outlineOffset: props.embedded ? 0 : focused() ? 3 : -1,
+        outlineOffset: props.embedded ? 0 : focused() ? focusOffset : focusOffsetInside,
       }}
       testID="search-input"
       ref={props.inputRef}

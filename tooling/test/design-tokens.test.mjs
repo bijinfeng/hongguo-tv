@@ -35,7 +35,17 @@ const design = (overrides = {}) => {
         ),
       )
       .join('');
-  const spacing = '  none: 0px\n  xxs: 4px\n';
+  const controls = ['sm', 'md', 'lg']
+    .flatMap((size) =>
+      ['desktop', 'tv'].map(
+        (surface) =>
+          `  ${size}-${surface}:\n    height: ${
+            size === 'sm' ? 32 : size === 'md' ? 40 : 60
+          }px\n    fontSize: 14px\n    paddingHorizontal: 12px\n    paddingVertical: 4px\n    gap: 6px\n    iconSize: 16px\n    rounded: '{rounded.sm}'\n`,
+      ),
+    )
+    .join('');
+  const spacing = overrides.spacing ?? '  none: 0px\n  xxs: 4px\n';
   const rounded = '  sm: 4px\n  xl: 12px\n';
   const components =
     overrides.components ??
@@ -45,17 +55,22 @@ const design = (overrides = {}) => {
     block('typography', typography),
     block('spacing', spacing),
     block('rounded', rounded),
+    block('controls', controls),
     block('components', components),
   ].join('\n');
 };
 
 test('compiles scales, radii and both type surfaces', () => {
   const tokens = compile(design(), theme);
-  assert.deepEqual(tokens.space, { none: 0, xxs: 4 });
-  assert.deepEqual(tokens.radius, { sm: 4, xl: 12 });
-  assert.equal(tokens.type.body.desktop.fontSize, 20);
-  assert.equal(tokens.type.body.large.fontSize, 40);
-  assert.equal(tokens.type.body.desktop.lineHeight, 1.5);
+  const desktop = tokens.themes.desktop.cssVars.theme;
+  const tv = tokens.themes.tv.cssVars.theme;
+  assert.equal(desktop['space-xxs'], '4px');
+  assert.equal(desktop['radius-xl'], '12px');
+  assert.equal(desktop['text-body'], '20px');
+  assert.equal(tv['text-body'], '40px');
+  assert.equal(desktop['control-md-height'], '40px');
+  assert.equal(desktop['control-md-radius'], '4px');
+  assert.equal(tokens.ratios.body.lineHeight, 1.5);
 });
 
 test('rejects a value theme.json does not match', () => {
@@ -84,7 +99,7 @@ test('the checked-in generated file matches DESIGN.md', async () => {
     await readFile(resolve(import.meta.dirname, '../../packages/ui/theme.json'), 'utf8'),
   );
   const tokens = compile(source, actualTheme);
-  assert.equal(Object.keys(tokens.type).length, 8);
-  assert.equal(tokens.radius.xl, 12);
-  assert.equal(tokens.space['2xl'], 40);
+  assert.equal(Object.keys(tokens.ratios).length, 8);
+  assert.equal(tokens.themes.desktop.cssVars.theme['radius-xl'], '12px');
+  assert.equal(tokens.themes.desktop.cssVars.theme['space-2xl'], '40px');
 });

@@ -2,8 +2,10 @@
 export {
   border,
   controlMetrics,
+  focusRing,
   radius,
   space,
+  weight,
   type ProductTarget,
   type ControlSize,
   type RadiusToken,

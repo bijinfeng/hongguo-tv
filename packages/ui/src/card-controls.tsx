@@ -191,6 +191,7 @@ export function CardRoot(props: {
           blur: () => ref.blur(),
           measure: () => ref.measure(),
           reveal: (options) => ref.reveal(options),
+          animateLayout: (transition) => ref.animateLayout(transition),
         });
       }}
       testID={props.testID}

@@ -1229,6 +1229,8 @@ export function registerApplicationTests(
   if (target === 'tv')
     test('host commands discard browse events and covered player input', async () => {
       const app = await open(entry, {
+        width: 960,
+        height: 540,
         host: {},
         network: { '*': fixture, 'POST *': fixture },
       });

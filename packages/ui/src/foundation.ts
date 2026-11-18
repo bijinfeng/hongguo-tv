@@ -83,3 +83,18 @@ export const radius = (name: RadiusToken) => token(radiusTokens[name]);
 
 /** Hairline border, always one point. */
 export const border = 1;
+
+/** Independent focus outline, two hairline units. */
+export const focusRing = border * 2;
+
+/** Focus outline of a field sits just outside its border. */
+export const focusOffset = border * 3;
+
+/** A field already inside a border keeps its focus outline in place of that border. */
+export const focusOffsetInside = -border;
+
+/** The two label weights the type scale defines. */
+export const weight = {
+  regular: () => Number(token('font-regular')),
+  strong: () => Number(token('font-strong')),
+} as const;

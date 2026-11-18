@@ -24,6 +24,8 @@
       "text-body": "16px",
       "text-meta": "14px",
       "text-numeric": "16px",
+      "font-regular": 400,
+      "font-strong": 600,
       "control-sm-height": "32px",
       "control-sm-font": "14px",
       "control-sm-padding-x": "12px",

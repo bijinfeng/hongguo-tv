@@ -1,8 +1,8 @@
 import { Text, View, cleanup, effect, signal, token, type ViewRef } from 'nsh';
 import { Button } from './button';
-import { controlMetrics, space } from './foundation';
+import { controlMetrics, radius, space } from './foundation';
 import { UiText } from './display';
-import { textSize } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 /** Text stays with the caller; an optional expanded value makes disclosure controlled. */
 export interface ExpandableTextProps {
@@ -23,7 +23,9 @@ export function ExpandableText(props: ExpandableTextProps) {
   const lines = () => Math.max(1, props.collapsedLines ?? 2);
   const font = () => ({
     fontSize: textSize('body'),
-    lineHeight: textSize('body') * 1.5,
+    lineHeight: textLineHeight('body'),
+    fontWeight: textWeight('body'),
+    color: token('foreground'),
   });
   const toggle = () => {
     const next = !isExpanded();
@@ -31,7 +33,7 @@ export function ExpandableText(props: ExpandableTextProps) {
     props.onExpandedChange?.({ expanded: next });
   };
   return (
-    <View testID={props.testID} class="relative min-w-0 items-start gap-2">
+    <View testID={props.testID} class="relative items-start" style={{ gap: space('xs') }}>
       <Text
         accessibilityElementsHidden
         onTextLayout={({ lines: measured }) => overflowing.set(measured.length > lines())}
@@ -44,7 +46,6 @@ export function ExpandableText(props: ExpandableTextProps) {
           opacity: 0,
           pointerEvents: 'none',
         }}
-        class="text-foreground"
       >
         {props.text}
       </Text>
@@ -55,7 +56,7 @@ export function ExpandableText(props: ExpandableTextProps) {
             numberOfLines: isExpanded() ? 0 : lines(),
             selectionColor: token('accent'),
           }}
-          class="text-foreground self-stretch"
+          class="self-stretch"
         >
           {props.text}
         </Text>
@@ -140,8 +141,8 @@ export function RemovableChipGroup(props: RemovableChipGroupProps) {
         role="group"
         accessibilityLabel={props.label}
         focusable={!props.values.length && !props.emptyAction}
-        style={{ gap: space('sm'), minHeight: controlMetrics().height }}
-        class="flex-row flex-wrap items-center rounded-(--radius) focus-visible:outline-2 focus-visible:outline-ring"
+        style={{ gap: space('sm'), minHeight: controlMetrics().height, borderRadius: radius('xl') }}
+        class="flex-row flex-wrap items-center focus-visible:outline-2 focus-visible:outline-ring"
       >
         <Each of={props.values} key={(value) => value.id}>
           {(value) => (

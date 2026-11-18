@@ -15,11 +15,16 @@ import {
 } from 'nsh';
 import { Button, Select, Sheet, Slider } from 'nsh/base';
 import { Icon, type IconName } from './icon';
-import { controlMetrics, space } from './foundation';
+import { controlMetrics, radius, space, weight } from './foundation';
 import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
+import { textSize, textWeight } from './typography';
 
 const CinemaEnabled = context<() => boolean>(() => true);
+
+/** Cinematic menus stay narrow and their setting labels align down the rail. */
+const MENU_MIN_WIDTH = 120;
+const EPISODE_SETTING_LABEL_WIDTH = 80;
 
 /** The approved cinema controls share the app's target, icons and semantic theme. */
 export function CinemaButton(props: {
@@ -149,7 +154,7 @@ export function CinemaSelect(props: {
           accessibilityLabel={props.label}
           disabled={props.disabled || !enabled()}
           onPress={() => open.set(true)}
-          class={`flex-row items-center justify-center rounded-(--radius) focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 ${open() ? 'bg-cinema-active focus-within:outline-2 focus-within:outline-cinema-focus focus-within:outline-offset-4' : 'bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active'}`}
+          class={`flex-row items-center justify-center focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 ${open() ? 'bg-cinema-active focus-within:outline-2 focus-within:outline-cinema-focus focus-within:outline-offset-4' : 'bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active'}`}
           style={{
             minHeight: controlMetrics().height,
             borderRadius: controlMetrics().radius,
@@ -173,22 +178,28 @@ export function CinemaSelect(props: {
         </Button>
       }
       placement="top"
-      popupClass="bg-popover border border-border rounded-(--radius) p-2"
-      popupStyle={{ minWidth: 120 }}
+      popupClass="bg-popover border border-border"
+      popupStyle={{ minWidth: MENU_MIN_WIDTH, padding: space('xs'), borderRadius: radius('xl') }}
       empty={
         <Text
-          class="px-3 py-2 text-muted-foreground"
-          style={{ fontSize: controlMetrics().fontSize }}
+          class="text-muted-foreground"
+          style={{
+            fontSize: controlMetrics().fontSize,
+            fontWeight: weight.regular(),
+            paddingHorizontal: space('sm'),
+            paddingVertical: space('xs'),
+          }}
         >
           暂无可选项
         </Text>
       }
-      itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
+      itemClass="text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
       itemStyle={{
         minHeight: controlMetrics().height,
         fontSize: controlMetrics().fontSize,
         paddingHorizontal: controlMetrics().paddingHorizontal,
         paddingVertical: controlMetrics().paddingVertical,
+        borderRadius: radius('lg'),
       }}
     />
   );
@@ -246,7 +257,7 @@ export function CinemaControls(props: {
             paddingTop: space('sm'),
             paddingBottom: space('sm'),
             paddingHorizontal: space('md'),
-            gap: 6,
+            gap: space('xxs'),
           }}
         >
           {props.children}
@@ -262,10 +273,16 @@ export function CinemaText(props: {
 }) {
   return (
     <Text
-      class={`${props.variant === 'title' ? 'font-semibold text-cinema-foreground line-clamp-2' : props.variant === 'preview' ? 'text-cinema-foreground' : 'text-cinema-muted'}`}
+      class={props.variant === 'title' ? 'line-clamp-2' : ''}
       style={{
         fontSize:
-          props.variant === 'title' ? space('lg') : props.variant === 'preview' ? space('md') : 14,
+          props.variant === 'title'
+            ? textSize('title')
+            : props.variant === 'preview'
+              ? textSize('body')
+              : textSize('meta'),
+        fontWeight: props.variant === 'title' ? textWeight('title') : textWeight('meta'),
+        color: token(props.variant === 'time' ? 'cinema-muted' : 'cinema-foreground'),
       }}
     >
       {props.children}
@@ -338,7 +355,7 @@ export function CinemaStageAction(props: {
 export function CinemaSettingRow(props: { label: string; children?: JSX.Element }) {
   return (
     <View class="flex-row items-center" style={{ gap: space('md') }}>
-      <View style={{ minWidth: 80 }}>
+      <View style={{ minWidth: EPISODE_SETTING_LABEL_WIDTH }}>
         <CinemaText variant="preview">{props.label}</CinemaText>
       </View>
       <View class="flex-1">{props.children}</View>
@@ -349,7 +366,7 @@ export function CinemaSettingRow(props: { label: string; children?: JSX.Element 
 export function EpisodeRail(props: { children?: JSX.Element }) {
   return (
     <View
-      class="shrink-0 bg-card border border-border rounded-(--radius) overflow-hidden"
+      class="shrink-0 bg-card border border-border overflow-hidden"
       style={{
         width: Math.min(316, windowSize().width),
         minWidth: Math.min(280, windowSize().width),

@@ -88,7 +88,7 @@ export function SeasonsStateFixture() {
       context = undefined;
     });
     return (
-      <View testID="seasons-owner">
+      <View testID="seasons-owner" class="flex-row flex-wrap" style={{ gap: 12 }}>
         <Text>{`source:${owned.source()?.series_id ?? 'none'}`}</Text>
         <Text>{`source-type:${owned.source()?.content_type ?? 'none'}`}</Text>
         <Text>{`selected:${owned.selectedId()}`}</Text>

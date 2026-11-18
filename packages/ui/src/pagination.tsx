@@ -1,7 +1,7 @@
 import { Text, View, reduceMotion, token } from 'nsh';
 import { Pagination as BasePagination, type PaginationItemState } from 'nsh/base';
 import { Icon } from './icon';
-import { controlMetrics, type ControlSize, border } from './foundation';
+import { border, controlMetrics, weight, type ControlSize } from './foundation';
 
 /** Hongguo's themed page navigation; paging behavior and semantics stay in `nsh/base`. */
 export interface PaginationProps {
@@ -33,8 +33,8 @@ function itemSurface(item: PaginationItemState) {
 
 /** The current page keeps its place while the whole pager is inert. */
 function pageTone(item: PaginationItemState) {
-  if (item.disabled) return item.current ? 'text-foreground' : 'text-muted-foreground';
-  return item.current ? 'text-accent-foreground' : 'text-foreground';
+  if (item.disabled) return item.current ? 'foreground' : 'muted-foreground';
+  return item.current ? 'accent-foreground' : 'foreground';
 }
 
 /** A single product style for desktop and TV; the base owns range, focus and keyboard behavior. */
@@ -74,7 +74,14 @@ export function Pagination(props: PaginationProps) {
             }}
           >
             <If when={item.kind === 'ellipsis'}>
-              <Text class="text-muted-foreground" accessibilityElementsHidden>
+              <Text
+                accessibilityElementsHidden
+                style={{
+                  fontSize: metrics.fontSize,
+                  fontWeight: weight.regular(),
+                  color: token('muted-foreground'),
+                }}
+              >
                 …
               </Text>
             </If>
@@ -86,8 +93,11 @@ export function Pagination(props: PaginationProps) {
               />
               <If when={!props.compact}>
                 <Text
-                  class={item.disabled ? 'text-muted-foreground' : 'text-foreground'}
-                  style={{ fontSize: metrics.fontSize }}
+                  style={{
+                    fontSize: metrics.fontSize,
+                    fontWeight: weight.regular(),
+                    color: token(item.disabled ? 'muted-foreground' : 'foreground'),
+                  }}
                 >
                   {item.kind === 'previous' ? '上一页' : '下一页'}
                 </Text>
@@ -95,8 +105,11 @@ export function Pagination(props: PaginationProps) {
             </If>
             <If when={item.kind === 'page'}>
               <Text
-                class={`tabular-nums ${item.current ? 'font-semibold' : ''} ${pageTone(item)}`}
-                style={{ fontSize: metrics.fontSize }}
+                style={{
+                  fontSize: metrics.fontSize,
+                  fontWeight: item.current ? weight.strong() : weight.regular(),
+                  color: token(pageTone(item)),
+                }}
               >
                 {String(item.page)}
               </Text>
@@ -106,7 +119,13 @@ export function Pagination(props: PaginationProps) {
         onChange={props.onChange}
       >
         <If when={props.compact}>
-          <Text class="tabular-nums text-muted-foreground" style={{ fontSize: metrics.fontSize }}>
+          <Text
+            style={{
+              fontSize: metrics.fontSize,
+              fontWeight: weight.regular(),
+              color: token('muted-foreground'),
+            }}
+          >
             {`第 ${current()} / ${total()} 页`}
           </Text>
         </If>

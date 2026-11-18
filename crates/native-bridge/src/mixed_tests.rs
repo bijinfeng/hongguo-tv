@@ -91,7 +91,7 @@ fn run(scenario: &str, origin: &str, dir: Option<PathBuf>) -> Value {
 async fn real_mixed_open_and_durable_library_use_host_directory() {
     let dir = temp_dir();
     run("library", "", Some(dir.clone()));
-    let db = dir.join("dev.hongguo.native-test/guest.sqlite3");
+    let db = dir.join("guest.sqlite3");
     assert!(db.exists());
     let library = LibraryStore::open(db)
         .await
@@ -106,7 +106,7 @@ async fn real_mixed_open_and_durable_library_use_host_directory() {
 async fn real_mixed_open_failure_preserves_original_database() {
     run("no-directory", "", None);
     let dir = temp_dir();
-    let app_dir = dir.join("dev.hongguo.native-test");
+    let app_dir = dir.clone();
     std::fs::create_dir_all(&app_dir).unwrap();
     std::fs::write(app_dir.join("guest.sqlite3"), b"original invalid database").unwrap();
     run("bad-database", "", Some(dir.clone()));

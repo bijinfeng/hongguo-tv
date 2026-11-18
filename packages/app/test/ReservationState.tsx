@@ -92,42 +92,46 @@ export function ReservationStateFixture() {
   };
   return (
     <View class="flex-1 bg-background p-6 gap-3">
-      <UiText>{`reads:${reads()}`}</UiText>
-      <UiText>{`writes:${writes().join(',')}`}</UiText>
-      <UiText>{`loading:${state.loading()}`}</UiText>
-      <UiText>{`stale:${state.stale()}`}</UiText>
-      <UiText>{`snapshot:${state.snapshot()?.owner_epoch ?? 'none'}`}</UiText>
-      <UiText>{`item:${String(state.membership({ kind: 'item', id }))}`}</UiText>
-      <UiText>{`series:${String(state.membership({ kind: 'series', id }))}`}</UiText>
-      <UiText>{`mutation:${state.mutation()?.state ?? 'none'}`}</UiText>
-      <Button label="完成最早读取" onPress={() => finishRead()} />
-      <Button label="完成最新读取" onPress={() => finishRead(true)} />
-      <Button label="取消项目" onPress={() => void state.set({ kind: 'item', id }, false)} />
-      <Button label="预约季" onPress={() => void state.set({ kind: 'series', id }, true)} />
-      <Button label="完成确认写入" onPress={() => finishWrite(true)} />
-      <Button label="完成未确认写入" onPress={() => finishWrite(false)} />
-      <Button
-        label="丢失响应"
-        onPress={() => pendingWrites.shift()?.reject(new Error('Synthetic lost reply'))}
-      />
-      <Button label="刷新" onPress={() => void state.refresh()} />
-      <Button label="重试" onPress={() => void state.retry()} />
-      <Button label="后台" onPress={() => active.set(false)} />
-      <Button label="恢复" onPress={() => active.set(true)} />
-      <Button label="切换账号代次" onPress={() => current.set(account('b'))} />
-      <Button
-        label="缺少关联身份"
-        onPress={() => {
-          rows = [{ ...item, series_id: undefined }];
-        }}
-      />
-      <Button
-        label="已上线"
-        onPress={() => {
-          rows = [{ ...item, online: true }];
-        }}
-      />
-      <Button label="销毁" onPress={state.dispose} />
+      <View class="flex-row flex-wrap" style={{ gap: 12 }}>
+        <UiText>{`reads:${reads()}`}</UiText>
+        <UiText>{`writes:${writes().join(',')}`}</UiText>
+        <UiText>{`loading:${state.loading()}`}</UiText>
+        <UiText>{`stale:${state.stale()}`}</UiText>
+        <UiText>{`snapshot:${state.snapshot()?.owner_epoch ?? 'none'}`}</UiText>
+        <UiText>{`item:${String(state.membership({ kind: 'item', id }))}`}</UiText>
+        <UiText>{`series:${String(state.membership({ kind: 'series', id }))}`}</UiText>
+        <UiText>{`mutation:${state.mutation()?.state ?? 'none'}`}</UiText>
+      </View>
+      <View class="flex-row flex-wrap" style={{ gap: 12 }}>
+        <Button label="完成最早读取" onPress={() => finishRead()} />
+        <Button label="完成最新读取" onPress={() => finishRead(true)} />
+        <Button label="取消项目" onPress={() => void state.set({ kind: 'item', id }, false)} />
+        <Button label="预约季" onPress={() => void state.set({ kind: 'series', id }, true)} />
+        <Button label="完成确认写入" onPress={() => finishWrite(true)} />
+        <Button label="完成未确认写入" onPress={() => finishWrite(false)} />
+        <Button
+          label="丢失响应"
+          onPress={() => pendingWrites.shift()?.reject(new Error('Synthetic lost reply'))}
+        />
+        <Button label="刷新" onPress={() => void state.refresh()} />
+        <Button label="重试" onPress={() => void state.retry()} />
+        <Button label="后台" onPress={() => active.set(false)} />
+        <Button label="恢复" onPress={() => active.set(true)} />
+        <Button label="切换账号代次" onPress={() => current.set(account('b'))} />
+        <Button
+          label="缺少关联身份"
+          onPress={() => {
+            rows = [{ ...item, series_id: undefined }];
+          }}
+        />
+        <Button
+          label="已上线"
+          onPress={() => {
+            rows = [{ ...item, online: true }];
+          }}
+        />
+        <Button label="销毁" onPress={state.dispose} />
+      </View>
     </View>
   );
 }

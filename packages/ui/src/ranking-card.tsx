@@ -5,7 +5,7 @@ import { Avatar, UiText } from './display';
 import { controlMetrics, space, border } from './foundation';
 import { Icon } from './icon';
 import { motionTokens } from './motion';
-import { textSize } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 /** One caller-owned ranking entry; the component never derives a position or fetches content. */
 export interface RankingCardProps {
@@ -35,9 +35,13 @@ export interface RankingCardProps {
   onPress: () => void;
 }
 
+/** The number lane fits three digits at `section` size; the cover keeps the poster ratio. */
+const RANK_LANE_WIDTH = 42;
+const COVER_WIDTH = 86;
+const COVER_HEIGHT = 116;
+
 /**
  * Ranked media row with one input target and shared pointer, keyboard and remote behavior.
- * The desktop draft sets a 42px number lane, an 86×116 cover and a 20px title line.
  */
 export function RankingCard(props: RankingCardProps) {
   const rank = () =>
@@ -58,21 +62,32 @@ export function RankingCard(props: RankingCardProps) {
       onPress={props.onPress}
       class={`flex-row items-center border border-transparent border-b-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
       style={{
-        paddingVertical: 22,
-        gap: 20,
+        paddingVertical: space('lg'),
+        gap: space('md'),
         borderRadius: controlMetrics().radius,
         borderWidth: border,
         transitionProperty: 'colors',
         transitionDuration: reduceMotion() ? 0 : motionTokens.fast,
       }}
     >
-      <View accessibilityElementsHidden class="shrink-0 items-center" style={{ minWidth: 42 }}>
+      <View
+        accessibilityElementsHidden
+        class="shrink-0 items-center"
+        style={{ minWidth: RANK_LANE_WIDTH }}
+      >
         <If when={rank() !== undefined}>
           <Text
-            class={`tabular-nums text-center ${props.selected ? 'text-accent-foreground' : rank() === 1 ? 'text-primary' : 'text-muted-foreground'}`}
             style={{
               fontSize: textSize('section'),
-              lineHeight: textSize('section') * 1.5,
+              lineHeight: textLineHeight('section'),
+              fontWeight: textWeight('section'),
+              color: token(
+                props.selected
+                  ? 'accent-foreground'
+                  : rank() === 1
+                    ? 'primary'
+                    : 'muted-foreground',
+              ),
             }}
           >
             {String(rank())}
@@ -83,15 +98,15 @@ export function RankingCard(props: RankingCardProps) {
         <If
           when={props.kind === 'actor'}
           else={
-            <View style={{ width: 86 }}>
-              <Cover src={props.cover} title={props.title} height={116} />
+            <View style={{ width: COVER_WIDTH }}>
+              <Cover src={props.cover} title={props.title} height={COVER_HEIGHT} />
             </View>
           }
         >
           <Avatar src={props.cover} name={props.title} size="lg" accessibilityLabel="" />
         </If>
       </View>
-      <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
+      <View class="flex-1" style={{ gap: space('xs') }}>
         <View
           style={{
             display: 'flex',
@@ -103,11 +118,12 @@ export function RankingCard(props: RankingCardProps) {
           }}
         >
           <Text
-            class={`font-semibold ${props.selected ? 'text-accent-foreground' : 'text-foreground'}`}
             style={{
               flexShrink: 1,
               fontSize: textSize('title'),
-              lineHeight: textSize('title') * 1.5,
+              lineHeight: textLineHeight('title'),
+              fontWeight: textWeight('title'),
+              color: token(props.selected ? 'accent-foreground' : 'foreground'),
               numberOfLines: 2,
             }}
           >

@@ -11,7 +11,15 @@ import {
   type ViewRef,
 } from 'nsh';
 import { Input as BaseInput } from 'nsh/base';
-import { controlMetrics } from './foundation';
+import {
+  border,
+  controlMetrics,
+  focusOffset,
+  focusOffsetInside,
+  focusRing,
+  weight,
+  type ControlSize,
+} from './foundation';
 import { Button } from './button';
 import { Icon } from './icon';
 import { Field } from './field';
@@ -51,6 +59,8 @@ export interface TextInputProps {
   onCompositionChange?: InputHostProps['onCompositionChange'];
   /** Stable automation identifier. */
   testID?: string;
+  /** Control density; the frame, text and trailing action share one tier. */
+  size?: ControlSize;
   /** The actual native input, for focusing and selection. */
   inputRef?: (ref: InputRef) => void;
 }
@@ -58,6 +68,7 @@ export interface TextInputProps {
 /** Input and an optional trailing action share one border and one minimum height. */
 function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => void }) {
   const confirm = () => props.activation === 'confirm';
+  const size = () => controlMetrics(props.size);
   const focused = signal(false);
   const editing = signal(false);
   const composing = signal(false);
@@ -131,17 +142,17 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
       onBlur={() => {
         if (confirm() && !editing()) focused.set(false);
       }}
-      class={`flex-row items-center min-w-0 rounded-(--radius) ${props.disabled ? 'bg-muted' : 'bg-card'}`}
+      class={`flex-row items-center ${props.disabled ? 'bg-muted' : 'bg-card'}`}
       style={{
-        minHeight: controlMetrics().height,
-        borderRadius: controlMetrics().radius,
-        outlineWidth: focused() ? 2 : 1,
+        minHeight: size().height,
+        borderRadius: size().radius,
+        outlineWidth: focused() ? focusRing : border,
         outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
-        outlineOffset: focused() ? 3 : -1,
+        outlineOffset: focused() ? focusOffset : focusOffsetInside,
       }}
     >
       <If when={props.search}>
-        <View style={{ paddingLeft: controlMetrics().paddingHorizontal }}>
+        <View style={{ paddingLeft: size().paddingHorizontal }}>
           <Icon name="search" />
         </View>
       </If>
@@ -179,27 +190,32 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           accessibilityLabel={props.label}
           accessibilityDescription={props.description}
           accessibilityState={{ invalid: !!props.invalid, disabled: !!props.disabled }}
-          class="flex-1 min-w-0 bg-transparent text-foreground border-0"
+          class="flex-1 bg-transparent border-0"
           style={{
-            minHeight: controlMetrics().height,
-            fontSize: controlMetrics().fontSize,
-            paddingHorizontal: controlMetrics().paddingHorizontal,
-            paddingVertical: controlMetrics().paddingVertical,
+            minHeight: size().height,
+            fontSize: size().fontSize,
+            color: token('foreground'),
+            fontWeight: weight.regular(),
+            paddingHorizontal: size().paddingHorizontal,
+            paddingVertical: size().paddingVertical,
           }}
         />
       </If>
       <If when={confirm() && !editing() && !props.readonly}>
         <View
-          class="flex-1 min-w-0 justify-center"
+          class="flex-1 justify-center"
           style={{
-            minHeight: controlMetrics().height,
-            paddingHorizontal: controlMetrics().paddingHorizontal,
-            paddingVertical: controlMetrics().paddingVertical,
+            minHeight: size().height,
+            paddingHorizontal: size().paddingHorizontal,
+            paddingVertical: size().paddingVertical,
           }}
         >
           <Text
-            class={props.value ? 'text-foreground' : 'text-muted-foreground'}
-            style={{ fontSize: controlMetrics().fontSize }}
+            style={{
+              fontSize: size().fontSize,
+              fontWeight: weight.regular(),
+              color: token(props.value ? 'foreground' : 'muted-foreground'),
+            }}
           >
             {props.value || props.placeholder || ''}
           </Text>
@@ -241,11 +257,12 @@ export interface SearchFieldProps extends TextInputProps {
 
 /** One input border, with input, clear and submit at the same size tier. */
 export function SearchField(props: SearchFieldProps) {
+  const size = () => controlMetrics(props.size);
   return (
     <View accessibilityState={{ busy: !!props.pending }}>
       <Field label={props.label} description={props.description} error={props.error}>
-        <View class="flex-row items-start min-w-0" style={{ gap: controlMetrics().gap }}>
-          <View class="flex-1 min-w-0">
+        <View class="flex-row items-start" style={{ gap: size().gap }}>
+          <View class="flex-1">
             <InputFrame
               label={props.label}
               value={props.value}
@@ -265,6 +282,7 @@ export function SearchField(props: SearchFieldProps) {
               testID={props.testID}
               inputRef={props.inputRef}
               activation={props.activation}
+              size={props.size}
               search
               onClear={() => (props.onClear ? props.onClear() : props.onChange({ value: '' }))}
             />
@@ -273,6 +291,7 @@ export function SearchField(props: SearchFieldProps) {
             label="搜索"
             displayLabel={props.pending ? '搜索中…' : undefined}
             primary
+            size={props.size}
             disabled={props.disabled}
             pending={props.pending}
             testID={props.testID ? `${props.testID}-submit` : undefined}

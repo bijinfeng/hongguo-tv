@@ -1,6 +1,6 @@
-import { Text, reduceMotion } from 'nsh';
+import { Text, reduceMotion, token } from 'nsh';
 import { Switch as BaseSwitch } from 'nsh/base';
-import { controlMetrics, space } from './foundation';
+import { controlMetrics, space, weight } from './foundation';
 import { type CheckboxProps } from './checkbox';
 
 /** An immediately applied preference, controlled by the caller. */
@@ -11,6 +11,12 @@ export interface SwitchProps extends Omit<CheckboxProps, 'indeterminate'> {
 
 /** Switch with track and thumb states and shared reduced-motion handling. */
 export function Switch(props: SwitchProps) {
+  const size = () => controlMetrics(props.size);
+  // Track, thumb and travel all derive from the label type size plus one spacing step,
+  // so a denser control keeps the same proportions.
+  const trackHeight = () => size().fontSize + space('sm');
+  const trackPadding = () => space('xxs');
+  const thumb = () => trackHeight() - trackPadding() * 2;
   return (
     <BaseSwitch
       ref={(ref) => props.controlRef?.(ref)}
@@ -19,25 +25,34 @@ export function Switch(props: SwitchProps) {
       checked={props.checked}
       disabled={props.disabled}
       onChange={props.onChange}
-      class="flex-row items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-      style={{ minHeight: controlMetrics().height }}
+      class="flex-row items-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      style={{ minHeight: size().height, gap: space('sm') }}
       trackClass={`rounded-full ${props.disabled ? (props.checked ? 'bg-accent' : 'bg-border') : props.checked ? 'bg-primary-strong' : 'bg-muted-foreground'} ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
       trackStyle={{
-        width: space('3xl'),
-        height: 28,
-        padding: 3,
+        width: Math.round(trackHeight() * 1.7),
+        height: trackHeight(),
+        padding: trackPadding(),
       }}
       thumbClass={`rounded-full ${props.disabled ? (props.checked ? 'bg-accent-foreground' : 'bg-muted-foreground') : props.checked ? 'bg-primary-strong-foreground' : 'bg-card'} ${reduceMotion() ? '' : 'transition-transform duration-100'}`}
       thumbStyle={{
-        width: 22,
-        height: 22,
-        transform: [{ translateX: props.checked ? 20 : 0 }],
+        width: thumb(),
+        height: thumb(),
+        transform: [
+          {
+            translateX: props.checked
+              ? Math.round(trackHeight() * 1.7) - thumb() - trackPadding() * 2
+              : 0,
+          },
+        ],
       }}
     >
       <If when={!props.labelHidden}>
         <Text
-          class={props.disabled ? 'text-muted-foreground' : 'text-foreground'}
-          style={{ fontSize: controlMetrics().fontSize }}
+          style={{
+            fontSize: size().fontSize,
+            fontWeight: weight.regular(),
+            color: token(props.disabled ? 'muted-foreground' : 'foreground'),
+          }}
         >
           {props.label}
         </Text>

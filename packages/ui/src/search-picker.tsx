@@ -1,8 +1,9 @@
 import {
   Overlay,
   Scroll,
-  View,
   Text,
+  token,
+  View,
   createMotion,
   reduceMotion,
   type JSX,
@@ -10,8 +11,12 @@ import {
 } from 'nsh';
 import { CardControls, CardRoot } from './card-controls';
 import { Icon, type IconName } from './icon';
-import { space } from './foundation';
+import { border, focusRing, radius, space, weight } from './foundation';
 import { motionTokens } from './motion';
+import { textSize, textWeight } from './typography';
+
+/** Enough rows to scan before the list itself scrolls. */
+const SUGGESTION_MAX_HEIGHT = 360;
 
 /** Anchored, nonmodal: editing remains in the input until the user moves to a row. */
 export function SearchPicker(props: {
@@ -45,9 +50,12 @@ export function SearchPicker(props: {
         style={{
           ...motion.style,
           width: props.width,
-          maxHeight: 360,
+          maxHeight: SUGGESTION_MAX_HEIGHT,
+          padding: space('xs'),
+          borderRadius: radius('xl'),
+          borderWidth: border,
         }}
-        class="rounded-(--radius) border border-border bg-card p-2"
+        class="border-border bg-card"
       >
         <Scroll
           testID="focus-surface-search-suggestions"
@@ -58,7 +66,7 @@ export function SearchPicker(props: {
             label="搜索建议"
             onNavigate={props.onNavigate}
             vertical
-            class="gap-1"
+            gap={space('xxs')}
             onPreviousFromFirst={props.onInput}
           >
             {props.children}
@@ -91,18 +99,31 @@ export function SearchSuggestionRow(props: {
         paddingHorizontal: space('sm'),
         paddingVertical: space('xs'),
         gap: space('sm'),
+        borderRadius: radius('xl'),
+        borderWidth: focusRing,
       }}
-      class={`flex-row items-center gap-3 rounded-(--radius) border-2 border-transparent px-3 py-2 hover:bg-muted active:bg-border focus:border-ring focus:bg-accent ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
+      class={`flex-row items-center border-transparent hover:bg-muted active:bg-border focus:border-ring focus:bg-accent ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
       <Icon name={props.icon} />
-      <View class="flex-1 gap-1">
-        <Text class="line-clamp-1 text-sm text-foreground" style={{ fontSize: 14 }}>
+      <View class="flex-1" style={{ gap: space('xxs') }}>
+        <Text
+          style={{
+            fontSize: textSize('meta'),
+            fontWeight: textWeight('meta'),
+            color: token('foreground'),
+            numberOfLines: 1,
+          }}
+        >
           {props.label}
         </Text>
         <If when={props.meta}>
           <Text
-            class="line-clamp-1 text-xs text-muted-foreground"
-            style={{ fontSize: space('sm') }}
+            style={{
+              fontSize: textSize('meta'),
+              fontWeight: weight.regular(),
+              color: token('muted-foreground'),
+              numberOfLines: 1,
+            }}
           >
             {props.meta}
           </Text>

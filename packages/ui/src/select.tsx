@@ -1,7 +1,8 @@
-import { Text, signal, effect, type ViewProps, type ViewRef } from 'nsh';
+import { Text, View, signal, effect, token, type ViewProps, type ViewRef } from 'nsh';
 import { Select as BaseSelect } from 'nsh/base';
-import { controlMetrics } from './foundation';
+import { controlMetrics, radius, space, weight, type ControlSize } from './foundation';
 import { Button } from './button';
+import { Icon } from './icon';
 import { type ChoiceOption } from './choice';
 
 /** Controlled selection from a bounded list. */
@@ -18,6 +19,8 @@ export interface SelectProps {
   placeholder?: string;
   /** Prevents opening or changing. */
   disabled?: boolean;
+  /** Control density for the trigger and the options. */
+  size?: ControlSize;
   /** Stable identifier of the select. */
   testID?: string;
   /** Native root for focus restoration. */
@@ -28,8 +31,16 @@ export interface SelectProps {
   style?: ViewProps['style'];
 }
 
-/** Styled NSH Select; NSH owns popup placement, choice, keyboard, dismissal and source restoration. */
+/** Wide enough for the longest current choice; the popup never shrinks below it. */
+const MENU_MIN_WIDTH = 180;
+
+/**
+ * Styled NSH Select; NSH owns choice, keyboard, dismissal and source restoration.
+ * `cover={false}` opens the list beside the trigger on every desktop instead of the
+ * macOS pop-up-button default, where the chosen row sits over the trigger.
+ */
 export function Select(props: SelectProps) {
+  const size = () => controlMetrics(props.size);
   const open = signal(false);
   effect(() => {
     if (props.disabled && open()) open.set(false);
@@ -53,6 +64,8 @@ export function Select(props: SelectProps) {
       onChange={(event) => {
         if (!props.disabled) props.onChange(event);
       }}
+      cover={false}
+      offset={space('xxs')}
       trigger={
         <Button
           label={props.label}
@@ -60,9 +73,11 @@ export function Select(props: SelectProps) {
             props.options.find((option) => option.value === props.value)?.label ??
             (props.value !== null ? '当前选项不可用' : (props.placeholder ?? props.label))
           }
-          icon="down"
+          dropdown
+          size={props.size}
           disabled={props.disabled}
           selectOpen={open()}
+          popupOpen={open()}
           class={props.class}
           style={props.style}
           buttonRef={props.selectRef}
@@ -70,23 +85,47 @@ export function Select(props: SelectProps) {
           onPress={() => open.set(true)}
         />
       }
-      popupClass="bg-popover border border-border rounded-(--radius) p-2"
-      popupStyle={{ minWidth: 180 }}
+      popupClass="bg-popover border border-border"
+      popupStyle={{
+        minWidth: MENU_MIN_WIDTH,
+        padding: space('xxs'),
+        borderRadius: radius('xl'),
+      }}
+      itemClass="group text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent disabled:text-muted-foreground"
+      itemStyle={{
+        minHeight: size().height,
+        fontSize: size().fontSize,
+        fontWeight: weight.regular(),
+        borderRadius: radius('lg'),
+        paddingHorizontal: space('sm'),
+        paddingVertical: space('xxs'),
+      }}
       empty={
         <Text
-          class="px-3 py-2 text-muted-foreground"
-          style={{ fontSize: controlMetrics().fontSize }}
+          style={{
+            fontSize: size().fontSize,
+            fontWeight: weight.regular(),
+            color: token('muted-foreground'),
+            paddingHorizontal: space('sm'),
+            paddingVertical: size().paddingVertical,
+          }}
         >
           暂无可选项
         </Text>
       }
-      itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent disabled:text-muted-foreground"
-      itemStyle={{
-        minHeight: controlMetrics().height,
-        fontSize: controlMetrics().fontSize,
-        paddingHorizontal: controlMetrics().paddingHorizontal,
-        paddingVertical: controlMetrics().paddingVertical,
-      }}
+      renderItem={(item) => (
+        <View class="w-full flex-row items-center justify-between" style={{ gap: space('xs') }}>
+          <Text
+            class="group-selected:text-accent-foreground"
+            style={{ flexShrink: 1, numberOfLines: 1 }}
+          >
+            {item.title}
+          </Text>
+          <View class="opacity-0 group-selected:opacity-100">
+            <Icon name="check" size={props.size} color={token('accent-foreground')} />
+          </View>
+        </View>
+      )}
     />
   );
 }

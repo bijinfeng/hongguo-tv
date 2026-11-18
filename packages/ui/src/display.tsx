@@ -43,16 +43,16 @@ export interface UiTextProps {
   testID?: string;
 }
 
-const textColor = (tone?: TextTone, role?: TextRole) =>
+const textTone = (tone?: TextTone, role?: TextRole) =>
   tone === 'error'
-    ? 'text-destructive'
+    ? 'destructive'
     : tone === 'selected'
-      ? 'text-accent-foreground'
+      ? 'accent-foreground'
       : tone === 'cinema'
-        ? 'text-cinema-foreground'
+        ? 'cinema-foreground'
         : tone === 'muted' || (!tone && role === 'meta')
-          ? 'text-muted-foreground'
-          : 'text-foreground';
+          ? 'muted-foreground'
+          : 'foreground';
 
 /** Renders one shared text role, retaining system font scaling and native selection. */
 export function UiText(props: UiTextProps) {
@@ -79,8 +79,9 @@ export function UiText(props: UiTextProps) {
           fontWeight: textWeight(props.role),
           numberOfLines: props.lines ?? 0,
           textAlign: props.align ?? 'start',
+          color: token(textTone(props.tone, props.role)),
         }}
-        class={`${textColor(props.tone, props.role)} ${props.role === 'numeric' ? 'tabular-nums' : ''} selection:bg-accent`}
+        class={`${props.role === 'numeric' ? 'tabular-nums' : ''} selection:bg-accent`}
       >
         {props.children}
       </Text>
@@ -102,7 +103,7 @@ export function Surface(props: SurfaceProps) {
   return (
     <View
       testID={props.testID}
-      style={{ padding: space('lg'), gap: space('sm'), borderRadius: space('sm') }}
+      style={{ padding: space('lg'), gap: space('sm'), borderRadius: radius('xl') }}
       class={`${props.variant === 'muted' ? 'bg-muted' : props.variant === 'page' ? 'bg-background border border-border' : props.variant === 'cinema' ? 'bg-cinema' : 'bg-card'} ${props.class ?? ''}`}
     >
       {props.children}
@@ -321,14 +322,14 @@ export function Notice(props: NoticeProps) {
         gap: space('md'),
         paddingHorizontal: space('lg'),
         paddingVertical: space('md'),
-        borderRadius: space('sm'),
+        borderRadius: radius('xl'),
       }}
       class={`${inline() ? 'flex-row items-center' : 'items-start'} shrink-0 w-full min-w-0 bg-muted`}
     >
       <If when={props.error}>
         <Icon name="circle-alert" color={token('destructive')} />
       </If>
-      <View class={`${inline() ? 'flex-1' : 'w-full'} min-w-0 gap-1`}>
+      <View class={`${inline() ? 'flex-1' : 'w-full'} min-w-0`} style={{ gap: space('xxs') }}>
         <If when={props.title}>
           <UiText role="body">{props.title}</UiText>
         </If>
@@ -336,7 +337,8 @@ export function Notice(props: NoticeProps) {
           android={{ accessibilityLiveRegion: 'polite' }}
           style={{
             fontSize: textSize(props.title ? 'meta' : 'body'),
-            lineHeight: textSize(props.title ? 'meta' : 'body') * 1.5,
+            lineHeight: textLineHeight(props.title ? 'meta' : 'body'),
+            fontWeight: textWeight(props.title ? 'meta' : 'body'),
           }}
           class={props.error && !props.title ? 'text-destructive' : 'text-muted-foreground'}
         >
@@ -405,12 +407,12 @@ export function Skeleton(props: SkeletonProps) {
       accessibilityLabel={props.label ?? '正在加载内容'}
       accessibilityState={{ busy: true }}
       testID={props.testID}
-      style={{ gap: 20 }}
+      style={{ gap: space('md') }}
       class="flex-row items-center"
     >
       <If when={props.variant === 'poster'}>
         <View
-          style={{ width: '100%', aspectRatio: 2 / 2.7, borderRadius: space('sm') }}
+          style={{ width: '100%', aspectRatio: 2 / 2.7, borderRadius: radius('xl') }}
           class="bg-skeleton"
         />
       </If>
@@ -419,7 +421,7 @@ export function Skeleton(props: SkeletonProps) {
           style={{
             width: 72,
             height: 96,
-            borderRadius: space('xs'),
+            borderRadius: radius('xl'),
           }}
           class="bg-skeleton shrink-0"
         />
@@ -432,7 +434,7 @@ export function Skeleton(props: SkeletonProps) {
                 style={{
                   width: width() as `${number}%`,
                   height: 14,
-                  borderRadius: space('xxs'),
+                  borderRadius: radius('md'),
                 }}
                 class="bg-skeleton"
               />
@@ -544,7 +546,7 @@ export function Progress(props: ProgressProps) {
   return (
     <View testID={props.testID} style={{ gap: space('sm') }}>
       <If when={props.label}>
-        <View class="flex-row flex-wrap items-center justify-between gap-4">
+        <View class="flex-row flex-wrap items-center justify-between" style={{ gap: space('md') }}>
           <UiText>{props.label}</UiText>
           <If when={!unknown()}>
             <UiText role="meta">{`${Math.round(percentage())}%`}</UiText>
@@ -584,11 +586,11 @@ export function ResultRow(props: ResultRowProps) {
   return (
     <View
       testID={props.testID}
-      style={{ padding: space('md'), gap: space('md'), borderRadius: space('sm') }}
+      style={{ padding: space('md'), gap: space('md'), borderRadius: radius('xl') }}
       class={`flex-row items-center ${props.selected ? 'bg-accent' : 'bg-card'}`}
     >
       {props.leading}
-      <View class="flex-1 min-w-0 gap-2">
+      <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
         <UiText role="title" tone={props.selected ? 'selected' : 'default'}>
           {props.title}
         </UiText>
@@ -596,7 +598,7 @@ export function ResultRow(props: ResultRowProps) {
           <UiText role="meta">{props.description}</UiText>
         </If>
       </View>
-      <View class="flex-row flex-wrap items-center gap-3">
+      <View class="flex-row flex-wrap items-center" style={{ gap: space('sm') }}>
         {props.children}
         <If when={props.action}>
           <Button label={props.action!.label} onPress={() => props.action?.onPress()} />
