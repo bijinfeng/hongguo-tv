@@ -15,7 +15,10 @@ function updateStatus(updates: Updates): string {
   }
   if (phase === 'downloading') return '正在下载更新';
   if (phase === 'ready') return '更新已下载，可以安装';
-  if (phase === 'saving' || phase === 'installing') return '正在安装更新';
+  if (phase === 'saving' || phase === 'staging') return '正在准备安装';
+  if (phase === 'staged') return '退出应用后完成更新';
+  if (phase === 'installing') return '正在安装更新';
+  if (phase === 'interrupted') return '上次更新未完成';
   if (phase === 'success') return '应用已更新';
   if (phase === 'checkError') return '无法检查更新';
   if (phase === 'downloadError') return '更新下载失败';

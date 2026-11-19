@@ -1,6 +1,6 @@
 # 原生发行依赖检查
 
-2026-11-14 首次核对，2026-11-17 升级到 NSH 0.5.1 后重跑。依赖与许可证结论来自当前 Cargo 下载包、`cargo tree --locked` 和 `pnpm security`，不将维护状态告警表述为已知可利用漏洞。
+2026-11-14 首次核对，2026-11-17 升级到 NSH 0.5.1、2026-11-19 到 NSH 0.6.0 后各重跑一次。依赖与许可证结论来自当前 Cargo 下载包、`cargo tree --locked` 和 `pnpm security`，不将维护状态告警表述为已知可利用漏洞。
 
 ## 已移除的工作区依赖
 
@@ -19,10 +19,11 @@ TV Rust 模块仅使用 `nsh-base::theme()`，不使用编辑器、语法高亮�
 | winx 0.36.4                  | Apache-2.0 WITH LLVM-exception 未在现有策略中允许 | NSH → cap-std → cap-primitives                      |
 | zlib-rs 0.6.8                | Zlib 未在现有策略中允许                           | flate2、内容核心与 NSH updater                      |
 | ttf-parser 0.25.1            | RUSTSEC-2026-0192，停止维护                       | NSH core 与 proc macro 的直接依赖，非可关闭 feature |
+| chrono 0.4.45                | RUSTSEC-2026-0543，停止维护                       | NSH core／base 的直接依赖                           |
 
-`pnpm security` 实际 exit 1：5 项许可证拒绝、1 项 unmaintained advisory，bans／sources 通过。单独 `pnpm audit --audit-level moderate` 实际 exit 0；完整命令在 cargo-deny 失败后退出，不能把单独 audit 的成功说成完整 security 通过。未添加 allow／ignore 例外。
+2026-11-19 在 NSH 0.6.0 上复跑，`pnpm security` 实际 exit 1：4 项许可证拒绝、2 项 unmaintained advisory，bans／sources 通过。相对 0.5.1 的差异：许可证拒绝从 5 项降到 4 项（foldhash、webpki-roots、winx、zlib-rs 不变，此前单独计数的一项已随依赖图变化消失）；新增 chrono（RUSTSEC-2026-0543），版本在升级前后都是 0.4.45，属于新发布的 advisory 而非 0.6.0 引入。单独 `pnpm audit --audit-level moderate` 实际 exit 0；完整命令在 cargo-deny 失败后退出，不能把单独 audit 的成功说成完整 security 通过。未添加 allow／ignore 例外。
 
-[ttf-parser 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2026-0192) 没有修复版本，建议的替代库需要上游迁移；[bincode 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2025-0141) 也没有修复版本。NSH 0.5.1 的 core 仍直接依赖 ttf-parser 0.25；2026-11-17 已把 CLI、宿主和 Rust `nsh-*` 依赖升到 0.5.1（`Cargo.lock` 仅 nsh 系列版本变化），并在新工具链上重跑 `pnpm security`，结论与 0.5.0 相同（5 项许可证拒绝、1 项 unmaintained advisory），升级不解除该阻塞。
+[ttf-parser 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2026-0192) 与 [chrono 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2026-0543) 都没有修复版本，建议的替代库（skrifa、jiff／time）需要上游迁移；[bincode 官方 advisory](https://rustsec.org/advisories/RUSTSEC-2025-0141) 也没有修复版本。NSH 0.6.0 的 core 仍直接依赖 ttf-parser 0.25 与 chrono 0.4；2026-11-19 的升级只更换 `nsh-*` 版本（`Cargo.lock` 仅增加 env_filter 并更新 nsh 系列），且 CLI 生成的宿主仍启用 highlight，升级不解除该阻塞，正式 publish 保持阻断。
 
 许可证需要按实际分发内容核对原始许可、版权与 notices；移除 Windows 目标或降低 advisory 检查不能代替处理依赖。升级上游、移除实际未使用功能或明确审查后的策略变更，需要分别记录并重新验证，正式 publish 保持阻断。
 

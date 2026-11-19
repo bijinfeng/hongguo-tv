@@ -82,8 +82,18 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 - build 为全局单调递增正整数，作为 Android versionCode；校验 Android 可用范围，不直接把 workflow run number 当版本。
 - 产品 tag `vX.Y.Z` 指向构建候选的源码 SHA，同仓库 Release 绑定该 tag；不另建发行仓库 tag。
 - `release.json` 记录 sourceRepository/sourceSha、version/build、工具链、平台资产 SHA256/大小、签名身份、run ID 与验收记录标识；渠道发布结果记录 Release URL、tag、run ID 和资产摘要。
-- 首次生产发行前确认两个正式应用 ID、数据目录及更新公钥。保留现有 ID 是默认建议，尚未形成正式身份承诺。
+- 首次生产发行前确认两个正式应用 ID 及更新公钥。
 - 已安装 T0/debug 签名 APK 不能直接覆盖为不同签名的正式 APK。开发身份先隔离；正式升级测试必须从生产同签名的 N-1 包开始，不以卸载正式应用修复升级。
+
+### 应用身份自首发起固定
+
+首发即固定 `dev.hongguo.desktop` 与 `dev.hongguo.tv`，不随品牌、名称或渠道调整。应用 ID 就是更新身份，首发后更改等于放弃升级链路，不是配置项：
+
+- 桌面清单的应用身份按 ID 校验，与 ID 不符的清单被当作另一个应用拒绝；改 ID 的安装版本读不到新清单，用户只能手工重装。
+- Android 以 `applicationId` 判定安装身份；改 ID 是另一个应用，`PackageInstaller` 拒绝覆盖。TV 数据目录同时挂在 ID 下，改 ID 连本地数据一起换位置。
+- NSH `nsh.json` 的 `dataDir` 只在桌面 runner（macOS／Windows／Linux）生效，Android 不读取；它保不住 TV，也会把平台专用路径写进同一份清单。因此不采用 `dataDir`，数据目录继续按 ID 派生。
+
+首个公开 Release 之前是唯一免费的更改窗口：此时没有已安装用户，改 ID、改品牌都无迁移成本。发布之后该承诺不再讨论；预览渠道按前述独立应用身份与独立 Release 隔离，不通过改正式 ID 实现。
 
 ### 资产与支持矩阵
 

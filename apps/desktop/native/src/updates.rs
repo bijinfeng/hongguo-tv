@@ -1,4 +1,4 @@
-//! Persist the intended version across NSH's process restart, independent of content storage.
+//! Persist the version an update should leave installed across NSH's process restart.
 use nsh_core::prelude::*;
 use std::{fs, io::Write, path::PathBuf};
 
@@ -7,19 +7,24 @@ fn receipt() -> Result<PathBuf, String> {
         .ok_or("应用数据目录不可用")?
         .join("update-expected-version"))
 }
-/// A restart is reported as successful only after the actual shell version matches the receipt.
+
+/// What `nsh.json` can hold as a version, and nothing a path or log could be built from.
+fn checked(version: &str) -> bool {
+    !version.is_empty()
+        && version.len() <= 128
+        && version
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b".-+".contains(&b))
+}
+
+/// An update is reported as successful only after the actual shell version matches the receipt.
 #[module]
 pub struct DesktopUpdateReceipt;
 #[module]
 impl DesktopUpdateReceipt {
-    /// Atomically save the downloaded target before asking NSH to replace the installed shell.
+    /// Atomically save the version being staged, before NSH may replace the installed shell.
     pub async fn expect(version: String) -> Result<(), String> {
-        if version.is_empty()
-            || version.len() > 128
-            || !version
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b".-+".contains(&b))
-        {
+        if !checked(&version) {
             return Err("更新版本不可用".to_owned());
         }
         let path = receipt()?;
@@ -34,8 +39,9 @@ impl DesktopUpdateReceipt {
         .await
         .map_err(|_| "无法保存更新状态")?
     }
-    /// Consume a receipt at startup; a failed or interrupted replacement is never called success.
-    pub async fn confirm(version: String) -> Result<bool, String> {
+    /// Consume a receipt at startup: `updated` when this shell is that version, `interrupted`
+    /// when the replacement never happened, `none` when nothing was expected.
+    pub async fn confirm(version: String) -> Result<String, String> {
         let path = receipt()?;
         background(async move {
             let expected = match fs::metadata(&path) {
@@ -43,11 +49,18 @@ impl DesktopUpdateReceipt {
                     fs::read_to_string(&path).map_err(|_| "无法读取更新状态")?
                 }
                 Ok(_) => String::new(),
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    return Ok("none".to_owned());
+                }
                 Err(_) => return Err("无法读取更新状态".to_owned()),
             };
             fs::remove_file(path).map_err(|_| "无法清理更新状态")?;
-            Ok(expected == version)
+            Ok(if expected == version {
+                "updated"
+            } else {
+                "interrupted"
+            }
+            .to_owned())
         })
         .await
         .map_err(|_| "无法确认更新版本")?
