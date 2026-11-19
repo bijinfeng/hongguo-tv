@@ -39,6 +39,7 @@ import { createRankings } from './rankings';
 import { createRadar } from './radar';
 import { isPlaybackCommand, type PlaybackCommand, type PlaybackCommandSource } from './playback';
 import { createWatchStatisticsState } from './watch-statistics-state';
+import { backLabelFor } from './sections';
 
 // Native focus adapters report stable public IDs; undefined is a newer user navigation intent.
 export type FocusSource = (receive: (id: string | undefined) => void) => () => void;
@@ -458,6 +459,14 @@ export function createStore(
         navigate('home');
         restoreFocus();
       }
+    },
+    /** Names what `back()` returns to, so one back entry can serve every route. */
+    backLabel() {
+      return backLabelFor(
+        nav.routes(),
+        section(),
+        section() === 'search' && searchSource === 'discover',
+      );
     },
     registerPlayerCheckpoint(handler: () => void) {
       playerCheckpoint = handler;

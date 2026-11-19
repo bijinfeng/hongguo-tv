@@ -22,6 +22,7 @@ import {
   CardControls,
   ActionBar,
   Pagination,
+  BackButton,
 } from '../src/index';
 
 function Row(props: { children?: JSX.Element }) {
@@ -132,9 +133,8 @@ export function GalleryNavigationRecipes() {
           </Each>
         </ActionBar>
         <Row>
-          <Button
-            label="返回"
-            icon="back"
+          <BackButton
+            label="返回分类"
             disabled={depth() === 0}
             onPress={() => depth.set(Math.max(0, depth() - 1))}
             testID="gallery-back"
@@ -147,6 +147,12 @@ export function GalleryNavigationRecipes() {
             <UiText>春山不负</UiText>
           </If>
         </Row>
+        <BackButton
+          label="返回详情"
+          tone="cinema"
+          onPress={() => undefined}
+          testID="gallery-back-cinema"
+        />
         <UiText role="meta">{`当前位置：${depth() === 0 ? '首页' : depth() === 1 ? '分类' : '春山不负'}`}</UiText>
       </Block>
       <Block title="已知页数">

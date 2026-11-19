@@ -258,6 +258,9 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
     await app.press('id:gallery-sheet-navigation');
     await app.press('id:gallery-back');
     await app.waitFor('text:当前位置：分类');
+    // The cinema tone is the same control, still named by its destination and focusable.
+    await app.press('id:gallery-back-cinema');
+    await app.waitFor('label:返回详情');
     await app.press('id:gallery-pagination >> text:3');
     await app.waitFor('text:第 3 / 21 页');
     await app.press('id:gallery-pagination-single-toggle');

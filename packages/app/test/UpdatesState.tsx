@@ -168,7 +168,12 @@ export function UpdatesStateFixture() {
           </View>
         </If>
         <If when={visible()}>
-          <UpdatesPage updates={updates} tv={host.params.tv === true} />
+          <UpdatesPage
+            updates={updates}
+            tv={host.params.tv === true}
+            backLabel="返回账号"
+            onBack={() => visible.set(false)}
+          />
         </If>
       </View>
     </>

@@ -103,7 +103,7 @@ export function navigationSheet(ctx) {
       '位置与返回',
       row(
         '返回来源',
-        `<div class="inline">${button('返回搜索结果', { variant: 'quiet', glyph: 'arrow-left', action: 'nav-demo', extra: 'data-nav-group="trail" data-value="搜索结果"' })}<span class="type-meta">保留查询和列表位置</span></div>`,
+        `<div class="inline">${button('返回搜索结果', { glyph: 'arrow-left', className: 'back-button', action: 'nav-demo', extra: 'data-nav-group="trail" data-value="搜索结果"' })}<span class="type-meta">保留查询和列表位置</span></div>`,
       ) +
         row(
           '位置路径',

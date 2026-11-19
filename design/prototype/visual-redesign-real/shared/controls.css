@@ -128,6 +128,22 @@ button:disabled {
   filter: none;
   transition: none;
 }
+/* Page-level back: leading arrow and the destination's name; no resting surface, so the arrow —
+   not a padding box — sits on the page's text axis. Hover is the quiet button's own muted wash. */
+.ui-button.back-button {
+  padding-left: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--foreground);
+}
+.ui-button.back-button:not(:disabled):hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.ui-button.back-button:not(:disabled):active {
+  background: var(--border);
+  color: var(--foreground);
+}
 .choice-group [role='radio'][aria-checked='false'] > .icon {
   visibility: hidden;
 }

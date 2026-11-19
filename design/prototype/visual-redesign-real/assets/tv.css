@@ -533,6 +533,18 @@ body[data-device="tv"] {
   font-size: 31px;
   font-weight: 500;
 }
+/* The TV stage is dark in both themes, so its crumb keeps the muted stage tone, not the page's. */
+.tv-player-top .btn.back-button {
+  color: var(--cinema-muted, var(--muted));
+  font-size: 23px;
+  min-height: 62px;
+  padding-right: 24px;
+  gap: 12px;
+}
+.tv-player-top .btn.back-button:hover:not(:disabled) {
+  background: var(--cinema-hover, var(--raised));
+  color: var(--cinema-foreground, var(--fg));
+}
 .tv-player-top span {
   color: var(--muted);
   font-size: 23px;

@@ -1,5 +1,5 @@
 import { Scroll, Text, View, cleanup, effect, signal, announce, type ViewRef } from 'nsh';
-import { Button, ContentArrival, DownloadProgress } from '@hongguo/ui';
+import { BackButton, Button, ContentArrival, DownloadProgress } from '@hongguo/ui';
 import type { Updates, UpdatePhase } from '../updates';
 
 const titles: Record<UpdatePhase, string> = {
@@ -27,6 +27,9 @@ const titles: Record<UpdatePhase, string> = {
 export function UpdatesPage(props: {
   updates: Updates;
   tv: boolean;
+  /** The destination this page returns to, named by the shell that owns the route. */
+  backLabel: string;
+  onBack: () => void;
   active?: boolean;
   focusGuard?: () => () => boolean;
 }) {
@@ -112,6 +115,7 @@ export function UpdatesPage(props: {
   return (
     <Scroll class="flex-1">
       <ContentArrival class={props.tv ? 'gap-8 py-8' : 'gap-8 px-10 py-6 max-w-4xl'}>
+        <BackButton testID="updates-back" label={props.backLabel} onPress={props.onBack} />
         <Text
           class="text-2xl font-semibold text-foreground"
           style={props.tv ? { fontSize: 18 } : undefined}

@@ -1,5 +1,5 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, Controls, Notice } from '@hongguo/ui';
+import { BackButton, Button, Controls, Notice } from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
@@ -66,16 +66,11 @@ export function Search(props: { store: Store }) {
       }
     >
       <If when={props.store.searchFromCategory()}>
-        <View class="items-start">
-          <Button
-            testID="search-back"
-            label="返回找剧"
-            icon="back"
-            variant="quiet"
-            compact
-            onPress={props.store.back}
-          />
-        </View>
+        <BackButton
+          testID="search-back"
+          label={props.store.backLabel()}
+          onPress={props.store.back}
+        />
       </If>
       <If when={props.store.target !== 'tv'}>
         <View class="flex-row items-center justify-between">

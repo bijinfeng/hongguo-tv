@@ -1,18 +1,20 @@
 import { View, windowSize } from 'nsh';
 import { Button, Controls, UiText } from '@hongguo/ui';
 import { SearchForm } from '../SearchForm';
+import { sectionLabels } from '../sections';
 import type { Section, Store } from '../store';
 
-const breadcrumbs: { section: Section; label: string }[] = [
-  { section: 'home', label: '发现' },
-  { section: 'discover', label: '找剧' },
-  { section: 'search', label: '找剧' },
-  { section: 'history', label: '观看记录' },
-  { section: 'following', label: '追更' },
-  { section: 'reservations', label: '预约' },
-  { section: 'notifications', label: '更新提醒' },
-  { section: 'rankings', label: '排行榜' },
-  { section: 'calendar', label: '上新日历' },
+/** Every browse section the topbar can show, in the order the crumb resolves them. */
+const sections: Section[] = [
+  'home',
+  'discover',
+  'search',
+  'history',
+  'following',
+  'reservations',
+  'notifications',
+  'rankings',
+  'calendar',
 ];
 
 /** Draft inline padding: 24px to 64px across the window width. */
@@ -20,7 +22,10 @@ const inset = () => Math.min(64, Math.max(24, windowSize().width * 0.035));
 
 /** Design draft: 86px bar, page crumb, 360px search, account actions. */
 export function Topbar(props: { store: Store }) {
-  const crumb = () => breadcrumbs.find((entry) => props.store.activePage(entry.section))?.label;
+  const crumb = () => {
+    const section = sections.find((name) => props.store.activePage(name));
+    return section ? sectionLabels[section] : '';
+  };
   return (
     <View class="flex-row items-center gap-6" style={{ height: 86, paddingHorizontal: inset() }}>
       <View style={{ minWidth: 100 }}>

@@ -26,6 +26,7 @@ import { PLAYBACK_RATES, type PlaybackRate } from '../settings';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
 import {
+  BackButton,
   Button,
   Notice,
   Controls,
@@ -646,7 +647,12 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     <View testID="player" class={tv ? 'flex-1 bg-cinema' : 'flex-1'}>
       <If when={!tv && !fullScreen()}>
         <View class="px-10 pt-6 pb-5 gap-4 items-start">
-          <Button label="返回" variant="quiet" compact icon="back" onPress={leave} />
+          <BackButton
+            testID="player-back"
+            tone="cinema"
+            label={props.store.backLabel()}
+            onPress={leave}
+          />
           <Text class="text-2xl font-semibold text-foreground">
             {props.drama.title} · 第 {props.episode.index} 集
           </Text>
@@ -841,7 +847,12 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       <CinemaText>{error()}</CinemaText>
                       <Controls label="播放恢复">
                         <CinemaButton label="重试" onPress={refresh} />
-                        <CinemaButton label="返回" icon="back" onPress={leave} />
+                        <CinemaButton
+                          testID="player-error-back"
+                          label={props.store.backLabel()}
+                          icon="back"
+                          onPress={leave}
+                        />
                       </Controls>
                     </If>
                     <If when={completed() && !next()}>
@@ -879,7 +890,13 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                         {props.drama.episode_count ?? props.drama.episodes?.length ?? 0} 集
                       </CinemaText>
                     </View>
-                    <CinemaButton label="返回" icon="back" onPress={leave} />
+                    <BackButton
+                      testID="player-controls-back"
+                      tone="cinema"
+                      label={props.store.backLabel()}
+                      style={{ alignSelf: 'center' }}
+                      onPress={leave}
+                    />
                   </View>
                 </If>
                 <If when={layer() === 'seek-preview'}>

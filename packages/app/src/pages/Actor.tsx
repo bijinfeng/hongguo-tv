@@ -1,5 +1,5 @@
 import { Image, Text, View, resource, signal, effect, lifecycle } from 'nsh';
-import { Notice } from '@hongguo/ui';
+import { BackButton, Notice } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PosterCollection } from '../PosterCollection';
@@ -29,6 +29,11 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
           : desktopContentFrame({ top: 16, gap: 28 })
       }
     >
+      <BackButton
+        testID="actor-back"
+        label={props.store.backLabel()}
+        onPress={() => props.store.back()}
+      />
       <View class="flex-row items-center gap-5">
         <If when={data()?.actor.avatar}>
           <Image

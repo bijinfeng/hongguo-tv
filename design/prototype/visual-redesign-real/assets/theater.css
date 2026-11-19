@@ -1056,8 +1056,18 @@ small,
 .back-row {
   margin: 0 0 16px;
 }
-.back-row .btn {
+/* One back recipe for every page: leading arrow, destination name, no resting surface, and the
+   glyph — not a padding box — sitting on the page's text axis. Hover keeps the quiet button's
+   muted wash; only the player's dark band drops it. The component board's `shared/controls.css`
+   carries the same recipe for `.ui-button.back-button`. */
+.back-row .btn,
+.watch-crumb .btn {
   padding-left: 0;
+  background: transparent;
+  border-color: transparent;
+}
+.watch-crumb .btn:hover:not(:disabled) {
+  background: transparent;
 }
 .detail-hero {
   display: grid;

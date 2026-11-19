@@ -90,7 +90,13 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
   test('settings: reachable from the target navigation and back leaves the page', async () => {
     const app = await openSettings();
     await app.waitUntil(() => app.enabled('id:settings-autoplay'));
-    await app.back();
+    // The page's own crumb names the destination and returns through the same stack.
+    expect(app.texts().some((text) => text.includes('返回发现'))).toBe(true);
+    await app.press('id:settings-back');
     await app.waitFor('id:settings-page', { state: 'gone' });
+    const reopened = await openSettings();
+    await reopened.waitUntil(() => reopened.enabled('id:settings-autoplay'));
+    await reopened.back();
+    await reopened.waitFor('id:settings-page', { state: 'gone' });
   });
 }

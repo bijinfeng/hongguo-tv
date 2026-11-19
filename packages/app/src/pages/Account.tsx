@@ -1,6 +1,7 @@
 import { Image, Scroll, View, signal, cleanup, effect, lifecycle, type ViewRef } from 'nsh';
 import {
   Avatar,
+  BackButton,
   Button,
   ContentArrival,
   Dialog,
@@ -84,6 +85,11 @@ export function Account(props: {
     <View class="flex-1">
       <Scroll class="flex-1">
         <View class="gap-6 p-5 md:p-8">
+          <BackButton
+            testID="account-back"
+            label={props.store.backLabel()}
+            onPress={() => props.store.back()}
+          />
           <View class="flex-row items-center justify-between gap-4">
             <UiText role="page">账号</UiText>
             <If when={props.openUpdates}>
