@@ -201,10 +201,18 @@ function HeroSkeleton(props: { tv: boolean }) {
         </View>
       </View>
       <If when={!props.tv}>
+        {/* The loaded hero's art panel fades out of the card on its leading edge, so the skeleton
+            follows the same ramp instead of butting a grey block against the white copy column: the
+            card's own surface holds the copy, and the art panel deepens toward its trailing edge. */}
         <View
           accessibilityElementsHidden
-          class="items-center justify-center bg-skeleton-surface"
-          style={{ flex: 7 }}
+          class="items-center justify-center"
+          style={{
+            flex: 7,
+            // Same left-to-right ramp as the loaded panel: the card surface carries the join with
+            // the copy column, and the panel deepens toward the poster it will hold.
+            backgroundImage: `linear-gradient(90deg, ${token('card')} 0%, ${token('skeleton-surface')} 38%, ${token('skeleton')} 100%)`,
+          }}
         >
           <SkeletonBlock width={size().poster} height={size().poster * 1.5} radius={3} />
         </View>

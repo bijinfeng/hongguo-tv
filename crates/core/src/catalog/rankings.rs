@@ -293,6 +293,42 @@ fn item(entry: RankEntry, row: &Value, heat: Option<String>) -> RankItem {
     }
 }
 
+/// A ranking row names its own fields: `title`, `video_desc`, `episode_cnt`, and a ready-made
+/// `sub_title` line ("逆袭·全319集"). The shared card summary reads the detail-page aliases
+/// (`series_title`, `series_intro`), which this feed does not send, so a drama row would reach
+/// the page without a name or a description.
+fn ranked_drama(row: &Value) -> Option<Drama> {
+    // The live feed sends `series_id`; some cells spell the same value `series_id_str`.
+    let series_id = ["series_id", "series_id_str"]
+        .iter()
+        .find_map(|key| id(&row[*key]))
+        .filter(|s| valid_id(s))?;
+    let content_type = match row.get("content_type") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(id(value)?),
+    };
+    if content_type
+        .as_deref()
+        .is_some_and(|kind| !["1", "7", "1004"].contains(&kind))
+    {
+        return None;
+    }
+    let cover = super::parse::public_cover(row);
+    Some(Drama {
+        series_id,
+        title: text(&row["title"], 100).unwrap_or_else(|| "未命名短剧".into()),
+        cover_fallback: super::parse::cover_fallback(&cover),
+        cover,
+        intro: text(&row["video_desc"], 1024).unwrap_or_default(),
+        episode_count: number(&row["episode_cnt"]).filter(|n| *n > 0),
+        series_status: None,
+        content_type,
+        // The row's own subtitle already joins the genre and the episode count for display.
+        tags: text(&row["sub_title"], 40).map(|line| vec![line]),
+        episodes: None,
+    })
+}
+
 /// Parse the fixed official-ranking envelope with bounded raw records and selector nesting.
 pub fn parse_rankings(body: &[u8], query: &RankQuery) -> Result<RankResult, CatalogError> {
     if body.len() > BODY_LIMIT {
@@ -354,13 +390,15 @@ pub fn parse_rankings(body: &[u8], query: &RankQuery) -> Result<RankResult, Cata
             {
                 continue;
             }
-            if let Some(drama) = super::actor_works::summary(row)
+            if let Some(drama) = ranked_drama(row)
                 && seen.insert(format!("drama:{}", drama.series_id))
             {
                 items.push(item(
                     RankEntry::Drama { drama },
                     row,
-                    text(&row["heatText"], 100),
+                    // `RecommendText` is the row's own public heat line ("8907万热度"); the
+                    // `heatText` detail alias is not part of this feed.
+                    text(&row["rec_text_item"]["RecommendText"], 100),
                 ));
             }
         }

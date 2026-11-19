@@ -128,7 +128,9 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
           >
             <Each of={group().items} key={(item) => item.name}>
               {(item) => {
-                const on = item().selected(props.store);
+                // The store's reactive getters must be read inside the binding, not once per row,
+                // or the rail keeps whichever section was current when the row first rendered.
+                const on = () => item().selected(props.store);
                 return (
                   <Button
                     testID={item().testID}
@@ -137,11 +139,11 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                     align={props.layout === 'tv' ? 'center' : 'start'}
                     icon={item().icon}
                     label={item().label}
-                    current={on}
+                    current={on()}
                     class={
                       props.layout === 'desktop'
                         ? 'w-full justify-start'
-                        : `rounded-none border-b-2 ${on ? 'border-b-foreground' : 'border-b-transparent'}`
+                        : `rounded-none border-b-2 ${on() ? 'border-b-foreground' : 'border-b-transparent'}`
                     }
                     onPress={() => props.store.navigate(item().name)}
                   />

@@ -59,8 +59,16 @@ export function registerRankingsHostTests(
         if (host === 'headless') await app.press(selector);
         else await app.keyboard.press('enter');
       };
-      /** Guards are no-ops at the start; a negative drag there is not an error worth failing. */
-      const resetFilters = (app: App) => app.scroll('id:ranking-filters', -4000).catch(() => {});
+      /**
+       * Later groups live behind the expand toggle. The expanded block mounts its own scroller,
+       * so the caller must wait for that surface before dragging it.
+       */
+      const expandFilters = async (app: App) => {
+        if (!app.shows('id:ranking-filters-toggle')) return;
+        await app.press('id:ranking-filters-toggle');
+        await app.wait(400);
+      };
+      const resetFilters = async (_app: App) => {};
 
       test(`rankings HTTP ${host} ${suffix}: dynamic selectors, identity destinations, exact retry and later source`, async () => {
         const app = await newApp();
@@ -100,7 +108,7 @@ export function registerRankingsHostTests(
           await app.waitFor('id:ranking-drama:101');
           expect(params(app).get('rank')).toBe(ids.weekly);
           expect(params(app).has('rank_panel')).toBe(false);
-          await app.scroll('id:ranking-filters', 240);
+          await expandFilters(app);
           await app.press(choice(`sub:${JSON.stringify([ids.weekly, ids.sub])}`, ids.deep));
           await app.waitUntil(() => params(app).get('rank_sub') === ids.deep);
           await app.waitFor('id:ranking-drama:101');
@@ -222,7 +230,7 @@ export function registerRankingsHostTests(
           try {
             await app.press(choice('rank', ids.dense));
             await app.waitFor('id:ranking-drama:901');
-            await app.scroll('id:ranking-filters', 4000);
+            await expandFilters(app);
             const ancestors = [
               ids.dense,
               ...Array.from({ length: 7 }, (_, index) => `sub/${index + 1} & raw`),
@@ -232,7 +240,8 @@ export function registerRankingsHostTests(
             await app.waitFor('id:ranking-drama:901');
             await capture(app, 'dense-subrankings');
             const group = `panel:${JSON.stringify([ids.dense])}:group/31:31`;
-            await app.scroll('id:ranking-filters', -400);
+            // The expanded panel list is bounded, so the last group needs scrolling to reach.
+            await app.scroll('id:ranking-filters', 4000).catch(() => {});
             await app.press(choice(group, 'choice/31 & raw'));
             await app.waitUntil(() => params(app).get('rank_panel') === 'choice/31 & raw');
             await app.waitFor('id:ranking-drama:901');

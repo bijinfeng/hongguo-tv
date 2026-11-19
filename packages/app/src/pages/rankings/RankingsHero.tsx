@@ -1,39 +1,59 @@
-import { View } from 'nsh';
+import { View, windowSize } from 'nsh';
 import { Cover, SkeletonBlock, SkeletonRegion, UiText, type ProductTarget } from '@hongguo/ui';
 
 /** Copy from the desktop draft; the product only lists public catalog titles. */
 const HERO_DESCRIPTION = '每日更新，按公开目录整理当前值得看的短剧。';
 
+/**
+ * The draft's hero geometry (`assets/theater.css` `.rank-hero`): a 108° dark-red gradient band
+ * with the copy vertically centred and a single rotated poster on the trailing edge. Below 1000
+ * of window height the band keeps its width and identity but gives up height, so the checked
+ * 1180×780 size still shows entries instead of only the header.
+ */
 function heroMetrics(target: ProductTarget) {
   return target === 'tv'
     ? {
-        minHeight: 130,
-        padding: 12,
-        copyGap: 8,
-        copyMax: 550,
-        artRight: 12,
-        artWidth: 85,
-        coverWidth: 56,
-        coverHeight: 77,
-        radius: 6,
+        // The 540dp TV window spends 66 on the header and 37.5 on the help line; the hero keeps
+        // the ranking name and its poster in 112dp so two entries still clear the first screen.
+        minHeight: 112,
+        padding: 16,
+        copyGap: 6,
+        artRight: 16,
+        artWidth: 80,
+        coverWidth: 62,
+        coverHeight: 86,
+        coverRadius: 8,
+        radius: 8,
       }
-    : {
-        minHeight: 236,
-        padding: 36,
-        copyGap: 12,
-        copyMax: 540,
-        artRight: 32,
-        artWidth: 300,
-        coverWidth: 154,
-        coverHeight: 212,
-        radius: 12,
-      };
+    : windowSize().height < 1000
+      ? {
+          minHeight: 180,
+          padding: 24,
+          copyGap: 10,
+          artRight: 24,
+          artWidth: 240,
+          coverWidth: 124,
+          coverHeight: 170,
+          coverRadius: 8,
+          radius: 12,
+        }
+      : {
+          minHeight: 236,
+          padding: 36,
+          copyGap: 12,
+          artRight: 32,
+          artWidth: 300,
+          coverWidth: 154,
+          coverHeight: 212,
+          coverRadius: 8,
+          radius: 12,
+        };
 }
 
 /**
- * Rank header following the desktop draft (`assets/theater.css` `.rank-hero`): the approved
- * dark-red gradient carries the current ranking name and a single rotated cover. The draft's
- * decorative shadow stays out; text uses the shared cinema tone so both themes read it.
+ * Rank header following the desktop draft: the approved dark-red gradient carries the current
+ * ranking name and one rotated cover. Text uses the shared cinema tone so both themes read it.
+ * The copy sits on the band's centre line, as the draft centres it, rather than hugging the top.
  */
 export function RankingsHero(props: {
   target: ProductTarget;
@@ -54,17 +74,19 @@ export function RankingsHero(props: {
       }}
     >
       <View
+        class="flex-1 justify-center"
         style={{
+          minHeight: metrics().minHeight,
           padding: metrics().padding,
-          paddingRight: metrics().artWidth,
-          maxWidth: metrics().copyMax + metrics().padding * 2 + metrics().artWidth,
+          paddingRight: metrics().artWidth + metrics().padding,
           gap: metrics().copyGap,
         }}
       >
+        {/* The ranking name is the page's one level-1 heading on every surface. */}
         <UiText role="page" tone="cinema">
           {props.title}
         </UiText>
-        <UiText role="body" tone="cinema" lines={2}>
+        <UiText role="meta" tone="cinema" lines={2}>
           {HERO_DESCRIPTION}
         </UiText>
       </View>
@@ -77,15 +99,24 @@ export function RankingsHero(props: {
             top: 0,
             bottom: 0,
             width: metrics().artWidth,
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
           }}
         >
-          <View style={{ width: metrics().coverWidth, rotate: '3deg' }}>
+          <View
+            style={{
+              width: metrics().coverWidth,
+              height: metrics().coverHeight,
+              rotate: '3deg',
+              borderRadius: metrics().coverRadius,
+              overflow: 'hidden',
+            }}
+          >
             <Cover
               src={props.cover}
               title={props.coverTitle ?? props.title}
               height={metrics().coverHeight}
+              class="w-full"
             />
           </View>
         </View>
@@ -93,6 +124,13 @@ export function RankingsHero(props: {
     </View>
   );
 }
+
+/**
+ * The hero skeleton sits on the fixed gradient, where the shared `skeleton` tone is a light-grey
+ * block in light mode and nearly invisible in dark mode. A translucent light wash reads on both
+ * because it takes its contrast from the band itself, not from the page surface.
+ */
+const HERO_SKELETON = 'opacity-25';
 
 /** First-paint shape of the hero; static skeleton without entrance motion. */
 export function RankingsHeroSkeleton(props: { target: ProductTarget }) {
@@ -111,18 +149,23 @@ export function RankingsHeroSkeleton(props: { target: ProductTarget }) {
     >
       <View style={{ flex: 1, position: 'relative' }}>
         <View
+          class="flex-1 justify-center"
           style={{
             padding: metrics().padding,
-            paddingRight: metrics().artWidth,
-            maxWidth: metrics().copyMax + metrics().padding * 2 + metrics().artWidth,
+            paddingRight: metrics().artWidth + metrics().padding,
             gap: metrics().copyGap,
           }}
         >
           <SkeletonBlock
             width={props.target === 'tv' ? 210 : 280}
             height={props.target === 'tv' ? 33 : 44}
+            class={HERO_SKELETON}
           />
-          <SkeletonBlock width="72%" height={props.target === 'tv' ? 12 : 16} />
+          <SkeletonBlock
+            width="72%"
+            height={props.target === 'tv' ? 12 : 16}
+            class={HERO_SKELETON}
+          />
         </View>
         <View
           style={{
@@ -131,11 +174,16 @@ export function RankingsHeroSkeleton(props: { target: ProductTarget }) {
             top: 0,
             bottom: 0,
             width: metrics().artWidth,
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
           }}
         >
-          <SkeletonBlock width={metrics().coverWidth} height={metrics().coverHeight} radius={12} />
+          <SkeletonBlock
+            width={metrics().coverWidth}
+            height={metrics().coverHeight}
+            radius={metrics().coverRadius}
+            class={HERO_SKELETON}
+          />
         </View>
       </View>
     </SkeletonRegion>

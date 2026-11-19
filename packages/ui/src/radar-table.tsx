@@ -98,6 +98,23 @@ export function RadarTable(props: RadarTableProps) {
               ? 280
               : 136;
   };
+  /**
+   * A weight share alone can leave a header or a grouped number narrower than its own text, and
+   * a clipped number is useless in a comparison table. The floor is the cell's whole box, side
+   * insets included, so the text it is measured for actually fits; only surplus is shared.
+   */
+  const cellInset = () => space('sm') * 2;
+  const minWidth = (column: RadarTableColumn) =>
+    cellInset() +
+    (column.key === 'rank'
+      ? 30
+      : column.key === 'type'
+        ? 44
+        : column.key === 'title'
+          ? 96
+          : column.numeric
+            ? 84
+            : 64);
   /** TV columns share the viewport by weight; the desktop table keeps its fixed columns. */
   const widths = () => {
     const map = new Map<string, number>();
@@ -106,20 +123,27 @@ export function RadarTable(props: RadarTableProps) {
       return map;
     }
     const available = Math.max(0, viewport() - safe() * 2);
+    const floors = props.columns.map(minWidth);
+    const floorTotal = floors.reduce((sum, value) => sum + value, 0);
+    const surplus = Math.max(0, available - floorTotal);
     const total = props.columns.reduce((sum, column) => sum + weight(column), 0) || 1;
     let used = 0;
     props.columns.forEach((column, index) => {
       const last = index === props.columns.length - 1;
       const width = last
         ? Math.max(0, available - used)
-        : Math.floor((available * weight(column)) / total);
+        : floors[index] + Math.floor((surplus * weight(column)) / total);
       map.set(column.key, width);
       used += width;
     });
     return map;
   };
   const contentWidth = () => {
-    if (row) return viewport();
+    if (row)
+      return Math.max(
+        viewport(),
+        props.columns.reduce((sum, column) => sum + minWidth(column), 0) + safe() * 2,
+      );
     let total = safe() * 2;
     for (const column of props.columns) total += fixedWidth(column);
     return Math.max(viewport(), total);
@@ -393,6 +417,9 @@ export function RadarTable(props: RadarTableProps) {
                     <If
                       when={column().key === 'title'}
                       else={
+                        // A value wider than its column shrinks to fit instead of gaining an ellipsis: a comparison
+                        // table whose numbers cannot be read is decorative, and the caller passes the
+                        // exact service value, which must stay whole.
                         <UiText
                           role={column().numeric ? 'numeric' : 'meta'}
                           tone={tone(column(), item().cells[column().key] ?? '—')}

@@ -13,7 +13,8 @@ export function TvShell(props: { store: Store; logoMark: ImageAsset; updates?: U
       <If when={!playing()}>
         <TvHeader store={props.store} logoMark={props.logoMark} />
       </If>
-      <View class="flex-1 min-h-0" style={{ paddingHorizontal: playing() ? 0 : 88 }}>
+      {/* One 44dp lane for the header, the pages and the help line, as the TV draft sets them. */}
+      <View class="flex-1 min-h-0" style={{ paddingHorizontal: playing() ? 0 : 44 }}>
         <Pages store={props.store} updates={props.updates} />
       </View>
       <If when={!playing()}>

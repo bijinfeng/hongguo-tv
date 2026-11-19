@@ -28,6 +28,11 @@ export function compareRadarInteger(left: string, right: string): number {
   return negativeLeft ? -order : order;
 }
 
+/**
+ * Every exact decimal digit is shown as the service supplied it, grouped for reading: the
+ * comparison columns and the accessible name both carry the same value, so shortening it would
+ * make the displayed number disagree with the data it came from.
+ */
 export function radarInteger(value: string | null | undefined, signed = false): string {
   if (!decimal(value)) return '—';
   const negative = value.startsWith('-') && value !== '-0';
