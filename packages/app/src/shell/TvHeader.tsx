@@ -1,11 +1,13 @@
 import { View, cleanup, signal } from 'nsh';
-import { Button, Logo, UiText } from '@hongguo/ui';
+import { Button, Logo, UiText, controlMetrics } from '@hongguo/ui';
 import type { Store } from '../store';
 import { Navigation } from './Navigation';
 import type { ImageAsset } from 'nsh';
 
 /** TV header geometry in points (the 132/88/112/56 draft halved to device points). */
 const geometry = { header: 66, inline: 44, gap: 56, actions: 28 };
+/** The icon rail fills the header's line height so every element shares one visual centre. */
+const actionBox = () => controlMetrics().height;
 
 function clock(): string {
   const now = new Date();
@@ -42,8 +44,8 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
       <View class="flex-1">
         <Navigation store={props.store} layout="tv" />
       </View>
-      <View class="flex-row items-center" style={{ gap: 12.5 }}>
-        <View style={{ width: geometry.actions, height: geometry.actions }}>
+      <View class="flex-row items-center" style={{ gap: 14 }}>
+        <View style={{ width: actionBox(), height: actionBox() }}>
           <Button
             testID="nav-search"
             icon="search"
@@ -54,7 +56,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
             onPress={props.store.openSearch}
           />
         </View>
-        <View style={{ width: geometry.actions, height: geometry.actions }}>
+        <View style={{ width: actionBox(), height: actionBox() }}>
           <Button
             testID="nav-settings"
             icon="settings"
@@ -64,7 +66,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
             onPress={() => props.store.settingsPage()}
           />
         </View>
-        <View style={{ width: geometry.actions, height: geometry.actions }}>
+        <View style={{ width: actionBox(), height: actionBox() }}>
           <Button
             icon="user"
             iconOnly
@@ -73,7 +75,13 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
             onPress={props.store.accountPage}
           />
         </View>
-        <UiText role="numeric">{time()}</UiText>
+        {/* The clock keeps its own lane: the icon rail's focus ring and pill need breathing room. */}
+        <View
+          class="items-center justify-center"
+          style={{ minWidth: 56, paddingLeft: 16, height: actionBox() }}
+        >
+          <UiText role="numeric">{time()}</UiText>
+        </View>
       </View>
     </View>
   );

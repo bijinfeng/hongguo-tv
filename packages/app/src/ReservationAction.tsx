@@ -1,5 +1,5 @@
 import { View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
-import { Button, Notice, UiText } from '@hongguo/ui';
+import { Button, CinemaButton, Notice, UiText } from '@hongguo/ui';
 import type { ReservationTarget } from '@hongguo/core-client';
 import type { Store } from './store';
 
@@ -22,6 +22,8 @@ export function ReservationAction(props: {
   target?: ReservationTarget;
   active: boolean;
   testID: string;
+  /** Draws the cinema pairing for the dark player band; the detail page keeps the page button. */
+  cinema?: boolean;
   buttonRef?: (ref: ViewRef) => void;
 }) {
   const reservations = props.store.reservations;
@@ -84,34 +86,51 @@ export function ReservationAction(props: {
     cancelAnimationFrame(frame);
     returnFocus.set(undefined);
   });
+  const press = () => {
+    const target = props.target;
+    if (!props.active || !target) return;
+    props.store.noteFocusIntent();
+    if (!signedIn()) {
+      let returnHandled = false;
+      props.store.accountPage(() => {
+        if (returnHandled) return;
+        returnHandled = true;
+        returnFocus.set({ owns: props.store.focusGuard() });
+      });
+      props.store.restoreFocus();
+      return;
+    }
+    if (blocked()) return;
+    // Undefined membership is not a confirmed absence; explicitly request add.
+    void reservations.set(target, membership() !== true).catch(() => {});
+  };
   return (
-    <Button
-      testID={props.testID}
-      label={label()}
-      icon="calendar-days"
-      selected={observed()}
-      pending={pending()}
-      buttonRef={setActionRef}
-      disabled={!props.active || !props.target || (signedIn() && blocked())}
-      onPress={() => {
-        const target = props.target;
-        if (!props.active || !target) return;
-        props.store.noteFocusIntent();
-        if (!signedIn()) {
-          let returnHandled = false;
-          props.store.accountPage(() => {
-            if (returnHandled) return;
-            returnHandled = true;
-            returnFocus.set({ owns: props.store.focusGuard() });
-          });
-          props.store.restoreFocus();
-          return;
-        }
-        if (blocked()) return;
-        // Undefined membership is not a confirmed absence; explicitly request add.
-        void reservations.set(target, membership() !== true).catch(() => {});
-      }}
-    />
+    <If
+      when={props.cinema}
+      else={
+        <Button
+          testID={props.testID}
+          label={label()}
+          icon="calendar-days"
+          selected={observed()}
+          pending={pending()}
+          buttonRef={setActionRef}
+          disabled={!props.active || !props.target || (signedIn() && blocked())}
+          onPress={press}
+        />
+      }
+    >
+      <CinemaButton
+        testID={props.testID}
+        label={label()}
+        icon="calendar-days"
+        selected={observed()}
+        pending={pending()}
+        buttonRef={setActionRef}
+        disabled={!props.active || !props.target || (signedIn() && blocked())}
+        onPress={press}
+      />
+    </If>
   );
 }
 

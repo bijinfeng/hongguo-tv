@@ -108,6 +108,8 @@ export interface DialogProps {
   returnFocus?: () => void;
   /** Focuses the first appropriate field or safe action when opened. */
   initialFocus?: () => void;
+  /** `lg` is the TV composition width from the design contract (800); `md` is the desktop 480. */
+  size?: 'md' | 'lg';
   /** Stable component selector. */
   testID?: string;
 }
@@ -142,7 +144,10 @@ export function Dialog(props: DialogProps) {
       class="m-auto bg-popover"
       backdropClass="bg-cinema/40"
       style={{
-        width: Math.max(0, Math.min(480, windowSize().width - space('3xl'))),
+        width: Math.max(
+          0,
+          Math.min(props.size === 'lg' ? 800 : 480, windowSize().width - space('3xl')),
+        ),
         maxHeight: Math.max(0, windowSize().height - 64),
         padding: space('xl'),
         gap: space('lg'),

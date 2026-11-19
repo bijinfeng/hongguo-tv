@@ -1,12 +1,17 @@
-import { Text, View, token } from 'nsh';
+import { reduceMotion, View } from 'nsh';
 import { Tabs as BaseTabs, Tab } from 'nsh/base';
-import { border, controlMetrics, space, weight } from './foundation';
+import { border, controlMetrics, space } from './foundation';
+import { UiText } from './display';
 import { type ChoiceGroupProps } from './choice-group';
 
 /** Controlled page sections; content remains owned by the caller. */
 export interface TabsProps extends ChoiceGroupProps {}
 
-/** NSH's automatically activated tabs, with consistent underline and focus treatment. */
+/**
+ * NSH's automatically activated tabs, with consistent underline and focus treatment.
+ * The label is drawn by the shared `UiText` layer: the host's own tab text does not paint on
+ * every native theme, which left the TV account dialog with an unlabeled strip.
+ */
 export function Tabs(props: TabsProps) {
   const size = () => controlMetrics(props.size);
   const inactive = (option: { disabled?: boolean }) => !!props.disabled || !!option.disabled;
@@ -35,15 +40,28 @@ export function Tabs(props: TabsProps) {
                 paddingVertical: size().paddingVertical,
               }}
             >
-              <Text
+              {/* The accessible name stays on the tab; this text is its visible rendering.
+                  The draft mutes the unselected labels and keeps the current one at foreground. */}
+              <View
+                class={`${reduceMotion() ? '' : 'transition-colors duration-100'} items-center justify-center`}
                 style={{
-                  fontSize: size().fontSize,
-                  fontWeight: props.value === option().value ? weight.strong() : weight.regular(),
-                  color: token(inactive(option()) ? 'muted-foreground' : 'foreground'),
+                  minHeight: size().fontSize,
+                  paddingHorizontal: 2,
                 }}
               >
-                {option().label}
-              </Text>
+                <UiText
+                  tone={
+                    inactive(option())
+                      ? 'muted'
+                      : props.value === option().value
+                        ? 'default'
+                        : 'muted'
+                  }
+                  align="center"
+                >
+                  {option().label}
+                </UiText>
+              </View>
             </Tab>
           )}
         </Each>

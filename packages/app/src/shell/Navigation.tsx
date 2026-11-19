@@ -60,7 +60,7 @@ const desktopLibrary: NavItem[] = [
   {
     name: 'notifications',
     label: '更新提醒',
-    icon: 'bell',
+    icon: 'bell-ring',
     testID: 'nav-notifications',
     selected: (store) => store.activePage('notifications'),
   },
@@ -135,7 +135,7 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                   <Button
                     testID={item().testID}
                     buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
-                    variant={props.layout === 'tv' ? 'quiet' : 'navigation'}
+                    variant="navigation"
                     align={props.layout === 'tv' ? 'center' : 'start'}
                     icon={item().icon}
                     label={item().label}

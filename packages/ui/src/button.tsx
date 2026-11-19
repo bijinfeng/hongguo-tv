@@ -78,6 +78,10 @@ export function Button(props: ButtonProps) {
         return 'primary-foreground';
       case 'destructive':
         return 'destructive';
+      // Navigation reads as a rail: the current destination carries the foreground, every other
+      // entry stays one tier down, as the draft's nav item does.
+      case 'navigation':
+        return props.current ? 'foreground' : 'muted-foreground';
       default:
         return 'foreground';
     }

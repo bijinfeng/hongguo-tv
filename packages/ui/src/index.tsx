@@ -14,6 +14,7 @@ export {
 export { Icon, type IconName, type IconProps } from './icon';
 export { Logo } from './branding';
 export { Button, IconButton, type ButtonProps, type ButtonVariant } from './button';
+export { ActionRow, type ActionRowProps } from './action-row';
 export { BackButton, type BackButtonProps, type BackButtonTone } from './back-button';
 export { ContentArrival, Controls } from './layout';
 export { SearchInput, type SearchInputProps } from './search-input';
@@ -57,10 +58,12 @@ export {
 } from './content';
 export {
   CinemaButton,
+  CinemaEpisodeButton,
   CinemaSlider,
   CinemaSelect,
   CinemaControls,
   CinemaText,
+  CinemaStage,
   EpisodePanel,
   EpisodeRail,
   CinemaStageAction,

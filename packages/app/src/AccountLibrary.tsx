@@ -1,12 +1,22 @@
-import { View, signal, effect, cleanup, lifecycle, type ViewRef } from 'nsh';
+import { View, signal, effect, cleanup, lifecycle, token, type ViewRef } from 'nsh';
 import type { GuestHistoryImportResult } from '@hongguo/core-client';
-import { Button, ConfirmDialog, Notice, UiText } from '@hongguo/ui';
+import {
+  ActionRow,
+  Button,
+  CardControls,
+  ConfirmDialog,
+  Notice,
+  UiText,
+  border,
+  space,
+} from '@hongguo/ui';
 import type { Store } from './store';
 import { errorMessage } from './error-messages';
 import { observeAccountLibraryState } from './account-library-observer';
+import { AccountCard } from './pages/account/card';
 
 /** Account/library actions share Rust state; leaving never rolls back admitted work. */
-export function AccountLibrary(props: { store: Store }) {
+export function AccountLibrary(props: { store: Store; tv?: boolean }) {
   const confirmation = signal<string | undefined>(undefined);
   const busy = signal<'sync' | 'import' | undefined>(undefined);
   const failure = signal('');
@@ -88,43 +98,145 @@ export function AccountLibrary(props: { store: Store }) {
       if (!disposed) busy.set(undefined);
     }
   };
-  return (
-    <View class="gap-4 shrink-0">
-      <UiText role="section">{signedIn() ? '我的片库' : '本机片库'}</UiText>
-      <View class="flex-row flex-wrap gap-3">
+  const title = () => (signedIn() ? '我的片库' : '本机片库');
+  const destinations = () => (
+    <View class="flex-col" style={{ gap: space('none') }}>
+      <ActionRow
+        label="观看记录"
+        divided
+        testID="account-history"
+        buttonRef={(ref) => {
+          historyRef = ref;
+        }}
+        onPress={() => openLibrary('history')}
+      />
+      <ActionRow
+        label="收藏"
+        divided
+        testID="account-favorites"
+        onPress={() => openLibrary('favorites')}
+      />
+    </View>
+  );
+  const syncDetails = () => (
+    <View
+      style={{
+        gap: space('sm'),
+        paddingTop: props.tv ? space('sm') : space('md'),
+        borderTopWidth: border,
+        borderTopColor: token('border'),
+      }}
+    >
+      <View class="flex-row items-center justify-between" style={{ gap: space('sm') }}>
+        <View class="flex-1 min-w-0" style={{ gap: space('xxs') }}>
+          <If when={!props.tv}>
+            <UiText role="body">本机与账号同步</UiText>
+          </If>
+          <UiText tone="muted" testID="account-sync-state">
+            {syncLabel()}
+          </UiText>
+        </View>
         <Button
-          label="查看观看记录"
-          testID="account-history"
-          buttonRef={(ref) => {
-            historyRef = ref;
-          }}
-          onPress={() => openLibrary('history')}
-        />
-        <Button
-          label="查看收藏"
-          testID="account-favorites"
-          onPress={() => openLibrary('favorites')}
+          label={account()?.sync.state === 'error' ? '重试同步' : '立即同步'}
+          pending={busy() === 'sync' || account()?.sync.state === 'syncing'}
+          disabled={blocked() || account()?.sync.state === 'syncing'}
+          testID="account-sync"
+          onPress={() => void sync()}
         />
       </View>
+      <If when={!props.tv}>
+        <UiText tone="muted">本机记录与账号记录分开保存；同步只更新当前账号。</UiText>
+      </If>
+      <If when={available() > 0}>
+        <View class="self-start">
+          <Button
+            label={`合并登录前观看记录（${available()}）`}
+            disabled={blocked()}
+            pending={busy() === 'import'}
+            testID="account-import-open"
+            buttonRef={(ref) => {
+              importRef = ref;
+            }}
+            onPress={() => {
+              failure.set('');
+              returnSource = { scope: scope(), owns: props.store.focusGuard() };
+              confirmation.set(scope());
+            }}
+          />
+        </View>
+      </If>
+      <If when={result()}>
+        <Notice
+          message={
+            result()?.remaining
+              ? `已合并 ${result()?.imported} 条记录，还剩 ${result()?.remaining} 条可合并。`
+              : result()?.imported
+                ? `已合并 ${result()?.imported} 条记录。`
+                : '没有可合并的新记录。'
+          }
+        />
+      </If>
+      <If when={reconciled()}>
+        <Notice message="合并结果未确认，已重新读取片库。" />
+      </If>
+    </View>
+  );
+  return (
+    <View testID="account-library" class="shrink-0" style={{ gap: space('sm') }}>
       <If
-        when={signedIn()}
-        else={<UiText tone="muted">登录不会自动合并本机观看记录，退出后仍可查看游客记录。</UiText>}
+        when={props.tv}
+        else={
+          <AccountCard title={title()}>
+            {destinations()}
+            <If when={signedIn()}>
+              {syncDetails()}
+              <If when={failure() && !confirmation()}>
+                <Notice
+                  error
+                  message={failure()}
+                  retry={() => void props.store.refreshAccountLibraryState().catch(() => {})}
+                />
+              </If>
+            </If>
+            <If when={!signedIn()}>
+              <UiText tone="muted">登录不会自动合并本机观看记录，退出后仍可查看游客记录。</UiText>
+            </If>
+          </AccountCard>
+        }
       >
-        <View class="gap-4">
-          <View class="flex-row flex-wrap items-center gap-3">
+        {/* A 960×540 surface fits one band of destinations; TV keeps the heading light and
+            folds sync into the same row so the capability stays above the fold. */}
+        <View class="flex-row items-center justify-between">
+          <UiText role="title">{title()}</UiText>
+          <If when={signedIn()}>
             <UiText tone="muted" testID="account-sync-state">
               {syncLabel()}
             </UiText>
+          </If>
+        </View>
+        <CardControls label="我的片库">
+          <Button
+            label="观看记录"
+            testID="account-history"
+            buttonRef={(ref) => {
+              historyRef = ref;
+            }}
+            onPress={() => openLibrary('history')}
+          />
+          <Button
+            label="收藏"
+            testID="account-favorites"
+            onPress={() => openLibrary('favorites')}
+          />
+          <If when={signedIn()}>
             <Button
-              label={account()?.sync.state === 'error' ? '重试同步' : '同步'}
+              label={account()?.sync.state === 'error' ? '重试同步' : '立即同步'}
               pending={busy() === 'sync' || account()?.sync.state === 'syncing'}
               disabled={blocked() || account()?.sync.state === 'syncing'}
               testID="account-sync"
               onPress={() => void sync()}
             />
-          </View>
-          <If when={available() > 0}>
-            <View class="self-start">
+            <If when={available() > 0}>
               <Button
                 label={`合并登录前观看记录（${available()}）`}
                 disabled={blocked()}
@@ -139,30 +251,30 @@ export function AccountLibrary(props: { store: Store }) {
                   confirmation.set(scope());
                 }}
               />
-            </View>
+            </If>
           </If>
-          <If when={result()}>
-            <Notice
-              message={
-                result()?.remaining
-                  ? `已合并 ${result()?.imported} 条记录，还剩 ${result()?.remaining} 条可合并。`
-                  : result()?.imported
-                    ? `已合并 ${result()?.imported} 条记录。`
-                    : '没有可合并的新记录。'
-              }
-            />
-          </If>
-          <If when={reconciled()}>
-            <Notice message="合并结果未确认，已重新读取片库。" />
-          </If>
-        </View>
-      </If>
-      <If when={failure() && !confirmation()}>
-        <Notice
-          error
-          message={failure()}
-          retry={() => void props.store.refreshAccountLibraryState().catch(() => {})}
-        />
+        </CardControls>
+        <If when={result()}>
+          <Notice
+            message={
+              result()?.remaining
+                ? `已合并 ${result()?.imported} 条记录，还剩 ${result()?.remaining} 条可合并。`
+                : result()?.imported
+                  ? `已合并 ${result()?.imported} 条记录。`
+                  : '没有可合并的新记录。'
+            }
+          />
+        </If>
+        <If when={reconciled()}>
+          <Notice message="合并结果未确认，已重新读取片库。" />
+        </If>
+        <If when={failure() && !confirmation()}>
+          <Notice
+            error
+            message={failure()}
+            retry={() => void props.store.refreshAccountLibraryState().catch(() => {})}
+          />
+        </If>
       </If>
       <ConfirmDialog
         open={!!confirmation()}

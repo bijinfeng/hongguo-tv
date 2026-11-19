@@ -1,5 +1,5 @@
 import { View, type ViewRef } from 'nsh';
-import { Button, Notice, UiText } from '@hongguo/ui';
+import { Button, CinemaButton, Notice, UiText } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from './store';
 
@@ -8,6 +8,8 @@ export function FollowAction(props: {
   store: Store;
   drama?: Drama;
   active: boolean;
+  /** Draws the cinema pairing for the dark player band; the detail page keeps the page button. */
+  cinema?: boolean;
   buttonRef?: (ref: ViewRef) => void;
 }) {
   const follow = props.store.follow;
@@ -20,33 +22,50 @@ export function FollowAction(props: {
     follow.mutation()?.series_id === props.drama?.series_id &&
     follow.mutation()?.state === 'pending';
   const label = () => (observed() ? '已追更' : signedIn() && ended() ? '已完结' : '追更');
+  const blocked = () =>
+    !props.active ||
+    !props.drama ||
+    props.drama.content_type === '1003' ||
+    (signedIn() && (membership() === undefined || follow.stale() || follow.busy() || ended()));
+  const press = () => {
+    if (!props.active || !props.drama) return;
+    props.store.noteFocusIntent();
+    if (!signedIn()) {
+      props.store.accountPage();
+      props.store.restoreFocus();
+      return;
+    }
+    if (membership() === undefined || follow.stale() || follow.busy() || ended()) return;
+    void follow.set(props.drama.series_id, !membership()).catch(() => {});
+  };
   return (
-    <Button
-      testID="detail-follow"
-      label={label()}
-      displayLabel={label()}
-      icon="bell"
-      buttonRef={props.buttonRef}
-      selected={observed()}
-      pending={pending()}
-      disabled={
-        !props.active ||
-        !props.drama ||
-        props.drama.content_type === '1003' ||
-        (signedIn() && (membership() === undefined || follow.stale() || follow.busy() || ended()))
+    <If
+      when={props.cinema}
+      else={
+        <Button
+          testID="detail-follow"
+          label={label()}
+          displayLabel={label()}
+          icon="bell"
+          buttonRef={props.buttonRef}
+          selected={observed()}
+          pending={pending()}
+          disabled={blocked()}
+          onPress={press}
+        />
       }
-      onPress={() => {
-        if (!props.active || !props.drama) return;
-        props.store.noteFocusIntent();
-        if (!signedIn()) {
-          props.store.accountPage();
-          props.store.restoreFocus();
-          return;
-        }
-        if (membership() === undefined || follow.stale() || follow.busy() || ended()) return;
-        void follow.set(props.drama.series_id, !membership()).catch(() => {});
-      }}
-    />
+    >
+      <CinemaButton
+        testID="detail-follow"
+        label={label()}
+        icon="bell"
+        buttonRef={props.buttonRef}
+        selected={observed()}
+        pending={pending()}
+        disabled={blocked()}
+        onPress={press}
+      />
+    </If>
   );
 }
 
