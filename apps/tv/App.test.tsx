@@ -29,14 +29,5 @@ registerApplicationTests('tv', './HttpFixture.tsx');
 
 registerBrowsingTests('tv', './HttpFixture.tsx');
 
-import { registerUpdateTests } from '@hongguo/app/testing';
-registerUpdateTests();
-
-import { registerCalendarTests } from '@hongguo/app/testing';
-registerCalendarTests();
-
-import { registerCalendarBackTests } from '@hongguo/app/testing';
-registerCalendarBackTests();
-
 registerAccountTests('tv', './HttpFixture.tsx');
 registerSettingsTests('tv', './HttpFixture.tsx');

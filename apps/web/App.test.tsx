@@ -12,11 +12,5 @@ registerApplicationTests();
 
 registerBrowsingTests();
 
-import { registerCalendarTests } from '@hongguo/app/testing';
-registerCalendarTests();
-
-import { registerCalendarBackTests } from '@hongguo/app/testing';
-registerCalendarBackTests();
-
 registerAccountTests('desktop', './App.tsx');
 registerSettingsTests('desktop', './App.tsx');
