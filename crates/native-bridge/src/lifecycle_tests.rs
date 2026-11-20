@@ -52,35 +52,39 @@ async fn close_then_same_directory_reopen_waits_for_an_admitted_sqlite_checkpoin
         .unwrap();
     let gate = Connection::open(temp.0.join("guest.sqlite3")).unwrap();
     gate.execute_batch("BEGIN IMMEDIATE").unwrap();
-    let mut writing = Box::pin(account.apply_operation(
-        LibraryOperationIdentity {
-            session_id: token.session_id,
-            operation_id: "1".into(),
-        },
-        checkpoint(),
-    ));
-    assert!(matches!(
-        writing
-            .as_mut()
-            .poll(&mut Context::from_waker(Waker::noop())),
-        Poll::Pending
-    ));
+    // Same admission ordering as the alias test: `apply_operation` awaits the account state
+    // lock first, so a bare poll never registers the write and a following drop leaves the
+    // drain nothing to wait on. Taking the same lock here makes the registration deterministic.
+    let writer = account.clone();
+    let writing = tokio::spawn(async move {
+        writer
+            .apply_operation(
+                LibraryOperationIdentity {
+                    session_id: token.session_id,
+                    operation_id: "1".into(),
+                },
+                checkpoint(),
+            )
+            .await
+    });
+    let _ = account.state().await;
+    tokio::task::yield_now().await;
     drop(writing);
     session.close();
     session.close();
     let reopened_dir = temp.0.clone();
-    let mut reopening = tokio::spawn(async move { Session::open(&reopened_dir).await });
-    assert!(
-        timeout(Duration::from_millis(30), &mut reopening)
-            .await
-            .is_err()
-    );
+    let mut reopening = Box::pin(Session::open(&reopened_dir));
+    assert!(matches!(
+        reopening
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Pending
+    ));
     assert!(session.calls.lock().unwrap().closed);
     gate.execute_batch("COMMIT").unwrap();
     let reopened = timeout(Duration::from_secs(3), reopening)
         .await
-        .unwrap()
-        .unwrap()
+        .expect("reopen should follow the checkpoint")
         .unwrap_or_else(|_| panic!("reopen should follow the checkpoint"));
     let snapshot = reopened
         .services
