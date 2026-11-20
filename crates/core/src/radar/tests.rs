@@ -513,7 +513,12 @@ async fn live_probe_fixed_production_sources() {
     SystemRandom::new().fill(&mut nonce).unwrap();
     let suffix: String = nonce.iter().map(|b| format!("{b:02x}")).collect();
     let path = std::env::temp_dir().join(format!("hongguo-radar-live-{suffix}"));
+    // `mode` is the only mutation; on other platforms `mut` is an unused-mut error under
+    // `-D warnings`, so the binding is spelled per-platform instead.
+    #[cfg(unix)]
     let mut builder = fs::DirBuilder::new();
+    #[cfg(not(unix))]
+    let builder = fs::DirBuilder::new();
     #[cfg(unix)]
     {
         use std::os::unix::fs::DirBuilderExt;
