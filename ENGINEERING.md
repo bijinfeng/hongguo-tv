@@ -162,9 +162,9 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 | hooks          | Lefthook，显式安装；统一调度 JS/Rust/Android 检查                 |
 | pre-commit     | 首方工作区的只读格式/lint/契约检查；排除第三方与生成目录          |
 | commit-msg     | commitlint + Conventional Commits                                 |
-| pre-push       | 运行完整 verify；跨系统与真机矩阵由 CI/验收保证                   |
+| pre-push       | 只读格式/lint/契约检查；完整 verify 在批次冻结时执行              |
 | PR             | 模板包含问题/结果、影响端、验证证据、迁移与回滚                   |
-| 合并           | 受保护主分支，至少一位人工 reviewer，必需 CI，通过后 squash merge |
+| 合并           | 受保护 master：必须 PR、required 必过、禁强推与删除，squash merge |
 | 提交与发布历史 | 校验 squash PR 标题；统一产品版本、按端记录 changelog             |
 | 代码责任       | CODEOWNERS 映射真实维护者；共享契约/上游更新/原生边界需对应审查   |
 

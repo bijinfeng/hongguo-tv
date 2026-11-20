@@ -11,5 +11,5 @@ commit-msg:
       run: pnpm exec commitlint --edit {1}
 pre-push:
   commands:
-    verify:
-      run: pnpm verify
+    quality:
+      run: pnpm hooks:check
