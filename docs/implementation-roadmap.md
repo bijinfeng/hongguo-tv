@@ -44,6 +44,10 @@
 
 第 4 项从现在持续补验，最终集中核对，不等全部功能写完才首次使用真实数据。安全／CI 及平台工具链阻塞也提前暴露；物理设备缺失保持未验，不悄悄删减范围。
 
+### 条件触发项
+
+TV 宿主保持 Java 17。`apps/tv/android` 只是薄胶水层（`MainActivity`、`TvRemote`、`UpdateInstaller`、`UpdateResultReceiver`），业务在 NSH TSX + Rust；`android.useAndroidX=false` 下 Kotlin 的扩展函数与属性委托不可用，收益只剩语法糖。迁移代价覆盖 1050 行主源码、1181 行 `androidTest` 和 `tooling/fixtures/*-tv` 三套 overlay 工程，并需固定 Kotlin 插件版本、重生成 `gradle/verification-metadata.xml` 校验和、接入格式／静态检查门禁后重跑 TV 三套 overlay 与 CI。仅当 `TvRemote` 需要结构性改动（焦点模型重构、新控件种类），或节点遍历的显式判空开始反复引发缺陷时，才把整个 app module 一次性迁到 Kotlin，不保留 `.java` 混合。
+
 ### 并行边界
 
 主会话负责集成、契约边界和当前队列；有可独立交付的任务时再分配实施者。可并行账号核心、既定契约下的界面、独立设置／许可能力或真实验收；不要把全部并行额度用于重复调查和重复审查。
