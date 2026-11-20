@@ -284,7 +284,15 @@ test('installed hook wrapper never hides unstaged content or creates a stash', (
       resolve(dir, 'node_modules'),
       process.platform === 'win32' ? 'junction' : 'dir',
     );
-    await writeFile(resolve(dir, 'package.json'), '{"private":true}');
+    // The wrapper runs pnpm against this fixture, and pnpm reconciles whatever manifest it
+    // finds with the dependencies present. A bare `{"private":true}` made it rebuild the
+    // borrowed `node_modules` on the runner, which broke the assertion on the hook's exit.
+    // Giving the fixture the real manifest and lockfile makes it look installed.
+    await writeFile(resolve(dir, 'package.json'), await readFile(resolve(root, 'package.json')));
+    await writeFile(
+      resolve(dir, 'pnpm-lock.yaml'),
+      await readFile(resolve(root, 'pnpm-lock.yaml')),
+    );
     await writeFile(
       resolve(dir, 'commitlint.config.mjs'),
       await readFile(resolve(root, 'commitlint.config.mjs')),
