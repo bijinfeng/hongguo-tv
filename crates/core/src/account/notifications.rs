@@ -10,7 +10,7 @@ use rusqlite::{Connection, OpenFlags, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
-    fs::{self, DirBuilder, OpenOptions},
+    fs::{DirBuilder, OpenOptions},
     io::ErrorKind,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
@@ -275,7 +275,10 @@ fn init(path: &Path, owner: &str) -> Result<(), AccountError> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+        // Spelled in full rather than importing `std::fs` at the top: only the unix branch
+        // uses the module itself, and a bare `fs::{self, …}` import is unused on Windows,
+        // where clippy runs with `-D warnings`.
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
             .map_err(|_| AccountError::NotificationUnavailable)?;
     }
     let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)
