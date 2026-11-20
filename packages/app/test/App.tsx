@@ -352,7 +352,9 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     expect(app.value('id:search-input')).toBe('查x');
     await app.keyboard.press('escape');
     expect(app.shows('id:search-suggestions')).toBe(false);
-    expect(app.shows('找剧') || target === 'tv').toBe(true);
+    // The TV header keeps the same 找剧 entry name; only the empty-discovery copy differs,
+    // which this step does not assert.
+    expect(app.shows('找剧')).toBe(true);
     await app.type('id:search-input', '新查');
     await app.waitFor('id:search-suggestions');
     await app.keyboard.press('tab');
