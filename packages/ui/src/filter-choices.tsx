@@ -26,6 +26,9 @@ export function FilterChoices(props: {
   effect(() => {
     if (!props.active) open.set(false);
   });
+  // The server uses an empty string as a legal option ID, so a chosen value always names itself;
+  // the "全部…" wording only covers a value that no current item matches.
+  const chosen = () => props.items.some((item) => item.value === props.value);
   const title = () => props.items.find((item) => item.value === props.value)?.title ?? '';
   return (
     <If
@@ -113,7 +116,7 @@ export function FilterChoices(props: {
             testID={`${props.testID}-trigger`}
             label={`${props.label}：${title()}`}
             displayLabel={
-              props.value ? title() : props.label === '排序' ? '综合排序' : `全部${props.label}`
+              chosen() ? title() : props.label === '排序' ? '综合排序' : `全部${props.label}`
             }
             selectOpen={open()}
             dropdown

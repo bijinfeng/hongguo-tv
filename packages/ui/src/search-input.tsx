@@ -37,6 +37,8 @@ export function SearchInput(props: SearchInputProps) {
         fontSize: size().fontSize,
         paddingHorizontal: props.embedded ? space('xxs') : size().paddingHorizontal,
         paddingVertical: size().paddingVertical,
+        // The host placeholder default is too dim on the dark surface; use the shared muted tone.
+        placeholderColor: token('muted-foreground'),
         outlineWidth: props.embedded ? 0 : focused() ? focusRing : border,
         outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
         outlineOffset: props.embedded ? 0 : focused() ? focusOffset : focusOffsetInside,

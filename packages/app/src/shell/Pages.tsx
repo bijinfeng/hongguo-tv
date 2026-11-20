@@ -1,6 +1,5 @@
 import { View, reduceMotion } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
-import { Button } from '@hongguo/ui';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
 import { UpdatesPage } from '../pages/Updates';
@@ -144,24 +143,6 @@ export function Pages(props: { store: Store; updates?: Updates }) {
             accessibilityElementsHidden={props.store.nav.routes().at(-1) !== route}
             disabled={props.store.nav.routes().at(-1) !== route}
           >
-            <If when={route.name !== 'browse' && route.name !== 'player'}>
-              <View
-                class={
-                  props.store.target === 'desktop' ? 'px-10 pt-6 pb-3 items-start' : 'items-start'
-                }
-                style={
-                  props.store.target === 'tv' ? { paddingTop: 12, paddingBottom: 6 } : undefined
-                }
-              >
-                <Button
-                  variant="quiet"
-                  compact
-                  icon="back"
-                  label="返回"
-                  onPress={() => props.store.nav.pop()}
-                />
-              </View>
-            </If>
             <If when={route.name === 'browse'}>
               <Browse store={props.store} />
             </If>
@@ -199,6 +180,8 @@ export function Pages(props: { store: Store; updates?: Updates }) {
               <UpdatesPage
                 updates={props.updates!}
                 tv={props.store.target === 'tv'}
+                backLabel={props.store.backLabel()}
+                onBack={() => props.store.back()}
                 active={props.store.nav.routes().at(-1) === route}
                 focusGuard={props.store.focusGuard}
               />

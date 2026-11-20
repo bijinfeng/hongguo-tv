@@ -1,7 +1,6 @@
 import {
   Video,
   Scroll,
-  Text,
   View,
   signal,
   cleanup,
@@ -21,12 +20,11 @@ import { playbackActivity, playbackLease, progressSession } from '../playback';
 import { createWatchStatisticsCollector, watchContentType } from '../watch-statistics';
 import { playbackTime as timeLabel } from '../format';
 import { errorMessage } from '../error-messages';
-import { createSeasons, isFinalEpisode, type SeasonsController } from '../seasons';
+import { createSeasons, isFinalEpisode } from '../seasons';
 import { PLAYBACK_RATES, type PlaybackRate } from '../settings';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
-import { SeasonPicker } from '../SeasonPicker';
 import {
-  Button,
+  BackButton,
   Notice,
   Controls,
   CinemaButton,
@@ -34,12 +32,16 @@ import {
   CinemaSelect,
   CinemaControls,
   CinemaText,
+  CinemaStage,
   CinemaStageAction,
   CinemaSettingRow,
   EpisodePanel,
-  EpisodeRail,
-  EpisodeRange,
+  radius,
 } from '@hongguo/ui';
+import { SeasonEpisodes } from './player/SeasonEpisodes';
+import { PlayerActions } from './player/PlayerActions';
+import { PlayerEpisodeRail } from './player/PlayerEpisodeRail';
+import { fullScreenPictureHeight, pictureHeight } from './player/layout';
 
 type Media = Awaited<ReturnType<typeof play>>;
 type Representation = { info: Media; revision: number };
@@ -68,106 +70,6 @@ const prepareErrorCodes = new Set([
   'CORE_NOT_IMPLEMENTED',
 ]);
 const videoErrorCodes = new Set(['ERR_ACCESS_DENIED', 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM']);
-
-function Episodes(props: {
-  drama: Drama;
-  current?: Episode;
-  target: 'desktop' | 'tv';
-  onSelect: (episode: Episode) => void;
-}) {
-  const size = props.target === 'tv' ? 12 : 24;
-  const episodes = () => props.drama.episodes ?? [];
-  const initial = episodes().findIndex((episode) => episode.video_id === props.current?.video_id);
-  const segment = signal(Math.max(0, Math.floor(initial / size)));
-  return (
-    <View class="flex-1 gap-5">
-      <EpisodeRange
-        value={segment()}
-        count={episodes().length}
-        pageSize={size}
-        onChange={segment.set}
-      />
-      <Scroll class="flex-1" contentStyle={{ width: '100%', paddingBottom: 12 }}>
-        <View class="flex-row flex-wrap" style={{ rowGap: props.target === 'tv' ? 8 : 8 }}>
-          <Each
-            of={episodes().slice(segment() * size, (segment() + 1) * size)}
-            key={(episode) => episode.video_id}
-          >
-            {(episode) => (
-              <View style={{ width: '25%', paddingRight: props.target === 'tv' ? 8 : 8 }}>
-                <Button
-                  testID={`player-episode-${episode().video_id}`}
-                  episode="player"
-                  label={`第 ${episode().index} 集${episode().locked ? ' · 未开放' : ''}`}
-                  displayLabel={
-                    props.target === 'tv'
-                      ? `第 ${episode().index} 集`
-                      : String(episode().index).padStart(2, '0')
-                  }
-                  icon={episode().locked ? 'lock' : undefined}
-                  disabled={episode().locked}
-                  selected={episode().video_id === props.current?.video_id}
-                  onPress={() => props.onSelect(episode())}
-                />
-              </View>
-            )}
-          </Each>
-        </View>
-      </Scroll>
-    </View>
-  );
-}
-
-function SeasonEpisodes(props: {
-  seasons: SeasonsController;
-  detail: ReturnType<typeof createSeasonDetail>;
-  drama: Drama;
-  episode: Episode;
-  target: 'desktop' | 'tv';
-  playingId?: string;
-  resume: Store['resume'];
-  onBrowse: () => void;
-  onSelect: (drama: Drama, episode: Episode) => void;
-}) {
-  return (
-    <View class="flex-1 gap-4">
-      <SeasonPicker
-        seasons={props.seasons}
-        compact
-        playingId={props.playingId}
-        resume={props.resume}
-        onChange={props.onBrowse}
-      />
-      <Text role="header" accessibilityLevel={2} class="text-lg font-semibold text-foreground">
-        {props.detail.summary()?.title ?? props.drama.title}
-      </Text>
-      <If when={props.detail.loading()}>
-        <Notice message="正在加载选集…" />
-      </If>
-      <If when={props.detail.error()}>
-        <Notice error message={props.detail.error()} retry={props.detail.retry} />
-      </If>
-      <If when={!props.detail.loading() && !props.detail.error() && !props.detail.drama()}>
-        <Notice
-          message={props.seasons.availability() === 'upcoming' ? '本季待上线' : '本季暂不可观看'}
-        />
-      </If>
-      <Each
-        of={props.detail.drama() ? [props.detail.drama()!] : []}
-        key={(drama) => drama.series_id}
-      >
-        {(drama) => (
-          <Episodes
-            drama={drama()}
-            current={drama().series_id === props.drama.series_id ? props.episode : undefined}
-            target={props.target}
-            onSelect={(episode) => props.onSelect(drama(), episode)}
-          />
-        )}
-      </Each>
-    </View>
-  );
-}
 
 /** One keyed representation; callbacks retain their owner even after a new source wins. */
 function MediaView(props: {
@@ -260,6 +162,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   let panelRef: ViewRef | undefined;
   let moreRef: ViewRef | undefined;
   let stageRef: ViewRef | undefined;
+  let fullScreenRef: ViewRef | undefined;
+  /** The player is on its way out; a mode change it causes must not take the focus back. */
+  let leaving = false;
   let restorePosition = 0;
   let seekingTo: number | undefined;
   let hadBackground = false;
@@ -267,6 +172,19 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   let savedVolume = 0.8;
   const playingDrama = props.drama;
   const playingEpisode = props.episode;
+  /** The service cover, preferring the website-safe fallback when one was supplied. */
+  const poster = () =>
+    props.drama.cover_fallback && props.drama.cover_fallback !== ''
+      ? props.drama.cover_fallback
+      : props.drama.cover;
+  /** Facts the service actually supplied: no season number or runtime is invented here. */
+  const playbackMeta = () => {
+    const drama = props.drama;
+    const total = drama.episode_count ?? drama.episodes?.length;
+    return [`第 ${props.episode.index} 集`, total ? `共 ${total} 集` : '', ...(drama.tags ?? [])]
+      .filter(Boolean)
+      .join(' · ');
+  };
   const session = progressSession((time, total, finished) => {
     void props.store.save(playingDrama, playingEpisode, time, total, finished);
   });
@@ -474,6 +392,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     checkpoint();
     statistics.reset();
     void statistics.flush(true);
+    leaving = true;
     if (fullScreen()) window?.setMode(previousMode);
     props.store.nav.pop();
   };
@@ -551,6 +470,26 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     }
     keyboardEngaged.set(true);
   };
+  // Leaving full screen rebuilds the page's top row and rail around the controls, whether the
+  // button or the host's own exit (Escape) did it; the trigger takes the focus back afterwards.
+  // Leaving the player also restores the mode, but that page's own source focus wins.
+  let wasFullScreen = false;
+  effect(() => {
+    const current = fullScreen();
+    untracked(() => {
+      if (current) {
+        wasFullScreen = true;
+        return;
+      }
+      if (!wasFullScreen) return;
+      wasFullScreen = false;
+      if (disposed || leaving) return;
+      keyboardEngaged.set(true);
+      requestAnimationFrame(() => {
+        if (!disposed && !leaving) fullScreenRef?.focus();
+      });
+    });
+  });
   effect(() => {
     const foreground = lifecycle() === 'active' && active();
     untracked(() => {
@@ -635,6 +574,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   });
   cleanup(() => {
     disposed = true;
+    leaving = true;
     cancelSuccessor();
     checkpoint();
     void statistics.dispose();
@@ -643,19 +583,24 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   });
 
   return (
-    <View testID="player" class={tv ? 'flex-1 bg-cinema' : 'flex-1'}>
+    <View testID="player" class={tv ? 'flex-1 bg-cinema' : 'flex-1 bg-cinema'}>
       <If when={!tv && !fullScreen()}>
-        <View class="px-10 pt-6 pb-5 gap-4 items-start">
-          <Button label="返回" variant="quiet" compact icon="back" onPress={leave} />
-          <Text class="text-2xl font-semibold text-foreground">
-            {props.drama.title} · 第 {props.episode.index} 集
-          </Text>
+        <View class="items-start" style={{ paddingHorizontal: 40, paddingTop: 16 }}>
+          <BackButton
+            testID="player-back"
+            tone="cinema"
+            label={props.store.backLabel()}
+            onPress={leave}
+          />
         </View>
       </If>
       <View
-        class="flex-1 min-h-0 flex-row gap-6"
+        class={tv ? 'flex-1 min-h-0 flex-row' : 'flex-1 min-h-0 flex-row items-start'}
         style={{
           paddingHorizontal: tv || fullScreen() ? 0 : 40,
+          paddingTop: tv || fullScreen() ? 0 : 4,
+          paddingBottom: tv || fullScreen() ? 0 : 24,
+          gap: 24,
         }}
       >
         <Scroll
@@ -663,210 +608,221 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           class="flex-1 min-h-0 min-w-0"
           contentStyle={{
             width: '100%',
+            gap: 20,
             flexGrow: 1,
-            paddingBottom: tv || fullScreen() ? 0 : 40,
           }}
         >
-          <View class="flex-1 min-w-0" style={{ height: tv ? '100%' : undefined }}>
+          <View class="min-w-0" style={{ height: tv ? '100%' : undefined, width: '100%' }}>
             <View
-              class={
-                tv
-                  ? 'flex-1 relative bg-cinema overflow-hidden'
-                  : 'relative bg-cinema rounded-(--radius) overflow-hidden'
-              }
-              style={{ height: tv ? '100%' : undefined }}
+              class="relative bg-cinema overflow-hidden"
+              style={{ height: tv ? '100%' : undefined, borderRadius: tv ? 0 : radius('xl') }}
             >
-              <View
-                class="relative bg-cinema"
-                style={{
-                  height: tv
+              <CinemaStage
+                // The resting poster composition is a desktop reading of the draft. TV draws its
+                // own full-stage video with overlay controls, so it keeps no poster layer.
+                image={tv ? undefined : poster()}
+                imageTitle={props.drama.title}
+                height={
+                  tv
                     ? windowSize().height
                     : fullScreen()
-                      ? Math.max(0, windowSize().height - 96)
-                      : 456,
-                }}
+                      ? fullScreenPictureHeight()
+                      : // A poster is the resting picture even when the stream failed, so it keeps the
+                        // full frame; only a stage with neither a picture nor a poster shrinks, because
+                        // an empty full-height frame reads as a broken picture.
+                        !poster() && (error() || (!media() && !preparing()))
+                        ? Math.round(pictureHeight() * 0.42)
+                        : pictureHeight()
+                }
               >
-                <Each of={media() ? [media()!] : []} key={(value) => value.revision}>
-                  {(value) => (
-                    <MediaView
-                      representation={value()}
-                      paused={paused() || !active() || !!error()}
-                      volume={volume()}
-                      rate={Number(rate())}
-                      current={lease.current}
-                      onRef={(ref) => {
-                        video = ref;
-                      }}
-                      onLoad={(total) => {
-                        resetActivity();
-                        statistics.reset();
-                        duration.set(total);
-                        loaded.set(true);
-                        buffering.set(false);
-                        const resume = props.store.settings.rememberPosition()
-                          ? props.store.resume(props.drama)
-                          : undefined;
-                        const saved =
-                          resume?.video_id === props.episode.video_id && !resume.completed
-                            ? (resume.position ?? 0)
-                            : 0;
-                        const start =
-                          restorePosition > 0 && total > 0
-                            ? Math.min(restorePosition, total)
-                            : saved > 0 && total > 3 && saved < total - 3
-                              ? saved
-                              : 0;
-                        session.seed(start, total);
-                        position.set(start);
-                        seekingTo = start > 0 ? start : undefined;
-                        if (start > 0) {
-                          const owner = media()?.revision;
-                          // Apply restoration after the host's initial source and pause props settle.
-                          requestAnimationFrame(() => {
-                            if (
-                              owner !== undefined &&
-                              lease.current(owner) &&
-                              seekingTo !== undefined
-                            )
-                              video?.seek(seekingTo);
-                          });
-                        }
-                        restorePosition = 0;
-                      }}
-                      onProgress={(time, total) => {
-                        if (completed() || error() || !loaded() || !active()) return;
-                        if (seekingTo !== undefined) {
-                          if (Math.abs(time - seekingTo) > Math.max(1, Number(rate()) + 0.5))
-                            return;
-                          seekingTo = undefined;
+                <View class="absolute inset-0">
+                  <Each of={media() ? [media()!] : []} key={(value) => value.revision}>
+                    {(value) => (
+                      <MediaView
+                        representation={value()}
+                        paused={paused() || !active() || !!error()}
+                        volume={volume()}
+                        rate={Number(rate())}
+                        current={lease.current}
+                        onRef={(ref) => {
+                          video = ref;
+                        }}
+                        onLoad={(total) => {
+                          resetActivity();
                           statistics.reset();
-                          session.seed(time, total);
+                          duration.set(total);
+                          loaded.set(true);
+                          buffering.set(false);
+                          const resume = props.store.settings.rememberPosition()
+                            ? props.store.resume(props.drama)
+                            : undefined;
+                          const saved =
+                            resume?.video_id === props.episode.video_id && !resume.completed
+                              ? (resume.position ?? 0)
+                              : 0;
+                          const start =
+                            restorePosition > 0 && total > 0
+                              ? Math.min(restorePosition, total)
+                              : saved > 0 && total > 3 && saved < total - 3
+                                ? saved
+                                : 0;
+                          session.seed(start, total);
+                          position.set(start);
+                          seekingTo = start > 0 ? start : undefined;
+                          if (start > 0) {
+                            const owner = media()?.revision;
+                            // Apply restoration after the host's initial source and pause props settle.
+                            requestAnimationFrame(() => {
+                              if (
+                                owner !== undefined &&
+                                lease.current(owner) &&
+                                seekingTo !== undefined
+                              )
+                                video?.seek(seekingTo);
+                            });
+                          }
+                          restorePosition = 0;
+                        }}
+                        onProgress={(time, total) => {
+                          if (completed() || error() || !loaded() || !active()) return;
+                          if (seekingTo !== undefined) {
+                            if (Math.abs(time - seekingTo) > Math.max(1, Number(rate()) + 0.5))
+                              return;
+                            seekingTo = undefined;
+                            statistics.reset();
+                            session.seed(time, total);
+                            position.set(time);
+                            duration.set(total);
+                            return;
+                          }
+                          advancing.set(running() ? activity.update(time) : false);
+                          statistics.observe({
+                            at: statisticsSampleTime(),
+                            position: time,
+                            rate: Number(rate()),
+                            active: active(),
+                            ready: loaded(),
+                            paused: paused(),
+                            buffering: buffering(),
+                            ended: completed(),
+                            seeking: seekingTo !== undefined,
+                            type: watchContentType(playingDrama.content_type),
+                            genre: playingDrama.tags?.[0],
+                          });
                           position.set(time);
                           duration.set(total);
-                          return;
-                        }
-                        advancing.set(running() ? activity.update(time) : false);
-                        statistics.observe({
-                          at: statisticsSampleTime(),
-                          position: time,
-                          rate: Number(rate()),
-                          active: active(),
-                          ready: loaded(),
-                          paused: paused(),
-                          buffering: buffering(),
-                          ended: completed(),
-                          seeking: seekingTo !== undefined,
-                          type: watchContentType(playingDrama.content_type),
-                          genre: playingDrama.tags?.[0],
-                        });
-                        position.set(time);
-                        duration.set(total);
-                        session.update(time, total, !paused() && !buffering() && loaded());
-                      }}
-                      onBuffer={(value) => {
-                        if (value) statistics.reset();
-                        buffering.set(value);
-                      }}
-                      onError={(failure, revision) => {
-                        console.warn('播放媒体失败', {
-                          code:
-                            failure.code && videoErrorCodes.has(failure.code)
-                              ? failure.code
-                              : 'VIDEO_UNKNOWN_ERROR',
-                          revision,
-                        });
-                        cancelSuccessor();
-                        statistics.reset();
-                        void statistics.flush(true);
-                        error.set('播放失败，请重试。');
-                        buffering.set(false);
-                        paused.set(true);
-                        layer.set('controls');
-                      }}
-                      onEnd={() => {
-                        if (
-                          completed() ||
-                          error() ||
-                          !loaded() ||
-                          !active() ||
-                          paused() ||
-                          lifecycle() !== 'active'
-                        )
-                          return;
-                        session.end();
-                        statistics.reset();
-                        void statistics.flush(true);
-                        completed.set(true);
-                        paused.set(true);
-                        layer.set('controls');
-                        const auto = props.store.settings.autoplayNext();
-                        if (auto && next()) nextEpisode();
-                        else if (auto && isFinalEpisode(props.drama, props.episode))
-                          void nextSeason();
-                      }}
-                    />
-                  )}
-                </Each>
-                <CinemaStageAction
-                  label={
-                    tv
-                      ? layer() === 'seek-preview'
-                        ? '确认播放位置'
-                        : '显示播放控制'
-                      : paused()
-                        ? '播放画面'
-                        : '暂停画面'
-                  }
-                  showPlay={!tv && paused() && !buffering() && !completed() && !error()}
-                  disabled={tv ? layer() !== 'hidden' && layer() !== 'seek-preview' : !enabled()}
-                  buttonRef={(ref) => {
-                    stageRef = ref;
-                  }}
-                  onPress={
-                    tv ? (layer() === 'seek-preview' ? confirmPreview : showControls) : toggle
-                  }
-                />
-                <If when={preparing() || buffering() || error() || completed()}>
-                  <View class="absolute inset-0 items-center justify-center bg-cinema/80 gap-4 p-5">
-                    <CinemaText variant="title">
-                      {error()
-                        ? '播放遇到问题'
-                        : completed()
-                          ? '本集已播完'
-                          : preparing()
-                            ? '正在准备播放…'
-                            : '正在缓冲…'}
-                    </CinemaText>
-                    <If when={error()}>
-                      <CinemaText>{error()}</CinemaText>
-                      <Controls label="播放恢复">
-                        <CinemaButton label="重试" onPress={refresh} />
-                        <CinemaButton label="返回" icon="back" onPress={leave} />
-                      </Controls>
-                    </If>
-                    <If when={completed() && !next()}>
-                      <If when={seasons.nextLoading()}>
-                        <CinemaText>正在加载下一季…</CinemaText>
+                          session.update(time, total, !paused() && !buffering() && loaded());
+                        }}
+                        onBuffer={(value) => {
+                          if (value) statistics.reset();
+                          buffering.set(value);
+                        }}
+                        onError={(failure, revision) => {
+                          console.warn('播放媒体失败', {
+                            code:
+                              failure.code && videoErrorCodes.has(failure.code)
+                                ? failure.code
+                                : 'VIDEO_UNKNOWN_ERROR',
+                            revision,
+                          });
+                          cancelSuccessor();
+                          statistics.reset();
+                          void statistics.flush(true);
+                          error.set('播放失败，请重试。');
+                          buffering.set(false);
+                          paused.set(true);
+                          layer.set('controls');
+                        }}
+                        onEnd={() => {
+                          if (
+                            completed() ||
+                            error() ||
+                            !loaded() ||
+                            !active() ||
+                            paused() ||
+                            lifecycle() !== 'active'
+                          )
+                            return;
+                          session.end();
+                          statistics.reset();
+                          void statistics.flush(true);
+                          completed.set(true);
+                          paused.set(true);
+                          layer.set('controls');
+                          const auto = props.store.settings.autoplayNext();
+                          if (auto && next()) nextEpisode();
+                          else if (auto && isFinalEpisode(props.drama, props.episode))
+                            void nextSeason();
+                        }}
+                      />
+                    )}
+                  </Each>
+                  <CinemaStageAction
+                    label={
+                      tv
+                        ? layer() === 'seek-preview'
+                          ? '确认播放位置'
+                          : '显示播放控制'
+                        : paused()
+                          ? '播放画面'
+                          : '暂停画面'
+                    }
+                    showPlay={!tv && paused() && !buffering() && !completed() && !error()}
+                    disabled={tv ? layer() !== 'hidden' && layer() !== 'seek-preview' : !enabled()}
+                    buttonRef={(ref) => {
+                      stageRef = ref;
+                    }}
+                    onPress={
+                      tv ? (layer() === 'seek-preview' ? confirmPreview : showControls) : toggle
+                    }
+                  />
+                  <If when={preparing() || buffering() || error() || completed()}>
+                    <View class="absolute inset-0 items-center justify-center bg-cinema/70 gap-4 p-5">
+                      <CinemaText variant="title">
+                        {error()
+                          ? '播放遇到问题'
+                          : completed()
+                            ? '本集已播完'
+                            : preparing()
+                              ? '正在准备播放…'
+                              : '正在缓冲…'}
+                      </CinemaText>
+                      <If when={error()}>
+                        <CinemaText>{error()}</CinemaText>
+                        <Controls label="播放恢复">
+                          <CinemaButton label="重试" onPress={refresh} />
+                          <CinemaButton
+                            testID="player-error-back"
+                            label={props.store.backLabel()}
+                            icon="back"
+                            onPress={leave}
+                          />
+                        </Controls>
                       </If>
-                      <If when={seasons.nextStatus()}>
-                        <CinemaText>{seasons.nextStatus()}</CinemaText>
+                      <If when={completed() && !next()}>
+                        <If when={seasons.nextLoading()}>
+                          <CinemaText>正在加载下一季…</CinemaText>
+                        </If>
+                        <If when={seasons.nextStatus()}>
+                          <CinemaText>{seasons.nextStatus()}</CinemaText>
+                        </If>
+                        <If when={seasons.nextError()}>
+                          <CinemaText>{seasons.nextError()}</CinemaText>
+                          <CinemaButton
+                            testID="player-next-season-retry"
+                            label="重试下一季"
+                            onPress={() => void nextSeason(true)}
+                          />
+                        </If>
+                        <CinemaButton label="重新播放" icon="play" onPress={toggle} />
                       </If>
-                      <If when={seasons.nextError()}>
-                        <CinemaText>{seasons.nextError()}</CinemaText>
-                        <CinemaButton
-                          testID="player-next-season-retry"
-                          label="重试下一季"
-                          onPress={() => void nextSeason(true)}
-                        />
-                      </If>
-                      <CinemaButton label="重新播放" icon="play" onPress={toggle} />
-                    </If>
-                  </View>
-                </If>
-              </View>
+                    </View>
+                  </If>
+                </View>
+              </CinemaStage>
               <CinemaControls
                 visible={!tv || layer() !== 'hidden'}
-                variant={tv ? 'overlay' : 'bar'}
+                variant={tv ? 'overlay' : 'band'}
               >
                 <If when={tv}>
                   <View class="flex-row items-center justify-between">
@@ -879,7 +835,13 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                         {props.drama.episode_count ?? props.drama.episodes?.length ?? 0} 集
                       </CinemaText>
                     </View>
-                    <CinemaButton label="返回" icon="back" onPress={leave} />
+                    <BackButton
+                      testID="player-controls-back"
+                      tone="cinema"
+                      label={props.store.backLabel()}
+                      style={{ alignSelf: 'center' }}
+                      onPress={leave}
+                    />
                   </View>
                 </If>
                 <If when={layer() === 'seek-preview'}>
@@ -1019,57 +981,68 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       onPress={() => more.set(true)}
                     />
                   </If>
-                  <If when={!tv}>
+                  <If when={!tv && !!window}>
+                    {/* The web has no window mode and the host exposes no element fullscreen, so
+                        the button is absent rather than drawn permanently disabled. */}
                     <CinemaButton
+                      testID="player-fullscreen"
                       label={fullScreen() ? '退出全屏' : '全屏'}
                       icon="fullscreen"
                       iconOnly
-                      disabled={!window}
+                      buttonRef={(ref) => {
+                        fullScreenRef = ref;
+                      }}
                       onPress={fullscreen}
                     />
                   </If>
                 </View>
               </CinemaControls>
             </View>
+            <If when={!tv && !fullScreen()}>
+              <View style={{ paddingTop: 16, gap: 12 }}>
+                <If when={!tv}>
+                  <View
+                    class="gap-1"
+                    accessible
+                    accessibilityLabel={`${props.drama.title} · 第 ${props.episode.index} 集`}
+                  >
+                    <CinemaText variant="stage">{props.drama.title}</CinemaText>
+                    <CinemaText>{playbackMeta()}</CinemaText>
+                  </View>
+                </If>
+                <PlayerActions
+                  store={props.store}
+                  drama={props.drama}
+                  episode={props.episode}
+                  active={active}
+                />
+              </View>
+            </If>
             <If when={props.store.warning()}>
               <Notice error message={props.store.warning()} retry={session.retry} />
             </If>
           </View>
         </Scroll>
         <If when={!tv && !fullScreen()}>
-          <EpisodeRail>
-            <View class="p-5 gap-5 flex-1">
-              <Text
-                testID="player-episodes-title"
-                role="header"
-                accessibilityLevel={2}
-                class="text-xl font-semibold text-foreground"
-              >
-                选集
-              </Text>
-              <SeasonEpisodes
-                seasons={seasons}
-                detail={seasonDetail}
-                drama={props.drama}
-                episode={props.episode}
-                target={props.store.target}
-                playingId={playingId()}
-                resume={props.store.resume}
-                onBrowse={cancelSuccessor}
-                onSelect={selectEpisode}
-              />
-            </View>
-          </EpisodeRail>
+          <PlayerEpisodeRail
+            seasons={seasons}
+            detail={seasonDetail}
+            drama={props.drama}
+            episode={props.episode}
+            playingId={playingId()}
+            resume={props.store.resume}
+            onBrowse={cancelSuccessor}
+            onSelect={selectEpisode}
+          />
         </If>
       </View>
-      <EpisodePanel open={panel()} onClose={closePanel}>
+      <EpisodePanel open={panel()} onClose={closePanel} cinema>
         <View class="flex-row items-center justify-between">
-          <Text role="header" accessibilityLevel={2} class="text-xl font-semibold text-foreground">
-            选集
-          </Text>
-          <Button label="关闭选集" icon="close" iconOnly compact onPress={closePanel} />
+          <CinemaText variant="title">选集</CinemaText>
+          <CinemaButton label="关闭选集" icon="close" iconOnly onPress={closePanel} />
         </View>
         <SeasonEpisodes
+          cinema
           seasons={seasons}
           detail={seasonDetail}
           drama={props.drama}

@@ -41,14 +41,15 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | foundation                                          | `controlMetrics(size)`、`space(name)`、`radius(name)`、`border`；数值来自 app 的主题文件（桌面 `theme.json`／TV `theme.tv.json`），名称与使用规则见 [DESIGN](../../DESIGN.md) |
 | icon / assets/lucide                                | 官方 Lucide 资源、稳定语义别名、原生渲染                                                                                                                                      |
-| button                                              | Button／IconButton，有限 variant 与 size                                                                                                                                      |
+| button                                              | Button／IconButton，有限 variant 与 size；`navigation` 变体让当前目的地保持 foreground、其余降一档                                                                            |
+| back-button                                         | 页面级返回：箭头加目的地名，无静止表面，页面／影院两档色调                                                                                                                    |
 | text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                                                                                                                            |
 | select / checkbox / switch                          | 受控选择、复选与开关；开关支持隐藏可视标签并按端缩放                                                                                                                          |
-| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）                                                                                                                                    |
+| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）；Tabs 的标签由 `UiText` 绘制，未选中项使用 muted 色调                                                                              |
 | overlay                                             | Dialog／Confirm／SidePanel、Menu／Popover、提示、操作栏、折叠、链接                                                                                                           |
 | display / frequent                                  | 字级、静态表面、反馈与高频基础组合                                                                                                                                            |
 | settings-row / settings-section                     | 设置行与分区：分隔列表或独立卡片，控件和值由调用方提供                                                                                                                        |
-| content / player                                    | 既有内容与影院控件的兼容组合                                                                                                                                                  |
+| content / player                                    | 既有内容与影院控件：`CinemaStage`（竖片居中＋同图模糊补边）、`CinemaControls` 的 bar／band／overlay、`CinemaEpisodeButton`、影院变体的 `EpisodeRange`／`EpisodeRail`          |
 | card-controls / select-focus / focused-removal-root | 已有宿主焦点问题的内部适配                                                                                                                                                    |
 | dev / test                                          | 显式验收入口和行为测试，不挂载到产品路由                                                                                                                                      |
 
@@ -115,6 +116,26 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 ```
 
 已知页数的样例在 Gallery 的“已知页数／紧凑分页／分页禁用”，单页开关验证不足 2 页时不渲染；行为回归在 `ui:test` 的 composition recipes。未知总数和游标追加仍由 `Button` 的 pending／`displayLabel` 或列表加载状态承接，不把“加载更多”伪装成总页数，也不代替产品自己的滚动锚点与返回恢复。
+
+### ActionRow
+
+包根导出 `ActionRow`／`ActionRowProps`，承接整行目的地或命令：名称在起始端，箭头在末端，整行是唯一的输入目标，行内没有第二个可聚焦动作。`label` 同时是可见文字和无障碍名称，可选 `description` 作为第二行并进入无障碍说明，`trailingIcon` 默认 `forward`，`divided` 画与上一行之间的 hairline，`disabled` 降为 `muted-foreground` 且不可激活；`buttonRef`／`testID`／`onFocus` 用于定位与来源恢复，导航、请求和权限判断仍由调用方负责。
+
+几何读主题：最小高度为 `controlMetrics().height + space('sm')`（桌面 52，TV 更高），名称用 `body`、说明用 `meta`，悬停 `muted`、按下 `border`、焦点为独立外环，颜色过渡读取 fast token 且减少动态时关闭。它替代的是“带尾箭头的导航行”这一类重复手写 View，不是新的列表虚拟化；成组使用时由调用方放进 `AccountCard` 或平台组合，并按需要传 `divided`。
+
+```tsx
+<ActionRow label="观看记录" divided onPress={() => openLibrary('history')} />
+```
+
+产品中的首个用途是账号页的“我的内容”与“本机片库／我的片库”行；同一页面在 TV 960×540 的折叠高度下改用 `CardControls` 的按钮带承载相同目的地，两处共享同一份组合与文案。
+
+### BackButton
+
+包根导出 `BackButton`／`BackButtonProps`／`BackButtonTone`，承接页面级返回入口，不持有路由、历史或请求。受控输入只有 `label`（同时作为可见文字和无障碍名称，由调用方按真实目标命名，如“返回发现”“返回详情”）和 `onPress`；`tone` 取 `page`（默认）或 `cinema`，`size` 取 `sm`／`md`／`lg`，`disabled`、`testID`、`buttonRef`、`onFocus` 与布局用 `class`／`style` 按通用约定。
+
+外观固定为前导 `arrow-left` 加目的地名，不开放变体：静止态无表面和边界，悬停／按下沿用 `Button quiet` 的 `muted`／`border` 底色（影院语境换成 `cinema-hover`／`cinema-active`）；箭头本身对齐页面文字轴（左侧不设内距），因此放在内容列第一行即可与下方正文同轴，不需要页面另开返回栏或在页面里覆盖内距。文字色：普通页面 `foreground`，`cinema` 用 `cinema-muted`，禁用用 `muted-foreground`（影院为 `cinema-muted`）。焦点沿用 `Button` 的独立外环（影院语境用 `cinema-focus`），减少动态效果时取消颜色过渡。默认 `alignSelf: flex-start`，在居中排布的行里由调用方传 `style={{ alignSelf: 'center' }}`。
+
+宿主、路由栈与返回后恢复由 app 负责：调用方决定目标、按导航栈生成标签，并保证弹层内的关闭动作不使用本组件。样例见 Gallery“导航与内容组织”的返回行与影院色调一行；`ui:test` 的 composition recipes 覆盖两档色调的激活与可访问名称。
 
 ### PosterCard 的可用高度
 

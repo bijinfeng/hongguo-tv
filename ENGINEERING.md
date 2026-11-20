@@ -150,6 +150,8 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 
 `verify` 不默认要求其他操作系统的 SDK。CI 汇聚所有支持目标的结果，才构成全产品门禁。pnpm workspace 的拓扑排序只管理 JS 包图；Rust 编译、契约导出与 NSH 类型生成的先后依赖由小型编排脚本显式处理。
 
+`check`、`build`、`test` 中的各端 NSH 调用按端并行：三端各有独立的 fixtures、端口、临时存储与 `.nsh` 产物，不存在共享状态。每端的输出在结束时整段打印，失败仍带完整日志并让阶段以非零退出；任一端失败不影响其余端跑完，最终汇总报出失败项。Rust 侧只跑一次 Clippy 驱动类型检查，不再先跑一遍 `cargo check` 重复编译同一批产物。单端可用 `--target` 只跑该端。改动门禁编排后须实测一次全量 `pnpm verify` 确认总时长与并行前的用例数一致。
+
 ## 7. Git 与协作
 
 目标采用短期功能分支与PR合并；当前分支／提交状态以Git为准，不根据早期提案改名。是否提交、推送、合并或发布遵守用户授权，不从流程建议推导授权。
@@ -160,9 +162,9 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 | hooks          | Lefthook，显式安装；统一调度 JS/Rust/Android 检查                 |
 | pre-commit     | 首方工作区的只读格式/lint/契约检查；排除第三方与生成目录          |
 | commit-msg     | commitlint + Conventional Commits                                 |
-| pre-push       | 运行完整 verify；跨系统与真机矩阵由 CI/验收保证                   |
+| pre-push       | 只读格式/lint/契约检查；完整 verify 在批次冻结时执行              |
 | PR             | 模板包含问题/结果、影响端、验证证据、迁移与回滚                   |
-| 合并           | 受保护主分支，至少一位人工 reviewer，必需 CI，通过后 squash merge |
+| 合并           | 受保护 master：必须 PR、required 必过、禁强推与删除，squash merge |
 | 提交与发布历史 | 校验 squash PR 标题；统一产品版本、按端记录 changelog             |
 | 代码责任       | CODEOWNERS 映射真实维护者；共享契约/上游更新/原生边界需对应审查   |
 

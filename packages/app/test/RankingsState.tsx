@@ -212,7 +212,12 @@ function RankingsLayoutFixture(props: { target: ProductTarget }) {
       panels: Array.from({ length: 32 }, (_, index) => ({
         type: `group-${index}`,
         label: `具名筛选组${index}`,
-        options: [option(`choice-${index}`, `筛选值${index}`, true)],
+        // The last group carries a real alternative as well as its default: a selector has no
+        // change to report while the chosen value is the one already shown.
+        options:
+          index === 31
+            ? [option(`choice-${index}`, `筛选值${index}`, true), option('choice-31b', '筛选值31B')]
+            : [option(`choice-${index}`, `筛选值${index}`, true)],
       })),
     },
   ];

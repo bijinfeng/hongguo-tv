@@ -91,6 +91,63 @@ export function registerUpdateTests() {
     await app.waitFor('text:phase:checking');
     expect(app.texts().some((value) => value.includes('check-2'))).toBe(true);
   });
+  test('desktop stages a checked update so quitting installs it and an early restart stays optional', async () => {
+    const app = await open('./UpdatesStatePreview.tsx', {
+      host: { params: { desktop: true } },
+      clock: {},
+    });
+    await app.waitFor('text:phase:checking');
+    await app.press('完成检查');
+    await app.waitFor('text:phase:available');
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('text:phase:downloading');
+    await app.press('完成下载');
+    await app.waitFor('text:phase:ready');
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('text:phase:saveError');
+    await app.press('允许保存');
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('text:phase:staged');
+    expect(app.shows('退出应用后完成更新')).toBe(true);
+    // A staged update is already promised: no second check, no second install.
+    await app.press('重复检查');
+    expect(app.texts().some((value) => value.includes('check-2'))).toBe(false);
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('text:phase:installing');
+    expect(app.texts().some((value) => value.includes('restart'))).toBe(true);
+    await app.press('实际版本匹配');
+    await app.wait(800);
+    await app.waitFor('text:phase:success');
+    expect(app.shows('应用已更新')).toBe(true);
+  });
+  test('a failed immediate restart keeps the staged update and reports it honestly', async () => {
+    const app = await open('./UpdatesStatePreview.tsx', {
+      host: { params: { desktop: true, ready: true, restartFailure: true } },
+      clock: {},
+    });
+    await app.waitFor('text:phase:ready');
+    await app.press('允许保存');
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('text:phase:staged');
+    await app.press('id:navigation-primary-update');
+    await app.waitUntil(() =>
+      app.texts().some((value) => value.includes('更新仍会在退出应用后完成')),
+    );
+    expect(app.shows('text:phase:staged')).toBe(true);
+  });
+  test('an update that never took effect is shown once instead of the latest state', async () => {
+    const app = await open('./UpdatesStatePreview.tsx', {
+      host: { params: { interrupted: true } },
+      clock: {},
+    });
+    await app.waitFor('text:phase:interrupted');
+    expect(app.shows('上次更新未完成')).toBe(true);
+    // The receipt is consumed: checking again is an ordinary check, not another warning.
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('text:phase:checking');
+    await app.press('完成检查');
+    await app.waitFor('text:phase:available');
+  });
   test('updates retry failed checks, cancel partial downloads and offer manual release download', async () => {
     const app = await open('./UpdatesStatePreview.tsx', { clock: {} });
     await app.waitFor('text:phase:checking');

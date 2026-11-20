@@ -1,5 +1,5 @@
 import { Scroll, Text, View, cleanup, effect, signal, announce, type ViewRef } from 'nsh';
-import { Button, ContentArrival, DownloadProgress } from '@hongguo/ui';
+import { BackButton, Button, ContentArrival, DownloadProgress } from '@hongguo/ui';
 import type { Updates, UpdatePhase } from '../updates';
 
 const titles: Record<UpdatePhase, string> = {
@@ -13,6 +13,9 @@ const titles: Record<UpdatePhase, string> = {
   cancelling: '正在取消下载',
   ready: '更新已准备好',
   saving: '正在保存观看进度',
+  staging: '正在准备安装',
+  staged: '退出应用后完成更新',
+  interrupted: '上次更新未完成',
   installing: '等待更新完成',
   permission: '需要允许安装应用',
   success: '应用已更新',
@@ -24,6 +27,9 @@ const titles: Record<UpdatePhase, string> = {
 export function UpdatesPage(props: {
   updates: Updates;
   tv: boolean;
+  /** The destination this page returns to, named by the shell that owns the route. */
+  backLabel: string;
+  onBack: () => void;
   active?: boolean;
   focusGuard?: () => () => boolean;
 }) {
@@ -33,9 +39,15 @@ export function UpdatesPage(props: {
   });
   let primary: ViewRef | undefined;
   const busy = () =>
-    ['initializing', 'checking', 'downloading', 'cancelling', 'saving', 'installing'].includes(
-      state.phase(),
-    );
+    [
+      'initializing',
+      'checking',
+      'downloading',
+      'cancelling',
+      'saving',
+      'staging',
+      'installing',
+    ].includes(state.phase());
   const pendingFocus = signal<(() => boolean) | undefined>(props.focusGuard?.() ?? (() => true));
   let frame = 0;
   effect(() => {
@@ -59,20 +71,23 @@ export function UpdatesPage(props: {
       case 'ready':
       case 'installError':
       case 'saveError':
-        return props.tv ? '安装更新…' : '重启更新';
+        return props.tv ? '安装更新…' : '准备安装';
+      case 'staged':
+        return '立即重启更新';
       case 'permission':
         return '前往设置…';
       case 'manual':
         return '前往下载页面…';
       case 'success':
       case 'latest':
+      case 'interrupted':
         return '再次检查';
       default:
         return busy() ? titles[state.phase()] : '检查更新';
     }
   };
   const act = () => {
-    if (!['permission', 'manual'].includes(state.phase()))
+    if (!['permission', 'manual', 'staged'].includes(state.phase()))
       pendingFocus.set(props.focusGuard?.() ?? (() => true));
     switch (state.phase()) {
       case 'available':
@@ -83,6 +98,9 @@ export function UpdatesPage(props: {
       case 'installError':
       case 'saveError':
         void state.install();
+        break;
+      case 'staged':
+        void state.restart();
         break;
       case 'permission':
         void state.permission();
@@ -97,6 +115,7 @@ export function UpdatesPage(props: {
   return (
     <Scroll class="flex-1">
       <ContentArrival class={props.tv ? 'gap-8 py-8' : 'gap-8 px-10 py-6 max-w-4xl'}>
+        <BackButton testID="updates-back" label={props.backLabel} onPress={props.onBack} />
         <Text
           class="text-2xl font-semibold text-foreground"
           style={props.tv ? { fontSize: 18 } : undefined}
@@ -141,6 +160,22 @@ export function UpdatesPage(props: {
               style={props.tv ? { fontSize: 12 } : undefined}
             >
               在系统设置中允许红果安装应用，返回后继续安装
+            </Text>
+          </If>
+          <If when={state.phase() === 'staged'}>
+            <Text
+              class="text-base text-muted-foreground"
+              style={props.tv ? { fontSize: 12 } : undefined}
+            >
+              更新已校验；退出应用时安装，下次打开即为新版本
+            </Text>
+          </If>
+          <If when={state.phase() === 'interrupted'}>
+            <Text
+              class="text-base text-muted-foreground"
+              style={props.tv ? { fontSize: 12 } : undefined}
+            >
+              之前准备的更新未能安装，当前仍是原版本
             </Text>
           </If>
           <View class="items-start gap-4">

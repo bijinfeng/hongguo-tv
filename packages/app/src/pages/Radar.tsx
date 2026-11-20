@@ -33,6 +33,25 @@ const growthColumns: RadarTableColumn[] = [
   { key: 'd_fav', title: '收藏增量', numeric: true },
   { key: 'd7_hot', title: '7日热度增量', numeric: true },
 ];
+/**
+ * A 960×540 TV window cannot show eight full numeric columns without clipping the numbers it
+ * exists to compare. TV therefore keeps the ranking identity plus the columns that answer
+ * "what is it now" (snapshot) or "what moved" (growth); the desktop table keeps the full set.
+ */
+const tvSnapshotColumns: RadarTableColumn[] = [
+  { key: 'rank', title: '名次', numeric: true },
+  { key: 'title', title: '短剧' },
+  { key: 'type', title: '类型' },
+  { key: 'hot', title: '热度', numeric: true },
+  { key: 'd_hot', title: '热度增量', numeric: true },
+];
+const tvGrowthColumns: RadarTableColumn[] = [
+  { key: 'rank', title: '排序', numeric: true },
+  { key: 'title', title: '短剧' },
+  { key: 'hot', title: '热度', numeric: true },
+  { key: 'r_hot', title: '增长率', numeric: true },
+  { key: 'd7_hot', title: '7日热度增量', numeric: true },
+];
 
 export function Radar(props: {
   radar: RadarController;
@@ -92,7 +111,7 @@ export function Radar(props: {
   const listed = () => !!selectedBranch() && rows().length > 0;
   const tv = props.target === 'tv';
   return (
-    <View testID="radar-page" class="flex-1 min-h-0 gap-4">
+    <View testID="radar-page" class="flex-1 min-h-0" style={{ gap: tv ? 12 : 16 }}>
       <RadarToolbar
         radar={props.radar}
         target={props.target}
@@ -192,7 +211,15 @@ export function Radar(props: {
         <ContentArrival class="flex-1 min-h-0">
           <RadarTable
             focusMode={props.target === 'tv' ? 'row' : 'cell'}
-            columns={props.radar.view() === 'snapshot' ? snapshotColumns : growthColumns}
+            columns={
+              props.radar.view() === 'snapshot'
+                ? tv
+                  ? tvSnapshotColumns
+                  : snapshotColumns
+                : tv
+                  ? tvGrowthColumns
+                  : growthColumns
+            }
             rows={rows()}
             selected={props.radar.selected()}
             pending={props.radar.pending()}

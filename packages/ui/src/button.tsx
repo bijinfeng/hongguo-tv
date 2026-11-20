@@ -4,6 +4,7 @@ import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
 import { Icon, type IconName } from './icon';
 import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
+import { textLineHeightRatio } from './typography';
 
 /** Limited visual hierarchy. Navigation remains a compatibility variant. */
 export type ButtonVariant = 'default' | 'primary' | 'quiet' | 'destructive' | 'navigation';
@@ -77,6 +78,10 @@ export function Button(props: ButtonProps) {
         return 'primary-foreground';
       case 'destructive':
         return 'destructive';
+      // Navigation reads as a rail: the current destination carries the foreground, every other
+      // entry stays one tier down, as the draft's nav item does.
+      case 'navigation':
+        return props.current ? 'foreground' : 'muted-foreground';
       default:
         return 'foreground';
     }
@@ -157,6 +162,9 @@ export function Button(props: ButtonProps) {
           <Text
             style={{
               fontSize: size().fontSize,
+              // The type scale's 1.5 ratio, so a label sits on the control's centre line: with
+              // `normal` metrics the text box lands one point high inside a fixed-height control.
+              lineHeight: Math.round(size().fontSize * textLineHeightRatio('body')),
               fontWeight: strongLabel() ? weight.strong() : weight.regular(),
               color: token(tone()),
               flexShrink: dropdown() || props.labelLines ? 1 : undefined,

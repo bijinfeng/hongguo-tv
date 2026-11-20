@@ -1,5 +1,6 @@
 import {
   Canvas,
+  Image,
   Text,
   View,
   createMotion,
@@ -34,21 +35,29 @@ export function CinemaButton(props: {
   /** Transparent resting fill for dismissive actions such as closing the player. */
   quiet?: boolean;
   disabled?: boolean;
+  pending?: boolean;
   selected?: boolean;
+  /** Bounded visible label; the accessible name stays `label`. */
+  displayLabel?: string;
+  /** A list trigger: the chevron trails the label instead of leading it. */
+  dropdown?: boolean;
   onPress: () => void;
   buttonRef?: (ref: ViewRef) => void;
   testID?: string;
 }) {
   const enabled = CinemaEnabled();
+  const blocked = () => props.disabled || props.pending || !enabled();
   return (
     <Button
       ref={(ref) => props.buttonRef?.(ref)}
       testID={props.testID}
-      accessibilityLabel={props.label}
+      accessibilityLabel={props.pending ? `${props.label}，处理中` : props.label}
       tooltip={props.iconOnly ? props.label : undefined}
-      disabled={props.disabled || !enabled()}
+      disabled={blocked()}
       selected={props.selected}
-      onPress={props.onPress}
+      onPress={() => {
+        if (!blocked()) props.onPress();
+      }}
       style={{
         minHeight: controlMetrics().height,
         minWidth: props.iconOnly ? controlMetrics().height : undefined,
@@ -59,21 +68,24 @@ export function CinemaButton(props: {
         borderRadius: controlMetrics().radius,
         gap: controlMetrics().gap,
       }}
-      class={`flex-row items-center justify-center border border-transparent ${props.quiet ? 'bg-transparent' : 'bg-cinema-control'} hover:bg-cinema-hover active:bg-cinema-active focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
+      class={`flex-row items-center justify-center border border-transparent ${props.quiet || blocked() ? 'bg-transparent' : 'bg-cinema-control'} ${blocked() ? '' : 'hover:bg-cinema-hover active:bg-cinema-active'} focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() || blocked() ? '' : 'transition-colors duration-100'}`}
     >
-      <If when={props.icon}>
+      <If when={props.icon && !props.dropdown}>
         <Icon
-          name={props.icon!}
-          color={token(props.disabled || !enabled() ? 'cinema-muted' : 'cinema-foreground')}
+          name={props.pending ? 'loader-circle' : props.icon!}
+          color={token(blocked() ? 'cinema-muted' : 'cinema-foreground')}
         />
       </If>
       <If when={!props.iconOnly}>
         <Text
           style={{ fontSize: controlMetrics().fontSize }}
-          class={props.disabled || !enabled() ? 'text-cinema-muted' : 'text-cinema-foreground'}
+          class={blocked() ? 'text-cinema-muted' : 'text-cinema-foreground'}
         >
-          {props.label}
+          {props.pending ? (props.displayLabel ?? '处理中…') : (props.displayLabel ?? props.label)}
         </Text>
+      </If>
+      <If when={props.icon && props.dropdown}>
+        <Icon name={props.icon!} color={token('cinema-muted')} />
       </If>
     </Button>
   );
@@ -207,14 +219,21 @@ export function CinemaSelect(props: {
 
 /**
  * The gradient overlay is for legibility over moving picture, not decoration.
- * `variant="overlay"` lays the controls over the picture; `bar` stacks them below it.
+ * `overlay` lays the controls over the picture; `band` is the strip below it, joined to the
+ * picture by the hairline. Without a variant the strip is plain, on the dark surface the caller
+ * already owns.
+ *
+ * Padding and type stay on the surface's tokens rather than the TV prototype's 1920 points
+ * (80/32 padding, title 36, time 22): DESIGN's typography gives every target one scale, and the
+ * TV theme already carries those roles as 960 dp values.
  */
 export function CinemaControls(props: {
   children?: JSX.Element;
   visible?: boolean;
-  variant?: 'bar' | 'overlay';
+  variant?: 'band' | 'overlay';
 }) {
   const overlay = () => props.variant === 'overlay';
+  const band = () => props.variant === 'band';
   const motion = createMotion();
   const shown = signal(props.visible !== false);
   let revision = 0;
@@ -238,7 +257,15 @@ export function CinemaControls(props: {
         style={{ opacity: motion.opacity }}
         accessibilityElementsHidden={props.visible === false}
         disabled={props.visible === false}
-        class={!shown() ? 'hidden' : overlay() ? 'absolute bottom-0 left-0 right-0' : 'bg-cinema'}
+        class={
+          !shown()
+            ? 'hidden'
+            : overlay()
+              ? 'absolute bottom-0 left-0 right-0'
+              : band()
+                ? 'bg-cinema border-t border-cinema-active'
+                : 'bg-cinema'
+        }
       >
         <If when={overlay()}>
           <Canvas
@@ -269,19 +296,28 @@ export function CinemaControls(props: {
 
 export function CinemaText(props: {
   children?: JSX.Element;
-  variant?: 'title' | 'time' | 'preview';
+  variant?: 'title' | 'stage' | 'time' | 'preview';
+  testID?: string;
 }) {
   return (
     <Text
+      testID={props.testID}
+      role={props.variant === 'stage' ? 'header' : undefined}
+      accessibilityLevel={props.variant === 'stage' ? 1 : undefined}
       class={props.variant === 'title' ? 'line-clamp-2' : ''}
       style={{
         fontSize:
-          props.variant === 'title'
-            ? textSize('title')
-            : props.variant === 'preview'
-              ? textSize('body')
-              : textSize('meta'),
-        fontWeight: props.variant === 'title' ? textWeight('title') : textWeight('meta'),
+          props.variant === 'stage'
+            ? textSize('page')
+            : props.variant === 'title'
+              ? textSize('title')
+              : props.variant === 'preview'
+                ? textSize('body')
+                : textSize('meta'),
+        fontWeight:
+          props.variant === 'stage' || props.variant === 'title'
+            ? textWeight('section')
+            : textWeight('meta'),
         color: token(props.variant === 'time' ? 'cinema-muted' : 'cinema-foreground'),
       }}
     >
@@ -305,7 +341,7 @@ export function EpisodePanel(props: {
       }}
       popupClass={props.cinema ? 'bg-cinema' : 'bg-popover'}
       popupStyle={{ width: Math.min(440, windowSize().width) }}
-      backdropClass="bg-cinema/60"
+      backdropClass="bg-cinema/40"
     >
       <View
         role="dialog"
@@ -352,6 +388,64 @@ export function CinemaStageAction(props: {
   );
 }
 
+/**
+ * One episode target on the dark rail. It carries the same selected/disabled/locked semantics as
+ * the light `Button episode="player"`, in the cinema pairing, so the rail never re-skins itself.
+ */
+export function CinemaEpisodeButton(props: {
+  index: number;
+  label: string;
+  selected?: boolean;
+  locked?: boolean;
+  disabled?: boolean;
+  testID?: string;
+  onPress: () => void;
+}) {
+  const enabled = CinemaEnabled();
+  const blocked = () => !!props.disabled || !!props.locked || !enabled();
+  const tone = () =>
+    blocked() ? 'cinema-muted' : props.selected ? 'primary-foreground' : 'cinema-foreground';
+  return (
+    <Button
+      testID={props.testID}
+      accessibilityLabel={props.label}
+      disabled={blocked()}
+      selected={props.selected}
+      onPress={() => {
+        if (!blocked()) props.onPress();
+      }}
+      style={{
+        minHeight: controlMetrics().height,
+        paddingHorizontal: controlMetrics().gap,
+        paddingVertical: controlMetrics().paddingVertical,
+        borderRadius: controlMetrics().radius,
+        gap: controlMetrics().gap,
+      }}
+      class={`flex-row items-center justify-center border focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 ${reduceMotion() ? '' : 'transition-colors duration-100'} ${
+        props.selected
+          ? 'bg-primary border-transparent'
+          : blocked()
+            ? 'bg-transparent border-cinema-active'
+            : 'bg-cinema-control border-cinema-active hover:bg-cinema-hover active:bg-cinema-active'
+      }`}
+    >
+      <If when={props.locked}>
+        <Icon name="lock" color={token('cinema-muted')} size="sm" />
+      </If>
+      <Text
+        style={{
+          fontSize: controlMetrics('sm').fontSize,
+          fontWeight: props.selected ? weight.strong() : weight.regular(),
+          color: token(tone()),
+          fontVariant: ['tabular-nums'],
+        }}
+      >
+        {String(props.index).padStart(2, '0')}
+      </Text>
+    </Button>
+  );
+}
+
 export function CinemaSettingRow(props: { label: string; children?: JSX.Element }) {
   return (
     <View class="flex-row items-center" style={{ gap: space('md') }}>
@@ -363,17 +457,91 @@ export function CinemaSettingRow(props: { label: string; children?: JSX.Element 
   );
 }
 
-export function EpisodeRail(props: { children?: JSX.Element }) {
+/** The desktop rail's approved lane height; the episode grid scrolls inside it. */
+const RAIL_HEIGHT = 552;
+
+/**
+ * The rail's lane beside the picture. Its definite height is what lets the caller's
+ * `flex-1 min-h-0` chain resolve, so a long season scrolls within the lane instead of being
+ * clipped by the rail's own overflow and the title above the grid stays put.
+ */
+export function EpisodeRail(props: { children?: JSX.Element; cinema?: boolean }) {
   return (
     <View
-      class="shrink-0 bg-card border border-border overflow-hidden"
+      class={`shrink-0 overflow-hidden border ${props.cinema ? 'bg-cinema-control border-cinema-active' : 'bg-card border-border'}`}
       style={{
         width: Math.min(316, windowSize().width),
         minWidth: Math.min(280, windowSize().width),
-        height: Math.min(552, windowSize().height),
+        height: Math.min(RAIL_HEIGHT, windowSize().height),
         borderRadius: controlMetrics().radius,
       }}
     >
+      {props.children}
+    </View>
+  );
+}
+
+/**
+ * The picture's resting composition. A portrait frame is shown whole, contained in the stage's
+ * height; the side space takes a blurred, dimmed copy of the same poster rather than a second
+ * image or a bare black field. Without a poster (or after it fails) the stage keeps only the dark
+ * surface: a placeholder picture would be a claim the service did not make.
+ */
+export function CinemaStage(props: {
+  image?: string;
+  imageTitle: string;
+  /** Height of the picture area; the stage owns no aspect of its own. */
+  height: number;
+  children?: JSX.Element;
+}) {
+  const failed = signal(false);
+  effect(() => {
+    void props.image;
+    failed.set(false);
+  });
+  const showImage = () => !!props.image && !failed();
+  return (
+    <View
+      class="relative overflow-hidden bg-cinema justify-center items-center"
+      style={{ height: props.height, borderRadius: radius('xl') }}
+    >
+      <If when={showImage()}>
+        <View
+          accessibilityElementsHidden
+          class="absolute inset-0"
+          style={{
+            opacity: 0.62,
+            filter: 'blur(46px) saturate(1.2) brightness(0.42)',
+            scale: 1.25,
+          }}
+        >
+          <Image
+            src={props.image!}
+            onError={() => failed.set(true)}
+            class="w-full h-full"
+            style={{ objectFit: 'cover' }}
+          />
+        </View>
+        <View
+          class="h-full overflow-hidden"
+          style={{ aspectRatio: '2/3', borderRadius: radius('sm') }}
+        >
+          <Image
+            src={props.image!}
+            onError={() => failed.set(true)}
+            accessibilityLabel={`${props.imageTitle}封面`}
+            class="w-full h-full"
+            style={{ objectFit: 'contain' }}
+          />
+        </View>
+      </If>
+      <View
+        accessibilityElementsHidden
+        class="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(ellipse at 50% 45%, transparent 40%, #00000073)',
+        }}
+      />
       {props.children}
     </View>
   );

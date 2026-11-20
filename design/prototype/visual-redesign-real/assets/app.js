@@ -267,11 +267,11 @@
     return `<div class="back-row"><button class="btn ghost" data-route="home">${icon("arrow-left")}返回发现</button></div><section class="detail-hero" data-od-id="drama-detail"><div class="detail-cover" style="${T.posterStyle(d)}">${T.poster(d)}</div><div class="detail-copy"><h1>${d.title}</h1><div class="meta"><span>${d.genre} · ${d.tone}</span><span>${T.status(d)}</span></div><p class="synopsis">${d.description || "本次预览未收录该剧简介。"}</p>${actions(d)}</div></section><section class="content-panel" data-od-id="detail-episodes"><div class="panel-top"><h2>选集</h2><div class="row"><span class="small muted">片长与播放进度仅为演示</span>${season(d)}</div></div>${episodeButtons(d)}<p class="episode-meta">${d.status === "upcoming" ? "预约后可在「预约」中找到这部剧。" : "当前选中第 " + state.episode + " 集 · 点击剧集进入播放"}</p></section><section class="content-panel about-grid" data-od-id="story-information"><div><h3>故事简介</h3><p>${d.description || "本次预览未收录该剧简介。"}</p></div><div><h3>剧集信息</h3><dl><dt>内容性质</dt><dd>官网公开剧目</dd><dt>封面形式</dt><dd>官网海报 / 缺图中性占位</dd><dt>视频状态</dt><dd>仅模拟播放交互</dd></dl></div></section>${footer()}`;
   }
   function playerControls(d) {
-    return `<div class="player-controls" data-od-id="player-controls"><label><span class="sr-only">播放进度</span><input type="range" class="range" id="play-progress" min="0" max="${d.duration}" value="${state.position}"></label><div class="row"><button class="btn icon-btn" data-action="play-pause" aria-label="${state.playing ? "暂停" : "播放"}">${icon(state.playing ? "pause" : "play")}</button><button class="btn icon-btn" data-action="next-episode" aria-label="下一集">${icon("skip-forward")}</button><span class="time-code"><span id="current-time">${T.time(state.position)}</span> / ${T.time(d.duration)}</span><span class="spacer"></span><button class="btn icon-btn volume-button" data-action="mute" aria-label="${state.volume ? "静音" : "开启声音"}">${icon(state.volume ? "volume-2" : "volume-x")}</button><button class="btn compact" data-action="speed">1.0×</button><button class="btn compact" data-action="quality">高清</button><button class="btn icon-btn" data-action="theater" aria-label="影院模式">${icon("maximize")}</button></div></div>`;
+    return `<div class="player-controls watch-transport" data-od-id="player-controls"><label class="watch-progress"><span class="sr-only">播放进度</span><input type="range" class="range" id="play-progress" min="0" max="${d.duration}" value="${state.position}"></label><div class="row"><button class="btn ghost icon-btn" data-action="play-pause" aria-label="${state.playing ? "暂停" : "播放"}">${icon(state.playing ? "pause" : "play")}</button><button class="btn ghost icon-btn" data-action="next-episode" aria-label="下一集">${icon("skip-forward")}</button><span class="time-code"><span id="current-time">${T.time(state.position)}</span> / ${T.time(d.duration)}</span><span class="spacer"></span><button class="btn ghost icon-btn volume-button" data-action="mute" aria-label="${state.volume ? "静音" : "开启声音"}">${icon(state.volume ? "volume-2" : "volume-x")}</button><button class="btn ghost compact" data-action="speed">1.0×</button><button class="btn ghost compact" data-action="quality">高清</button><button class="btn ghost icon-btn" data-action="theater" aria-label="影院模式">${icon("maximize")}</button></div></div>`;
   }
   function player() {
     const d = T.get(state.drama);
-    return `<div class="back-row"><button class="btn ghost" data-route="detail">${icon("arrow-left")}返回详情</button></div><div class="player-layout" data-od-id="player-layout"><div><section class="player-canvas ${state.controls ? "" : "controls-hidden"}" data-od-id="cinema-player" tabindex="0" aria-label="模拟播放器，空格播放或暂停，方向键调整进度"><div class="player-scene" aria-hidden="true"><div class="scene-frame"></div></div><span class="scene-label">视觉样片 · 非真实视频</span><div class="scene-title">${d.title}</div>${!state.playing ? `<button class="center-play" data-action="play-pause" aria-label="开始模拟播放">${icon("play")}</button>` : ""}<button class="btn ghost icon-btn exit-theater hidden" data-action="theater" aria-label="退出影院模式">${icon("minimize")}</button>${playerControls(d)}</section><div class="player-below"><div><h1>${d.title}</h1><div class="meta"><span>${T.seasonName(d, state.season)} · 第 ${state.episode} 集</span><span>${d.genre}</span><span>${T.status(d)}</span></div></div><div class="row">${toggleButton("favorites", d.id, "收藏", "已收藏", "bookmark")}${toggleButton("following", d.id, "追更", "已追更", "bell")}${toggleButton("reservations", d.id, "预约后续", "已预约", "calendar-days")}</div></div><div class="player-status">空格 播放 / 暂停 · ← / → 调整进度 · Esc 退出影院</div><div class="notice">${icon("info")}<span>当前仅演示播放器视觉与控制，不加载真实视频。</span></div></div><aside class="player-side" data-od-id="player-episode-panel"><h3>选集</h3><span class="small muted">${T.status(d)}</span>${season(d)}${episodeButtons(d, true)}</aside></div>${footer()}`;
+    return `<div class="watch-page" data-od-id="player-page"><div class="watch-crumb"><button class="btn ghost" data-route="detail">${icon("arrow-left")}返回详情</button></div><div class="watch-layout" data-od-id="player-layout"><div class="watch-main"><section class="player-canvas watch-stage ${state.controls ? "" : "controls-hidden"}" data-od-id="cinema-player" tabindex="0" aria-label="模拟播放器，空格播放或暂停，方向键调整进度"><div class="watch-viewport"><div class="watch-bleed" aria-hidden="true">${T.poster(d)}</div><div class="watch-art" style="${T.posterStyle(d)}">${T.poster(d)}</div><span class="watch-tag">${icon("info")}视觉样片 · 非真实视频</span>${!state.playing ? `<button class="center-play watch-play" data-action="play-pause" aria-label="开始模拟播放">${icon("play")}</button>` : ""}<button class="btn ghost icon-btn exit-theater hidden" data-action="theater" aria-label="退出影院模式">${icon("minimize")}</button><div class="watch-caption"><h1>${d.title}</h1><div class="meta"><span>${T.seasonName(d, state.season)} · 第 ${state.episode} 集</span><span>${d.genre}</span><span>${T.status(d)}</span></div></div></div>${playerControls(d)}</section><div class="watch-actions"><div class="row">${toggleButton("favorites", d.id, "收藏", "已收藏", "bookmark")}${toggleButton("following", d.id, "追更", "已追更", "bell")}${toggleButton("reservations", d.id, "预约后续", "已预约", "calendar-days")}</div><span class="watch-hint">空格 播放 / 暂停 · ← / → 调整进度 · Esc 退出影院</span></div></div><aside class="watch-rail" data-od-id="player-episode-panel"><div class="rail-head"><h3>选集</h3><span class="small muted">${T.status(d)}</span></div>${season(d)}${episodeButtons(d, true)}</aside></div></div>${footer()}`;
   }
   const labels = {
     home: "发现",
@@ -381,6 +381,7 @@
                 ? account()
                 : library();
     $("#page-crumb") && ($("#page-crumb").textContent = labels[state.page]);
+    document.body.dataset.route = state.page;
     document.querySelectorAll("[data-route]").forEach((b) => {
       let on = b.dataset.route === state.page;
       b.classList.toggle("active", on);
@@ -388,6 +389,10 @@
         b.setAttribute("aria-current", on ? "page" : "false");
     });
     window.paintIcons?.();
+    if (state.page === "player") {
+      const progress = $("#play-progress");
+      if (progress) window.HongguoComponents?.syncRange(progress);
+    }
     if (state.page === "player" && state.playing) startTimer();
     if (keepFocus) {
       window.scrollTo(0, pos);
@@ -478,7 +483,10 @@
       const d = T.get(state.drama);
       state.position = Math.min(d.duration, state.position + 1);
       const r = $("#play-progress");
-      if (r) r.value = state.position;
+      if (r) {
+        r.value = state.position;
+        window.HongguoComponents?.syncRange(r);
+      }
       const tm = $("#current-time");
       if (tm) tm.textContent = T.time(state.position);
       saveProgress();
@@ -819,6 +827,7 @@
   document.addEventListener("input", (e) => {
     if (e.target.id === "play-progress") {
       state.position = Number(e.target.value);
+      window.HongguoComponents?.syncRange(e.target);
       $("#current-time").textContent = T.time(state.position);
       if (state.playing) saveProgress();
     }

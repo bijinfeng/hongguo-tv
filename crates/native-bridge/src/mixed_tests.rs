@@ -49,6 +49,26 @@ impl MountSink for Sink {
         let _ = self.0.send(Err(message.to_owned()));
     }
 }
+
+/// Remove a fixture directory, retrying briefly: the engine closes its files on its own thread,
+/// and Windows refuses to unlink a directory that still has an open handle. Every other platform
+/// succeeds on the first attempt, and a handle that never closes still fails the test rather than
+/// being swallowed.
+fn cleanup(dir: PathBuf) {
+    let mut last = None;
+    for _ in 0..20 {
+        match std::fs::remove_dir_all(&dir) {
+            Ok(()) => return,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
+            Err(error) => {
+                last = Some(error);
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
+    }
+    panic!("fixture directory {dir:?} was still locked after retrying: {last:?}");
+}
+
 fn run(scenario: &str, origin: &str, dir: Option<PathBuf>) -> Value {
     let (tx, rx) = mpsc::channel();
     let host = HostChannel::new();
@@ -100,7 +120,7 @@ async fn real_mixed_open_and_durable_library_use_host_directory() {
         .await
         .unwrap();
     assert_eq!(library.entries[0].position, Some(12.5));
-    std::fs::remove_dir_all(dir).unwrap();
+    cleanup(dir);
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn real_mixed_open_failure_preserves_original_database() {
@@ -114,19 +134,19 @@ async fn real_mixed_open_failure_preserves_original_database() {
         std::fs::read(app_dir.join("guest.sqlite3")).unwrap(),
         b"original invalid database"
     );
-    std::fs::remove_dir_all(dir).unwrap();
+    cleanup(dir);
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn real_mixed_pending_cancel_call_dispose_and_session_dispose_settle() {
     let fixture = Fixture::new(true).await;
     let dir = temp_dir();
     run("pending", &fixture.origin, Some(dir.clone()));
-    std::fs::remove_dir_all(dir).unwrap();
+    cleanup(dir);
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn real_mixed_ready_dispose_releases_and_accept_preserves_media() {
     let fixture = Fixture::new(false).await;
     let dir = temp_dir();
     run("media", &fixture.origin, Some(dir.clone()));
-    std::fs::remove_dir_all(dir).unwrap();
+    cleanup(dir);
 }

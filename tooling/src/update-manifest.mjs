@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { root } from './process.mjs';
 import { sha256Sums, verifyReleaseRecord } from './release.mjs';
 
-// NSH 0.5.1 224d9a7 nsh-updater::sign/verify; sign the original bytes, including whitespace.
+// NSH 0.6.0 5541637 nsh-updater::sign/verify; sign the original bytes, including whitespace.
 const context = Buffer.from('nsh-updater-manifest\0');
 const privatePrefix = Buffer.from('302e020100300506032b657004220420', 'hex');
 const publicPrefix = Buffer.from('302a300506032b6570032100', 'hex');

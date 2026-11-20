@@ -1056,8 +1056,18 @@ small,
 .back-row {
   margin: 0 0 16px;
 }
-.back-row .btn {
+/* One back recipe for every page: leading arrow, destination name, no resting surface, and the
+   glyph — not a padding box — sitting on the page's text axis. Hover keeps the quiet button's
+   muted wash; only the player's dark band drops it. The component board's `shared/controls.css`
+   carries the same recipe for `.ui-button.back-button`. */
+.back-row .btn,
+.watch-crumb .btn {
   padding-left: 0;
+  background: transparent;
+  border-color: transparent;
+}
+.watch-crumb .btn:hover:not(:disabled) {
+  background: transparent;
 }
 .detail-hero {
   display: grid;
@@ -1202,65 +1212,133 @@ small,
   max-width: 60ch;
   line-height: 1.9;
 }
-.player-layout {
+/* 播放页是一条完整的暗色观看带；进入播放路由时整屏外壳一起使用影院配色。 */
+body[data-route="player"] {
+  --bg: #000;
+  --surface: #131414;
+  --raised: #1d1e1e;
+  --hover: #292a2a;
+  --fg: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.58);
+  --border: rgba(255, 255, 255, 0.12);
+  background: #070808;
+}
+body[data-route="player"] .brand-logo-base {
+  filter: none;
+}
+body[data-route="player"] .brand-logo-color {
+  display: none;
+}
+.watch-page {
+  --watch-line: rgba(255, 255, 255, 0.13);
+  --watch-muted: rgba(255, 255, 255, 0.56);
+  --watch-fg: rgba(255, 255, 255, 0.93);
+  color: var(--watch-fg);
+  padding-bottom: 24px;
+}
+.watch-crumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0 12px;
+}
+.watch-crumb .btn {
+  color: var(--watch-muted);
+}
+.watch-crumb .btn:hover:not(:disabled) {
+  color: #fff;
+}
+.watch-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 316px;
   gap: 24px;
   align-items: start;
 }
+.watch-main {
+  min-width: 0;
+}
 .player-canvas {
-  aspect-ratio: 16/9;
   position: relative;
-  background: #090a0a;
-  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  background: #050606;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
   overflow: hidden;
+  isolation: isolate;
   color: oklch(0.94 0.012 85);
+}
+/* 画面高度跟随视口：画面、播控与操作在 1000 高视口内一屏放完。 */
+.watch-viewport {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  isolation: isolate;
+  height: clamp(320px, calc(100vh - 428px), 660px);
+  background: #000;
+  overflow: hidden;
 }
-.player-scene {
+/* 竖片按原始比例居中，两侧用同一海报的模糊放大层补足，不生成假画面。 */
+.watch-bleed {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(
-      ellipse at 53% 26%,
-      rgba(250, 119, 5, 0.14),
-      transparent 50%
-    ),
-    linear-gradient(135deg, #242525, #090a0a);
+  opacity: 0.62;
+  filter: blur(46px) saturate(1.2) brightness(0.42);
+  transform: scale(1.25);
+  pointer-events: none;
 }
-.scene-frame {
+.watch-viewport .watch-bleed .real-poster {
   position: absolute;
-  height: 76%;
-  width: 24%;
-  top: 0;
-  left: 43%;
-  border: 1px solid rgba(250, 119, 5, 0.2);
-  border-top: 0;
-  border-bottom: 0;
-  transform: skewY(-8deg);
-  background: linear-gradient(180deg, rgba(250, 119, 5, 0.1), transparent);
+  inset: 0;
+  aspect-ratio: auto;
+  background: transparent;
 }
-.scene-title {
-  font: 400 38px/1.5 var(--display-font);
-  letter-spacing: 0.15em;
+.watch-viewport .watch-bleed img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.9);
+}
+.watch-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+.watch-art {
   position: relative;
-  opacity: 0.72;
+  height: 100%;
+  flex: none;
+  overflow: hidden;
+  border-radius: 2px;
 }
-.scene-label {
+.watch-tag {
   position: absolute;
-  top: 22px;
-  left: 24px;
-  color: rgba(255, 255, 255, 0.5);
+  top: 14px;
+  left: 16px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.74);
   font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.watch-tag .icon {
+  width: 13px;
+  height: 13px;
 }
 .center-play {
   position: absolute;
   left: 50%;
   top: 50%;
+  z-index: 3;
   transform: translate(-50%, -50%);
   height: 66px;
   width: 66px;
@@ -1278,21 +1356,49 @@ small,
   width: 25px;
   height: 25px;
 }
-.player-canvas:not(.controls-hidden) .scene-title {
-  transform: translateY(-50px);
-}
-.player-controls {
+/* 标题与元信息叠在画面下沿的渐隐层上，不另占画面外的一整块高度。 */
+.watch-caption {
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  padding: 45px 20px 16px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.95));
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  gap: 7px;
+  padding: 0 22px 22px;
+  pointer-events: none;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.72);
+}
+.watch-caption::before {
+  content: "";
+  position: absolute;
+  inset: -140px 0 0;
+  z-index: -1;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82) 72%, rgba(0, 0, 0, 0.94));
+}
+.watch-caption h1 {
+  font: 400 clamp(22px, 1.9vw, 27px) / 1.4 var(--display-font);
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+.watch-caption .meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+}
+/* 播控条是画面下方的独立黑带：进度条在上、按钮一排在下，不遮住标题。 */
+.player-controls {
   transition: opacity 0.2s;
 }
-.controls-hidden .player-controls {
-  opacity: 0;
-  pointer-events: none;
+.watch-transport {
+  position: relative;
+  order: 2;
+  padding: 10px 16px 8px;
+  background: #0a0b0b;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.watch-transport .range {
+  display: block;
+  margin-bottom: 4px;
 }
 .player-controls .btn {
   color: oklch(0.96 0.01 85);
@@ -1321,8 +1427,49 @@ small,
   margin: 0;
   cursor: pointer;
 }
-.player-controls .range {
-  margin-bottom: 5px;
+.watch-transport .range {
+  appearance: none;
+  height: 20px;
+  background: transparent;
+}
+.watch-transport .range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0% var(--fill, 0%),
+    rgba(255, 255, 255, 0.26) var(--fill, 0%) 100%
+  );
+}
+.watch-transport .range::-moz-range-track {
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.26);
+}
+.watch-transport .range::-moz-range-progress {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.watch-transport .range::-webkit-slider-thumb {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+.watch-transport .range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #000;
+}
+.watch-transport .range:hover::-webkit-slider-thumb {
+  background: var(--accent-hover);
 }
 .player-controls .row {
   gap: 8px;
@@ -1330,54 +1477,100 @@ small,
 .player-controls .spacer {
   flex: 1;
 }
-.player-side {
-  background: var(--surface);
-  padding: 20px;
-  border-radius: 9px;
+.watch-play {
+  background: rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(6px);
+  border-color: rgba(255, 255, 255, 0.34);
 }
-.player-side .episodes {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.watch-play:hover {
+  background: rgba(0, 0, 0, 0.62);
 }
-.player-side .episode {
-  min-height: 42px;
-}
-.player-side h3 {
-  font-size: 17px;
-  margin-bottom: 6px;
-}
-.player-side .select {
-  width: 100%;
-  margin: 18px 0;
-}
-.player-below {
-  margin-top: 24px;
+.watch-actions {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
 }
-.player-below h1 {
-  font-size: 25px;
+.watch-actions .btn {
+  min-height: 40px;
+  padding-block: 8px;
 }
-.player-below .meta {
-  margin-top: 8px;
+.watch-actions .btn .icon {
+  width: 17px;
+  height: 17px;
 }
-.player-status {
-  padding: 12px 0;
+.watch-hint {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--watch-muted);
+}
+.watch-rail {
+  position: sticky;
+  top: 0;
+  padding: 18px 16px 16px;
+  border: 1px solid var(--watch-line);
+  border-radius: 10px;
+  background: #0e0f0f;
+}
+.rail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.rail-head h3 {
+  font-size: 16px;
+}
+.watch-rail .select {
+  width: 100%;
+  margin: 14px 0 10px;
+}
+.watch-rail .episodes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.watch-rail .episode {
+  min-height: 40px;
   font-size: 12px;
-  color: var(--muted);
+}
+.watch-rail .episode-pagination {
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.watch-rail .episode-ranges {
+  max-height: 112px;
+  overflow: auto;
+  gap: 5px;
+  margin: 12px 0 14px;
+}
+.watch-rail .episode-ranges .chip {
+  font-size: 11px;
+  min-height: 34px;
+  padding: 4px 9px;
+}
+.controls-hidden .watch-transport,
+.controls-hidden .watch-caption {
+  visibility: hidden;
 }
 .player-canvas.theater-expanded {
   position: fixed;
   inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   width: 100vw;
   height: 100vh;
-  aspect-ratio: auto;
-  z-index: 1000;
   border-radius: 0;
 }
-.player-canvas.theater-expanded .scene-title {
-  font-size: 64px;
+.player-canvas.theater-expanded .watch-viewport {
+  height: 100%;
+  min-height: 0;
+}
+.player-canvas.theater-expanded .watch-caption {
+  bottom: 96px;
 }
 .exit-theater {
   position: absolute;
@@ -1875,12 +2068,15 @@ small,
   .continue-card > .icon {
     display: none;
   }
-  .player-layout {
-    grid-template-columns: minmax(0, 1fr) 230px;
+  .watch-layout {
+    grid-template-columns: minmax(0, 1fr) 250px;
     gap: 18px;
   }
-  .player-side {
-    padding: 15px;
+  .watch-rail {
+    padding: 14px 12px;
+  }
+  .watch-rail .episodes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .player-controls .row {
     gap: 1px;
@@ -1933,13 +2129,16 @@ small,
   .continue-card:last-child {
     display: none;
   }
-  .player-layout {
+  .watch-layout {
     grid-template-columns: 1fr;
   }
-  .player-side .episodes {
+  .watch-rail {
+    position: static;
+  }
+  .watch-rail .episodes {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
-  .player-side .select {
+  .watch-rail .select {
     width: 180px;
   }
   .detail-hero {
@@ -2179,11 +2378,11 @@ small,
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 9px;
   }
-  .player-side .episodes {
+  .watch-rail .episodes {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
-  .player-controls {
-    padding: 20px 8px 5px;
+  .watch-transport {
+    padding: 8px 10px 6px;
   }
   .player-controls .btn {
     font-size: 10px;
@@ -2202,20 +2401,22 @@ small,
   .player-canvas {
     border-radius: 5px;
   }
-  .scene-title {
-    font-size: 24px;
+  .watch-caption {
+    padding: 0 12px 14px;
   }
-  .scene-label {
-    top: 12px;
-    left: 12px;
+  .watch-tag {
+    top: 10px;
+    left: 10px;
     font-size: 9px;
   }
   .center-play {
     width: 48px;
     height: 48px;
   }
-  .player-below {
+  .watch-actions {
+    align-items: flex-start;
     flex-direction: column;
+    gap: 10px;
   }
   .history-row {
     gap: 15px;
@@ -2347,9 +2548,8 @@ small,
 .hero-copy h2{font-size:clamp(34px,3.5vw,52px)}.detail-copy h1{overflow-wrap:anywhere;font-size:clamp(27px,3vw,40px)}
 .scene-title{max-width:80%;text-align:center;overflow-wrap:anywhere;letter-spacing:0;line-height:1.5}
 .episode-ranges{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}.episode-ranges .chip{font-variant-numeric:tabular-nums;min-height:44px;padding-inline:12px;font-size:12px}
-.player-side .episode-ranges{max-height:132px;overflow:auto;gap:4px}.player-side .episode-ranges .chip{font-size:11px;min-height:40px;padding:5px 8px}
 .controls-hidden .player-controls{visibility:hidden}
-.episode-pagination{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:15px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}.episode-pagination .btn{min-height:44px;min-width:44px}.player-side .episode-pagination{font-size:10px}.tv-stage .episode-pagination{font-size:21px;margin-bottom:20px}.tv-stage .episode-pagination .btn{min-height:56px}.brand-sample .brand-logo{width:145px}
+.episode-pagination{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:15px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}.episode-pagination .btn{min-height:44px;min-width:44px}.watch-rail .episode-pagination{font-size:11px}.tv-stage .episode-pagination{font-size:21px;margin-bottom:20px}.tv-stage .episode-pagination .btn{min-height:56px}.brand-sample .brand-logo{width:145px}
 
 /* 榜单来源与雷达榜（设计稿：与红果榜共用页框架，不新增头部卡片） */
 .rank-source-tabs {

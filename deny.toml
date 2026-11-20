@@ -1,6 +1,25 @@
 [advisories]
 version = 2
 
+# NSH 0.6.0 carries two unmaintained crates that cannot be removed without an upstream NSH
+# change. Neither is a vulnerability advisory: both crates are unmaintained, have no fixed
+# release, and are non-optional dependencies of nsh-core. cargo-deny 0.20.2 accepts only `id`
+# and `reason` per entry, so owner and expiry live in the reason text; per-entry `expiry` needs
+# cargo-deny >= 0.21.0. `unused-ignored-advisory = "deny"` turns an ignore that is no longer
+# needed (NSH migrated, or the crate left the graph) into a hard error instead of stale metadata.
+#
+# This file covers the root workspace only: `pnpm security` runs `cargo deny --locked check` from
+# the repo root (tooling/src/cli.mjs; cwd fixed in tooling/src/process.mjs). The NSH-generated
+# host workspaces (apps/*/.nsh/rust, gitignored) have their own lockfiles and are not checked
+# here; do not add an ignore for a crate that is absent from the root Cargo.lock, because
+# `unused-ignored-advisory = "deny"` turns that into an error. Host-scope status lives in
+# docs/dependencies/native-release-security.md.
+unused-ignored-advisory = "deny"
+ignore = [
+  { id = "RUSTSEC-2026-0543", reason = "chrono 0.4.45 unmaintained, no safe upgrade; non-optional dependency of nsh-core (nsh-core-0.6.0/Cargo.toml:59-62; used in mobile.rs, storage.rs, ops.rs) and of nsh-base (nsh-base-0.6.0/Cargo.toml:71-74; date_picker.rs, time_field.rs, calendar.rs), so it is in the graph of both apps. Unmaintained scope stays at its default (all); only this crate+advisory is exempt. Owner: jfbi. Expires: 2027-02-28; before then re-check NSH's migration to jiff/time." },
+  { id = "RUSTSEC-2026-0192", reason = "ttf-parser 0.25.1 unmaintained, no safe upgrade; direct non-optional dependency of nsh-core (nsh-core-0.6.0/Cargo.toml:144-145, text.rs) and of the nsh-macros proc macro (nsh-macros-0.6.0/Cargo.toml:51-52, assets.rs), not behind an optional feature. Unmaintained scope stays at its default (all); only this crate+advisory is exempt. Owner: jfbi. Expires: 2027-02-28; before then re-check NSH's migration to skrifa." },
+]
+
 [licenses]
 version = 2
 confidence-threshold = 0.95
@@ -26,6 +45,79 @@ allow = ["ISC"]
 name = "webpki-root-certs"
 version = "=1.0.12"
 allow = ["CDLA-Permissive-2.0"]
+
+# NSH 0.6.0 native graph. Each licence is pinned to the reviewed version rather than joining
+# the global allow list, so a new version or another crate is reviewed again. Every entry also
+# states its parent chain, since cargo-deny only checks crates reachable in the resolved graph.
+# Owner for every entry below: jfbi.
+# Expiry for every entry below: 2027-05-31, or the next NSH upgrade if that comes first.
+
+# Zlib, OSI-approved (SPDX license-list-data: isOsiApproved = true). Runtime path:
+# nsh-core -> rust-i18n -> rust-i18n-support, which declares `foldhash` with no default or
+# optional gating (rust-i18n-support-4.2.4/Cargo.toml). Second path: hashbrown 0.17.1's
+# `default-hasher` feature (on by default) pulls it for quickjs-jit-core; that one reaches the
+# graph through nsh-engine, a dev-dependency of hongguo-native-bridge.
+# Obligation: keep the notice and do not misrepresent the origin of the source.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "foldhash"
+version = "=0.2.0"
+allow = ["Zlib"]
+
+# Zlib, OSI-approved (SPDX: isOsiApproved = true). Path: zip 9.5.1's "deflate" feature is
+# `deflate-zopfli` plus `deflate-flate2-zlib-rs`, i.e. `flate2/zlib-rs` (zip-9.5.1/Cargo.toml).
+# zip is a non-optional target dependency of nsh-updater for linux/macos/windows, and nsh-updater
+# is a non-optional target dependency of nsh-engine.
+# Scope differs by workspace. Root: nsh-engine is only a dev-dependency of
+# hongguo-native-bridge (crates/native-bridge/Cargo.toml), so there it is the test/dev graph.
+# Generated NSH hosts: `updater` is on by default (apps/*/.nsh/rust/*-app/Cargo.toml), and the
+# host lockfiles do resolve zlib-rs 0.6.8 (apps/*/.nsh/rust/Cargo.lock), but zip itself is
+# declared only for linux/macos/windows, so this is verified for the published macOS desktop
+# artifact and not for tv-android. Feature unification also selects zlib-rs as the backend for
+# hongguo-core's own flate2 use (crates/core/Cargo.toml), because flate2/src/ffi/mod.rs
+# compiles zlib_rs whenever `zlib-rs` is on and no C backend is. Whether the recorded
+# 2026-11-19 run's zlib-rs came from this path or another was not verified.
+# Obligation: keep the notice and do not misrepresent the origin of the source.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "zlib-rs"
+version = "=0.6.8"
+allow = ["Zlib"]
+
+# CDLA-Permissive-2.0, not OSI-approved (SPDX license-list-data: isOsiApproved = false): a
+# permissive data licence for the compiled-in Mozilla CA list, the same data as the reviewed
+# webpki-root-certs entry above. Runtime trust anchors, not build-only. Parents of 1.0.12:
+# hongguo-core (cfg(target_os = "android") and a dev-dependency), hongguo-updater, and the
+# 0.26.11 shim below.
+# Obligation: redistribute the agreement text with the data.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "webpki-roots"
+version = "=1.0.12"
+allow = ["CDLA-Permissive-2.0"]
+
+# Same licence and the same certificate data; 0.26.11 is the semver-trick shim that re-exports
+# 1.0.12. It arrives through tokio-tungstenite 0.28, which nsh-js declares with
+# `rustls-tls-webpki-roots` as a non-optional target dependency for non-wasm
+# (nsh-js-0.6.0/Cargo.toml), so it is not gated behind NSH's `websocket` feature.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "webpki-roots"
+version = "=0.26.11"
+allow = ["CDLA-Permissive-2.0"]
+
+# Apache-2.0 WITH LLVM-exception: Apache-2.0 is OSI-approved and the LLVM exception is an SPDX
+# exception (not a licence, not OSI-approved) that only relaxes Apache-2.0 4(a), 4(b) and 4(d).
+# Not build-only, but target-conditional: a cfg(windows) dependency of cap-primitives
+# (cap-primitives-4.0.3/Cargo.toml) under nsh-core -> cap-std, so cargo-deny sees it once all
+# targets are resolved. No Windows artifact is published today (release-publish.yml ships only
+# desktop-macos-arm64 and tv-android-arm64), so it is not in a shipped binary; the entry exists
+# because `cargo deny` resolves every target, not because we distribute it.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "winx"
+version = "=0.36.4"
+allow = ["Apache-2.0 WITH LLVM-exception"]
 
 [licenses.private]
 ignore = true

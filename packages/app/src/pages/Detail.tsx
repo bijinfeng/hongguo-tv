@@ -1,7 +1,7 @@
 import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { Button, Cover, EpisodeRange, Notice, StoryFeature, UiText } from '@hongguo/ui';
+import { BackButton, Button, Cover, EpisodeRange, Notice, StoryFeature, UiText } from '@hongguo/ui';
 import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
@@ -127,6 +127,11 @@ export function Detail(props: {
       }}
     >
       <View class="w-full gap-8">
+        <BackButton
+          testID="detail-back"
+          label={props.store.backLabel()}
+          onPress={() => props.store.back()}
+        />
         <If
           when={props.store.target === 'tv'}
           else={

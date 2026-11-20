@@ -19,6 +19,7 @@ export function UpdatesStateFixture() {
   const progressCallbacks: ((received: number, total?: number) => void)[] = [];
   let failSave = true;
   let installState: InstallState = 'permission';
+  const desktop = host.params.desktop === true;
   const example = {
     version: '1.1.0',
     size: 128 * 1048576,
@@ -39,6 +40,7 @@ export function UpdatesStateFixture() {
           supported: !host.params.unsupported,
           ready: host.params.ready === true,
           installed: host.params.installed === true,
+          interrupted: host.params.interrupted === true,
           update: host.params.ready ? example : undefined,
         };
       },
@@ -75,8 +77,18 @@ export function UpdatesStateFixture() {
       async install() {
         log('install');
         if (host.params.installFailure) throw new Error('更新包验证失败，请重新下载');
-        return installState;
+        return desktop ? 'staged' : installState;
       },
+      ...(desktop
+        ? {
+            async restart() {
+              log('restart');
+              if (host.params.restartFailure)
+                throw new Error('立即重启失败，更新仍会在退出应用后完成');
+              return 'installing' as InstallState;
+            },
+          }
+        : {}),
       async installationState() {
         return installState;
       },
@@ -156,7 +168,12 @@ export function UpdatesStateFixture() {
           </View>
         </If>
         <If when={visible()}>
-          <UpdatesPage updates={updates} tv={host.params.tv === true} />
+          <UpdatesPage
+            updates={updates}
+            tv={host.params.tv === true}
+            backLabel="返回账号"
+            onBack={() => visible.set(false)}
+          />
         </If>
       </View>
     </>

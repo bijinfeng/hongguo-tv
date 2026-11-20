@@ -1,4 +1,4 @@
-import { List, View, cleanup, effect, type ListRef, type ViewRef } from 'nsh';
+import { List, View, cleanup, effect, type JSX, type ListRef, type ViewRef } from 'nsh';
 import {
   CardControls,
   RankingCard,
@@ -9,11 +9,14 @@ import {
 } from '@hongguo/ui';
 import type { Drama, RankItem } from '@hongguo/core-client';
 import { rankingIdentity, type RankingsController } from '../../rankings';
+import { RANKING_ROW_SAFE } from './layout';
 
 export interface RankingsListProps {
   rankings: RankingsController;
   target: ProductTarget;
   active: boolean;
+  /** Continuation control that belongs to the rows, so it scrolls with them. */
+  footer?: JSX.Element;
   onOpen: (drama: Drama, restore: () => void) => void;
   onActor: (id: string, title: string, restore: () => void) => void;
   onSource: (restore: () => void) => void;
@@ -71,7 +74,7 @@ export function RankingsList(props: RankingsListProps) {
       void Promise.all([ref.measure(), list?.measure()]).then(([card, viewport]) => {
         if (cardIntent !== intent || !owns() || !intent.owns() || refs.get(intent.id) !== ref)
           return;
-        const inset = props.target === 'tv' ? 4 : 8;
+        const inset = RANKING_ROW_SAFE;
         if (
           !card ||
           !viewport ||
@@ -132,7 +135,7 @@ export function RankingsList(props: RankingsListProps) {
       }}
       testID="ranking-results"
       class="flex-1"
-      style={{ width: '100%', maxWidth: props.target === 'tv' ? 625 : 1100 }}
+      style={{ width: '100%' }}
       onLayout={() => {
         if (cardIntent) restoreCard();
       }}
@@ -150,22 +153,28 @@ export function RankingsList(props: RankingsListProps) {
         items: items().slice(index * columns(), (index + 1) * columns()),
       }))}
       keyExtractor={(row) => row.id}
-      estimatedItemSize={props.target === 'tv' ? 100 : 176}
-      contentStyle={{
-        gap: props.target === 'tv' ? 4 : 0,
-        paddingHorizontal: props.target === 'tv' ? 4 : 8,
-      }}
+      footer={props.footer}
+      estimatedItemSize={props.target === 'tv' ? 152 : 196}
+      contentStyle={{ gap: props.target === 'tv' ? 4 : 0 }}
     >
       {(row) => (
-        <View style={{ paddingVertical: props.target === 'tv' ? 4 : 8 }}>
+        // The focus ring needs 6 outside the row and a scroller clips its content, so each row
+        // keeps that gutter itself: the outline stays visible and the hairline still reaches the
+        // band's edge.
+        <View
+          style={{
+            paddingVertical: RANKING_ROW_SAFE,
+            paddingHorizontal: RANKING_ROW_SAFE,
+          }}
+        >
           <CardControls
             label="榜单条目"
-            class={props.target === 'tv' ? 'w-full gap-3' : 'w-full gap-6'}
+            class={props.target === 'tv' ? 'w-full items-stretch gap-4' : 'w-full gap-6'}
             onNavigate={props.onNavigate}
           >
             <Each of={Array.from({ length: columns() }, (_, index) => index)}>
               {(slot) => (
-                <View class="flex-1">
+                <View class={props.target === 'tv' ? 'flex-1 flex-col' : 'flex-1'}>
                   <If when={row().items[slot()]}>
                     {(item) => {
                       let ref: ViewRef | undefined;
@@ -186,6 +195,8 @@ export function RankingsList(props: RankingsListProps) {
                           metadata={metadata(item())}
                           rank={item().rank}
                           actionLabel={item().entry.kind === 'drama' ? '查看详情' : '查看作品'}
+                          actionPlacement={props.target === 'tv' ? 'none' : 'inline'}
+                          density={props.target === 'tv' ? 'compact' : 'regular'}
                           testID={`ranking-${rankingIdentity(item())}`}
                           selected={props.rankings.selected() === rankingIdentity(item())}
                           buttonRef={(node) => {
@@ -223,7 +234,7 @@ export function RankingsList(props: RankingsListProps) {
 /** First-paint rows that keep the approved ranking row geometry; no shimmer or entrance. */
 export function RankingsPending(props: { target: ProductTarget }) {
   const tv = () => props.target === 'tv';
-  const unit = (desktop: number, _tvValue = desktop) => desktop;
+  const cover = () => (tv() ? { width: 70, height: 94 } : { width: 86, height: 116 });
   return (
     <SkeletonRegion label="正在加载榜单" testID="ranking-pending" class="flex-1">
       <View style={{ gap: tv() ? 4 : 0, paddingHorizontal: tv() ? 4 : 8 }}>
@@ -231,22 +242,21 @@ export function RankingsPending(props: { target: ProductTarget }) {
           {(slot) => (
             <View
               style={{
-                paddingVertical: unit(22, 28),
-                gap: unit(20, 28),
+                paddingVertical: space(tv() ? 'sm' : 'lg'),
+                gap: space(tv() ? 'sm' : 'md'),
                 flexDirection: 'row',
                 alignItems: 'center',
                 borderBottomWidth: 1,
               }}
               class="border-b-border"
             >
-              <SkeletonBlock width={space('lg')} height={space('lg')} radius={space('xxs')} />
-              <SkeletonBlock width={unit(86, 96)} height={unit(116, 128)} radius={space('sm')} />
+              <SkeletonBlock width={tv() ? 36 : 42} height={space('lg')} radius={space('xxs')} />
+              <SkeletonBlock width={cover().width} height={cover().height} radius={space('sm')} />
               <View style={{ flex: 1, gap: space('xs') }}>
-                <SkeletonBlock width={slot() % 2 ? '52%' : '38%'} height={unit(20, 24)} />
-                <SkeletonBlock width="82%" height={unit(14, 20)} />
-                <SkeletonBlock width="64%" height={unit(14, 20)} />
+                <SkeletonBlock width={slot() % 2 ? '52%' : '38%'} height={tv() ? 20 : 20} />
+                <SkeletonBlock width="82%" height={space('md')} />
+                <SkeletonBlock width="64%" height={space('md')} />
               </View>
-              <SkeletonBlock width={unit(64, 76)} height={unit(16, 22)} />
             </View>
           )}
         </Each>

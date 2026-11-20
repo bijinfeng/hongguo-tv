@@ -6,7 +6,8 @@ export interface AppUpdate {
   size?: number;
   canInstall: boolean;
 }
-export type InstallState = 'installing' | 'permission' | 'ready' | 'success';
+/** How a host finishes: immediately (`installing`), through the system, or as the app quits (`staged`). */
+export type InstallState = 'installing' | 'permission' | 'ready' | 'success' | 'staged';
 /** Hosts own downloads and installation; the app owns display state and user intent. */
 export interface UpdateAdapter {
   initialize(): Promise<{
@@ -16,10 +17,15 @@ export interface UpdateAdapter {
     ready?: boolean;
     installed?: boolean;
     installing?: boolean;
+    /** An earlier update never took effect; the receipt says which version was expected. */
+    interrupted?: boolean;
   }>;
   check(): Promise<AppUpdate | null>;
   download(progress: (received: number, total?: number | null) => void): Promise<void>;
+  /** Stage or install the checked candidate. `staged`: it lands when the app quits. */
   install(): Promise<InstallState>;
+  /** Complete a staged update now by restarting; absent where `install` finishes alone. */
+  restart?(): Promise<InstallState>;
   openRelease(): Promise<void>;
   cancel?(): void;
   openPermission?(): Promise<void>;
@@ -37,6 +43,9 @@ export type UpdatePhase =
   | 'cancelling'
   | 'ready'
   | 'saving'
+  | 'staging'
+  | 'staged'
+  | 'interrupted'
   | 'installing'
   | 'permission'
   | 'success'
@@ -90,10 +99,19 @@ export function createUpdates(
     }, 750);
   };
   const check = async () => {
+    // A staged update is already promised; checking over it would offer a second candidate.
     if (
       closed ||
       busy ||
-      !['idle', 'latest', 'success', 'available', 'checkError', 'downloadError'].includes(phase())
+      ![
+        'idle',
+        'latest',
+        'success',
+        'available',
+        'checkError',
+        'downloadError',
+        'interrupted',
+      ].includes(phase())
     )
       return;
     if (!initialized) {
@@ -139,6 +157,7 @@ export function createUpdates(
       busy = false;
     }
   };
+  /** Save what the user would lose, then let the host stage or install the candidate. */
   const install = async () => {
     if (closed || busy || !['ready', 'saveError', 'installError'].includes(phase())) return;
     busy = true;
@@ -155,7 +174,7 @@ export function createUpdates(
       busy = false;
       return;
     }
-    phase.set('installing');
+    phase.set('staging');
     try {
       const state = await adapter.install();
       if (!closed) {
@@ -164,6 +183,25 @@ export function createUpdates(
       }
     } catch (reason) {
       fail('installError', reason, '更新安装失败，请重试');
+    } finally {
+      busy = false;
+    }
+  };
+  /** A staged update still installs as the app quits; this only moves it earlier. */
+  const restart = async () => {
+    if (closed || busy || phase() !== 'staged' || !adapter.restart) return;
+    busy = true;
+    error.set('');
+    phase.set('installing');
+    try {
+      const state = await adapter.restart();
+      if (!closed) {
+        phase.set(state);
+        polling();
+      }
+    } catch (reason) {
+      // The staged update still lands on quit; only this early restart failed.
+      fail('staged', reason, '无法立即重启，更新仍会在退出应用后完成');
     } finally {
       busy = false;
     }
@@ -186,10 +224,13 @@ export function createUpdates(
             ? 'ready'
             : initial.installed
               ? 'success'
-              : initial.supported
-                ? 'idle'
-                : 'manual',
+              : initial.interrupted
+                ? 'interrupted'
+                : initial.supported
+                  ? 'idle'
+                  : 'manual',
       );
+      // An interrupted update is shown as such until the user acts on it.
       if (phase() === 'idle' && (options.autoCheck?.() ?? true)) await check();
       else polling();
     } catch (reason) {
@@ -213,6 +254,7 @@ export function createUpdates(
     check,
     download,
     install,
+    restart,
     async redownload() {
       if (closed || busy || phase() !== 'installError' || !update()) return;
       phase.set('available');

@@ -79,6 +79,40 @@ export function child(command, args, options = {}) {
 export async function run(command, args, options) {
   await child(command, args, options).done;
 }
+/**
+ * Runs independent jobs at once. Each job's output is buffered and printed whole when it ends, so
+ * a parallel failure still shows the complete log that explains it; every job is awaited, so one
+ * failure never hides another.
+ */
+export async function parallel(jobs) {
+  const results = await Promise.all(
+    jobs.map(async (job) => {
+      const started = Date.now();
+      const environment = { cwd: root, ...job.options, env: job.options?.env ?? process.env };
+      const subprocess = spawn(job.command, job.args ?? [], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        ...environment,
+      });
+      const chunks = [];
+      subprocess.stdout.on('data', (chunk) => chunks.push(chunk));
+      subprocess.stderr.on('data', (chunk) => chunks.push(chunk));
+      const code = await new Promise((res) => {
+        subprocess.once('error', (error) => {
+          chunks.push(Buffer.from(`${error.message}\n`));
+          res(1);
+        });
+        subprocess.once('exit', (exit, signal) => res(exit ?? signal ?? 1));
+      });
+      if (chunks.length) process.stdout.write(Buffer.concat(chunks));
+      return { name: job.name, code, seconds: (Date.now() - started) / 1000 };
+    }),
+  );
+  for (const result of results)
+    console.log(`${result.code === 0 ? '✓' : '✗'} ${result.name} ${result.seconds.toFixed(1)}s`);
+  const failed = results.filter((result) => result.code !== 0);
+  if (failed.length)
+    throw new Error(`Failed jobs: ${failed.map((result) => result.name).join(', ')}`);
+}
 export const cargo = (args, options) => run(executable('cargo'), args, options);
 export const pnpm = (args, options) =>
   run('pnpm', args, { shell: process.platform === 'win32', ...options });
@@ -146,15 +180,26 @@ export async function runtimeConfig(target, origin, base = root, mode) {
   await writeFile(file, JSON.stringify(config, null, 2) + '\n');
 }
 export async function nsh(command, target, args = []) {
+  await prepareNsh(target);
+  const { command: cli, args: argv, options } = nshSpec(command, target, args);
+  await run(cli, argv, options);
+}
+/** Checks the pinned NSH and writes the target's runtime config; call before spawning jobs. */
+export async function prepareNsh(target) {
   const cli = executable('nsh');
   const version = output(cli, ['--version']);
   if (version.split(/\s+/)[1] !== nshVersion)
     throw new Error(`Expected NSH ${nshVersion}: ${version}`);
   await runtimeConfig(target);
-  await run(cli, [command, ...args], {
-    cwd: resolve(root, 'apps', target),
-    env: rustEnvironment(),
-  });
+}
+/** The spawn descriptor for one NSH command, so independent apps can run at once. */
+export function nshSpec(command, target, args = []) {
+  return {
+    name: `nsh ${command} ${target}`,
+    command: executable('nsh'),
+    args: [command, ...args],
+    options: { cwd: resolve(root, 'apps', target), env: rustEnvironment() },
+  };
 }
 export function baseDoctor() {
   const results = [];

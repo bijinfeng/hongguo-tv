@@ -1,5 +1,5 @@
 import { Scroll, View } from 'nsh';
-import { Notice, UiText, space } from '@hongguo/ui';
+import { BackButton, Notice, UiText, space } from '@hongguo/ui';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
 import { SettingsAccount } from './settings/account';
@@ -14,6 +14,11 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
     <View testID="settings-page" class="flex-1 min-h-0">
       <Scroll class="flex-1">
         <View class={props.tv ? 'gap-6' : 'gap-6 p-5 md:p-8'}>
+          <BackButton
+            testID="settings-back"
+            label={props.store.backLabel()}
+            onPress={() => props.store.back()}
+          />
           <UiText role="page">设置</UiText>
           <If when={props.store.settings.error()}>
             <Notice

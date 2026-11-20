@@ -14,3 +14,5 @@ coverage/
 apps/tv/android/app/build/
 apps/tv/android/build/
 apps/tv/android/local.properties
+
+.zcode/

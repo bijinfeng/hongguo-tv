@@ -260,9 +260,15 @@ test('installed hook wrapper never hides unstaged content or creates a stash', (
     const exec = (command, args, valid = true) => {
       const result = spawnSync(command, args, {
         cwd: dir,
-        // This fixture borrows installed tools, not their manifest. Never let pnpm
-        // repair the deliberately mismatched dependency directory during a hook.
-        env: { ...isolatedGitEnv, pnpm_config_verify_deps_before_run: 'warn' },
+        // This fixture borrows the installed tools, not their manifest: pnpm must not
+        // reconcile or install anything while a hook runs. `verify-deps-before-run` is the
+        // documented switch, and `ignore-scripts` keeps `pnpm exec` from running build
+        // scripts the runner has not approved.
+        env: {
+          ...isolatedGitEnv,
+          PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+          PNPM_CONFIG_IGNORE_SCRIPTS: 'true',
+        },
         encoding: 'utf8',
       });
       assert.equal(result.status === 0, valid, result.stdout + result.stderr);
@@ -284,7 +290,15 @@ test('installed hook wrapper never hides unstaged content or creates a stash', (
       resolve(dir, 'node_modules'),
       process.platform === 'win32' ? 'junction' : 'dir',
     );
-    await writeFile(resolve(dir, 'package.json'), '{"private":true}');
+    // The wrapper runs pnpm against this fixture, and pnpm reconciles whatever manifest it
+    // finds with the dependencies present. A bare `{"private":true}` made it rebuild the
+    // borrowed `node_modules` on the runner, so the manifest and lockfile match what the
+    // symlink already contains and pnpm has nothing to repair.
+    await writeFile(resolve(dir, 'package.json'), await readFile(resolve(root, 'package.json')));
+    await writeFile(
+      resolve(dir, 'pnpm-lock.yaml'),
+      await readFile(resolve(root, 'pnpm-lock.yaml')),
+    );
     await writeFile(
       resolve(dir, 'commitlint.config.mjs'),
       await readFile(resolve(root, 'commitlint.config.mjs')),

@@ -7,12 +7,12 @@
           "series_id": "1234567890123456789",
           "title": "合成短剧",
           "cover": "https://p3-novel.byteimg.com/novel-pic/rank-test.jpg",
-          "intro": "",
+          "intro": "合成简介",
           "episode_count": 12,
-          "content_type": "1"
+          "content_type": "1",
+          "tags": ["都市·全12集"]
         }
       },
-      "rank": 3,
       "heat": "合成热度",
       "badge": "男频榜 No.3"
     },
@@ -27,7 +27,6 @@
         },
         "tags": ["演员"]
       },
-      "rank": 4,
       "heat": "合成推荐值"
     }
   ],

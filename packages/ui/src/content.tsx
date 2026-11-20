@@ -16,6 +16,7 @@ import { controlMetrics, radius, space } from './foundation';
 import { textLineHeight, textSize, textWeight } from './typography';
 import { Button } from './button';
 import { CardRoot } from './card-controls';
+import { CinemaButton } from './player';
 import { Progress } from './display';
 
 /** Continue cards keep a fixed thumbnail lane and a generous inset around the copy. */
@@ -177,6 +178,8 @@ export function EpisodeRange(props: {
   value: number;
   count: number;
   pageSize: number;
+  /** Cinema pairing for the dark player rail; the light page keeps the default trigger. */
+  cinema?: boolean;
   onChange: (value: number) => void;
 }) {
   const open = signal(false);
@@ -197,13 +200,23 @@ export function EpisodeRange(props: {
         if (value !== null) props.onChange(Number(value));
       }}
       trigger={
-        <Button
-          testID="episode-range-trigger"
-          label={title()}
-          selectOpen={open()}
-          dropdown
-          onPress={() => open.set(true)}
-        />
+        props.cinema ? (
+          <CinemaButton
+            testID="episode-range-trigger"
+            label={title()}
+            icon="down"
+            dropdown
+            onPress={() => open.set(true)}
+          />
+        ) : (
+          <Button
+            testID="episode-range-trigger"
+            label={title()}
+            selectOpen={open()}
+            dropdown
+            onPress={() => open.set(true)}
+          />
+        )
       }
       popupClass="bg-popover border border-border"
       popupStyle={{ padding: space('xs'), borderRadius: radius('xl') }}

@@ -60,12 +60,15 @@
         {
           "video_data": {
             "series_id_str": "1234567890123456789",
-            "series_title": "合成短剧",
+            "title": "合成短剧",
             "series_cover": "https://p3-novel.byteimg.com/novel-pic/rank-test.jpg",
             "episode_cnt": 12,
             "content_type": "1",
-            "rank": 3,
-            "heatText": "合成热度",
+            "video_desc": "合成简介",
+            "sub_title": "都市·全12集",
+            "rec_text_item": {
+              "RecommendText": "合成热度"
+            },
             "rec_tags": [
               {
                 "rec_type": 9,
@@ -94,7 +97,6 @@
               "rec_text_item": {
                 "RecommendText": "合成推荐值"
               },
-              "rank": 4,
               "sub_title_list": [
                 {
                   "content": "演员"
@@ -107,12 +109,15 @@
           "video_data": [
             {
               "series_id_str": "1234567890123456789",
-              "series_title": "合成短剧",
+              "title": "合成短剧",
               "series_cover": "https://p3-novel.byteimg.com/novel-pic/rank-test.jpg",
               "episode_cnt": 12,
               "content_type": "1",
-              "rank": 3,
-              "heatText": "合成热度",
+              "video_desc": "合成简介",
+              "sub_title": "都市·全12集",
+              "rec_text_item": {
+                "RecommendText": "合成热度"
+              },
               "rec_tags": [
                 {
                   "rec_type": 9,
@@ -154,7 +159,6 @@
               "rec_text_item": {
                 "RecommendText": "合成推荐值"
               },
-              "rank": 4,
               "sub_title_list": [
                 {
                   "content": "演员"
