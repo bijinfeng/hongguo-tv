@@ -30,12 +30,17 @@ jobs:
           tool: cargo-nextest@0.9.151
       - run: rustup show active-toolchain
       - run: cargo fmt --all -- --check
+      # Shares the target directory with the workspace job on macOS: both run the same clippy
+      # and the same Rust crates behind `nsh check`, which was 446s of rebuilding without it.
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: ${{ matrix.os }}
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - run: cargo nextest run --locked --workspace
       - run: cargo test --locked --workspace --doc
   workspace:
-    runs-on: macos-15
-    timeout-minutes: 40
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
@@ -53,10 +58,9 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - run: rustup show active-toolchain
-      # `pnpm doctor` only: `pnpm setup` also runs `nsh check` for all three apps and a
-      # workspace `cargo check`, both of which the `pnpm check` step below repeats — it cost
-      # ~400s here. The runtime configs those commands need are written by `pnpm check`'s
-      # own `prepareNsh`.
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: ubuntu-24.04
       - run: pnpm doctor
       - run: pnpm fmt:check
       - run: pnpm lint
@@ -70,14 +74,37 @@ jobs:
       - run: pnpm test:tooling
       - run: pnpm check
       - run: pnpm build
-      # The three suites own their fixtures, ports and temp storage, so they run at once;
-      # serial they took 1114s on the 2026-11-20 master run.
-      - name: Shared NSH behavior in every entry
+  entry:
+    # One runner per target: they each compile Rust and start an NSH engine, so sharing a
+    # 3-4 core runner made them contend — serial was 1245s and three-in-one was worse.
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [web, desktop, tv]
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - run: npm install --global pnpm@11.1.3
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install pinned NSH
         run: |
-          for target in web desktop tv; do
-            (cd "apps/$target" && "$HOME/.local/bin/nsh" test) &
-          done
-          wait
+          curl --fail --silent --show-error --location https://nsh.dev/install.sh -o "$RUNNER_TEMP/nsh-install.sh"
+          NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: entry-${{ matrix.target }}
+      - name: Behavior in ${{ matrix.target }}
+        working-directory: apps/${{ matrix.target }}
+        run: '"$HOME/.local/bin/nsh" test'
   security:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -97,7 +124,7 @@ jobs:
       - run: pnpm security
   required:
     if: ${{ always() }}
-    needs: [rust, workspace, security]
+    needs: [rust, workspace, entry, security]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every gate
