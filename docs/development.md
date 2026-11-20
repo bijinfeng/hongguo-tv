@@ -11,15 +11,15 @@ curl -fsSL https://nsh.dev/install.sh -o /tmp/nsh-install.sh
 NSH_VERSION="v$(cat .nsh-version)" sh /tmp/nsh-install.sh
 npm install --global pnpm@11.1.3
 pnpm install --frozen-lockfile --ignore-scripts
-pnpm setup
+pnpm setup:workspace
 pnpm setup:tools
 pnpm hooks:install
-pnpm doctor
+pnpm doctor:workspace
 ```
 
 Windows 按官方 PowerShell 安装说明设置 NSH_VERSION，其余 pnpm 命令相同。`NSH_BIN` 可指定 CLI；setup 校验版本、生成各端类型及连接配置，保留合法已有配置与 `.local/data/`。Rust 工具使用 `~/.cargo/bin`，工程子进程继承工具路径，无需改 shell 配置；辅助工具版本与摘要见 `tooling/tools.json`。
 
-桌面需要目标系统 SDK（macOS 为 Xcode CLT）。TV 另需 [Android 宿主说明](../apps/tv/android/README.md)中的固定 JDK、SDK／NDK、Rust targets、NSH runtime 和 ready 设备；使用 `pnpm doctor --target tv` 检查。NSH runtime 可按需运行 `nsh component add web android`。
+桌面需要目标系统 SDK（macOS 为 Xcode CLT）。TV 另需 [Android 宿主说明](../apps/tv/android/README.md)中的固定 JDK、SDK／NDK、Rust targets、NSH runtime 和 ready 设备；使用 `pnpm doctor:workspace --target tv` 检查。NSH runtime 可按需运行 `nsh component add web android`。
 
 ## 运行模式与数据
 
@@ -45,18 +45,18 @@ HTTP 开发 API 仅监听 loopback，校验精确 Host／Origin，不能直接�
 
 check／build／test 可加 `--target web|desktop|tv`，默认三端。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
 
-| 入口                                                  | 范围与限制                                                                                                          |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `pnpm ui:check`／`ui:test`／`ui:preview`              | 基础组件三端检查、公共控件行为与显式预览；预览固定端口单实例；不等于 Android 遥控／系统输入法                                   |
-| `pnpm ui:host:desktop`／`ui:host:tv`                  | 唯一需要 AppKit 窗口的路径，拆成两条各开一个窗口：桌面临时密度 / TV 密度各一张整板截图（平铺全部组、浅深各一）；行为断言留在无头 `ui:test`；密度来自 manifest 主题，不是页面切换 |
+| 入口                                                  | 范围与限制                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm ui:check`／`ui:test`／`ui:preview`              | 基础组件三端检查、公共控件行为与显式预览；预览固定端口单实例；不等于 Android 遥控／系统输入法                                                                                                                                                                                          |
+| `pnpm ui:host:desktop`／`ui:host:tv`                  | 唯一需要 AppKit 窗口的路径，拆成两条各开一个窗口：桌面临时密度 / TV 密度各一张整板截图（平铺全部组、浅深各一）；行为断言留在无头 `ui:test`；密度来自 manifest 主题，不是页面切换                                                                                                       |
 | `pnpm visual:tv`                                      | 全部视觉证据一次出齐：TV 八个页面 × 浅深 + 扁平平铺的组件板，**同一命令、同一 fixture、单个 app 实例**。默认 `--web` 无头 Chrome（零窗口），`--android` 用固定 API34 模拟器；组件板平铺后一张高视口截全，不再逐个切换分组。产物与证明边界见 `artifacts/tv-visual/<host>/manifest.json` |
-| `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                                                           |
-| `pnpm dev:fixture:web`／`desktop`／`tv`               | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收                                                    |
-| `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                                                             |
-| `pnpm test:tv-native-startup`／`test:tv-native-retry` | 原生入口合成启动／失败／重试，不是独立真实业务                                                                      |
-| `pnpm test:tv-native-business`                        | 当前原生 APK、官网媒体、SQLite、进程重启；需要唯一固定 TV API34 模拟器                                              |
-| `pnpm test:desktop-updates`／`test:tv-updates`        | 更新状态／宿主适配，不创建线上 Release，不代替正式签名 N-1→N 升级                                                   |
-| `pnpm coverage`／`pnpm fuzz`                          | 运行范围和要求见 ENGINEERING；fuzz 先安装仓库要求的独立 nightly                                                     |
+| `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                                                                                                                                                                                                                              |
+| `pnpm dev:fixture:web`／`desktop`／`tv`               | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收                                                                                                                                                                                                                       |
+| `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                                                                                                                                                                                                                                |
+| `pnpm test:tv-native-startup`／`test:tv-native-retry` | 原生入口合成启动／失败／重试，不是独立真实业务                                                                                                                                                                                                                                         |
+| `pnpm test:tv-native-business`                        | 当前原生 APK、官网媒体、SQLite、进程重启；需要唯一固定 TV API34 模拟器                                                                                                                                                                                                                 |
+| `pnpm test:desktop-updates`／`test:tv-updates`        | 更新状态／宿主适配，不创建线上 Release，不代替正式签名 N-1→N 升级                                                                                                                                                                                                                      |
+| `pnpm coverage`／`pnpm fuzz`                          | 运行范围和要求见 ENGINEERING；fuzz 先安装仓库要求的独立 nightly                                                                                                                                                                                                                        |
 
 真实匿名流程使用现有工具，不注入合成响应或直接伪造观看记录：
 

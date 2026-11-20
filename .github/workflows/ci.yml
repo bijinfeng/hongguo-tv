@@ -61,7 +61,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: ubuntu-24.04
-      - run: pnpm doctor
+      - run: pnpm doctor:workspace
       - run: pnpm fmt:check
       - run: pnpm lint
       - run: pnpm codegen:check
@@ -102,6 +102,11 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: entry-${{ matrix.target }}
+      # Installs the pinned toolchain from rust-toolchain.toml before nsh reaches for cargo.
+      - run: rustup show active-toolchain
+      # `App.tsx` imports the gitignored `runtime.generated.json`; without it every test fails
+      # to build. `nsh check`/`build` write it, but this job runs `nsh test` directly.
+      - run: pnpm setup:runtime
       - name: Behavior in ${{ matrix.target }}
         working-directory: apps/${{ matrix.target }}
         run: '"$HOME/.local/bin/nsh" test'

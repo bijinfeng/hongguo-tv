@@ -39,7 +39,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - uses: ./.github/actions/setup-tv
-      - run: pnpm setup
+      - run: pnpm setup:workspace
       - name: Materialize signing keystore
         env:
           TV_RELEASE_KEYSTORE_BASE64: ${{ secrets.TV_RELEASE_KEYSTORE_BASE64 }}

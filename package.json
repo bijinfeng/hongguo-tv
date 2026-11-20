@@ -5,8 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "setup": "node tooling/src/cli.mjs setup",
-    "doctor": "node tooling/src/cli.mjs doctor",
+    "setup:workspace": "node tooling/src/cli.mjs setup",
+    "setup:runtime": "node tooling/src/cli.mjs prepare",
+    "doctor:workspace": "node tooling/src/cli.mjs doctor",
     "dev": "node tooling/src/cli.mjs dev --target desktop",
     "dev:web": "node tooling/src/cli.mjs dev --target web",
     "dev:desktop": "node tooling/src/cli.mjs dev --target desktop",
