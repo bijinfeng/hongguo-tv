@@ -133,11 +133,11 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ### 平台与发行
 
-2026-11-20 首次正式发布 `v0.1.0`：`quality`／`security` 前置 job 通过，两端构建成功，产物证书、SHA-256 与更新清单签名均已下载实测。发布细节与逐项未验见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
+2026-11-20 首次正式发布 `v0.1.0`；2026-11-21 从 master 发布 `v0.1.1`（源码 `722cbd8`，run 44764824518）。两次的 `quality`／`security` 前置 job 均通过，两端构建成功；`v0.1.1` 的产物已下载实测：APK 证书 `8d34d7e8…` 与 `tooling/release-policy.json` 一致（`CN=Hongguo TV Release`），两端 SHA-256 与各自清单一致，两份更新清单的 Ed25519 签名以配置公钥验签通过。发布细节与逐项未验见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
 
 - Windows／Linux 实际安装、公开 Web 会话隔离／部署、正式签名／公证／N-1 升级／SBOM、无 Go 干净环境及完整产品矩阵未完成。
-- macOS 为 ad hoc 签名，无 Developer ID／公证；TV 无正式签名候选。
-- `v0.1.0` 是唯一 Release，N-1 → N 升级与回执链路无证据。
+- macOS 为 ad hoc 签名，无 Developer ID／公证，按已确认决定由用户手动放行。
+- `v0.1.0` 的 tag 在功能分支上，不符合发布规范；`v0.1.1` 是第一个从 master 发布的版本。N-1 → N 升级与回执链路仍无证据。
 - `release-signing` environment 保护为空，发布 job 不挂 environment；无 SBOM／provenance／NOTICE。
 
 ### 安全
