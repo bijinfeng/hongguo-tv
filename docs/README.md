@@ -34,7 +34,7 @@
 - 发现与播放：[详情](detail-discovery.md)、[日历](calendar-browsing.md)、[系列／季](season-browsing.md)、[榜单雷达](radar-snapshots.md)、[历史管理](guest-history-management.md)。这些资料用于对应模块，不重复维护全局状态。
 - 核心实现：[历史存储](../crates/core/src/library/README.md)、[播放](../crates/core/src/playback/README.md)、[媒体](../crates/core/src/media/README.md)。fixture 说明留在 [contracts](../contracts/fixtures/) 旁，包用法留在包内。
 - 设计参考：[页面地图](design/ui-map.md)、[原型规格](design/prototype-system.md)、[参考产品](design/ui-reference-products.md)、[更新界面](design/update-ui.md)。历史简报与历次审查从 history 进入。
-- OpenSpec：[主规范](../openspec/specs/)、[活跃变更](../openspec/changes/)。当前主规范仍待沉淀；不能因 changes 显示 complete 就自动归档或标成功能已验收。
+- OpenSpec：[主规范](../openspec/specs/)、[活跃变更](../openspec/changes/)。2026-11-20 已把 21 个任务全完的变更归档并沉淀 20 项主规范；归档和任务勾选只表示该变更交付范围结束，不等于功能通过真实验收，状态仍以台账和 VALIDATION 为准。
 
 维护时先更新唯一来源，其他文件链接到具体章节；不新增另一本重复承载规则和进度的“总规范”。旧路径的历史转接页只导航，不继续追加当前规则。历史记录保留来源、时间和限制，不提交凭据、运行配置或大体积 artifact。
 
