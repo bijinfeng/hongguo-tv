@@ -70,8 +70,10 @@ fn binary_serves_real_loopback_requests_and_exits() {
         let result = BufReader::new(stdout).read_line(&mut line).map(|_| line);
         let _ = tx.send(result);
     });
+    // The child links and binds before printing `ready`; a loaded CI runner needs more than
+    // the 5s this allowed, and that budget was the only thing that failed there.
     let ready: serde_json::Value =
-        serde_json::from_str(&rx.recv_timeout(Duration::from_secs(5)).unwrap().unwrap()).unwrap();
+        serde_json::from_str(&rx.recv_timeout(Duration::from_secs(30)).unwrap().unwrap()).unwrap();
     assert_eq!(ready["event"], "ready");
     let address = ready["origin"]
         .as_str()

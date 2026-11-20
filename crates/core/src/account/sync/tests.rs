@@ -293,8 +293,10 @@ async fn start(
     wait(|| service.sync.is_running()).await;
     (sender, task)
 }
+/// Wait for a fixture condition. The budget is generous because a loaded CI runner can starve
+/// this loop for seconds; the condition itself is what the test asserts, not the deadline.
 async fn wait(mut ready: impl FnMut() -> bool) {
-    tokio::time::timeout(Duration::from_secs(5), async {
+    tokio::time::timeout(Duration::from_secs(30), async {
         while !ready() {
             tokio::time::sleep(Duration::from_millis(1)).await
         }
@@ -303,7 +305,7 @@ async fn wait(mut ready: impl FnMut() -> bool) {
     .expect("fixture condition");
 }
 async fn settled(service: &AccountService) -> crate::account::Account {
-    tokio::time::timeout(Duration::from_secs(5), async {
+    tokio::time::timeout(Duration::from_secs(30), async {
         loop {
             let account = service.snapshot().await;
             if account.sync.state == AccountSyncState::Error || account.sync.last_sync.is_some() {
@@ -1293,7 +1295,7 @@ async fn favorite_only_rejection_keeps_pending_and_explicit_retry_acks_without_h
     assert_eq!(failed.sync.pending, 1);
     rejected.store(false, Ordering::Release);
     command(&service, AccountCommand::Sync {}).await.unwrap();
-    tokio::time::timeout(Duration::from_secs(5), async {
+    tokio::time::timeout(Duration::from_secs(30), async {
         loop {
             if service.snapshot().await.sync.last_sync.is_some() {
                 break;
