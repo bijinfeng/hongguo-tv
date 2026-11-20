@@ -15,7 +15,7 @@
 | 当前实现、各端缺口       | [功能台账](feature-ledger.md)；任务数不代表功能完成率                                                                         |
 | 本批具体需求、设计和待办 | 对应的 [OpenSpec 活跃变更](../openspec/changes/)；只读相关变更，不遍历全部历史                                                |
 | 实际通过了什么、什么失败 | [VALIDATION.md](../VALIDATION.md) 及其关联证据；不能从工程门禁推导功能已验收                                                  |
-| 长期能力规范             | [openspec/specs/](../openspec/specs/) 应承接已核实的能力；本轮评估时尚无主规范，补齐前继续以上述产品／规则和相关 delta 为依据 |
+| 长期能力规范             | [openspec/specs/](../openspec/specs/) 承接 2026-11-20 归档批次的 20 项能力；新批次按活跃 delta 与主规范继续演进 |
 
 原型只提供有依据的布局和交互参考。公共控件、主题、图标和动效归 `packages/ui`，共享业务与平台组合归 `packages/app`，`apps/*` 为薄入口；桌面／TV 仅因输入、布局或宿主能力差异作必要适配，不复制同语义控件。NSH API 和工程边界仍遵守项目规范及相关 NSH skills。
 
@@ -23,7 +23,7 @@
 
 内容发现、详情／系列、Rust 播放及原生装配已有大量实现，但不少项目只有合成边界或部分真实流程证据，不能统一标记完成。账号迁移、同步、收藏／追更／预约、统计及维护／跨平台交付仍有明确缺口，逐项状态以台账为准。
 
-原生 bridge／Desktop mixed／TV 独立业务的 C3.3 工程收尾已完成：完整 verify、契约生成检查和 OpenSpec strict 均通过。2026-11-20 按精确版本补齐 `deny.toml` 例外后，根工作区 `pnpm security` 也通过；但这两条 unmaintained advisory 无修复版本、生成宿主锁文件不在根图内，正式发行仍阻断，见[依赖检查](dependencies/native-release-security.md)。C3.2 的 macOS Desktop mixed 真实观看／重启／焦点验收因锁屏保持开放，不能由 headless 或 TV 证据替代。
+原生 bridge／Desktop mixed／TV 独立业务的 C3.3 工程收尾已完成：完整 verify、契约生成检查和 OpenSpec strict 均通过。2026-11-20 按精确版本补齐 `deny.toml` 例外后，根工作区 `pnpm security` 也通过；`v0.1.0` 随后按该门禁正式发布（run 44688698633）。但两条 unmaintained advisory 无修复版本、生成宿主锁文件不在根图内，供应链证据仍未补齐，见[依赖检查](dependencies/native-release-security.md)。C3.2 的 macOS Desktop mixed 真实观看／重启／焦点验收因锁屏保持开放，不能由 headless 或 TV 证据替代。
 
 游客历史管理 E1 尚未整体验收。当前播放器修复已本地交付并有最终工程检查；真实 Web 流程曾在后段详情超时，Desktop native 曾返回 `409 / PLAYBACK_IDENTITY_MISMATCH`，封面加载、完整焦点／后台、当前 TV 包等还有未通过或未验项。后续一次原生日志诊断实际恢复播放，但不解释旧409、不作为整体验收；具体结果统一见VALIDATION。主会话已进入账号／会话／owner隔离批次，本路线不重复维护运行细节。
 
@@ -90,7 +90,9 @@ TV 宿主保持 Java 17。`apps/tv/android` 只是薄胶水层（`MainActivity`�
 
 本轮已完成：统一[文档导航](README.md)、README运行入口与[手册](development.md)分工、稳定架构及两项[ADR](architecture/adr/)、VALIDATION当前矩阵／失败索引、台账去除日期增量、单一组件覆盖矩阵及历史迁移。AGENTS改为按任务阅读，旧正文与失败在[历史索引](history/README.md)保留；产品源码和OpenSpec任务未因此改变。
 
-还需单独处理OpenSpec生命周期：按台账和真实证据复核现有complete变更，核对重叠delta的最终语义后同步主规范，再归档符合条件的变更。主规范尚未补齐，历史21个complete不能自动视为真实已验收或直接批量归档；未完成任务保持开放，不打断主会话正在实施的账号变更。
+OpenSpec 生命周期已在 2026-11-20 单独收口：21 个任务全完的变更逐个核对 delta 后归档到 `changes/archive/2026-11-20-*`，并生成 20 份主规范（`openspec validate --specs` 20/20 通过）。其中 `wire-approved-feed-ui` 的 `recommendation-browsing` 因用户已取消独立刷剧页面，没有写入主规范，只归档保留历史 delta；匿名推荐核心的 `anonymous-recommendation-feed` 仍保留。归档只表示该变更的交付范围结束，不表示其功能已通过真实流程验收——状态仍以台账和 VALIDATION 为准。
+
+其余 11 个变更仍有未完成任务，保持开放，不打断主会话正在实施的账号批次。它们的能力路径与已归档主规范不重叠；但同一功能可同时有存储层与界面层能力（例如已归档的 `guest-history` 定义记录存储，开放中的 `continue-watching` 定义共享 UI 展示），这类并存是分层而非重复。13 个变更的 delta 只有 `ADDED` 要求，因此后续归档可直接新建对应主规范，不需要修改已有要求。
 
 文档管理采用产品／长期行为规范／架构决策／变更方案与任务／验收证据分层。保留既有PRODUCT和根规范路径，不再建立重复PRD；PRD不复制API或状态机，单次技术方案归OpenSpec design，重要决策才建ADR，替代时标记Superseded。包／crate／fixture与技能资料就近保留，由索引导航，不机械搬迁所有Markdown。
 

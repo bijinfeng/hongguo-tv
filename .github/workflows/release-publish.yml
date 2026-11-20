@@ -52,7 +52,7 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
-      - run: pnpm setup
+      - run: pnpm setup:workspace
       - run: pnpm setup:tools
       - run: pnpm verify
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
@@ -98,7 +98,7 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
-      - run: pnpm setup
+      - run: pnpm setup:workspace
       - name: Validate release identity
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
@@ -198,7 +198,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - uses: ./.github/actions/setup-tv
-      - run: pnpm setup
+      - run: pnpm setup:workspace
       - name: Validate release identity
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}

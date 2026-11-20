@@ -93,11 +93,17 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 - Android 以 `applicationId` 判定安装身份；改 ID 是另一个应用，`PackageInstaller` 拒绝覆盖。TV 数据目录同时挂在 ID 下，改 ID 连本地数据一起换位置。
 - NSH `nsh.json` 的 `dataDir` 只在桌面 runner（macOS／Windows／Linux）生效，Android 不读取；它保不住 TV，也会把平台专用路径写进同一份清单。因此不采用 `dataDir`，数据目录继续按 ID 派生。
 
-首个公开 Release 之前是唯一免费的更改窗口：此时没有已安装用户，改 ID、改品牌都无迁移成本。发布之后该承诺不再讨论；预览渠道按前述独立应用身份与独立 Release 隔离，不通过改正式 ID 实现。
+### 发行源码的可追溯性
+
+`v0.1.0` 由 `workflow_dispatch` 指定 `source_sha=f19a6af` 构建，tag 指向该提交。该提交经 PR #1 **squash 合并**进入 `master`，因此不在 `master` 历史中：两个树的内容差异只有一条 `VALIDATION.md` 记录和 `crates/native-bridge/src/mixed_tests.rs` 的 Windows 清理重试，源码语义一致。合并后 feature 分支已删除，目前只有 tag 使该提交可达。
+
+约定：发行源码若取自未合并分支，tag 本身是唯一锚点，`git clone` 默认不拉取不在默认分支历史里的 tag。要按源码复现产物，需显式 `git fetch origin tag v0.1.0`。后续发行应从默认分支的提交发起，或使用 merge commit 而非 squash，使 tag 始终位于 `master` 历史内。不改写已发布的 tag 和提交。
+
+首个公开 Release 之前是唯一免费的更改窗口：此时没有已安装用户，改 ID、改品牌都无迁移成本。`v0.1.0` 已于 2026-11-20 发布并采用本轮确定的应用身份，此后按已安装用户处理；预览渠道按前述独立应用身份与独立 Release 隔离，不通过改正式 ID 实现。
 
 ### 资产与支持矩阵
 
-首个发行演练优先 macOS arm64 与 TV arm64。Windows/Linux 是产品目标，必须各自完成宿主构建和升级验收后才加入正式支持，不能由三系统 Rust CI 推定。
+首个发行演练优先 macOS arm64 与 TV arm64，`v0.1.0` 即按此矩阵发布。Windows/Linux 是产品目标，必须各自完成宿主构建和升级验收后才加入正式支持，不能由三系统 Rust CI 推定。
 
 | 平台                     | 初装文件                                    | 应用内更新资产                                                | 候选验证重点                                                       |
 | ------------------------ | ------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |

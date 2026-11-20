@@ -1,6 +1,7 @@
 use super::*;
 use serde_json::{Value, json};
 use std::{
+    io::Read,
     path::PathBuf,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -94,7 +95,7 @@ impl Fixture {
                             }else{
                                 mc.fetch_add(1,Ordering::SeqCst);
                                 if tab&&matches!(mode,Mode::StallTab){s.notify_one();let _=socket.read(&mut b).await;d.notify_one();return;}
-                                let vid=if tab {reqwest::Url::parse(&format!("http://127.0.0.1{path}")).unwrap().query_pairs().find(|(k,_)|k=="video_id").unwrap().1.to_string()}else{let payload:Value=serde_json::from_slice(&body).unwrap();payload["mixed_video_id_map"]["1004"][0].as_str().or(payload["video_id"].as_str()).unwrap().into()};
+                                let vid=if tab {reqwest::Url::parse(&format!("http://127.0.0.1{path}")).unwrap().query_pairs().find(|(k,_)|k=="video_id").unwrap().1.to_string()}else{let decoded=if lower.contains("content-encoding: gzip"){let mut out=Vec::new();flate2::read::GzDecoder::new(&body[..]).read_to_end(&mut out).unwrap();out}else{body.clone()};let payload:Value=serde_json::from_slice(&decoded).unwrap();payload["mixed_video_id_map"]["1004"][0].as_str().or(payload["video_id"].as_str()).unwrap().into()};
                                 let model=if matches!(mode,Mode::Denied){json!({"code":403,"error":"signed secret"})}else{json!({"data":{"video_model":{"vid":vid,"video_list":[{"codec_type":"hevc","vheight":720,"main_url":if tab&&matches!(mode,Mode::BadTabMedia){"https://media.example.invalid/bad"}else{"https://media.example.invalid/good"}}]}}})};
                                 (200,if tab&&matches!(mode,Mode::EmptyTab){Vec::new()}else{serde_json::to_vec(&model).unwrap()})
                             };
@@ -262,4 +263,24 @@ async fn a_stalled_family_leaves_a_budget_for_a_usable_later_family() {
     assert_eq!(info.vid, "22");
     assert!(started.elapsed() >= Duration::from_secs(7));
     assert_eq!(f.models.load(Ordering::SeqCst), 2);
+}
+
+/// An empty mobile-v5 body rotates that source's own identity once, then keeps going.
+#[tokio::test]
+async fn mobile_v5_keeps_transport_failures_out_of_the_tab_identity() {
+    let client = PlaybackClient::for_loopback_tests("http://127.0.0.1:1/").unwrap();
+    let request = selection("22");
+    // A closed loopback port must stay a transport failure rather than looping or succeeding.
+    let first = client.candidates(&request, PlaybackSource::MobileV5).await;
+    assert!(
+        matches!(
+            first,
+            Err(PlaybackError::Transport | PlaybackError::Timeout | PlaybackError::EmptyResponse)
+        ),
+        "unexpected mobile-v5 outcome"
+    );
+    assert!(
+        !client.tab_identity_ready(),
+        "tab identity must stay untouched"
+    );
 }

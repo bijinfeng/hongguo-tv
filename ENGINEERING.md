@@ -129,22 +129,22 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 
 以下定义命令责任；是否已接通及实际参数以根package.json／工程脚本为准，运行方法见开发运行手册，不能把命令目标当成已实现。
 
-| 命令                                      | 责任                                                              |
-| ----------------------------------------- | ----------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`          | 只安装锁定的 JS/工程依赖；CI 不改 lockfile                        |
-| `pnpm setup --target <target>`            | 准备目标工具、校验 fixtures 来源、生成类型/配置；可重复且保留数据 |
-| `pnpm doctor --target <...> [--json]`     | 精确检查目标环境与支持状态                                        |
-| `pnpm dev:web` / `dev:desktop` / `dev:tv` | 启动指定产品，隔离运行配置、清理本次子进程                        |
-| `pnpm fmt` / `fmt:check`                  | 调用 Oxfmt、rustfmt、Android 格式工具；写入与只读分离             |
-| `pnpm lint`                               | 按 profile 调用 Oxlint、Clippy、Android Lint；不自动修复          |
-| `pnpm check`                              | 契约/包边界、各入口 NSH 类型、目标 Rust 编译检查                  |
-| `pnpm build`                              | 当前 profile 的 NSH bundle、Rust 核心/宿主/服务构建；不等于发行包 |
-| `pnpm test`                               | Node、NSH、Rust 的自动化行为测试，报告按责任层分组                |
-| `pnpm verify --target <...>`              | doctor → 格式 → lint → check → build → test；目标缺失失败         |
-| `pnpm security`                           | JS/Rust/Android 依赖与首方代码扫描；网络失败标为检查未完成        |
-| `pnpm codegen` / `codegen:check`          | 生成提交的契约代码 / 验证无漂移                                   |
-| `pnpm package:<target>`                   | 形成完整目标产物；开发前端包另有显式标记                          |
-| `pnpm hooks:install`                      | 仅在当前仓库安装 Lefthook；无 Git 的源码包也能开发构建            |
+| 命令                                            | 责任                                                              |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                | 只安装锁定的 JS/工程依赖；CI 不改 lockfile                        |
+| `pnpm setup:workspace --target <target>`        | 准备目标工具、校验 fixtures 来源、生成类型/配置；可重复且保留数据 |
+| `pnpm doctor:workspace --target <...> [--json]` | 精确检查目标环境与支持状态                                        |
+| `pnpm dev:web` / `dev:desktop` / `dev:tv`       | 启动指定产品，隔离运行配置、清理本次子进程                        |
+| `pnpm fmt` / `fmt:check`                        | 调用 Oxfmt、rustfmt、Android 格式工具；写入与只读分离             |
+| `pnpm lint`                                     | 按 profile 调用 Oxlint、Clippy、Android Lint；不自动修复          |
+| `pnpm check`                                    | 契约/包边界、各入口 NSH 类型、目标 Rust 编译检查                  |
+| `pnpm build`                                    | 当前 profile 的 NSH bundle、Rust 核心/宿主/服务构建；不等于发行包 |
+| `pnpm test`                                     | Node、NSH、Rust 的自动化行为测试，报告按责任层分组                |
+| `pnpm verify --target <...>`                    | doctor → 格式 → lint → check → build → test；目标缺失失败         |
+| `pnpm security`                                 | JS/Rust/Android 依赖与首方代码扫描；网络失败标为检查未完成        |
+| `pnpm codegen` / `codegen:check`                | 生成提交的契约代码 / 验证无漂移                                   |
+| `pnpm package:<target>`                         | 形成完整目标产物；开发前端包另有显式标记                          |
+| `pnpm hooks:install`                            | 仅在当前仓库安装 Lefthook；无 Git 的源码包也能开发构建            |
 
 所有命令具备稳定退出码、清晰的阶段/目标日志；不得出现“没安装工具就跳过测试并返回通过”。需要调用系统命令时使用参数数组和明确 cwd，避免依赖 Unix shell 拼接、绝对开发机路径或隐式环境变量。
 

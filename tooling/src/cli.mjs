@@ -245,12 +245,14 @@ try {
       await doctor();
       break;
     case 'setup':
+      // Prepare a target for development: toolchain, runtime config, and the NSH checks that
+      // read it. The workspace `cargo check` this used to run belongs to `pnpm check`, which
+      // already runs clippy over the same targets — a cold 400s in CI for nothing.
       await doctor();
       for (const app of selected) {
         await runtimeConfig(app);
         await nsh('check', app);
       }
-      await cargo(['check', '--locked', '--workspace', '--all-targets']);
       console.log(
         'Workspace ready. pnpm setup:tools installs pinned Rust quality tools; pnpm hooks:install enables Git hooks.',
       );
@@ -268,6 +270,12 @@ try {
       ]);
       break;
     }
+    case 'prepare':
+      // Writes the gitignored runtime config the app entry imports. `nsh check`/`build`/`test`
+      // reach this through `prepareNsh`, but a workflow that runs `nsh test` itself needs the
+      // file too, and `pnpm setup` would also compile the whole workspace.
+      for (const app of selected) await runtimeConfig(app);
+      break;
     case 'dev':
       if (!target) throw new Error('dev requires --target');
       await doctor();

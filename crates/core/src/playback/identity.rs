@@ -21,7 +21,7 @@ const UA: &str = "com.phoenix.read/73532 (Linux; U; Android 16; zh_CN; 25053RT47
 pub struct PlaybackClient {
     pub(super) http: Client,
     pub(super) fixture: Option<Url>,
-    caches: [Arc<IdentityCache>; 3],
+    caches: [Arc<IdentityCache>; 4],
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -29,6 +29,8 @@ pub(super) enum Profile {
     Legacy,
     Single,
     RegisteredSingle,
+    /// Mobile-v5 playback keeps its own cache slot; registration is the legacy shape.
+    MobileV5,
 }
 
 #[derive(Clone)]
@@ -84,6 +86,16 @@ impl Drop for Owner {
 }
 
 impl PlaybackClient {
+    /// Whether this instance already holds a usable tab identity. Test observational aid only.
+    #[cfg(test)]
+    pub(super) fn tab_identity_ready(&self) -> bool {
+        self.caches[0]
+            .state
+            .lock()
+            .map(|state| state.ready.is_some())
+            .unwrap_or(false)
+    }
+
     /// Initialize TLS and three finite of short-lived anonymous identity slots.
     pub fn new() -> Result<Self, PlaybackError> {
         Self::build(None)
@@ -397,7 +409,8 @@ impl PlaybackClient {
                 return Err(PlaybackError::InvalidModel);
             }
         }
-        if profile != Profile::RegisteredSingle {
+        // The mobile-v5 request carries no account cookie of any kind.
+        if !matches!(profile, Profile::RegisteredSingle | Profile::MobileV5) {
             cookies.insert("install_id".into(), install_id.clone());
         } else {
             cookies.clear();

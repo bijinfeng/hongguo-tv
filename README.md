@@ -10,10 +10,10 @@ NSH TSX + Rust 的 Web、桌面和 Android TV 客户端，采用 pnpm／Cargo �
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
-pnpm setup
+pnpm setup:workspace
 pnpm setup:tools
 pnpm hooks:install
-pnpm doctor
+pnpm doctor:workspace
 ```
 
 ```sh
