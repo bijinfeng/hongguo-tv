@@ -1,12 +1,11 @@
+// The shared suite runs once, on desktop: these groups take no target and contain no
+// platform branch, so running them in all three entries executed the same 52 tests three
+// times. Desktop keeps them; web and TV keep only what their own entry adds.
 import {
   registerApplicationTests,
   registerAccountTests,
   registerSettingsTests,
   registerBrowsingTests,
-  registerLibraryTests,
-  registerPlaybackTests,
-  registerWatchStatisticsTests,
-  registerNativeStartupTests,
 } from '@hongguo/app/testing';
 import { expect, open, test } from 'nsh/test';
 
@@ -27,13 +26,8 @@ test('TV T0 mixed bridge calls, cancels owner work and releases classes', async 
 });
 
 registerApplicationTests('tv', './HttpFixture.tsx');
-registerLibraryTests();
-registerPlaybackTests();
-registerWatchStatisticsTests();
 
 registerBrowsingTests('tv', './HttpFixture.tsx');
-
-registerNativeStartupTests();
 
 import { registerUpdateTests } from '@hongguo/app/testing';
 registerUpdateTests();
@@ -43,14 +37,6 @@ registerCalendarTests();
 
 import { registerCalendarBackTests } from '@hongguo/app/testing';
 registerCalendarBackTests();
-
-import { registerRankingsTests } from '@hongguo/app/testing';
-registerRankingsTests();
-import { registerRadarTests } from '@hongguo/app/testing/radar';
-registerRadarTests();
-
-import { registerLibraryLifecycleTests } from '@hongguo/app/testing';
-registerLibraryLifecycleTests();
 
 registerAccountTests('tv', './HttpFixture.tsx');
 registerSettingsTests('tv', './HttpFixture.tsx');
