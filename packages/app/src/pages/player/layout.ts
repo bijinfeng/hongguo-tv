@@ -13,10 +13,17 @@ export const PLAYER_RAIL_GAP = 24;
 const CHROME = 428;
 const MIN_PICTURE = 320;
 const MAX_PICTURE = 660;
+/** In full screen the picture leaves this much of the window to the transport band under it. */
+const FULLSCREEN_CHROME = 96;
 
 /** Picture height for the current window; the page composition owns this, not the stage. */
 export function pictureHeight(): number {
   return Math.max(MIN_PICTURE, Math.min(MAX_PICTURE, windowSize().height - CHROME));
+}
+
+/** Picture height while the window is full screen: no crumb or action line above or below. */
+export function fullScreenPictureHeight(): number {
+  return Math.max(0, windowSize().height - FULLSCREEN_CHROME);
 }
 
 /**

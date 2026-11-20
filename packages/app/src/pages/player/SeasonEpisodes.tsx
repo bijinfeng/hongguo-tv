@@ -1,4 +1,4 @@
-import { Scroll, Text, View, signal } from 'nsh';
+import { Scroll, Text, View, effect, signal, untracked } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import { Button, CinemaEpisodeButton, CinemaSelect, EpisodeRange, Notice } from '@hongguo/ui';
 import type { Store } from '../../store';
@@ -85,8 +85,22 @@ export function Episodes(props: {
   const episodes = () => props.drama.episodes ?? [];
   const initial = episodes().findIndex((episode) => episode.video_id === props.current?.video_id);
   const segment = signal(Math.max(0, Math.floor(initial / size)));
+  // The current episode can move to another segment without this grid remounting (next episode,
+  // auto-advance, a resumed position); the range follows it once its episode is present.
+  let shown = '';
+  effect(() => {
+    const id = props.current?.video_id ?? '';
+    const index = episodes().findIndex((episode) => episode.video_id === id);
+    if (!id || index < 0) return;
+    const key = `${props.drama.series_id}:${id}:${index}`;
+    untracked(() => {
+      if (key === shown) return;
+      shown = key;
+      segment.set(Math.max(0, Math.floor(index / size)));
+    });
+  });
   return (
-    <View class={props.cinema ? 'items-start gap-4' : 'flex-1 gap-5'}>
+    <View class={props.cinema ? 'flex-1 min-h-0 items-start gap-4' : 'flex-1 gap-5'}>
       <EpisodeRange
         value={segment()}
         count={episodes().length}
@@ -94,8 +108,9 @@ export function Episodes(props: {
         cinema={props.cinema}
         onChange={segment.set}
       />
+      {/* `items-start` keeps the trigger at its own width; the grid keeps the lane's and scrolls. */}
       <Scroll
-        class={props.cinema ? '' : 'flex-1'}
+        class={props.cinema ? 'flex-1 min-h-0 w-full' : 'flex-1'}
         contentStyle={{ width: '100%', paddingBottom: 12 }}
       >
         <View class="flex-row flex-wrap" style={{ rowGap: 8 }}>
@@ -160,7 +175,7 @@ export function SeasonEpisodes(props: {
 }) {
   const summary = () => props.detail.summary();
   return (
-    <View class={props.cinema ? 'items-start gap-4' : 'flex-1 gap-4'}>
+    <View class={props.cinema ? 'flex-1 min-h-0 items-start gap-4' : 'flex-1 gap-4'}>
       <If when={props.cinema} else={<RailSeasons {...props} />}>
         <CinemaSeasons {...props} />
       </If>

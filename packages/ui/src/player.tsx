@@ -219,12 +219,18 @@ export function CinemaSelect(props: {
 
 /**
  * The gradient overlay is for legibility over moving picture, not decoration.
- * `variant="overlay"` lays the controls over the picture; `bar` stacks them below it.
+ * `overlay` lays the controls over the picture; `band` is the strip below it, joined to the
+ * picture by the hairline. Without a variant the strip is plain, on the dark surface the caller
+ * already owns.
+ *
+ * Padding and type stay on the surface's tokens rather than the TV prototype's 1920 points
+ * (80/32 padding, title 36, time 22): DESIGN's typography gives every target one scale, and the
+ * TV theme already carries those roles as 960 dp values.
  */
 export function CinemaControls(props: {
   children?: JSX.Element;
   visible?: boolean;
-  variant?: 'bar' | 'band' | 'overlay';
+  variant?: 'band' | 'overlay';
 }) {
   const overlay = () => props.variant === 'overlay';
   const band = () => props.variant === 'band';
@@ -291,9 +297,11 @@ export function CinemaControls(props: {
 export function CinemaText(props: {
   children?: JSX.Element;
   variant?: 'title' | 'stage' | 'time' | 'preview';
+  testID?: string;
 }) {
   return (
     <Text
+      testID={props.testID}
       role={props.variant === 'stage' ? 'header' : undefined}
       accessibilityLevel={props.variant === 'stage' ? 1 : undefined}
       class={props.variant === 'title' ? 'line-clamp-2' : ''}
@@ -333,7 +341,7 @@ export function EpisodePanel(props: {
       }}
       popupClass={props.cinema ? 'bg-cinema' : 'bg-popover'}
       popupStyle={{ width: Math.min(440, windowSize().width) }}
-      backdropClass="bg-cinema/60"
+      backdropClass="bg-cinema/40"
     >
       <View
         role="dialog"
@@ -449,6 +457,14 @@ export function CinemaSettingRow(props: { label: string; children?: JSX.Element 
   );
 }
 
+/** The desktop rail's approved lane height; the episode grid scrolls inside it. */
+const RAIL_HEIGHT = 552;
+
+/**
+ * The rail's lane beside the picture. Its definite height is what lets the caller's
+ * `flex-1 min-h-0` chain resolve, so a long season scrolls within the lane instead of being
+ * clipped by the rail's own overflow and the title above the grid stays put.
+ */
 export function EpisodeRail(props: { children?: JSX.Element; cinema?: boolean }) {
   return (
     <View
@@ -456,7 +472,7 @@ export function EpisodeRail(props: { children?: JSX.Element; cinema?: boolean })
       style={{
         width: Math.min(316, windowSize().width),
         minWidth: Math.min(280, windowSize().width),
-        maxHeight: windowSize().height,
+        height: Math.min(RAIL_HEIGHT, windowSize().height),
         borderRadius: controlMetrics().radius,
       }}
     >

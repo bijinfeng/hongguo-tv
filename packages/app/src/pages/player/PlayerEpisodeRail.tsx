@@ -23,8 +23,10 @@ export function PlayerEpisodeRail(props: {
 }) {
   return (
     <EpisodeRail cinema>
-      <View style={{ padding: 16, gap: 16 }}>
-        <CinemaText variant="title">选集</CinemaText>
+      <View class="flex-1 min-h-0" style={{ padding: 16, gap: 16 }}>
+        <CinemaText variant="title" testID="player-episodes-title">
+          选集
+        </CinemaText>
         <SeasonEpisodes
           cinema
           seasons={props.seasons}

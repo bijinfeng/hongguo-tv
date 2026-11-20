@@ -36,11 +36,12 @@ import {
   CinemaStageAction,
   CinemaSettingRow,
   EpisodePanel,
+  radius,
 } from '@hongguo/ui';
 import { SeasonEpisodes } from './player/SeasonEpisodes';
 import { PlayerActions } from './player/PlayerActions';
 import { PlayerEpisodeRail } from './player/PlayerEpisodeRail';
-import { pictureHeight } from './player/layout';
+import { fullScreenPictureHeight, pictureHeight } from './player/layout';
 
 type Media = Awaited<ReturnType<typeof play>>;
 type Representation = { info: Media; revision: number };
@@ -161,6 +162,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   let panelRef: ViewRef | undefined;
   let moreRef: ViewRef | undefined;
   let stageRef: ViewRef | undefined;
+  let fullScreenRef: ViewRef | undefined;
+  /** The player is on its way out; a mode change it causes must not take the focus back. */
+  let leaving = false;
   let restorePosition = 0;
   let seekingTo: number | undefined;
   let hadBackground = false;
@@ -388,6 +392,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     checkpoint();
     statistics.reset();
     void statistics.flush(true);
+    leaving = true;
     if (fullScreen()) window?.setMode(previousMode);
     props.store.nav.pop();
   };
@@ -465,6 +470,26 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     }
     keyboardEngaged.set(true);
   };
+  // Leaving full screen rebuilds the page's top row and rail around the controls, whether the
+  // button or the host's own exit (Escape) did it; the trigger takes the focus back afterwards.
+  // Leaving the player also restores the mode, but that page's own source focus wins.
+  let wasFullScreen = false;
+  effect(() => {
+    const current = fullScreen();
+    untracked(() => {
+      if (current) {
+        wasFullScreen = true;
+        return;
+      }
+      if (!wasFullScreen) return;
+      wasFullScreen = false;
+      if (disposed || leaving) return;
+      keyboardEngaged.set(true);
+      requestAnimationFrame(() => {
+        if (!disposed && !leaving) fullScreenRef?.focus();
+      });
+    });
+  });
   effect(() => {
     const foreground = lifecycle() === 'active' && active();
     untracked(() => {
@@ -549,6 +574,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   });
   cleanup(() => {
     disposed = true;
+    leaving = true;
     cancelSuccessor();
     checkpoint();
     void statistics.dispose();
@@ -589,7 +615,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           <View class="min-w-0" style={{ height: tv ? '100%' : undefined, width: '100%' }}>
             <View
               class="relative bg-cinema overflow-hidden"
-              style={{ height: tv ? '100%' : undefined, borderRadius: tv ? 0 : 12 }}
+              style={{ height: tv ? '100%' : undefined, borderRadius: tv ? 0 : radius('xl') }}
             >
               <CinemaStage
                 // The resting poster composition is a desktop reading of the draft. TV draws its
@@ -600,7 +626,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                   tv
                     ? windowSize().height
                     : fullScreen()
-                      ? Math.max(0, windowSize().height - 96)
+                      ? fullScreenPictureHeight()
                       : // A poster is the resting picture even when the stream failed, so it keeps the
                         // full frame; only a stage with neither a picture nor a poster shrinks, because
                         // an empty full-height frame reads as a broken picture.
@@ -955,12 +981,17 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       onPress={() => more.set(true)}
                     />
                   </If>
-                  <If when={!tv}>
+                  <If when={!tv && !!window}>
+                    {/* The web has no window mode and the host exposes no element fullscreen, so
+                        the button is absent rather than drawn permanently disabled. */}
                     <CinemaButton
+                      testID="player-fullscreen"
                       label={fullScreen() ? '退出全屏' : '全屏'}
                       icon="fullscreen"
                       iconOnly
-                      disabled={!window}
+                      buttonRef={(ref) => {
+                        fullScreenRef = ref;
+                      }}
                       onPress={fullscreen}
                     />
                   </If>
