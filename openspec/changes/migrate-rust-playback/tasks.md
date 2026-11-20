@@ -55,3 +55,9 @@
 
 - 5.4 已通过最终生产页面 APK 的浅／深／1.3 字号各 24 项、浏览各 16 项和独立复审；夹具为自制媒体与显式 HTTP stub，不等于官网／原生独立业务或物理遥控。
 - 公开 window fullscreen 的 headless 回归已增加，macOS 的真实交互和其余跨端缺口保持开放；本轮 CUA 仍报告 Mac 锁屏。完整 B／MVP 未完成，见 VALIDATION B4c。
+
+## 播放器当前实现边界（2026-11-20）
+
+- 控制层只保留 band／overlay 两种变体，不采用 TV 原型的 80／32 内距与 36／22 字号：DESIGN 每端只有一套字号档，TV 档即 title 20／meta 14（`packages/ui/theme.tv.json:22,25`），另加一套控制层字号没有 token 来源（`packages/ui/src/player.tsx:225-229`）。
+- 面板遮罩为 `cinema/40`（DESIGN「遮罩使用 cinema/40」）；选集栏改为确定高度 `Math.min(552, windowSize().height)`，长季在栏内滚动而不是被裁掉；影院分支补 `flex-1 min-h-0` 后 25–48 段可见。
+- 5.5 的全屏只有窗口模式：Web 宿主 `isAvailable` 为 false 且生成类型无元素级全屏（`apps/web/.nsh/types/nsh/desktop.d.ts:564`），故 Web 不渲染全屏按钮；按钮与宿主 Escape 退出后焦点回触发器，离开播放器时不抢焦点。5.1／5.2／5.5 未勾选：缺少当前源码的宿主截图与真实交互全屏证据，6.2／6.3 的真实播放与视觉矩阵同样未做。
