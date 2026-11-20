@@ -26,6 +26,8 @@ const REGISTERED_UA: &str = "com.phoenix.read/73532 (Linux; U; Android 16; zh_CN
 pub enum PlaybackSource {
     /// Current official GET model.
     VideoTab,
+    /// Mobile v5 POST; independent identity, empty-body rotation.
+    MobileV5,
     /// Fresh registered legacy POST, first host.
     RegisteredLegacy,
     /// Fresh registered legacy POST, alternate host.
@@ -44,6 +46,10 @@ impl PlaybackClient {
         request: &PlaybackRequest,
         source: PlaybackSource,
     ) -> Result<PlaybackModel, PlaybackError> {
+        // The mobile-v5 source owns its own timeout, identity rotation and gzip transport.
+        if source == PlaybackSource::MobileV5 {
+            return self.mobile_v5_candidates(request).await;
+        }
         timeout(
             Duration::from_secs(if source == PlaybackSource::RegisteredSingle {
                 4
@@ -87,6 +93,8 @@ impl PlaybackClient {
             PlaybackSource::RegisteredLegacyAlternate => ALTERNATE,
             PlaybackSource::RegisteredSingle => REGISTERED,
             PlaybackSource::LegacySingle => SINGLE,
+            // `candidates` dispatches the mobile-v5 source before reaching this builder.
+            PlaybackSource::MobileV5 => return Err(PlaybackError::Configuration),
         };
         let production = Url::parse(endpoint).map_err(|_| PlaybackError::Configuration)?;
         let mut url = if let Some(origin) = &self.fixture {
@@ -342,6 +350,7 @@ impl PlaybackClient {
     }
 }
 
+mod mobile_v5;
 #[cfg(test)]
 mod tests;
 fn playback_query(identity: &Identity) -> BTreeMap<String, String> {

@@ -216,11 +216,14 @@ async fn prepare(
     request: &PlaybackRequest,
 ) -> Result<Resolved, PlaybackError> {
     use PlaybackSource::*;
+    // The mobile-v5 source follows the tab GET and shares the legacy family budget: an empty
+    // tab response is exactly the case it exists for. Its own attempt is bounded at 4 seconds.
     let families: &[(Duration, &[PlaybackSource])] = &[
         (Duration::from_secs(8), &[VideoTab]),
         (
             Duration::from_secs(14),
             &[
+                MobileV5,
                 RegisteredLegacy,
                 RegisteredLegacyAlternate,
                 RegisteredLegacy,

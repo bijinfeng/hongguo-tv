@@ -199,7 +199,8 @@ async fn old_revision_cannot_refresh_new_identity_and_ttl_does_not_grow_cache() 
     assert!(renewed.revision > new.revision);
     let separate = client.identity(Profile::Single, None).await.unwrap();
     assert_ne!(separate.cdid, renewed.cdid);
-    assert_eq!(client.caches.len(), 3);
+    // One isolated slot per profile: legacy, single, registered single and mobile v5.
+    assert_eq!(client.caches.len(), 4);
     let isolated = PlaybackClient::for_loopback_tests(&server.origin).unwrap();
     assert_ne!(
         isolated.identity(Profile::Legacy, None).await.unwrap().cdid,

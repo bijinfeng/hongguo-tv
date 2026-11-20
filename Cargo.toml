@@ -16,6 +16,8 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.97"
 publish = false
+# Project-owned code only; third-party terms are listed in THIRD_PARTY_NOTICES.md.
+license = "MIT"
 
 [workspace.dependencies]
 hongguo-updater = { path = "crates/updater", version = "=0.1.0" }
