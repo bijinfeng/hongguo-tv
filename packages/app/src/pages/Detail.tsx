@@ -16,6 +16,7 @@ import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
 import { DetailExtras } from '../DetailExtras';
+import { contentGutter } from '../shell/ContentColumn';
 import { createDetailFavorite } from '../detail-favorite';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { FollowAction, FollowNotice } from '../FollowAction';
@@ -128,7 +129,8 @@ export function Detail(props: {
       testID="detail-scroll"
       class="flex-1"
       contentStyle={{
-        paddingHorizontal: props.store.target === 'tv' ? 0 : 40,
+        // The shared gutter, so this page's left edge matches every other content page.
+        paddingHorizontal: props.store.target === 'tv' ? 0 : contentGutter(),
         paddingBottom: props.store.target === 'tv' ? 16 : 40,
         paddingTop: props.store.target === 'tv' ? 6 : 12,
         gap: 32,
@@ -253,9 +255,13 @@ export function Detail(props: {
           </View>
         </If>
         <If when={browse.loading()}>
-          <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
-            {episodes().length ? '正在加载演员与相关作品…' : '正在加载详情与选集…'}
-          </Text>
+          {/* Only the first read blocks the page; a later extras read says so beside the extras
+              block it will fill, not above the episode list. */}
+          <If when={!episodes().length}>
+            <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
+              正在加载详情与选集…
+            </Text>
+          </If>
         </If>
         <If when={browse.error()}>
           <Notice
@@ -315,11 +321,15 @@ export function Detail(props: {
                 variant="quiet"
                 label="定位当前集"
                 compact
+                // With no saved position there is no current episode to locate, and pressing used
+                // to jump to the first segment under a label that promised something else.
+                disabled={!resume()}
                 onPress={() => {
                   const index = episodes().findIndex(
                     (episode) => episode.video_id === resume()?.video_id,
                   );
-                  segment.set(Math.max(0, Math.floor(index / pageSize)));
+                  if (index < 0) return;
+                  segment.set(Math.floor(index / pageSize));
                 }}
               />
             </View>
@@ -366,6 +376,12 @@ export function Detail(props: {
         </View>
         <If when={browse.drama() && !episodes().length}>
           <Notice message="暂时没有可观看的选集。" />
+        </If>
+        {/* The extras block is at the page's end, so its own loading state belongs here. */}
+        <If when={browse.loading() && !!episodes().length}>
+          <Text testID="detail-extras-loading" class="text-base text-muted-foreground">
+            正在加载演员与相关作品…
+          </Text>
         </If>
         <DetailExtras
           detail={browse.detail()}

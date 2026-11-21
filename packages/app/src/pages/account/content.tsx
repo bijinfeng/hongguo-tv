@@ -8,6 +8,11 @@ export interface AccountContentActions {
   onReservations: () => void;
   onNotifications?: () => void;
   onUpdates?: () => void;
+  /**
+   * A guest sees the same four destinations, but the three account-backed ones need a sign-in.
+   * Saying so here avoids sending the reader to a page that only then asks for one.
+   */
+  signedIn?: boolean;
 }
 
 /**
@@ -18,11 +23,18 @@ export function AccountContent(props: AccountContentActions) {
   return (
     <AccountCard title="我的内容" testID="account-content" class="h-full">
       <View class="flex-col">
-        <ActionRow label="追更" divided testID="account-following" onPress={props.onFollowing} />
+        <ActionRow
+          label="追更"
+          divided
+          testID="account-following"
+          description={props.signedIn === false ? '需要登录' : undefined}
+          onPress={props.onFollowing}
+        />
         <ActionRow
           label="预约"
           divided
           testID="account-reservations"
+          description={props.signedIn === false ? '需要登录' : undefined}
           onPress={props.onReservations}
         />
         <If when={props.onNotifications}>
@@ -30,6 +42,7 @@ export function AccountContent(props: AccountContentActions) {
             label="更新提醒"
             divided
             testID="account-notifications"
+            description={props.signedIn === false ? '需要登录' : undefined}
             onPress={props.onNotifications!}
           />
         </If>

@@ -20,7 +20,8 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
             onPress={() => props.store.back()}
           />
           <UiText role="page">设置</UiText>
-          <If when={props.store.settings.error()}>
+          {/* A write failure belongs to its own row; only a read failure needs the page notice. */}
+          <If when={props.store.settings.error() && !props.store.settings.failedKey()}>
             <Notice
               error
               message={props.store.settings.error()}

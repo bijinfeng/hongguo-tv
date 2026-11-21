@@ -250,13 +250,37 @@ function OfficialRankings(props: OfficialProps) {
       <If when={props.rankings.loading() && !props.rankings.data() && !props.rankings.error()}>
         <RankingsPending target={props.target} />
       </If>
+      {/* A kept board answers the previous selection; say so, but never by adding a row that
+          shifts the list under the reader's focus. */}
+      <If when={props.rankings.stale()}>
+        <UiText role="meta" tone="muted">
+          {props.rankings.error() ? '榜单未切换，仍是上一次的结果' : '正在切换榜单…'}
+        </UiText>
+      </If>
       <If when={props.rankings.error() && !props.rankings.data()}>
         <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
       </If>
+      <If when={props.rankings.error() && !!props.rankings.data() && props.rankings.stale()}>
+        <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
+      </If>
       <If when={props.rankings.data() && !props.rankings.data()!.items.length}>
-        <UiText tone="muted">
-          {props.rankings.data()?.has_more ? '本页暂无内容，可以继续浏览' : '这个榜单暂时没有内容'}
-        </UiText>
+        <View class="items-start" style={{ gap: space('md'), paddingVertical: space('lg') }}>
+          <UiText role="title">这个榜单暂时没有内容</UiText>
+          <UiText role="meta" tone="muted" lines={2}>
+            {props.rankings.data()?.has_more
+              ? '本页暂无内容，可以继续浏览。'
+              : '该榜单当前没有可展示的条目，换个榜单或稍后再看。'}
+          </UiText>
+          <Button
+            label="换个榜单"
+            testID="ranking-empty-switch"
+            onPress={() => {
+              props.onNavigate();
+              // The selector rows sit above the empty board; send the reader back to them.
+              focusPrimary();
+            }}
+          />
+        </View>
       </If>
       <If when={props.rankings.data()}>
         <ContentArrival class={props.target === 'tv' ? 'flex-1 min-h-0' : 'flex-1'}>

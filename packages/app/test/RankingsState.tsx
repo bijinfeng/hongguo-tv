@@ -104,6 +104,7 @@ export function RankingsStateFixture() {
     return (
       <View testID="rankings-owner">
         <Text class="line-clamp-2">{`ids:${owned.data()?.items.map(rankingIdentity).join(',') ?? 'none'}`}</Text>
+        <Text class="line-clamp-2">{`stale:${owned.stale()}`}</Text>
         <Text class="line-clamp-2">{`selection:${owned.key()}`}</Text>
         <Text class="line-clamp-3">{`groups:${owned
           .groups()

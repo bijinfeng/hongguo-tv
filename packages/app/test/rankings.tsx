@@ -60,7 +60,10 @@ export function registerRankingsTests() {
     expect(params(app, 3).has('offset')).toBe(false);
     await app.waitUntil(() => app.texts().some((text) => text.includes('abort2')));
     await app.press('完成旧榜单续页');
-    expect(app.shows('text:ids:none')).toBe(true);
+    // The board stays on screen while the new selection loads; the late old-page answer is not
+    // merged into it, so the rows are still the previous board's and the probe reports them stale.
+    expect(app.shows('text:ids:none')).toBe(false);
+    expect(app.texts().some((text) => text.includes('stale:true'))).toBe(true);
     await app.press('完成榜单空页');
     await app.waitFor('text:cursor:60');
     expect(app.texts().some((text) => text.includes('rank_sub:第二子榜:omitted:deep'))).toBe(true);

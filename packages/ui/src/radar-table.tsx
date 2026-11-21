@@ -32,6 +32,11 @@ export interface RadarTableProps {
   /** A new collection resets scroll; refreshing the same collection preserves it. */
   collection?: string;
   /**
+   * The column the rows are ordered by. A collection change scrolls this column into view instead
+   * of resetting to the left edge, so the sorted values are the ones the reader sees.
+   */
+  focusColumn?: string;
+  /**
    * `header` renders the column controls above the table (previews and most callers).
    * `external` lets the page compose them in its own control band.
    */
@@ -204,6 +209,27 @@ export function RadarTable(props: RadarTableProps) {
     },
   });
   let collection = props.collection;
+  /**
+   * Horizontal offset that brings `key` into view while the row identity stays on screen. The
+   * board can be wider than the window, so the two cannot always both fit; the identity (rank and
+   * title) wins and the sorted column is only scrolled as far as that block allows.
+   */
+  const offsetForColumn = (key: string | undefined) => {
+    if (!key) return 0;
+    let start = safe();
+    let identityEnd = safe();
+    for (const column of props.columns) {
+      if (column.key === 'rank' || column.key === 'title')
+        identityEnd = start + fixedWidth(column) + safe();
+      if (column.key === key) {
+        const end = start + fixedWidth(column) + safe();
+        if (end <= viewport()) return 0;
+        return Math.min(end - viewport(), identityEnd);
+      }
+      start += fixedWidth(column);
+    }
+    return 0;
+  };
   effect(() => {
     const next = props.collection;
     if (next === collection) return;
@@ -211,7 +237,7 @@ export function RadarTable(props: RadarTableProps) {
     waiting = undefined;
     cancelAnimationFrame(frame);
     list?.scrollToOffset({ offset: 0, animated: false });
-    scrollColumns(0);
+    scrollColumns(offsetForColumn(props.focusColumn));
   });
   cleanup(() => {
     disposed = true;

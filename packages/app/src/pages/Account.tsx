@@ -70,6 +70,7 @@ export function Account(props: {
           props.openUpdates?.(() => loginRef?.focus());
         }
       : undefined,
+    signedIn: props.store.account()?.logged_in === true,
   };
   return (
     <View class="flex-1">

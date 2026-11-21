@@ -46,6 +46,8 @@ export function createRankings(request: ReturnType<typeof captureRequest>, activ
   const loading = signal(false);
   const error = signal('');
   const selected = signal('');
+  /** The selection the visible page answered; a newer selection leaves it on screen, stale. */
+  const dataKey = signal('');
   let abort: AbortController | undefined;
   let revision = 0;
   let disposed = false;
@@ -133,6 +135,7 @@ export function createRankings(request: ReturnType<typeof captureRequest>, activ
       params.set('shown', [...new Set(ids.slice().reverse())].slice(0, 128).reverse().join(','));
     }
     const suffix = params.toString();
+    const requestKey = key();
     loading.set(true);
     error.set('');
     try {
@@ -162,6 +165,7 @@ export function createRankings(request: ReturnType<typeof captureRequest>, activ
       batch(() => {
         if (next.ranks.length) ranks.set(next.ranks);
         data.set({ ...next, items: [...(prior?.items ?? []), ...added] });
+        dataKey.set(requestKey);
       });
     } catch (failure) {
       if (owns()) error.set(errorMessage(failure, '加载失败'));
@@ -177,7 +181,9 @@ export function createRankings(request: ReturnType<typeof captureRequest>, activ
       cancel();
       return;
     }
-    if (!data() && !loading() && !error()) void read();
+    // A changed selection re-reads while the previous board stays visible; `dataKey` marks it.
+    const behind = data() !== undefined && dataKey() !== key();
+    if ((!data() || behind) && !loading() && !error()) void read();
   });
   cleanup(() => {
     disposed = true;
@@ -186,6 +192,8 @@ export function createRankings(request: ReturnType<typeof captureRequest>, activ
   return {
     selection,
     data,
+    /** True while the visible board still answers an earlier selection. */
+    stale: () => data() !== undefined && dataKey() !== key(),
     ranks,
     loading,
     error,
@@ -216,10 +224,14 @@ export function createRankings(request: ReturnType<typeof captureRequest>, activ
         delete next.rank_sub;
         delete next.rank_panel;
       } else if (group.dimension === 'rank_sub') delete next.rank_panel;
+      /** A new board is a different list, not a filtered one: it starts empty at the top. */
+      const newBoard = group.dimension === 'rank';
       batch(() => {
         cancel();
         selection.set(next);
-        data.set(undefined);
+        // A sub-ranking or panel keeps the board that is already on screen and marks it stale;
+        // switching the board itself drops it, because those rows belong to another list.
+        if (newBoard) data.set(undefined);
         selected.set('');
         error.set('');
       });

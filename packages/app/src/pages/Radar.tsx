@@ -226,6 +226,8 @@ export function Radar(props: {
             pending={props.radar.pending()}
             active={props.active}
             collection={props.radar.key()}
+            // The rows are ordered by this column, so it is the one that must be on screen.
+            focusColumn={props.radar.view() === 'growth' ? props.radar.metric() : undefined}
             columnControls="external"
             tableRef={(ref) => {
               table = ref;
