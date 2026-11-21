@@ -163,7 +163,7 @@ function HeroSkeleton(props: { tv: boolean }) {
     <SkeletonRegion
       label="正在加载精选内容"
       testID="home-hero-pending"
-      class={`overflow-hidden rounded-(--radius) bg-card ${props.tv ? '' : 'flex-row'}`}
+      class={props.tv ? '' : 'overflow-hidden rounded-(--radius) bg-card flex-row'}
       style={{
         minHeight: props.tv ? 225 : size().minHeight,
         marginBottom: props.tv ? 12 : 0,
@@ -263,7 +263,9 @@ export function HomeHero(props: { store: Store }) {
     >
       {(drama) => (
         <View
-          class="overflow-hidden rounded-(--radius) bg-card"
+          // The TV draft's hero is not a card: copy floats on the page background and the art
+          // bleeds past the column, so a band surface here only gave the flush copy an edge.
+          class={tv() ? '' : 'overflow-hidden rounded-(--radius) bg-card'}
           style={{
             position: 'relative',
             flexDirection: tv() ? 'column' : 'row',
@@ -278,7 +280,8 @@ export function HomeHero(props: { store: Store }) {
               <UiText role="meta">{meta()}</UiText>
             </View>
             <View style={{ marginBottom: tv() ? 16.5 : 25 }}>
-              <UiText role="display" lines={2}>
+              {/* The TV draft marks this title h1; the desktop page keeps its greeting heading. */}
+              <UiText role="display" lines={2} accessibilityLevel={tv() ? 1 : undefined}>
                 {drama().title}
               </UiText>
             </View>

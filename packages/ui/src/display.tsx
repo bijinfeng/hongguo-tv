@@ -40,6 +40,8 @@ export interface UiTextProps {
   lines?: number;
   selectable?: boolean;
   align?: 'start' | 'center' | 'end';
+  /** Overrides the role's default heading level; a draft that names another element h1 uses it. */
+  accessibilityLevel?: number;
   testID?: string;
 }
 
@@ -64,9 +66,11 @@ export function UiText(props: UiTextProps) {
           ['display', 'page', 'section', 'title'].includes(props.role ?? '') ? 'header' : undefined
         }
         accessibilityLevel={
-          // Only `page` is a page heading. `display` is the featured title inside a hero, so it
-          // sits one level below: a page must not expose two level-1 headings.
-          props.role === 'page'
+          // Only `page` is a page heading by default; `display` is the featured title inside a
+          // hero and sits one level below, so a page never exposes two level-1 headings. A draft
+          // that marks another element h1 overrides the default explicitly (the TV home hero).
+          props.accessibilityLevel ??
+          (props.role === 'page'
             ? 1
             : props.role === 'display'
               ? 2
@@ -74,7 +78,7 @@ export function UiText(props: UiTextProps) {
                 ? 2
                 : props.role === 'title'
                   ? 3
-                  : undefined
+                  : undefined)
         }
         style={{
           fontSize: textSize(props.role),
