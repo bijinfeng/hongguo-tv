@@ -411,7 +411,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       hideControls();
       return;
     }
-    if (tv && layer() === 'controls') {
+    // A failed stream has no playback to guard: BACK means the same thing as the error card's
+    // own 返回详情, not "hide the controls" — that would strand focus on the full-stage action
+    // and draw its outline across the whole picture.
+    if (tv && layer() === 'controls' && !error()) {
       hideControls();
       return;
     }

@@ -63,6 +63,27 @@ export function Detail(props: {
   let initialized = '';
   let selected = '';
   let startRef: ViewRef | undefined;
+  // A fresh detail page must not leave the remote on the navigation bar, where Confirm would
+  // leave the page: TV lands on the play action once episodes have settled. One focus per
+  // mount keeps popups and source restoration in charge of their own focus afterwards.
+  let primaryFocused = false;
+  effect(() => {
+    if (
+      props.store.target !== 'tv' ||
+      primaryFocused ||
+      !active() ||
+      lifecycle() !== 'active' ||
+      !current() ||
+      !startEpisode()
+    )
+      return;
+    primaryFocused = true;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (active() && lifecycle() === 'active') startRef?.focus();
+      }),
+    );
+  });
   effect(() => {
     const key = JSON.stringify([seasons.selectedId(), current().content_type ?? '']);
     if (selected !== key) {

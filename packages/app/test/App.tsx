@@ -1117,8 +1117,9 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.press('重试');
     await app.waitFor('当前服务暂不支持播放，请稍后重试。');
     expect(app.requests().filter((r) => r.url.includes('/play/info')).length).toBe(2);
+    // The failed stream never plays, so BACK leaves for the detail page on every target —
+    // TV no longer spends a first press hiding controls over the error card.
     await app.back();
-    if (target === 'tv') await app.back();
     expect(app.shows('id:episode-1000')).toBe(true);
     await app.back();
     unavailable = true;
