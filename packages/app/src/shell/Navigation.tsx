@@ -148,12 +148,9 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                     class={
                       props.layout === 'desktop'
                         ? 'w-full justify-start'
-                        : 'rounded-none bg-transparent border-transparent'
-                    }
-                    style={
-                      props.layout === 'tv'
-                        ? { borderRadius: 0, borderWidth: 0, backgroundColor: 'transparent' }
-                        : undefined
+                        : // Android TV: NSH draws its own focus ring around the focused item; our
+                          // CSS outline would draw a second one on top of it.
+                          'rounded-none bg-transparent border-transparent focus-visible:outline-none'
                     }
                     onPress={() => props.store.navigate(item().name)}
                   />
