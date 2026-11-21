@@ -939,7 +939,12 @@ export function ComponentGallery(props: ComponentGalleryProps) {
               <Section title="播放状态">
                 <GalleryCinemaRecipe />
               </Section>
-              <EpisodePanel open={episodePanel()} onClose={() => episodePanel.set(false)} cinema>
+              <EpisodePanel
+                open={episodePanel()}
+                onClose={() => episodePanel.set(false)}
+                cinema
+                label="选集"
+              >
                 <CinemaText variant="title">选集 · 示例</CinemaText>
                 <View class="flex-row" style={{ gap: unit(12) }}>
                   <Each of={[1, 2, 3, 4]}>

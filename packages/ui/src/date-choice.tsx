@@ -42,7 +42,8 @@ export function DateChoice(props: DateChoiceProps) {
           selected={props.selected}
           onPress={props.onPress}
           onFocus={props.onFocus}
-          class="flex-1 items-center justify-center border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+          // selected: wins over hover/active, or the chosen day loses its accent fill on pointer.
+          class="items-center justify-center border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
           style={{
             minWidth: size().height * 2,
             minHeight: size().height * 2.4,
