@@ -33,7 +33,16 @@ function columns(store: Store) {
 }
 
 function cardWidth(store: Store) {
-  if (store.target === 'tv') return 326;
+  if (store.target === 'tv') {
+    // The TV shell pads 44 on each side (TvShell); the skeleton already promises these 4 columns,
+    // so the loaded grid derives the same width from the viewport instead of a fixed 326 that
+    // only fits two cards in 960dp and leaves the row's right third empty.
+    const available = windowSize().width - 88;
+    return Math.max(
+      150,
+      Math.floor((available - (columns(store) - 1) * columnGap) / columns(store)),
+    );
+  }
   const count = columns(store);
   const usable = gridWidth() - (count - 1) * columnGap;
   return Math.max(150, Math.floor(usable / count));
