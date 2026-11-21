@@ -72,7 +72,9 @@ const tvRail: NavItem[] = [
     name: 'home',
     label: '发现',
     testID: 'nav-home',
-    selected: (store) => store.activePage('home'),
+    // The calendar is reached from the home page's own entry, and the header has room for four
+    // tabs: folding it here keeps a current item instead of leaving the bar with none.
+    selected: (store) => store.activePage('home') || store.activePage('calendar'),
   },
   {
     name: 'discover',
@@ -140,10 +142,25 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                     icon={item().icon}
                     label={item().label}
                     current={on()}
+                    // The TV rail shares the page Tabs' current marker: a 2px brand underline on
+                    // the bar's own surface. The background is pinned transparent because Button's
+                    // current appearance would otherwise paint a muted pill over it.
                     class={
                       props.layout === 'desktop'
                         ? 'w-full justify-start'
-                        : `rounded-none border-b-2 ${on() ? 'border-b-foreground' : 'border-b-transparent'}`
+                        : on()
+                          ? 'rounded-none bg-transparent border-transparent border-b-primary'
+                          : 'rounded-none bg-transparent border-transparent'
+                    }
+                    style={
+                      props.layout === 'tv'
+                        ? {
+                            borderRadius: 0,
+                            borderWidth: 0,
+                            borderBottomWidth: 2,
+                            backgroundColor: 'transparent',
+                          }
+                        : undefined
                     }
                     onPress={() => props.store.navigate(item().name)}
                   />

@@ -6,12 +6,18 @@ import type { Store } from '../../store';
 export function SettingsAccount(props: { store: Store }) {
   let accountRef: ViewRef | undefined;
   const name = () => props.store.account()?.profile?.name;
+  /** An unsettled read is neither guest nor signed in, and must not claim the guest row. */
+  const unready = () => !props.store.account() && props.store.account.loading();
   return (
     <SettingsSection title="账号">
       <SettingsRow
         label="我的账号"
         description={
-          name() ? `${name()} · 观看记录会同步到该账号。` : '未登录，观看记录只保存在本机。'
+          unready()
+            ? '正在读取账号状态…'
+            : name()
+              ? `${name()} · 观看记录会同步到该账号。`
+              : '未登录，观看记录只保存在本机。'
         }
         testID="settings-account-row"
       >

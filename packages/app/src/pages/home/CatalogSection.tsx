@@ -227,7 +227,8 @@ export function CatalogSection(props: { store: Store }) {
       </If>
       <If when={upToDate() && items().length > 0}>
         <View class="flex-row flex-wrap" style={{ gap: columnGap }}>
-          <Each of={items().slice(0, columns(props.store) * 3)} key={(drama) => drama.series_id}>
+          {/* All loaded pages are rendered: the header counts them and 查看更多 appends to them. */}
+          <Each of={items()} key={(drama) => drama.series_id}>
             {(drama) => (
               <View style={{ width: cardWidth(props.store) }}>
                 <PosterCard
@@ -243,17 +244,23 @@ export function CatalogSection(props: { store: Store }) {
           </Each>
         </View>
       </If>
+      {/* The cause comes first, then the action that retries the same cursor. */}
+      <If when={!!catalog.error() && !!data() && !catalog.stale()}>
+        <View style={{ marginTop: 16 }}>
+          <Notice error message={catalog.error()} testID="home-catalog-more-error" />
+        </View>
+      </If>
       <If when={data()?.has_more && !catalog.stale()}>
         <View class="items-end" style={{ marginTop: 16 }}>
           <Button
-            label="查看更多"
+            label={catalog.error() ? '重试加载更多' : '查看更多'}
             displayLabel={catalog.loading() ? '正在加载…' : undefined}
             pending={catalog.loading()}
             variant="quiet"
             size="sm"
             icon="forward"
             testID="home-catalog-more"
-            onPress={() => catalog.loadMore()}
+            onPress={() => (catalog.error() ? catalog.retry() : catalog.loadMore())}
           />
         </View>
       </If>

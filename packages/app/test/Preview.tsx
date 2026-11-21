@@ -148,7 +148,7 @@ export function PlayerControlPreview(props: { target: ProductTarget }) {
             onPress={() => exits.update((value) => value + 1)}
           />
         </View>
-        <EpisodePanel open={panel()} onClose={closePanel}>
+        <EpisodePanel open={panel()} onClose={closePanel} label="选集">
           <Text class="text-xl font-semibold text-foreground">选集</Text>
           <EpisodeRange
             value={range()}

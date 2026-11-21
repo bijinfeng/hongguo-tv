@@ -132,8 +132,11 @@ export function createSettings(options: SettingsOptions = {}): Settings {
     quietWatching.set(values.quietWatching);
     autoCheckUpdates.set(values.autoCheckUpdates);
   };
+  const readFailed = () => error().startsWith('设置未能读取');
   const persist = () => {
-    if (!loaded()) return;
+    // After a failed read the values in memory are defaults, not what the user saved: writing
+    // them back would silently replace stored preferences. The read must succeed first.
+    if (!loaded() || readFailed()) return;
     const owned = ++revision;
     const raw = JSON.stringify(current());
     writes = writes.then(async () => {
@@ -146,8 +149,10 @@ export function createSettings(options: SettingsOptions = {}): Settings {
     });
   };
   const change = <K extends keyof Preferences>(key: K, value: Preferences[K]) => {
+    // Apply for this session so the control answers, but never persist over an unread store.
     apply({ ...current(), [key]: value });
     if (key === 'theme') applyColorScheme(value as ThemeMode);
+    if (readFailed()) error.set('设置未能读取，本次改动未保存；请先重试读取。');
     persist();
   };
   const load = async () => {
@@ -213,7 +218,11 @@ export function createSettings(options: SettingsOptions = {}): Settings {
       persist();
     },
     retry() {
-      if (!loaded()) {
+      // A failed read must be read again, never turned into a write of the defaults: that would
+      // overwrite a saved preference the user never touched. Only a failed save republishes.
+      if (!loaded() || readFailed()) {
+        loaded.set(false);
+        revision++;
         void load();
         return;
       }

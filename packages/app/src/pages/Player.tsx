@@ -1019,7 +1019,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
               </View>
             </If>
             <If when={props.store.warning()}>
-              <Notice error message={props.store.warning()} retry={session.retry} />
+              <Notice error message={props.store.warning()} retry={session.retry} tone="cinema" />
             </If>
           </View>
         </Scroll>
@@ -1036,7 +1036,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           />
         </If>
       </View>
-      <EpisodePanel open={panel()} onClose={closePanel} cinema>
+      <EpisodePanel open={panel()} onClose={closePanel} cinema label="选集">
         <View class="flex-row items-center justify-between">
           <CinemaText variant="title">选集</CinemaText>
           <CinemaButton label="关闭选集" icon="close" iconOnly onPress={closePanel} />
@@ -1054,7 +1054,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           onSelect={selectEpisode}
         />
       </EpisodePanel>
-      <EpisodePanel open={more()} onClose={closeMore} cinema>
+      <EpisodePanel open={more()} onClose={closeMore} cinema label="播放设置">
         <View class="flex-row items-center justify-between">
           <CinemaText variant="title">播放设置</CinemaText>
           <CinemaButton label="关闭播放设置" icon="close" iconOnly onPress={closeMore} />

@@ -1,11 +1,20 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Badge, Button, ContentArrival, Cover, Notice, Surface, UiText } from '@hongguo/ui';
+import { Badge, Button, ContentArrival, Cover, Notice, UiText } from '@hongguo/ui';
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { desktopContentFrame } from '../shell/ContentColumn';
 
 export function notificationLabel(item: NotificationItem): string {
   return item.kind === 'reservation_online' ? '预约已上线' : '追更有更新';
+}
+
+/**
+ * The row's title already names what happened, so the detail line carries only the backend's own
+ * message. Repeating the kind ("追更有更新 · 有新的更新。") restated the title with no new fact.
+ */
+export function notificationDetail(item: NotificationItem): string {
+  const message = (item.message ?? '').trim();
+  return message || notificationLabel(item);
 }
 
 export function Notifications(props: { store: Store }) {
@@ -201,6 +210,19 @@ export function Notifications(props: { store: Store }) {
         <Notice message="暂无更新提醒。" />
       </If>
       <If when={signedIn() && notifications.snapshot()}>
+        <If when={items().some((item) => !item.read)}>
+          {/* The batch action sits above the list it applies to, not past its last row. */}
+          <View class="self-start">
+            <Button
+              label="全部标为已读"
+              variant="quiet"
+              testID="notifications-mark-all"
+              pending={notifications.mutation()?.all === true}
+              disabled={notifications.busy() || !active()}
+              onPress={() => void notifications.markAllRead()}
+            />
+          </View>
+        </If>
         <ContentArrival class="flex-1">
           <List
             ref={(ref) => {
@@ -237,18 +259,6 @@ export function Notifications(props: { store: Store }) {
           </List>
         </ContentArrival>
       </If>
-      <If when={signedIn() && notifications.snapshot() && items().some((item) => !item.read)}>
-        <View class="self-start">
-          <Button
-            label="全部标为已读"
-            variant="quiet"
-            testID="notifications-mark-all"
-            pending={notifications.mutation()?.all === true}
-            disabled={notifications.busy() || !active()}
-            onPress={() => void notifications.markAllRead()}
-          />
-        </View>
-      </If>
     </View>
   );
 }
@@ -275,10 +285,9 @@ function NotificationRow(props: {
     props.register(kind, ref);
   };
   return (
-    <Surface
-      variant="content"
+    <View
       testID={`notification-${item.id}`}
-      class="flex-row min-w-0 items-center"
+      class="flex-row min-w-0 items-center border-b border-border py-3"
     >
       <View
         class="shrink-0"
@@ -292,14 +301,16 @@ function NotificationRow(props: {
       </View>
       <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 2 : 4 }}>
         <View class="flex-row items-center" style={{ gap: props.store.target === 'tv' ? 4 : 8 }}>
-          <UiText role="title" lines={2}>
+          <UiText role="content-title" lines={2}>
             {item.title}
           </UiText>
           <If when={!item.read}>
             <Badge label="未读" tone="selected" />
           </If>
         </View>
-        <UiText role="meta" tone="muted">{`${notificationLabel(item)} · ${item.message}`}</UiText>
+        <UiText role="meta" tone="muted">
+          {notificationDetail(item)}
+        </UiText>
         <If when={item.episode !== undefined}>
           <UiText role="meta" tone="muted">{`第 ${item.episode} 集`}</UiText>
         </If>
@@ -324,6 +335,6 @@ function NotificationRow(props: {
           />
         </If>
       </View>
-    </Surface>
+    </View>
   );
 }

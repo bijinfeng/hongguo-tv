@@ -12,6 +12,8 @@ export function Home(props: { store: Store }) {
   return (
     <Scroll testID="home-scroll" class="flex-1 min-h-0" contentStyle={{ flexDirection: 'column' }}>
       <ContentColumn store={props.store}>
+        {/* The page needs one first-level heading on both hosts, not only the desktop greeting. */}
+        <UiText role="page">发现</UiText>
         <If when={!tv()}>
           <UiText role="section">把今晚，留给好故事。</UiText>
         </If>

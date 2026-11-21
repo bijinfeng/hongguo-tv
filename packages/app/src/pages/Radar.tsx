@@ -11,6 +11,7 @@ import {
 } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { RadarController } from '../radar';
+import { utcStampLabel } from '../format';
 import { RadarPending, RadarToolbar } from './rankings/RadarToolbar';
 
 const snapshotColumns: RadarTableColumn[] = [
@@ -150,14 +151,14 @@ export function Radar(props: {
           <View class="flex-row flex-wrap gap-x-4 gap-y-2">
             <If when={selectedBranch() && stale()}>
               <UiText testID="radar-stale" role="meta">
-                {`显示最近成功数据${fetched() ? ` · 获取于 ${fetched()}` : ''}`}
+                {`显示最近成功数据${fetched() ? ` · 获取于 ${utcStampLabel(fetched())}` : ''}`}
               </UiText>
             </If>
             <If when={growthUnavailable()}>
               <UiText testID="radar-growth-status" role="meta">
                 {!props.radar.data()?.growth
-                  ? '增长数据暂不可用，快照仍可查看'
-                  : `增长指标使用最近成功数据${props.radar.data()?.growth_fetched_at ? ` · 获取于 ${props.radar.data()!.growth_fetched_at}` : ''}`}
+                  ? '飙升榜数据暂不可用，官方快照仍可查看'
+                  : `飙升榜使用最近成功数据${props.radar.data()?.growth_fetched_at ? ` · 获取于 ${utcStampLabel(props.radar.data()!.growth_fetched_at)}` : ''}`}
               </UiText>
             </If>
             <If when={props.radar.data()?.cache_write_failed}>
@@ -193,7 +194,7 @@ export function Radar(props: {
           message={
             props.radar.view() === 'snapshot'
               ? '官方快照暂不可用，飙升榜仍可查看'
-              : '增长数据暂不可用，官方快照仍可查看'
+              : '飙升榜数据暂不可用，官方快照仍可查看'
           }
         />
       </If>

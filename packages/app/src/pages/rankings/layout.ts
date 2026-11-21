@@ -21,5 +21,8 @@ export const RANKING_ROW_SAFE = 8;
 /** One inset for every ranking band: heading, source tabs, hero, selector rows and entries. */
 export function rankingBandInset(): number {
   const available = windowSize().width - SIDEBAR;
-  return Math.max(0, (available - RANKING_COLUMN) / 2);
+  // Below 1120 + gutters the centred inset reaches 0, pinning the hero to the sidebar rule. The
+  // shared content gutter is the floor, so this page matches every other page's edge.
+  const shared = Math.min(64, Math.max(24, windowSize().width * 0.035));
+  return Math.max(shared, (available - RANKING_COLUMN) / 2);
 }

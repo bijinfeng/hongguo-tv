@@ -200,11 +200,17 @@ export function registerBrowsingHostTests(entry: string, artifacts: string, host
         await app.press('id:clear-query');
         await app.waitFor('id:clear-recent-searches');
         await app.press('id:clear-recent-searches');
+        // Clearing search history commits through the dialog that names its scope.
+        await app.waitFor('清空搜索记录？');
+        await app.press('id:clear-recent-confirm >> 清空搜索记录');
         await app.waitFor('搜索记录未清空：服务暂时不可用，请稍后重试');
         expect(app.shows(`id:recent-search-${term}`)).toBe(true);
         await app.wait(240);
         await app.screenshot(`${artifacts}/recent-error-${width}-${colorScheme}.png`);
-        await app.press('重试清空');
+        await app.press('取消');
+        await app.press('id:clear-recent-searches');
+        await app.waitFor('清空搜索记录？');
+        await app.press('id:clear-recent-confirm >> 清空搜索记录');
         await app.type('id:search-input', '');
         await app.waitFor('暂无搜索记录');
         await app.keyboard.press('x');

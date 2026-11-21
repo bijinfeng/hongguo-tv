@@ -19,6 +19,7 @@ import {
   ContentArrival,
   Cover,
   DateChoice,
+  ExpandableText,
   FilterChoices,
   Notice,
   UiText,
@@ -250,8 +251,9 @@ export function Calendar(props: {
           : desktopContentFrame({ top: 24, gap: 24 })
       }
     >
-      <UiText role="page">{props.target === 'tv' ? '上新日历' : '新剧与上新日历'}</UiText>
-      <CardControls label="新剧与日历" onNavigate={props.onNavigate} class="gap-3">
+      {/* One name for one destination: the rail and crumb say 上新日历, so this page does too. */}
+      <UiText role="page">上新日历</UiText>
+      <CardControls label="上新日历视图" onNavigate={props.onNavigate} class="gap-3">
         <Button
           label="上新日历"
           testID="calendar-mode-calendar"
@@ -435,9 +437,8 @@ export function Calendar(props: {
                   <View class="flex-1 gap-2">
                     <UiText role="title">{title(item())}</UiText>
                     <UiText tone="muted">{calendarPublishLabel(item())}</UiText>
-                    <If when={intro(item())}>
-                      <UiText role="meta">{intro(item())}</UiText>
-                    </If>
+                    {/* The action stays above the prose: a long intro must not push 预约 off the
+                        first screen. Prose is body copy, not a caption. */}
                     <If when={props.reservation}>
                       {(store) => (
                         <View class="gap-3">
@@ -460,6 +461,17 @@ export function Calendar(props: {
                           />
                         </View>
                       )}
+                    </If>
+                    <If when={intro(item())}>
+                      {/* Collapsed with an explicit trigger: the announcement can be long, and
+                          docs/calendar-browsing.md requires the whole text to stay readable. */}
+                      <ExpandableText
+                        testID="calendar-announcement-intro"
+                        text={intro(item())}
+                        collapsedLines={props.target === 'tv' ? 2 : 4}
+                        expandLabel="展开公告"
+                        collapseLabel="收起公告"
+                      />
                     </If>
                   </View>
                 </View>

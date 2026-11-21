@@ -245,10 +245,8 @@ export function HomeHero(props: { store: Store }) {
     const count = drama.episode_count ? `全 ${drama.episode_count} 集` : '';
     return [kind, count].filter(Boolean).join(' · ');
   };
-  const introStyle = () =>
-    tv()
-      ? { fontSize: 11.5, lineHeight: 11.5 * 1.85, maxWidth: 322 }
-      : { fontSize: 14, lineHeight: 14 * 1.85, maxWidth: 392 };
+  // The intro is body copy, not fine print: the shared meta role sets its size on both hosts.
+  const introWidth = () => (tv() ? 322 : 392);
   const copyStyle = () => {
     return tv()
       ? { width: 395, paddingBottom: 4 }
@@ -285,10 +283,10 @@ export function HomeHero(props: { store: Store }) {
               </UiText>
             </View>
             <If when={drama().intro}>
-              <View style={{ marginBottom: tv() ? 15.5 : 25 }}>
-                <Text class="text-muted-foreground" style={{ ...introStyle(), numberOfLines: 2 }}>
+              <View style={{ marginBottom: tv() ? 15.5 : 25, maxWidth: introWidth() }}>
+                <UiText role="meta" lines={2}>
                   {drama().intro}
-                </Text>
+                </UiText>
               </View>
             </If>
             <CardControls label="精选" onNavigate={props.store.noteFocusIntent} gap={tv() ? 9 : 12}>

@@ -21,7 +21,8 @@ export function TvHelp() {
       class="flex-row items-center border-t border-border"
       style={{ height: 37.5, paddingHorizontal: 44 }}
     >
-      <UiText role="meta">方向键 移动焦点 · 确认 进入 · 返回 / Esc 返回</UiText>
+      {/* Remote-only surface: name the remote's own keys, never a keyboard's. */}
+      <UiText role="meta">方向键 移动焦点 · 确认 进入 · 返回键 返回</UiText>
     </View>
   );
 }

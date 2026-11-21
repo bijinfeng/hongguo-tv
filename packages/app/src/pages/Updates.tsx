@@ -1,5 +1,5 @@
-import { Scroll, Text, View, cleanup, effect, signal, announce, type ViewRef } from 'nsh';
-import { BackButton, Button, ContentArrival, DownloadProgress } from '@hongguo/ui';
+import { Scroll, View, cleanup, effect, signal, announce, type ViewRef } from 'nsh';
+import { BackButton, Button, ContentArrival, DownloadProgress, UiText } from '@hongguo/ui';
 import type { Updates, UpdatePhase } from '../updates';
 
 const titles: Record<UpdatePhase, string> = {
@@ -116,67 +116,44 @@ export function UpdatesPage(props: {
     <Scroll class="flex-1">
       <ContentArrival class={props.tv ? 'gap-8 py-8' : 'gap-8 px-10 py-6 max-w-4xl'}>
         <BackButton testID="updates-back" label={props.backLabel} onPress={props.onBack} />
-        <Text
-          class="text-2xl font-semibold text-foreground"
-          style={props.tv ? { fontSize: 18 } : undefined}
-        >
-          应用更新
-        </Text>
+        {/* Same title scale as the three records pages beside it, from the shared type roles. */}
+        <UiText role="page">应用更新</UiText>
         <View class="gap-6">
-          <Text
-            class="text-base text-muted-foreground"
-            style={props.tv ? { fontSize: 12 } : undefined}
-          >
+          <UiText role="meta" tone="muted">
             {state.version() ? `当前版本 ${state.version()}` : '正在读取当前版本'}
-          </Text>
+          </UiText>
           <View>
-            <Text
-              testID="update-status"
-              class="text-2xl text-foreground"
-              style={props.tv ? { fontSize: 16 } : undefined}
-            >
+            <UiText testID="update-status" role="section">
               {titles[state.phase()]}
-            </Text>
+            </UiText>
           </View>
           <If when={state.update()}>
-            <Text class="text-lg text-foreground" style={props.tv ? { fontSize: 12 } : undefined}>
+            <UiText role="body">
               {`新版本 ${state.update()?.version}${state.update()?.size ? ` · ${(state.update()!.size! / 1048576).toFixed(1)} MB` : ''}`}
-            </Text>
+            </UiText>
           </If>
           <If when={['downloading', 'cancelling'].includes(state.phase())}>
             <DownloadProgress received={state.received()} total={state.total()} />
           </If>
           <If when={state.error()}>
-            <Text
-              class="text-base text-destructive"
-              style={props.tv ? { fontSize: 12 } : undefined}
-            >
+            <UiText role="body" tone="error">
               {state.error()}
-            </Text>
+            </UiText>
           </If>
           <If when={state.phase() === 'permission'}>
-            <Text
-              class="text-base text-muted-foreground"
-              style={props.tv ? { fontSize: 12 } : undefined}
-            >
+            <UiText role="body" tone="muted">
               在系统设置中允许红果安装应用，返回后继续安装
-            </Text>
+            </UiText>
           </If>
           <If when={state.phase() === 'staged'}>
-            <Text
-              class="text-base text-muted-foreground"
-              style={props.tv ? { fontSize: 12 } : undefined}
-            >
+            <UiText role="body" tone="muted">
               更新已校验；退出应用时安装，下次打开即为新版本
-            </Text>
+            </UiText>
           </If>
           <If when={state.phase() === 'interrupted'}>
-            <Text
-              class="text-base text-muted-foreground"
-              style={props.tv ? { fontSize: 12 } : undefined}
-            >
+            <UiText role="body" tone="muted">
               之前准备的更新未能安装，当前仍是原版本
-            </Text>
+            </UiText>
           </If>
           <View class="items-start gap-4">
             <Button
@@ -206,8 +183,10 @@ export function UpdatesPage(props: {
         </View>
         <If when={state.update()?.notes}>
           <View class="gap-4">
-            <Text class="text-lg font-semibold text-foreground">本版更新</Text>
-            <Text class="text-base text-muted-foreground">{state.update()?.notes}</Text>
+            <UiText role="title">本版更新</UiText>
+            <UiText role="body" tone="muted">
+              {state.update()?.notes}
+            </UiText>
           </View>
         </If>
       </ContentArrival>

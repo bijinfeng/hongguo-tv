@@ -34,7 +34,7 @@ export function RadarToolbar(props: {
         <View class="flex-row items-center gap-4">
           <View class="min-w-0 flex-1">
             <UiText role="meta" lines={1}>
-              {props.meta || '来源：hongguo-radar 外部聚合'}
+              {props.meta || '来源：第三方榜单快照'}
             </UiText>
           </View>
           <Button
@@ -80,9 +80,7 @@ export function RadarToolbar(props: {
       <View class="flex-row flex-wrap items-center justify-between gap-4">
         <View class="min-w-0 flex-1">
           <UiText role="meta">
-            {props.meta
-              ? `${props.meta} · 来源：hongguo-radar 外部聚合`
-              : '来源：hongguo-radar 外部聚合'}
+            {props.meta ? `${props.meta} · 来源：第三方榜单快照` : '来源：第三方榜单快照'}
           </UiText>
         </View>
         <Button

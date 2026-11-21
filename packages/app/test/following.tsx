@@ -258,7 +258,8 @@ export function registerFollowingTests(target: 'desktop' | 'tv', entry: string) 
     expect(app.requests().some(({ url }) => url.includes('/series/detail'))).toBe(false);
     await app.wait(80);
     await app.keyboard.press('enter');
-    await app.waitFor(target === 'tv' ? 'role:header[找剧]' : 'role:header[找一部想看的]');
+    // One destination, one name on every host.
+    await app.waitFor('role:header[找剧]');
   });
   test('failed follow refresh retains the previous list as stale and retry reads without posting', async () => {
     const f = fixture();

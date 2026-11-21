@@ -250,12 +250,8 @@ function OfficialRankings(props: OfficialProps) {
       <If when={props.rankings.loading() && !props.rankings.data() && !props.rankings.error()}>
         <RankingsPending target={props.target} />
       </If>
-      <If when={props.rankings.error()}>
-        <Notice
-          error
-          message={props.rankings.error()}
-          retry={!props.rankings.data() ? props.rankings.retry : undefined}
-        />
+      <If when={props.rankings.error() && !props.rankings.data()}>
+        <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
       </If>
       <If when={props.rankings.data() && !props.rankings.data()!.items.length}>
         <UiText tone="muted">
@@ -275,7 +271,15 @@ function OfficialRankings(props: OfficialProps) {
             focusGuard={props.focusGuard}
             footer={
               <If when={props.rankings.data()?.has_more}>
-                <View class="items-start" style={{ paddingVertical: space('sm') }}>
+                <View
+                  class="items-start"
+                  style={{ paddingVertical: space('sm'), gap: space('sm') }}
+                >
+                  {/* A failed continuation is stated next to the button that retries it, so the
+                      notice never splits a half-drawn row from its retry entry. */}
+                  <If when={props.rankings.error()}>
+                    <Notice error message={props.rankings.error()} />
+                  </If>
                   <Button
                     buttonRef={(ref) => {
                       more = ref;
@@ -370,12 +374,8 @@ export function Rankings(props: RankingsProps) {
           }}
         />
       </If>
-      {/* The official list owns its heading inside the hero; the radar view has none, so it gets
-          the page heading here. TV drops it: its control band already names the two views and the
-          window cannot spare the row. */}
-      <If when={props.view === 'radar' && props.target !== 'tv'}>
-        <UiText role="page">榜单雷达</UiText>
-      </If>
+      {/* The selected tab already names the view, and a second 32px heading pushed the table
+          below the fold at 1180×780. The radar toolbar names its own branch instead. */}
       <View
         class={props.view === 'radar' ? 'hidden' : 'flex-1 min-h-0'}
         disabled={props.view === 'radar'}

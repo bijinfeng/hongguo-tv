@@ -1,7 +1,17 @@
 import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { BackButton, Button, Cover, EpisodeRange, Notice, StoryFeature, UiText } from '@hongguo/ui';
+import {
+  BackButton,
+  Button,
+  CinemaButton,
+  Cover,
+  EpisodeRange,
+  ExpandableText,
+  Notice,
+  StoryFeature,
+  UiText,
+} from '@hongguo/ui';
 import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
@@ -142,9 +152,20 @@ export function Detail(props: {
                 class="w-[200px] h-[280px]"
               />
               <View class="flex-1 gap-3">
-                <Text class="text-[32px] font-semibold text-foreground">{current().title}</Text>
-                <Text class="text-base text-muted-foreground">{meta()}</Text>
-                <Text class="text-base text-foreground">{current().intro || '暂无简介'}</Text>
+                <UiText role="page" lines={2}>
+                  {current().title}
+                </UiText>
+                <UiText role="meta" tone="muted">
+                  {meta()}
+                </UiText>
+                {/* The contract allows 1024 characters, so the prose collapses to four lines with
+                    its own disclosure: nothing is permanently cut off, and the actions stay near
+                    the fold. */}
+                <ExpandableText
+                  testID="detail-intro"
+                  text={current().intro || '暂无简介'}
+                  collapsedLines={4}
+                />
                 <View class="flex-row flex-wrap items-center gap-3 pt-3">
                   <Button
                     testID="detail-start"
@@ -197,8 +218,9 @@ export function Detail(props: {
                   if (episode) play(episode, startRef);
                 }}
               />
-              <FavoriteButton favorite={favorite} />
+              <FavoriteButton favorite={favorite} cinema />
               <FollowAction
+                cinema
                 store={props.store}
                 drama={
                   browse.summary()?.series_id === seasons.selectedId()
@@ -361,16 +383,35 @@ export function Detail(props: {
   );
 }
 
-function FavoriteButton(props: { favorite: ReturnType<typeof createDetailFavorite> }) {
+function FavoriteButton(props: {
+  favorite: ReturnType<typeof createDetailFavorite>;
+  /** The dark story band pairs its secondary actions with the cinema controls. */
+  cinema?: boolean;
+}) {
   return (
-    <Button
-      testID="detail-favorite"
-      label={props.favorite.selected() ? '已收藏' : '收藏'}
-      icon="bookmark"
-      selected={props.favorite.selected()}
-      pending={props.favorite.pending()}
-      disabled={props.favorite.disabled()}
-      onPress={() => void props.favorite.press()}
-    />
+    <If
+      when={props.cinema}
+      else={
+        <Button
+          testID="detail-favorite"
+          label={props.favorite.selected() ? '已收藏' : '收藏'}
+          icon="bookmark"
+          selected={props.favorite.selected()}
+          pending={props.favorite.pending()}
+          disabled={props.favorite.disabled()}
+          onPress={() => void props.favorite.press()}
+        />
+      }
+    >
+      <CinemaButton
+        testID="detail-favorite"
+        label={props.favorite.selected() ? '已收藏' : '收藏'}
+        icon="bookmark"
+        selected={props.favorite.selected()}
+        pending={props.favorite.pending()}
+        disabled={props.favorite.disabled()}
+        onPress={() => void props.favorite.press()}
+      />
+    </If>
   );
 }

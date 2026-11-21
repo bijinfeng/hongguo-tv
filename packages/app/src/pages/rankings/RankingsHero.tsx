@@ -1,9 +1,6 @@
 import { View, windowSize } from 'nsh';
 import { Cover, SkeletonBlock, SkeletonRegion, UiText, type ProductTarget } from '@hongguo/ui';
 
-/** Copy from the desktop draft; the product only lists public catalog titles. */
-const HERO_DESCRIPTION = '每日更新，按公开目录整理当前值得看的短剧。';
-
 /**
  * The draft's hero geometry (`assets/theater.css` `.rank-hero`): a 108° dark-red gradient band
  * with the copy vertically centred and a single rotated poster on the trailing edge. Below 1000
@@ -60,6 +57,8 @@ export function RankingsHero(props: {
   title: string;
   cover?: string;
   coverTitle?: string;
+  /** Board-specific context; never a caption shared by every board. */
+  subtitle?: string;
 }) {
   const metrics = () => heroMetrics(props.target);
   return (
@@ -86,9 +85,13 @@ export function RankingsHero(props: {
         <UiText role="page" tone="cinema">
           {props.title}
         </UiText>
-        <UiText role="meta" tone="cinema" lines={2}>
-          {HERO_DESCRIPTION}
-        </UiText>
+        {/* The ranking name is the band's whole message; a caption repeated under every board
+            said nothing about the one on screen. */}
+        <If when={props.subtitle}>
+          <UiText role="meta" tone="cinema" lines={2}>
+            {props.subtitle}
+          </UiText>
+        </If>
       </View>
       <If when={props.cover}>
         <View
@@ -161,11 +164,8 @@ export function RankingsHeroSkeleton(props: { target: ProductTarget }) {
             height={props.target === 'tv' ? 33 : 44}
             class={HERO_SKELETON}
           />
-          <SkeletonBlock
-            width="72%"
-            height={props.target === 'tv' ? 12 : 16}
-            class={HERO_SKELETON}
-          />
+          {/* No second bar: the real hero draws one heading line, so a caption placeholder would
+              make the title jump vertically when the board arrives. */}
         </View>
         <View
           style={{
