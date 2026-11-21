@@ -140,9 +140,10 @@ export function Discover(props: { store: Store }) {
         }}
       />
       {/* Paging belongs to the page that owns the cursor: while a new filter is pending or has
-          failed, this button would merge old-filter cards into the new answer. */}
+          failed, this button would merge old-filter cards into the new answer. The trailing edge
+          matches the home catalog's 查看更多: one load-more pattern on every page. */}
       <If when={category.data()?.has_more && !category.stale()}>
-        <View class="items-start">
+        <View class="items-end">
           <Button
             buttonRef={(ref) => {
               more = ref;
@@ -152,6 +153,11 @@ export function Discover(props: { store: Store }) {
             label={
               category.loading() ? '正在加载…' : category.error() ? '重试加载更多' : '加载更多'
             }
+            displayLabel={category.loading() ? '正在加载…' : undefined}
+            pending={category.loading()}
+            variant="quiet"
+            size="sm"
+            icon="forward"
             disabled={category.loading()}
             onPress={() => {
               moreSource();
@@ -163,9 +169,11 @@ export function Discover(props: { store: Store }) {
       </If>
       <If when={props.store.target === 'tv'}>
         <CardControls label="更多找剧方式" onNavigate={props.store.noteFocusIntent}>
+          {/* The home rail carries the same entries as quiet; one semantic, one variant. */}
           <Button
             label="排行榜"
             icon="chart-no-axes-column-increasing"
+            variant="quiet"
             testID="discover-rankings"
             onPress={() => {
               props.store.navigate('rankings');
@@ -175,6 +183,7 @@ export function Discover(props: { store: Store }) {
           <Button
             label="上新日历"
             icon="calendar-days"
+            variant="quiet"
             testID="discover-calendar"
             onPress={() => {
               props.store.navigate('calendar');

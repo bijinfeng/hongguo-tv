@@ -161,7 +161,7 @@ export function RankingsHeroSkeleton(props: { target: ProductTarget }) {
         >
           <SkeletonBlock
             width={props.target === 'tv' ? 210 : 280}
-            height={props.target === 'tv' ? 33 : 44}
+            height={props.target === 'tv' ? 36 : 44}
             class={HERO_SKELETON}
           />
           {/* No second bar: the real hero draws one heading line, so a caption placeholder would

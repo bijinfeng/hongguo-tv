@@ -176,29 +176,40 @@ function HeroSkeleton(props: { tv: boolean }) {
         class="justify-center"
         style={
           props.tv
-            ? { width: 395, paddingBottom: 4, gap: 9 }
+            ? { width: 395, paddingBottom: 4 }
             : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: size().padLeft, gap: 12 }
         }
       >
-        <SkeletonBlock
-          width={props.tv ? 70 : 108}
-          height={props.tv ? 10 : 12}
-          radius={props.tv ? 5 : 6}
-        />
-        <SkeletonBlock width="62%" height={props.tv ? 26 : 44} radius={props.tv ? 4 : 6} />
-        <SkeletonBlock width="82%" height={props.tv ? 10 : 12} radius={4} />
-        <View class="flex-row" style={{ gap: props.tv ? 9 : 12 }}>
-          <SkeletonBlock
-            width={props.tv ? 110 : 140}
-            height={props.tv ? 31 : 44}
-            radius={props.tv ? 6 : 8}
-          />
-          <SkeletonBlock
-            width={props.tv ? 84 : 104}
-            height={props.tv ? 31 : 44}
-            radius={props.tv ? 6 : 8}
-          />
-        </View>
+        {/* The TV bars carry the loaded text metrics (meta 21, display 62, two intro lines, 48
+            controls) and the loaded margins, so the featured drama lands without a jump. */}
+        <If
+          when={!props.tv}
+          else={
+            <View>
+              <View style={{ marginBottom: 5 }}>
+                <SkeletonBlock width={70} height={21} radius={5} />
+              </View>
+              <View style={{ marginBottom: 16.5 }}>
+                <SkeletonBlock width="78%" height={62} radius={4} />
+              </View>
+              <View style={{ marginBottom: 15.5 }}>
+                <SkeletonBlock width="82%" height={42} radius={4} />
+              </View>
+              <View class="flex-row" style={{ gap: 9 }}>
+                <SkeletonBlock width={110} height={48} radius={6} />
+                <SkeletonBlock width={84} height={48} radius={6} />
+              </View>
+            </View>
+          }
+        >
+          <SkeletonBlock width={108} height={12} radius={6} />
+          <SkeletonBlock width="62%" height={44} radius={6} />
+          <SkeletonBlock width="82%" height={12} radius={4} />
+          <View class="flex-row" style={{ gap: 12 }}>
+            <SkeletonBlock width={140} height={44} radius={8} />
+            <SkeletonBlock width={104} height={44} radius={8} />
+          </View>
+        </If>
       </View>
       <If when={!props.tv}>
         {/* The loaded hero's art panel fades out of the card on its leading edge, so the skeleton
