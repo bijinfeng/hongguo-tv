@@ -1,27 +1,19 @@
+import { List, View, effect, cleanup, lifecycle, signal, type ListRef, type ViewRef } from 'nsh';
 import {
-  List,
-  Text,
-  View,
-  effect,
-  cleanup,
-  lifecycle,
-  signal,
-  type ListRef,
-  type ViewRef,
-} from 'nsh';
-import {
-  Button,
   Badge,
+  Button,
   Checkbox,
   ConfirmDialog,
   Cover,
   Notice,
   Progress,
   ResultCard,
+  SkeletonBlock,
+  SkeletonRegion,
+  space,
   Surface,
   Tabs,
   UiText,
-  space,
 } from '@hongguo/ui';
 import type { FavoriteEntry, Library, LibraryKind } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -156,9 +148,33 @@ export function LibraryStatus(props: {
     <If when={props.store.library.loading() || props.store.library.error() || empty()}>
       <View class="gap-3">
         <If when={props.store.library.loading()}>
-          <Text class="text-base text-muted-foreground">
-            {favorites() ? '正在读取收藏…' : '正在读取观看记录…'}
-          </Text>
+          {/* Record rows keep their own geometry: cover, title, one meta line. */}
+          <SkeletonRegion
+            label={favorites() ? '正在读取收藏' : '正在读取观看记录'}
+            testID="library-pending"
+            class="flex-col"
+            style={{ gap: 12 }}
+          >
+            <Each of={[0, 1, 2]}>
+              {() => (
+                <View
+                  accessibilityElementsHidden
+                  class="flex-row items-center"
+                  style={{ gap: 12, paddingVertical: 12 }}
+                >
+                  <SkeletonBlock
+                    width={props.store.target === 'tv' ? 54 : 88}
+                    height={props.store.target === 'tv' ? 76 : 112}
+                    radius={6}
+                  />
+                  <View class="flex-1" style={{ gap: 8 }}>
+                    <SkeletonBlock width="40%" height={16} radius={4} />
+                    <SkeletonBlock width="28%" height={12} radius={4} />
+                  </View>
+                </View>
+              )}
+            </Each>
+          </SkeletonRegion>
         </If>
         <If when={errorMessage(props.store.library.error(), '记录加载失败')}>
           <Notice

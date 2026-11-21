@@ -22,6 +22,8 @@ import {
   ExpandableText,
   FilterChoices,
   Notice,
+  SkeletonBlock,
+  SkeletonRegion,
   UiText,
   PosterCard,
   type ProductTarget,
@@ -481,7 +483,40 @@ export function Calendar(props: {
         )}
       </If>
       <If when={calendar.loading() && !calendar.data()}>
-        <UiText tone="muted">正在加载上新…</UiText>
+        {/* The date strip and the list it governs, in the geometry they will occupy. */}
+        <SkeletonRegion
+          label="正在加载上新"
+          testID="calendar-pending"
+          class="flex-col"
+          style={{ gap: props.target === 'tv' ? 12 : 20 }}
+        >
+          <View class="flex-row" style={{ gap: 12 }}>
+            <Each of={[0, 1, 2]}>
+              {() => (
+                <SkeletonBlock width={props.target === 'tv' ? 120 : 180} height={84} radius={10} />
+              )}
+            </Each>
+          </View>
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center"
+                style={{ gap: 20, paddingVertical: 12 }}
+              >
+                <SkeletonBlock
+                  width={props.target === 'tv' ? 50 : 80}
+                  height={props.target === 'tv' ? 70 : 112}
+                  radius={8}
+                />
+                <View class="flex-1" style={{ gap: 8 }}>
+                  <SkeletonBlock width="45%" height={20} radius={4} />
+                  <SkeletonBlock width="30%" height={14} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
       </If>
       <If when={calendar.data() && !items().length && !calendar.loading()}>
         <Notice

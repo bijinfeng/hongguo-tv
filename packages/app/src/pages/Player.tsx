@@ -629,9 +629,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       ? fullScreenPictureHeight()
                       : // A poster is the resting picture even when the stream failed, so it keeps the
                         // full frame; only a stage with neither a picture nor a poster shrinks, because
-                        // an empty full-height frame reads as a broken picture.
+                        // an empty full-height frame reads as a broken picture. The shrink stops at the
+                        // design's minimum, so the stage never drops below 320.
                         !poster() && (error() || (!media() && !preparing()))
-                        ? Math.round(pictureHeight() * 0.42)
+                        ? Math.max(320, Math.round(pictureHeight() * 0.42))
                         : pictureHeight()
                 }
               >

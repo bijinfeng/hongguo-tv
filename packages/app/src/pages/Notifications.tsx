@@ -1,5 +1,14 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Badge, Button, ContentArrival, Cover, Notice, UiText } from '@hongguo/ui';
+import {
+  Badge,
+  Button,
+  ContentArrival,
+  Cover,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+} from '@hongguo/ui';
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { desktopContentFrame } from '../shell/ContentColumn';
@@ -199,7 +208,32 @@ export function Notifications(props: { store: Store }) {
         />
       </If>
       <If when={signedIn() && notifications.loading() && !notifications.snapshot()}>
-        <Notice message="正在读取更新提醒…" />
+        <SkeletonRegion
+          label="正在读取更新提醒"
+          testID="notifications-pending"
+          class="flex-col"
+          style={{ gap: 12 }}
+        >
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center"
+                style={{ gap: 12, paddingVertical: 12 }}
+              >
+                <SkeletonBlock
+                  width={props.store.target === 'tv' ? 36 : 64}
+                  height={props.store.target === 'tv' ? 48 : 80}
+                  radius={6}
+                />
+                <View class="flex-1" style={{ gap: 8 }}>
+                  <SkeletonBlock width="45%" height={16} radius={4} />
+                  <SkeletonBlock width="30%" height={12} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
       </If>
       <If when={signedIn() && notifications.stale() && !notifications.error()}>
         <Notice message="显示上次读取的更新提醒。" retry={refresh} />

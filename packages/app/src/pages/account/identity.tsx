@@ -58,7 +58,11 @@ export function AccountIdentity(props: {
         <UiText role="meta" tone="muted">
           {stateLabel()}
         </UiText>
-        <UiText role="section">{displayName()}</UiText>
+        {/* The name is the card's value, not a heading: `section` made it outrank the real
+            card titles beside it. */}
+        <UiText role="title" lines={1}>
+          {displayName()}
+        </UiText>
       </View>
     </View>
   );

@@ -1,5 +1,13 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, CardControls, FilterChoices, Notice, UiText } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  FilterChoices,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+} from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
@@ -68,7 +76,27 @@ export function Discover(props: { store: Store }) {
         </If>
       </View>
       <If when={category.loading() && !category.data()}>
-        <Text class="text-base text-muted-foreground">正在找剧…</Text>
+        {/* Same grid geometry as the results it stands in for, so the page does not reflow. */}
+        <SkeletonRegion
+          label="正在找剧"
+          testID="category-pending"
+          class="flex-row flex-wrap"
+          style={{ gap: 12 }}
+        >
+          <Each of={[0, 1, 2, 3, 4, 5, 6, 7]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-1"
+                style={{ minWidth: 150, maxWidth: '23%', gap: 10 }}
+              >
+                <SkeletonBlock width="100%" height={200} radius={10} />
+                <SkeletonBlock width="70%" height={14} radius={4} />
+                <SkeletonBlock width="40%" height={12} radius={4} />
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
       </If>
       <If when={category.data() && !category.data()!.items.length && !category.loading()}>
         <View class="items-start gap-4">
