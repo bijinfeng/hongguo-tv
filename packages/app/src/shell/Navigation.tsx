@@ -133,37 +133,42 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                 // The store's reactive getters must be read inside the binding, not once per row,
                 // or the rail keeps whichever section was current when the row first rendered.
                 const on = () => item().selected(props.store);
-                return (
+                // TV marks current with a child-view underline instead of a border: NSH couples
+                // its border pass with the CSS outline, so a border-based marker drew a second
+                // ring around the native focus ring on real DPAD hosts.
+                const button = (
                   <Button
                     testID={item().testID}
                     buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
                     variant="navigation"
-                    align={props.layout === 'tv' ? 'center' : 'start'}
+                    align={props.layout === 'desktop' ? 'center' : 'start'}
                     icon={item().icon}
                     label={item().label}
-                    current={on()}
-                    // The TV rail shares the page Tabs' current marker: a 2px brand underline on
-                    // the bar's own surface. The background is pinned transparent because Button's
-                    // current appearance would otherwise paint a muted pill over it.
+                    current={props.layout === 'desktop' ? on() : false}
                     class={
                       props.layout === 'desktop'
                         ? 'w-full justify-start'
-                        : on()
-                          ? 'rounded-none bg-transparent border-transparent border-b-primary'
-                          : 'rounded-none bg-transparent border-transparent'
+                        : 'rounded-none bg-transparent border-transparent'
                     }
                     style={
                       props.layout === 'tv'
-                        ? {
-                            borderRadius: 0,
-                            borderWidth: 0,
-                            borderBottomWidth: 2,
-                            backgroundColor: 'transparent',
-                          }
+                        ? { borderRadius: 0, borderWidth: 0, backgroundColor: 'transparent' }
                         : undefined
                     }
                     onPress={() => props.store.navigate(item().name)}
                   />
+                );
+                if (props.layout !== 'tv') return button;
+                return (
+                  <View class="flex-col items-center" style={{ gap: 6 }}>
+                    {button}
+                    <View
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
+                      class={on() ? 'self-stretch bg-primary' : 'self-stretch bg-transparent'}
+                      style={{ height: 2 }}
+                    />
+                  </View>
                 );
               }}
             </Each>
