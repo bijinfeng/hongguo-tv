@@ -3,6 +3,8 @@ export {
   border,
   controlMetrics,
   focusRing,
+  focusRingClass,
+  focusWithinClass,
   radius,
   space,
   weight,
@@ -29,6 +31,7 @@ export * from './select';
 export * from './checkbox';
 export * from './switch';
 export * from './choice-group';
+export * from './segmented';
 export * from './tabs';
 export * from './slider';
 export * from './display';
@@ -58,6 +61,7 @@ export {
 } from './content';
 export {
   CinemaButton,
+  CinemaChips,
   CinemaEpisodeButton,
   CinemaSlider,
   CinemaSelect,

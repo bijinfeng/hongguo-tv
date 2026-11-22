@@ -1,7 +1,7 @@
 import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { Icon, type IconName } from './icon';
-import { border, controlMetrics, space } from './foundation';
+import { border, controlMetrics, space, focusRingClass } from './foundation';
 import { motionTokens } from './motion';
 import { textLineHeight, textSize, textWeight } from './typography';
 
@@ -41,7 +41,7 @@ export function ActionRow(props: ActionRowProps) {
       disabled={props.disabled}
       onFocus={props.onFocus}
       onPress={() => props.onPress()}
-      class={`w-full flex-row items-center justify-between focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.disabled ? '' : 'hover:bg-muted active:bg-border'}`}
+      class={`w-full flex-row items-center justify-between ${focusRingClass(4)} ${props.disabled ? '' : 'hover:bg-muted active:bg-border'}`}
       style={{
         minHeight: props.description ? undefined : rowMinHeight(),
         paddingVertical: props.description ? space('sm') : 0,

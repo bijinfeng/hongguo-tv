@@ -18,18 +18,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
       width: 1280, height: 800, colorScheme,
       host: { params: { presentation: true } },
     });
-    await app.waitFor('发现新版本');
+    await app.waitFor('1.0.0 · 有新版本 1.1.0');
     await app.wait(250);
     await app.screenshot(artifacts + '/' + colorScheme + '-available.png');
     await app.hover('id:navigation-primary-update');
     await app.screenshot(artifacts + '/' + colorScheme + '-hover.png');
-    await app.keyboard.press('enter');
+    await app.press('id:navigation-primary-update');
     await app.waitFor('正在下载更新');
     await app.screenshot(artifacts + '/' + colorScheme + '-download.png');
-    await app.waitFor('更新已准备好');
+    await app.waitFor('1.0.0 · 更新已下载，可以安装');
     await app.screenshot(artifacts + '/' + colorScheme + '-ready.png');
-    await app.keyboard.press('enter');
-    await app.waitFor('观看进度未能保存');
+    await app.press('id:navigation-primary-update');
+    await app.waitFor('观看进度未能保存，请重试');
     await app.screenshot(artifacts + '/' + colorScheme + '-save-error.png');
   });
 }

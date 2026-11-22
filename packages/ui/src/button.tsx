@@ -1,4 +1,13 @@
-import { Text, View, reduceMotion, token, type JSX, type ViewProps, type ViewRef } from 'nsh';
+import {
+  Text,
+  View,
+  platform,
+  reduceMotion,
+  token,
+  type JSX,
+  type ViewProps,
+  type ViewRef,
+} from 'nsh';
 import { CardRoot } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
@@ -17,8 +26,11 @@ export interface ButtonProps {
   disabled?: boolean;
   pending?: boolean;
   selected?: boolean;
-  /** Marks the destination the user is already on; foreground text on a muted shared surface. */
+  /** Marks the destination the user is already on; foreground text on a muted shared surface.
+   * `contrast` inverts the pairing — foreground surface, background text — for a top bar whose
+   * current item must read at TV distance. */
   current?: boolean;
+  currentSurface?: 'muted' | 'contrast';
   expanded?: boolean;
   accessibilityDescription?: string;
   icon?: IconName;
@@ -69,10 +81,13 @@ export function Button(props: ButtonProps) {
   // Emphasised surfaces stay paired with their foreground; the current destination is not one.
   const emphasised = () => !blocked() && !props.current;
   const selectedSurface = () => emphasised() && !!props.selected;
+  const contrastCurrent = () =>
+    !blocked() && !!props.current && props.currentSurface === 'contrast';
   const tone = () => {
     if (blocked()) return 'muted-foreground';
     if (popupOpen()) return 'accent-foreground';
     if (selectedSurface()) return 'accent-foreground';
+    if (contrastCurrent()) return 'background';
     switch (variant()) {
       case 'primary':
         return 'primary-foreground';
@@ -90,6 +105,10 @@ export function Button(props: ButtonProps) {
     if (blocked()) return 'bg-muted border-transparent';
     if (popupOpen()) return 'bg-accent border-transparent';
     if (props.current) {
+      if (contrastCurrent())
+        // The inverted pill never shows a border: on Android the runtime's own focus outline
+        // would otherwise survive beside it as a second ring.
+        return 'bg-foreground border-transparent hover:bg-foreground/90 active:bg-foreground/80';
       return variant() === 'quiet'
         ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
         : 'bg-muted border-input hover:bg-muted active:bg-border';
@@ -97,7 +116,11 @@ export function Button(props: ButtonProps) {
     if (selectedSurface()) return 'bg-accent border-transparent';
     switch (variant()) {
       case 'primary':
-        return 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80';
+        // Android's runtime draws the focus outline itself; an opaque resting border would
+        // survive beside it as a second ring, so the border goes transparent there.
+        return platform.os === 'android'
+          ? 'bg-primary border-transparent hover:bg-primary/90 active:bg-primary/80'
+          : 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80';
       case 'quiet':
       case 'navigation':
         return 'bg-transparent border-transparent hover:bg-muted active:bg-border';
@@ -139,7 +162,7 @@ export function Button(props: ButtonProps) {
       current={props.current}
       expanded={props.expanded}
       accessibilityDescription={props.accessibilityDescription}
-      class={`flex-row items-center ${dropdown() ? 'justify-between' : props.align === 'start' ? 'justify-start' : 'justify-center'} border focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
+      class={`flex-row items-center ${dropdown() ? 'justify-between' : props.align === 'start' ? 'justify-start' : 'justify-center'} border ${platform.os === 'android' && variant() === 'primary' ? '' : 'focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4'} ${props.selectOpen ? 'focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-4' : ''} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
     >
       <SelectFocus
         open={props.selectOpen}

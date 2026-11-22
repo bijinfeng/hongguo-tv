@@ -69,12 +69,16 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
 
   test('settings: a stored theme and speed survive a new mount', async () => {
     const first = await openSettings();
-    await first.waitUntil(() => first.enabled('id:settings-theme-trigger'));
-    await first.press('id:settings-theme-trigger');
-    await first.press('浅色');
+    // TV lays both choices on the row itself as segments; desktops open the anchored select.
+    const pick = async (id: string, option: string, value: string) => {
+      const control = target === 'tv' ? `id:${id}-${value}` : `id:${id}-trigger`;
+      await first.waitUntil(() => first.enabled(control));
+      await first.press(control);
+      if (target !== 'tv') await first.press(option);
+    };
+    await pick('settings-theme', '浅色', 'light');
     await first.waitUntil(() => stored(first)?.theme === 'light');
-    await first.press('id:settings-rate-trigger');
-    await first.press('1.5×');
+    await pick('settings-rate', '1.5×', '1.5');
     await first.waitUntil(() => stored(first)?.defaultRate === '1.5');
     const second = await openSettings({ storage: first.storage() });
     await second.waitUntil(() => second.texts().some((text) => text.includes('浅色')));

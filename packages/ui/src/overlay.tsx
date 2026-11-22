@@ -35,7 +35,7 @@ import {
   type ToastTransitionStatus,
 } from 'nsh/base';
 import { Button } from './button';
-import { border, controlMetrics, radius, space, weight } from './foundation';
+import { border, controlMetrics, radius, space, weight, focusRingClass } from './foundation';
 import { Icon, type IconName } from './icon';
 import { textSize, textWeight } from './typography';
 
@@ -453,7 +453,7 @@ export function Menu(props: MenuProps) {
               accessibilityLabel={command().label}
               testID={props.testID ? `${props.testID}-${command().id}` : undefined}
               onSelect={() => props.onSelect({ id: command().id })}
-              class="group flex-row items-center hover:bg-muted active:bg-border focus:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-transparent"
+              class={`group flex-row items-center hover:bg-muted active:bg-border focus:bg-accent ${focusRingClass(2)} disabled:bg-transparent`}
               style={{
                 minHeight: controlMetrics().height,
                 paddingHorizontal: controlMetrics().paddingHorizontal,
@@ -802,7 +802,7 @@ export function Accordion(props: AccordionProps) {
               <AccordionTrigger
                 accessibilityLabel={section().title}
                 testID={props.testID ? `${props.testID}-${section().id}` : undefined}
-                class="group flex-row items-center justify-between hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:bg-muted"
+                class={`group flex-row items-center justify-between hover:bg-muted active:bg-border ${focusRingClass(2)} disabled:bg-muted`}
                 style={{
                   minHeight: controlMetrics().height,
                   paddingHorizontal: controlMetrics().paddingHorizontal,
@@ -896,7 +896,7 @@ export function Link(props: LinkProps) {
       accessibilityLabel={props.label}
       onOpen={props.onOpen}
       testID={props.testID}
-      class="group flex-row items-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      class={`group flex-row items-center ${focusRingClass(2)}`}
       style={{ minHeight: controlMetrics().height, borderRadius: controlMetrics().radius }}
     >
       <Text

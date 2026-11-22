@@ -1,6 +1,6 @@
 import { reduceMotion, View } from 'nsh';
 import { Tabs as BaseTabs, Tab } from 'nsh/base';
-import { border, controlMetrics, space } from './foundation';
+import { border, controlMetrics, space, focusRingClass } from './foundation';
 import { UiText } from './display';
 import { type ChoiceGroupProps } from './choice-group';
 
@@ -33,7 +33,7 @@ export function Tabs(props: TabsProps) {
               testID={props.testID ? `${props.testID}-${option().value}` : undefined}
               accessibilityLabel={option().label}
               onPress={() => props.onChange({ value: option().value })}
-              class={`items-center justify-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${inactive(option()) || props.value === option().value ? '' : 'hover:bg-muted'}`}
+              class={`items-center justify-center ${focusRingClass(2)} ${inactive(option()) || props.value === option().value ? '' : 'hover:bg-muted'}`}
               style={{
                 minHeight: size().height,
                 paddingHorizontal: size().paddingHorizontal,

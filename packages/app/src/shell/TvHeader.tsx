@@ -1,29 +1,11 @@
-import { View, cleanup, signal, token } from 'nsh';
-import { Button, Icon, Logo, UiText, controlMetrics, type IconName } from '@hongguo/ui';
+import { View, cleanup, signal } from 'nsh';
+import { Button, IconButton, Logo, UiText } from '@hongguo/ui';
 import type { Store } from '../store';
 import { Navigation } from './Navigation';
 import type { ImageAsset } from 'nsh';
 
-/** TV header geometry in points (the 132/88/112/56 draft halved to device points). */
-const geometry = { header: 66, inline: 44, gap: 56, actions: 28 };
-/** The icon rail fills the header's line height so every element shares one visual centre. */
-const actionBox = () => controlMetrics().height;
-
-/** Icon and its one-character-clarity name stacked in the control: readable at three metres
- * without widening the header lane the way a side-by-side label would. */
-function labelledArtwork(name: IconName, label: string) {
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-      class="flex-col items-center"
-      style={{ gap: 4 }}
-    >
-      <Icon name={name} color={token('foreground')} size="sm" />
-      <UiText role="meta">{label}</UiText>
-    </View>
-  );
-}
+/** TV header geometry in points: the draft lane halved, with the approved pill-draft gaps. */
+const geometry = { header: 66, inline: 44, gap: 36 };
 
 function clock(): string {
   const now = new Date();
@@ -43,7 +25,9 @@ export function TvHelp() {
   );
 }
 
-/** TV outer header: brand, primary tabs, search, account and clock. */
+/** TV outer header: brand, primary tabs, search, account and clock.
+ * One control language: the tabs are pills, search keeps its label, settings and account are
+ * icon squares on the shared bordered surface, and the clock is the lane's only bare text. */
 export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
   const time = signal(clock());
   const timer = setInterval(() => time.set(clock()), 30_000);
@@ -61,42 +45,28 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
       <View class="flex-1">
         <Navigation store={props.store} layout="tv" />
       </View>
-      <View class="flex-row items-center" style={{ gap: 14 }}>
-        <View style={{ height: actionBox() }}>
-          <Button
-            testID="nav-search"
-            iconOnly
-            variant="quiet"
-            label="搜索短剧"
-            artwork={labelledArtwork('search', '搜索')}
-            buttonRef={(ref) => props.store.primaryRef('search', ref)}
-            onPress={props.store.openSearch}
-          />
-        </View>
-        <View style={{ height: actionBox() }}>
-          <Button
-            testID="nav-settings"
-            iconOnly
-            variant="quiet"
-            label="设置"
-            artwork={labelledArtwork('settings', '设置')}
-            onPress={() => props.store.settingsPage()}
-          />
-        </View>
-        <View style={{ height: actionBox() }}>
-          <Button
-            iconOnly
-            variant="quiet"
-            label={props.store.account()?.profile?.name || '账号'}
-            artwork={labelledArtwork('user', '账号')}
-            onPress={props.store.accountPage}
-          />
-        </View>
-        {/* The clock keeps its own lane: the icon rail's focus ring and pill need breathing room. */}
-        <View
-          class="items-center justify-center"
-          style={{ minWidth: 56, paddingLeft: 16, height: actionBox() }}
-        >
+      <View class="flex-row items-center" style={{ gap: 10 }}>
+        <Button
+          testID="nav-search"
+          icon="search"
+          label="搜索短剧"
+          displayLabel="搜索"
+          buttonRef={(ref) => props.store.primaryRef('search', ref)}
+          onPress={props.store.openSearch}
+        />
+        <IconButton
+          testID="nav-settings"
+          icon="settings"
+          label="设置"
+          onPress={() => props.store.settingsPage()}
+        />
+        <IconButton
+          icon="user"
+          label={props.store.account()?.profile?.name || '账号'}
+          onPress={props.store.accountPage}
+        />
+        {/* The clock keeps its own lane so a focus ring never crowds it. */}
+        <View style={{ minWidth: 48, marginLeft: 6 }}>
           <UiText role="numeric">{time()}</UiText>
         </View>
       </View>

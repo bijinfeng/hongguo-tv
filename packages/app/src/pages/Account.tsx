@@ -17,6 +17,7 @@ export function Account(props: {
 }) {
   let loginRef: ViewRef | undefined;
   let logoutRef: ViewRef | undefined;
+  let updatesRowRef: ViewRef | undefined;
   const dialogOpen = signal(false);
   const view = signal<AccountUiState>({
     method: 'qr',
@@ -67,9 +68,13 @@ export function Account(props: {
     onNotifications: props.openNotifications ? open('notifications') : undefined,
     onUpdates: props.openUpdates
       ? () => {
-          props.openUpdates?.(() => loginRef?.focus());
+          // Closing the update dialog returns to the entry that opened it, not the login row.
+          props.openUpdates?.(() => updatesRowRef?.focus());
         }
       : undefined,
+    onUpdatesRef: (ref: ViewRef) => {
+      updatesRowRef = ref;
+    },
     signedIn: props.store.account()?.logged_in === true,
   };
   return (

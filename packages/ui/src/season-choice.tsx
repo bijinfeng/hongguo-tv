@@ -1,7 +1,14 @@
 import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { UiText } from './display';
-import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
+import {
+  border,
+  controlMetrics,
+  space,
+  weight,
+  type ControlSize,
+  focusRingClass,
+} from './foundation';
 import { motionTokens } from './motion';
 import { textLineHeightRatio } from './typography';
 
@@ -29,7 +36,7 @@ export function SeasonChoice(props: SeasonChoiceProps) {
       selected={props.selected}
       onPress={props.onPress}
       onFocus={props.onFocus}
-      class={`shrink-0 items-start border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
+      class={`shrink-0 items-start border ${focusRingClass(4)} ${props.selected ? 'bg-accent border-transparent' : 'bg-card border-input hover:bg-muted active:bg-border'}`}
       style={{
         minHeight: metrics().height,
         minWidth: metrics().height * 4,

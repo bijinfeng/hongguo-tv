@@ -3,6 +3,7 @@ import {
   Button,
   CardControls,
   CardRoot,
+  focusRingClass,
   Icon,
   Notice,
   Progress,
@@ -63,7 +64,7 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
         accessibilityLabel={historyLabel(entry())}
         onPress={resume}
         style={{ padding: 0 }}
-        class="flex-1 min-w-0 border border-border rounded-(--radius) bg-card hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+        class={`flex-1 min-w-0 border border-border rounded-(--radius) bg-card hover:bg-muted active:bg-border ${focusRingClass(4)}`}
       >
         <View class="flex-row items-center" style={{ padding: 10, gap: 15 }}>
           {cover(width)}
@@ -85,7 +86,7 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
             accessibilityLabel={historyLabel(entry())}
             onPress={resume}
             style={{ padding: 0, gap: 6 }}
-            class="hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+            class={`hover:bg-muted active:bg-border ${focusRingClass(4)}`}
           >
             {cover(153)}
             <UiText role="body" lines={1}>

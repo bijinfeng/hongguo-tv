@@ -12,7 +12,7 @@ import {
   type ViewRef,
 } from 'nsh';
 import { Select as BaseSelect } from 'nsh/base';
-import { controlMetrics, radius, space } from './foundation';
+import { controlMetrics, radius, space, focusRingClass } from './foundation';
 import { textLineHeight, textSize, textWeight } from './typography';
 import { Button } from './button';
 import { Icon } from './icon';
@@ -114,7 +114,7 @@ export function PosterCard(props: {
         borderRadius: controlMetrics().radius,
         gap: space('sm'),
       }}
-      class="group flex-1 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      class={`group flex-1 ${focusRingClass(4)}`}
     >
       <Cover
         src={props.cover}
@@ -372,7 +372,7 @@ export function ResultCard(props: {
       accessibilityDescription="查看详情"
       onPress={props.onPress}
       style={{ paddingVertical: space('md'), gap: space('md') }}
-      class="flex-row items-center border border-transparent border-b-border hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      class={`flex-row items-center border border-transparent border-b-border hover:bg-muted active:bg-border ${focusRingClass(4)}`}
     >
       {props.children}
       <View

@@ -19,7 +19,6 @@ const routeLabels: Record<Exclude<Route['name'], 'browse'>, string> = {
   actor: '演员作品',
   player: '播放',
   account: '账号',
-  updates: '应用更新',
   settings: '设置',
 };
 

@@ -2,6 +2,7 @@ import { View, type ImageAsset } from 'nsh';
 import {} from '@hongguo/ui';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
+import { UpdateDialog } from '../pages/updates/UpdateDialog';
 import { Pages } from './Pages';
 import { TvHeader, TvHelp } from './TvHeader';
 
@@ -19,6 +20,16 @@ export function TvShell(props: { store: Store; logoMark: ImageAsset; updates?: U
       </View>
       <If when={!playing()}>
         <TvHelp />
+      </If>
+      {/* The update dialog is app-root state; the startup prompt opens it over any page. */}
+      <If when={props.updates}>
+        {() => (
+          <UpdateDialog
+            updates={props.updates!}
+            open={props.store.updateDialogOpen()}
+            onClose={() => props.store.closeUpdateDialog()}
+          />
+        )}
       </If>
     </View>
   );

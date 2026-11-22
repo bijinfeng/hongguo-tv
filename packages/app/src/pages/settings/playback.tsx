@@ -1,4 +1,4 @@
-import { Select, SettingsRow, SettingsSection, Switch } from '@hongguo/ui';
+import { Segmented, Select, SettingsRow, SettingsSection, Switch } from '@hongguo/ui';
 import type { Store } from '../../store';
 import { PLAYBACK_RATES, type PlaybackRate } from '../../settings';
 
@@ -47,15 +47,30 @@ export function SettingsPlayback(props: { store: Store; tv: boolean }) {
         testID="settings-rate-row"
         error={rowError('defaultRate')}
       >
-        <Select
-          label="默认倍速"
-          value={settings.defaultRate()}
-          options={rateOptions}
-          disabled={!settings.loaded()}
-          onChange={(event) => settings.setDefaultRate((event.value as PlaybackRate) ?? '1')}
-          testID="settings-rate"
-          style={{ minWidth: 200 }}
-        />
+        {/* TV lays the five short rates on the row itself; desktops keep the compact select. */}
+        <If
+          when={props.tv}
+          else={
+            <Select
+              label="默认倍速"
+              value={settings.defaultRate()}
+              options={rateOptions}
+              disabled={!settings.loaded()}
+              onChange={(event) => settings.setDefaultRate((event.value as PlaybackRate) ?? '1')}
+              testID="settings-rate"
+              style={{ minWidth: 200 }}
+            />
+          }
+        >
+          <Segmented
+            label="默认倍速"
+            value={settings.defaultRate()}
+            options={rateOptions}
+            disabled={!settings.loaded()}
+            onChange={(event) => settings.setDefaultRate((event.value as PlaybackRate) ?? '1')}
+            testID="settings-rate"
+          />
+        </If>
       </SettingsRow>
       <If when={!props.tv}>
         <SettingsRow

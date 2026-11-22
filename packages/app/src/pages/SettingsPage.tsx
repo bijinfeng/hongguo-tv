@@ -34,7 +34,7 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
             <SettingsPlayback store={props.store} tv={props.tv} />
             <SettingsAccount store={props.store} />
             <If when={props.updates}>
-              {() => <SettingsUpdates store={props.store} updates={props.updates!} />}
+              {() => <SettingsUpdates store={props.store} updates={props.updates!} tv={props.tv} />}
             </If>
             <SettingsLocalData store={props.store} />
           </View>
