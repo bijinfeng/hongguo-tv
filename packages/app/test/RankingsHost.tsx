@@ -160,6 +160,9 @@ export function registerRankingsHostTests(
 
           await resetFilters(app);
           await app.press(choice('rank', ids.later));
+          // The previous board stays visible while the next loads, so waiting on a row proves
+          // nothing; the request shows the switch landed before the list is read.
+          await app.waitUntil(() => params(app).get('rank') === ids.later);
           await app.waitFor('id:ranking-drama:500');
           expect(app.shows('id:ranking-drama:540')).toBe(false);
           for (let step = 0; step < 12 && !app.shows('id:ranking-drama:540'); step++) {

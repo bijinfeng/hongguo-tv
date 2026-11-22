@@ -45,6 +45,9 @@ export function LoginDialog(props: {
   let qrRef: ViewRef | undefined;
   let countryRef: ViewRef | undefined;
   const login = () => props.view.login;
+  /** A field-tagged error belongs beside its input; everything else stays at the dialog foot. */
+  const phoneError = () => (props.view.errorField === 'phone' ? props.view.error : '');
+  const codeError = () => (props.view.errorField === 'code' ? props.view.error : '');
   return (
     <Dialog
       open={props.open}
@@ -143,7 +146,8 @@ export function LoginDialog(props: {
                 testID="account-country"
               />
             </Field>
-            <Field label="手机号">
+            {/* A validation error stays on the field that has to change, not at the dialog foot. */}
+            <Field label="手机号" error={phoneError()}>
               <TextInput
                 activation={props.tv ? 'confirm' : 'direct'}
                 label="手机号"
@@ -152,11 +156,13 @@ export function LoginDialog(props: {
                 autoComplete="tel"
                 maxLength={13}
                 disabled={props.blocked}
+                invalid={!!phoneError()}
+                description={phoneError()}
                 onChange={({ value }) => props.flow.setPhone(value)}
                 testID="account-phone"
               />
             </Field>
-            <Field label="验证码">
+            <Field label="验证码" error={codeError()}>
               <View class="flex-row items-center gap-3">
                 <View class="flex-1 min-w-0">
                   <TextInput
@@ -251,7 +257,7 @@ export function LoginDialog(props: {
             </If>
           </View>
         </If>
-        <If when={props.failure}>
+        <If when={props.failure && !props.view.errorField}>
           <Notice error message={props.failure} retry={props.onRetry} />
         </If>
       </View>

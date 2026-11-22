@@ -1,5 +1,5 @@
-import { Text, View, platform, type ViewRef } from 'nsh';
-import { BackButton, Button, Controls, Notice } from '@hongguo/ui';
+import { Text, View, signal, type ViewRef } from 'nsh';
+import { BackButton, Button, ConfirmDialog, Controls, Notice, UiText } from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm } from '../SearchForm';
@@ -40,6 +40,8 @@ export function Search(props: { store: Store }) {
   };
   let more: ViewRef | undefined;
   let continuationQuery = '';
+  /** Search history is cleared only after the scope is named back to the user. */
+  const confirmClear = signal(false);
   const loadMore = () => {
     continuationQuery = props.store.query();
     more?.focus();
@@ -74,9 +76,7 @@ export function Search(props: { store: Store }) {
       </If>
       <If when={props.store.target !== 'tv'}>
         <View class="flex-row items-center justify-between">
-          <Text role="header" accessibilityLevel={1} class="text-3xl font-semibold text-foreground">
-            找剧
-          </Text>
+          <UiText role="page">找剧</UiText>
           <If when={props.store.query()}>
             <Button
               testID="clear-query"
@@ -106,25 +106,15 @@ export function Search(props: { store: Store }) {
       <If when={!props.store.query()}>
         <View class="gap-4" style={props.store.target === 'tv' ? { gap: 10 } : undefined}>
           <View class="flex-row items-center justify-between">
-            <Text
-              role="header"
-              accessibilityLevel={2}
-              class="font-semibold text-foreground"
-              style={{ fontSize: props.store.target === 'tv' ? 15 : 20 }}
-            >
-              最近搜索
-            </Text>
+            <UiText role="section">最近搜索</UiText>
             <If when={props.store.recent.items().length}>
               <Button
                 testID="clear-recent-searches"
-                label={props.store.recent.clearing() ? '正在清空…' : '清空记录'}
+                label="清空搜索记录"
                 variant="quiet"
                 compact
                 disabled={props.store.recent.saving()}
-                onPress={() => {
-                  props.store.focusSearchInput();
-                  void props.store.recent.clear();
-                }}
+                onPress={() => confirmClear.set(true)}
               />
             </If>
           </View>
@@ -171,7 +161,20 @@ export function Search(props: { store: Store }) {
           }}
         />
       </If>
-      <If when={props.store.query() && props.store.results.loading()}>
+      {/* A kept result from the previous keyword must say so, and must say which state it is in:
+          the failure notice below already carries the error, so this line never claims progress. */}
+      <If when={props.store.query() && props.store.resultsStale() && !props.store.results.error()}>
+        <Notice
+          message={
+            props.store.results.loading()
+              ? '这些还是上一个关键词的结果，新结果正在加载。'
+              : '这些还是上一个关键词的结果。'
+          }
+        />
+      </If>
+      <If
+        when={props.store.query() && props.store.results.loading() && !props.store.resultsStale()}
+      >
         <Text class="text-base text-muted-foreground">正在找剧…</Text>
       </If>
       <If when={props.store.query() && errorMessage(props.store.results.error(), '搜索失败')}>
@@ -186,12 +189,7 @@ export function Search(props: { store: Store }) {
       </If>
       <If when={!props.store.query()}>
         <If when={suggestions().length || discoveries().length}>
-          <Text
-            class="font-semibold text-foreground"
-            style={{ fontSize: props.store.target === 'tv' ? 15 : 20 }}
-          >
-            {discoveryTitle()}
-          </Text>
+          <UiText role="section">{discoveryTitle()}</UiText>
         </If>
         <If when={suggestions().length}>
           <Controls label="搜索建议">
@@ -279,10 +277,34 @@ export function Search(props: { store: Store }) {
             }
             disabled={props.store.results.state() !== 'ready'}
             onPress={loadMore}
-            onFocusedRemoval={platform.os === 'macos' ? restoreTerminalFocus : undefined}
+            onFocusedRemoval={restoreTerminalFocus}
           />
         </View>
       </If>
+      <ConfirmDialog
+        testID="clear-recent-confirm"
+        open={confirmClear()}
+        title="清空搜索记录？"
+        description="只清空本机的最近搜索关键词；观看记录、收藏和各账号数据不受影响。"
+        destructive
+        confirmLabel="清空搜索记录"
+        pending={props.store.recent.clearing()}
+        // Only a clear failure belongs in this dialog; a previous save error is not this action's.
+        error={confirmClear() && props.store.recent.clearing() ? props.store.recent.error() : ''}
+        onOpenChange={(event) => {
+          if (!event.open) confirmClear.set(false);
+        }}
+        returnFocus={() => props.store.focusSearchInput()}
+        onConfirm={() => {
+          // Close once the write settles so a failure stays readable in the dialog's error slot.
+          void props.store.recent.clear().then(() => {
+            if (!props.store.recent.error()) {
+              props.store.focusSearchInput();
+              confirmClear.set(false);
+            }
+          });
+        }}
+      />
     </View>
   );
 }

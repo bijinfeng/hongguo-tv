@@ -1,9 +1,11 @@
-import { Image, View, windowSize } from 'nsh';
+import { Image, View, windowSize, type JSX } from 'nsh';
 import {
   Button,
   CardControls,
+  CardRoot,
   Icon,
   Notice,
+  Progress,
   SkeletonBlock,
   SkeletonRegion,
   Surface,
@@ -12,6 +14,7 @@ import {
 import type { Library } from '@hongguo/core-client';
 import type { Store } from '../../store';
 import { errorMessage } from '../../error-messages';
+import { playbackTime } from '../../format';
 import { historyLabel } from '../History';
 import { contentGutter } from '../../shell/ContentColumn';
 
@@ -21,54 +24,53 @@ type Entry = Library['entries'][number];
 const continueTileWidth = () =>
   Math.floor((Math.min(1660, windowSize().width - 176) - contentGutter() * 2 - 36) / 3);
 
-const clock = (seconds: number) => {
-  const safe = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(safe / 60);
-  const rest = safe % 60;
-  return `${minutes}:${String(rest).padStart(2, '0')}`;
-};
-
 /** Continue card: draft rail card on TV (stacked), horizontal row on desktop. */
 function ContinueTile(props: { entry: Entry; store: Store }) {
   const entry = () => props.entry;
   const tv = () => props.store.target === 'tv';
   const resume = () => props.store.watch(entry().drama, () => props.store.restoreFocus());
   const openDetail = () => props.store.open(entry().drama, () => props.store.restoreFocus());
-  const duration = () => entry().duration ?? 0;
+  const duration = () => entry().duration;
   const position = () => entry().position ?? 0;
-  const ratio = () => (duration() > 0 ? Math.min(1, Math.max(0, position() / duration())) : 0);
+  // A missing duration stays unknown: no bar claims the entry is at the start.
+  const known = () => duration() !== undefined && duration()! > 0;
   const remaining = () => {
-    const left = duration() - position();
-    return duration() > 0 && left > 0 ? `· 剩余 ${clock(left)}` : '';
+    if (!known()) return '';
+    const left = duration()! - position();
+    return left > 0 ? `· 剩余 ${playbackTime(left)}` : '';
   };
-  const cover = () => entry().drama.cover_fallback || entry().drama.cover;
+  const coverSource = () => entry().drama.cover_fallback || entry().drama.cover;
   const progress = () => (
-    <View class="w-full overflow-hidden bg-border" style={{ height: 2 }}>
-      <View class="h-full bg-primary" style={{ width: `${Math.round(ratio() * 100)}%` }} />
-    </View>
+    <Progress position={position()} duration={duration()} accessibilityLabel="已看进度" />
   );
-  const coverButton = (width: number) => (
+  const cover = (width: number) => (
+    <Image
+      src={coverSource()}
+      class="object-cover"
+      style={{
+        objectPosition: 'top',
+        width,
+        height: width * 0.625,
+        borderRadius: 8,
+      }}
+    />
+  );
+  /** The card itself is the press target: cover, title, episode and progress all answer. */
+  const card = (width: number, content: () => JSX.Element, extra?: () => JSX.Element) => (
     <CardControls label={entry().drama.title} onNavigate={props.store.noteFocusIntent}>
-      <Button
+      <CardRoot
         testID={`home-continue-${entry().drama.series_id}`}
-        variant="quiet"
-        artwork={
-          <Image
-            src={cover()}
-            class="object-cover"
-            style={{
-              objectPosition: 'top',
-              width,
-              height: width * 0.625,
-              borderRadius: 8,
-            }}
-          />
-        }
-        displayLabel=""
-        label={historyLabel(entry())}
-        style={{ padding: 0 }}
+        accessibilityLabel={historyLabel(entry())}
         onPress={resume}
-      />
+        style={{ padding: 0 }}
+        class="flex-1 min-w-0 border border-border rounded-(--radius) bg-card hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      >
+        <View class="flex-row items-center" style={{ padding: 10, gap: 15 }}>
+          {cover(width)}
+          {content()}
+        </View>
+        {extra?.()}
+      </CardRoot>
     </CardControls>
   );
   if (tv()) {
@@ -77,37 +79,41 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
         class="border border-border rounded-(--radius) bg-card"
         style={{ width: 163, padding: 5, gap: 6 }}
       >
-        {coverButton(153)}
-        <UiText role="body" lines={1}>
-          {entry().drama.title}
-        </UiText>
-        <UiText role="meta" lines={1}>
-          第 {entry().episode ?? 1} 集{remaining()}
-        </UiText>
-        {progress()}
+        <CardControls label={entry().drama.title} onNavigate={props.store.noteFocusIntent}>
+          <CardRoot
+            testID={`home-continue-${entry().drama.series_id}`}
+            accessibilityLabel={historyLabel(entry())}
+            onPress={resume}
+            style={{ padding: 0, gap: 6 }}
+            class="hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+          >
+            {cover(153)}
+            <UiText role="body" lines={1}>
+              {entry().drama.title}
+            </UiText>
+            <UiText role="meta" lines={1}>
+              第 {entry().episode ?? 1} 集{remaining()}
+            </UiText>
+            <If when={known()}>{progress()}</If>
+          </CardRoot>
+        </CardControls>
         <View class="items-start">
           <Button label="选集与详情" icon="forward" onPress={openDetail} />
         </View>
       </View>
     );
   }
-  return (
-    <View
-      class="flex-1 min-w-0 flex-row items-center border border-border rounded-(--radius) bg-card"
-      style={{ padding: 10, gap: 15 }}
-    >
-      {coverButton(114)}
-      <View class="flex-1 min-w-0" style={{ gap: 8 }}>
-        <UiText role="content-title" lines={1}>
-          {entry().drama.title}
-        </UiText>
-        <UiText role="meta" lines={1}>
-          第 {entry().episode ?? 1} 集{remaining()}
-        </UiText>
-        {progress()}
-      </View>
+  return card(114, () => (
+    <View class="flex-1 min-w-0" style={{ gap: 8 }}>
+      <UiText role="content-title" lines={1}>
+        {entry().drama.title}
+      </UiText>
+      <UiText role="meta" lines={1}>
+        第 {entry().episode ?? 1} 集{remaining()}
+      </UiText>
+      <If when={known()}>{progress()}</If>
     </View>
-  );
+  ));
 }
 
 function ContinueEmpty(props: { store: Store }) {

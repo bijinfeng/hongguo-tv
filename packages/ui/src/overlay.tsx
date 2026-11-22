@@ -35,7 +35,7 @@ import {
   type ToastTransitionStatus,
 } from 'nsh/base';
 import { Button } from './button';
-import { controlMetrics, radius, space, weight } from './foundation';
+import { border, controlMetrics, radius, space, weight } from './foundation';
 import { Icon, type IconName } from './icon';
 import { textSize, textWeight } from './typography';
 
@@ -141,9 +141,12 @@ export function Dialog(props: DialogProps) {
         props.onClose?.();
         props.returnFocus?.();
       }}
-      class="m-auto bg-popover"
+      // A dark page scrim cannot darken a black background, so the dialog carries its own edge:
+      // a hairline makes the modal boundary read in both themes.
+      class="m-auto bg-popover border border-input"
       backdropClass="bg-cinema/40"
       style={{
+        borderWidth: border,
         width: Math.max(
           0,
           Math.min(props.size === 'lg' ? 800 : 480, windowSize().width - space('3xl')),

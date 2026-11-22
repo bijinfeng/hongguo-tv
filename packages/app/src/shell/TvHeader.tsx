@@ -1,5 +1,5 @@
-import { View, cleanup, signal } from 'nsh';
-import { Button, Logo, UiText, controlMetrics } from '@hongguo/ui';
+import { View, cleanup, signal, token } from 'nsh';
+import { Button, Icon, Logo, UiText, controlMetrics, type IconName } from '@hongguo/ui';
 import type { Store } from '../store';
 import { Navigation } from './Navigation';
 import type { ImageAsset } from 'nsh';
@@ -8,6 +8,22 @@ import type { ImageAsset } from 'nsh';
 const geometry = { header: 66, inline: 44, gap: 56, actions: 28 };
 /** The icon rail fills the header's line height so every element shares one visual centre. */
 const actionBox = () => controlMetrics().height;
+
+/** Icon and its one-character-clarity name stacked in the control: readable at three metres
+ * without widening the header lane the way a side-by-side label would. */
+function labelledArtwork(name: IconName, label: string) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      class="flex-col items-center"
+      style={{ gap: 4 }}
+    >
+      <Icon name={name} color={token('foreground')} size="sm" />
+      <UiText role="meta">{label}</UiText>
+    </View>
+  );
+}
 
 function clock(): string {
   const now = new Date();
@@ -21,7 +37,8 @@ export function TvHelp() {
       class="flex-row items-center border-t border-border"
       style={{ height: 37.5, paddingHorizontal: 44 }}
     >
-      <UiText role="meta">方向键 移动焦点 · 确认 进入 · 返回 / Esc 返回</UiText>
+      {/* Remote-only surface: name the remote's own keys, never a keyboard's. */}
+      <UiText role="meta">方向键 移动焦点 · 确认 进入 · 返回键 返回</UiText>
     </View>
   );
 }
@@ -45,33 +62,33 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
         <Navigation store={props.store} layout="tv" />
       </View>
       <View class="flex-row items-center" style={{ gap: 14 }}>
-        <View style={{ width: actionBox(), height: actionBox() }}>
+        <View style={{ height: actionBox() }}>
           <Button
             testID="nav-search"
-            icon="search"
             iconOnly
             variant="quiet"
             label="搜索短剧"
+            artwork={labelledArtwork('search', '搜索')}
             buttonRef={(ref) => props.store.primaryRef('search', ref)}
             onPress={props.store.openSearch}
           />
         </View>
-        <View style={{ width: actionBox(), height: actionBox() }}>
+        <View style={{ height: actionBox() }}>
           <Button
             testID="nav-settings"
-            icon="settings"
             iconOnly
             variant="quiet"
             label="设置"
+            artwork={labelledArtwork('settings', '设置')}
             onPress={() => props.store.settingsPage()}
           />
         </View>
-        <View style={{ width: actionBox(), height: actionBox() }}>
+        <View style={{ height: actionBox() }}>
           <Button
-            icon="user"
             iconOnly
             variant="quiet"
             label={props.store.account()?.profile?.name || '账号'}
+            artwork={labelledArtwork('user', '账号')}
             onPress={props.store.accountPage}
           />
         </View>

@@ -19,8 +19,11 @@ import {
   ContentArrival,
   Cover,
   DateChoice,
+  ExpandableText,
   FilterChoices,
   Notice,
+  SkeletonBlock,
+  SkeletonRegion,
   UiText,
   PosterCard,
   type ProductTarget,
@@ -250,8 +253,9 @@ export function Calendar(props: {
           : desktopContentFrame({ top: 24, gap: 24 })
       }
     >
-      <UiText role="page">{props.target === 'tv' ? '上新日历' : '新剧与上新日历'}</UiText>
-      <CardControls label="新剧与日历" onNavigate={props.onNavigate} class="gap-3">
+      {/* One name for one destination: the rail and crumb say 上新日历, so this page does too. */}
+      <UiText role="page">上新日历</UiText>
+      <CardControls label="上新日历视图" onNavigate={props.onNavigate} class="gap-3">
         <Button
           label="上新日历"
           testID="calendar-mode-calendar"
@@ -435,9 +439,8 @@ export function Calendar(props: {
                   <View class="flex-1 gap-2">
                     <UiText role="title">{title(item())}</UiText>
                     <UiText tone="muted">{calendarPublishLabel(item())}</UiText>
-                    <If when={intro(item())}>
-                      <UiText role="meta">{intro(item())}</UiText>
-                    </If>
+                    {/* The action stays above the prose: a long intro must not push 预约 off the
+                        first screen. Prose is body copy, not a caption. */}
                     <If when={props.reservation}>
                       {(store) => (
                         <View class="gap-3">
@@ -461,6 +464,17 @@ export function Calendar(props: {
                         </View>
                       )}
                     </If>
+                    <If when={intro(item())}>
+                      {/* Collapsed with an explicit trigger: the announcement can be long, and
+                          docs/calendar-browsing.md requires the whole text to stay readable. */}
+                      <ExpandableText
+                        testID="calendar-announcement-intro"
+                        text={intro(item())}
+                        collapsedLines={props.target === 'tv' ? 2 : 4}
+                        expandLabel="展开公告"
+                        collapseLabel="收起公告"
+                      />
+                    </If>
                   </View>
                 </View>
               </Scroll>
@@ -469,7 +483,40 @@ export function Calendar(props: {
         )}
       </If>
       <If when={calendar.loading() && !calendar.data()}>
-        <UiText tone="muted">正在加载上新…</UiText>
+        {/* The date strip and the list it governs, in the geometry they will occupy. */}
+        <SkeletonRegion
+          label="正在加载上新"
+          testID="calendar-pending"
+          class="flex-col"
+          style={{ gap: props.target === 'tv' ? 12 : 20 }}
+        >
+          <View class="flex-row" style={{ gap: 12 }}>
+            <Each of={[0, 1, 2]}>
+              {() => (
+                <SkeletonBlock width={props.target === 'tv' ? 120 : 180} height={84} radius={10} />
+              )}
+            </Each>
+          </View>
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center"
+                style={{ gap: 20, paddingVertical: 12 }}
+              >
+                <SkeletonBlock
+                  width={props.target === 'tv' ? 50 : 80}
+                  height={props.target === 'tv' ? 70 : 112}
+                  radius={8}
+                />
+                <View class="flex-1" style={{ gap: 8 }}>
+                  <SkeletonBlock width="45%" height={20} radius={4} />
+                  <SkeletonBlock width="30%" height={14} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
       </If>
       <If when={calendar.data() && !items().length && !calendar.loading()}>
         <Notice

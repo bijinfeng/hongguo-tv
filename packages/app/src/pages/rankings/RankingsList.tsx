@@ -94,6 +94,17 @@ export function RankingsList(props: RankingsListProps) {
       });
     });
   };
+  let previousCollection = props.rankings.key();
+  effect(() => {
+    const next = props.rankings.key();
+    if (next === previousCollection) return;
+    previousCollection = next;
+    // A different board starts at its top. The page now keeps the old rows visible while the
+    // new selection loads, so without this the reader would land mid-list on an unrelated board.
+    anchor = undefined;
+    cardIntent = undefined;
+    list?.scrollToOffset({ offset: 0, animated: false });
+  });
   effect(() => {
     measurement++;
     if (!props.active) {

@@ -9,6 +9,8 @@ export function AccountIdentity(props: {
   name?: string;
   signedIn: boolean;
   busy: boolean;
+  /** The account read has not settled: neither guest nor signed-in is known yet. */
+  unready?: boolean;
   tv?: boolean;
   /** TV folds the content destinations under the identity so one band fits its fold. */
   actions?: JSX.Element;
@@ -20,7 +22,8 @@ export function AccountIdentity(props: {
 }) {
   /** Guest reads as a state; a signed-in name is the identity itself, not a status. */
   const stateLabel = () => (props.signedIn ? '当前账号' : '账号状态');
-  const displayName = () => (props.signedIn ? props.name || '已登录' : '还未登录');
+  const displayName = () =>
+    props.unready ? '正在读取账号…' : props.signedIn ? props.name || '已登录' : '还未登录';
   const action = () => (
     <If
       when={props.signedIn}
@@ -28,7 +31,8 @@ export function AccountIdentity(props: {
         <Button
           label="登录账号"
           primary
-          disabled={props.busy}
+          // Unready disables the action in place: replacing the node would drop the focus it owns.
+          disabled={props.busy || props.unready}
           pending={props.busy}
           testID="account-login-open"
           buttonRef={(ref) => props.loginRef?.(ref)}
@@ -38,7 +42,7 @@ export function AccountIdentity(props: {
     >
       <Button
         label="退出登录"
-        disabled={props.busy}
+        disabled={props.busy || props.unready}
         pending={props.busy}
         testID="account-logout"
         buttonRef={(ref) => props.logoutRef?.(ref)}
@@ -48,12 +52,17 @@ export function AccountIdentity(props: {
   );
   const identity = () => (
     <View class="flex-row items-center min-w-0" style={{ gap: space('md') }}>
-      <Avatar name={props.name || '未登录'} size="lg" accessibilityLabel="" />
+      {/* An unread account has no name yet; the avatar must not claim the guest initial either. */}
+      <Avatar name={props.unready ? '…' : props.name || '未登录'} size="lg" accessibilityLabel="" />
       <View class="flex-1 min-w-0" style={{ gap: space('xxs') }}>
         <UiText role="meta" tone="muted">
           {stateLabel()}
         </UiText>
-        <UiText role="section">{displayName()}</UiText>
+        {/* The name is the card's value, not a heading: `section` made it outrank the real
+            card titles beside it. */}
+        <UiText role="title" lines={1}>
+          {displayName()}
+        </UiText>
       </View>
     </View>
   );

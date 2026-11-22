@@ -1,5 +1,13 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, CardControls, FilterChoices, Notice } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  FilterChoices,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+} from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
@@ -33,14 +41,8 @@ export function Discover(props: { store: Store }) {
       }
     >
       <View class="flex-row items-center justify-between">
-        <Text
-          role="header"
-          accessibilityLevel={1}
-          class="text-3xl font-semibold text-foreground"
-          style={props.store.target === 'tv' ? { fontSize: 19 } : undefined}
-        >
-          {props.store.target === 'tv' ? '找剧' : '找一部想看的'}
-        </Text>
+        {/* One destination, one name: the rail, the crumb and this heading all say 找剧. */}
+        <UiText role="page">找剧</UiText>
       </View>
       <View class={props.store.target === 'tv' ? 'flex-row gap-4' : 'gap-3'}>
         <Each of={dimensions} key={(dimension) => dimension.key}>
@@ -61,20 +63,48 @@ export function Discover(props: { store: Store }) {
             />
           )}
         </Each>
+        {/* Stated beside the filters that caused it, so the kept grid never shifts down a row.
+            A live region announces the swap on TV and screen readers. */}
+        <If when={category.stale()}>
+          <Text
+            class="text-muted-foreground"
+            android={{ accessibilityLiveRegion: 'polite' }}
+            style={{ fontSize: 14, alignSelf: 'center' }}
+          >
+            {category.error() ? '筛选未生效，仍是上一次的结果' : '正在套用新筛选…'}
+          </Text>
+        </If>
       </View>
       <If when={category.loading() && !category.data()}>
-        <Text class="text-base text-muted-foreground">正在找剧…</Text>
+        {/* Same grid geometry as the results it stands in for, so the page does not reflow. */}
+        <SkeletonRegion
+          label="正在找剧"
+          testID="category-pending"
+          class="flex-row flex-wrap"
+          style={{ gap: 12 }}
+        >
+          <Each of={[0, 1, 2, 3, 4, 5, 6, 7]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-1"
+                style={{ minWidth: 150, maxWidth: '23%', gap: 10 }}
+              >
+                <SkeletonBlock width="100%" height={200} radius={10} />
+                <SkeletonBlock width="70%" height={14} radius={4} />
+                <SkeletonBlock width="40%" height={12} radius={4} />
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
       </If>
       <If when={category.data() && !category.data()!.items.length && !category.loading()}>
         <View class="items-start gap-4">
-          <Text
-            class="text-base text-muted-foreground"
-            style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
-          >
+          <UiText role="body">
             {category.data()?.has_more
               ? '本页暂无内容，可以继续浏览'
               : '没有找到相关短剧，试试其他筛选。'}
-          </Text>
+          </UiText>
           <If when={Object.values(category.selection()).some(Boolean)}>
             <Button
               testID="category-clear"
@@ -90,11 +120,7 @@ export function Discover(props: { store: Store }) {
         </View>
       </If>
       <If when={category.error()}>
-        <Notice
-          error
-          message={category.error()}
-          retry={!category.data() ? category.retry : undefined}
-        />
+        <Notice error message={category.error()} retry={category.retry} />
       </If>
       <PosterCollection
         target={props.store.target}
@@ -113,8 +139,11 @@ export function Discover(props: { store: Store }) {
           props.store.open(drama, restore);
         }}
       />
-      <If when={category.data()?.has_more}>
-        <View class="items-start">
+      {/* Paging belongs to the page that owns the cursor: while a new filter is pending or has
+          failed, this button would merge old-filter cards into the new answer. The trailing edge
+          matches the home catalog's 查看更多: one load-more pattern on every page. */}
+      <If when={category.data()?.has_more && !category.stale()}>
+        <View class="items-end">
           <Button
             buttonRef={(ref) => {
               more = ref;
@@ -124,6 +153,11 @@ export function Discover(props: { store: Store }) {
             label={
               category.loading() ? '正在加载…' : category.error() ? '重试加载更多' : '加载更多'
             }
+            displayLabel={category.loading() ? '正在加载…' : undefined}
+            pending={category.loading()}
+            variant="quiet"
+            size="sm"
+            icon="forward"
             disabled={category.loading()}
             onPress={() => {
               moreSource();
@@ -135,9 +169,11 @@ export function Discover(props: { store: Store }) {
       </If>
       <If when={props.store.target === 'tv'}>
         <CardControls label="更多找剧方式" onNavigate={props.store.noteFocusIntent}>
+          {/* The home rail carries the same entries as quiet; one semantic, one variant. */}
           <Button
             label="排行榜"
             icon="chart-no-axes-column-increasing"
+            variant="quiet"
             testID="discover-rankings"
             onPress={() => {
               props.store.navigate('rankings');
@@ -147,6 +183,7 @@ export function Discover(props: { store: Store }) {
           <Button
             label="上新日历"
             icon="calendar-days"
+            variant="quiet"
             testID="discover-calendar"
             onPress={() => {
               props.store.navigate('calendar');

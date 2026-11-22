@@ -163,7 +163,7 @@ function HeroSkeleton(props: { tv: boolean }) {
     <SkeletonRegion
       label="正在加载精选内容"
       testID="home-hero-pending"
-      class={`overflow-hidden rounded-(--radius) bg-card ${props.tv ? '' : 'flex-row'}`}
+      class={props.tv ? '' : 'overflow-hidden rounded-(--radius) bg-card flex-row'}
       style={{
         minHeight: props.tv ? 225 : size().minHeight,
         marginBottom: props.tv ? 12 : 0,
@@ -176,29 +176,40 @@ function HeroSkeleton(props: { tv: boolean }) {
         class="justify-center"
         style={
           props.tv
-            ? { width: 395, paddingBottom: 4, gap: 9 }
+            ? { width: 395, paddingBottom: 4 }
             : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: size().padLeft, gap: 12 }
         }
       >
-        <SkeletonBlock
-          width={props.tv ? 70 : 108}
-          height={props.tv ? 10 : 12}
-          radius={props.tv ? 5 : 6}
-        />
-        <SkeletonBlock width="62%" height={props.tv ? 26 : 44} radius={props.tv ? 4 : 6} />
-        <SkeletonBlock width="82%" height={props.tv ? 10 : 12} radius={4} />
-        <View class="flex-row" style={{ gap: props.tv ? 9 : 12 }}>
-          <SkeletonBlock
-            width={props.tv ? 110 : 140}
-            height={props.tv ? 31 : 44}
-            radius={props.tv ? 6 : 8}
-          />
-          <SkeletonBlock
-            width={props.tv ? 84 : 104}
-            height={props.tv ? 31 : 44}
-            radius={props.tv ? 6 : 8}
-          />
-        </View>
+        {/* The TV bars carry the loaded text metrics (meta 21, display 62, two intro lines, 48
+            controls) and the loaded margins, so the featured drama lands without a jump. */}
+        <If
+          when={!props.tv}
+          else={
+            <View>
+              <View style={{ marginBottom: 5 }}>
+                <SkeletonBlock width={70} height={21} radius={5} />
+              </View>
+              <View style={{ marginBottom: 16.5 }}>
+                <SkeletonBlock width="78%" height={62} radius={4} />
+              </View>
+              <View style={{ marginBottom: 15.5 }}>
+                <SkeletonBlock width="82%" height={42} radius={4} />
+              </View>
+              <View class="flex-row" style={{ gap: 9 }}>
+                <SkeletonBlock width={110} height={48} radius={6} />
+                <SkeletonBlock width={84} height={48} radius={6} />
+              </View>
+            </View>
+          }
+        >
+          <SkeletonBlock width={108} height={12} radius={6} />
+          <SkeletonBlock width="62%" height={44} radius={6} />
+          <SkeletonBlock width="82%" height={12} radius={4} />
+          <View class="flex-row" style={{ gap: 12 }}>
+            <SkeletonBlock width={140} height={44} radius={8} />
+            <SkeletonBlock width={104} height={44} radius={8} />
+          </View>
+        </If>
       </View>
       <If when={!props.tv}>
         {/* The loaded hero's art panel fades out of the card on its leading edge, so the skeleton
@@ -245,10 +256,8 @@ export function HomeHero(props: { store: Store }) {
     const count = drama.episode_count ? `全 ${drama.episode_count} 集` : '';
     return [kind, count].filter(Boolean).join(' · ');
   };
-  const introStyle = () =>
-    tv()
-      ? { fontSize: 11.5, lineHeight: 11.5 * 1.85, maxWidth: 322 }
-      : { fontSize: 14, lineHeight: 14 * 1.85, maxWidth: 392 };
+  // The intro is body copy, not fine print: the shared meta role sets its size on both hosts.
+  const introWidth = () => (tv() ? 322 : 392);
   const copyStyle = () => {
     return tv()
       ? { width: 395, paddingBottom: 4 }
@@ -265,7 +274,9 @@ export function HomeHero(props: { store: Store }) {
     >
       {(drama) => (
         <View
-          class="overflow-hidden rounded-(--radius) bg-card"
+          // The TV draft's hero is not a card: copy floats on the page background and the art
+          // bleeds past the column, so a band surface here only gave the flush copy an edge.
+          class={tv() ? '' : 'overflow-hidden rounded-(--radius) bg-card'}
           style={{
             position: 'relative',
             flexDirection: tv() ? 'column' : 'row',
@@ -280,15 +291,16 @@ export function HomeHero(props: { store: Store }) {
               <UiText role="meta">{meta()}</UiText>
             </View>
             <View style={{ marginBottom: tv() ? 16.5 : 25 }}>
-              <UiText role="display" lines={2}>
+              {/* The TV draft marks this title h1; the desktop page keeps its greeting heading. */}
+              <UiText role="display" lines={2} accessibilityLevel={tv() ? 1 : undefined}>
                 {drama().title}
               </UiText>
             </View>
             <If when={drama().intro}>
-              <View style={{ marginBottom: tv() ? 15.5 : 25 }}>
-                <Text class="text-muted-foreground" style={{ ...introStyle(), numberOfLines: 2 }}>
+              <View style={{ marginBottom: tv() ? 15.5 : 25, maxWidth: introWidth() }}>
+                <UiText role="meta" lines={2}>
                   {drama().intro}
-                </Text>
+                </UiText>
               </View>
             </If>
             <CardControls label="精选" onNavigate={props.store.noteFocusIntent} gap={tv() ? 9 : 12}>

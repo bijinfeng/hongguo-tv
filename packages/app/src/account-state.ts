@@ -22,6 +22,8 @@ export interface AccountUiState {
   method: 'qr' | 'phone';
   busy: boolean;
   error: string;
+  /** Which field the error belongs to, so the dialog can attach it to that input. */
+  errorField?: 'phone' | 'code';
   country: string;
   phone: string;
   code: string;
@@ -191,7 +193,7 @@ export function createAccountState(options: AccountStateOptions) {
       state.phone.length <= region.max &&
       state.country.length - 1 + state.phone.length <= 15 &&
       (state.country !== '+86' || /^1[3-9][0-9]{9}$/.test(state.phone));
-    if (!valid) update({ error: '请输入正确的手机号。' });
+    if (!valid) update({ error: '请输入正确的手机号。', errorField: 'phone' });
     return valid;
   };
   const startPhone = (send_code: boolean) => {
@@ -227,11 +229,11 @@ export function createAccountState(options: AccountStateOptions) {
     useExistingCode: () => startPhone(false),
     submit() {
       if (!attempt || attempt.method !== 'phone' || terminal.has(attempt.state) || state.expired) {
-        update({ error: '先获取验证码，或选择使用 App 已有验证码。' });
+        update({ error: '先获取验证码，或选择使用 App 已有验证码。', errorField: 'code' });
         return Promise.resolve();
       }
       if (!/^[0-9]{4,8}$/.test(state.code)) {
-        update({ error: '请输入正确的验证码。' });
+        update({ error: '请输入正确的验证码。', errorField: 'code' });
         return Promise.resolve();
       }
       return execute({ action: 'phone_login', id: attempt.id, code: state.code });

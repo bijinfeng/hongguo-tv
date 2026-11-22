@@ -312,6 +312,18 @@ export function Reservations(props: { store: Store }) {
               : `暂无${mode() === 'online' ? '已上线' : '待上线'}的预约。`
           }
         />
+        {/* An empty list states the next step instead of leaving only a caption. */}
+        <View class="self-start">
+          <Button
+            label="去上新日历"
+            testID="reservations-empty-calendar"
+            onPress={() => {
+              props.store.noteFocusIntent();
+              props.store.navigate('calendar');
+              props.store.restoreFocus();
+            }}
+          />
+        </View>
       </If>
       <If when={signedIn() && reservations.snapshot()}>
         <ContentArrival class="flex-1">

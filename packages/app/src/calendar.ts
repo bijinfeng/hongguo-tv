@@ -1,4 +1,5 @@
 import { batch, cleanup, effect, lifecycle, signal } from 'nsh';
+import { unixStampLabel } from './format';
 import type {
   captureRequest,
   CalendarItem,
@@ -33,9 +34,7 @@ export function calendarDateLabel(value: string, today?: string): string {
 export function calendarPublishLabel(item: CalendarItem): string {
   if (item.publish_text) return item.publish_text;
   if (!item.publish_time) return '上线时间待公布';
-  const time = new Date((item.publish_time + 8 * 3600) * 1000);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${time.getUTCFullYear()}年${time.getUTCMonth() + 1}月${time.getUTCDate()}日 ${pad(time.getUTCHours())}:${pad(time.getUTCMinutes())} 上线`;
+  return `${unixStampLabel(item.publish_time)} 上线`;
 }
 const validOffset = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100000;

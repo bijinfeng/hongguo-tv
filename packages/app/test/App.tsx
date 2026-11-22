@@ -745,6 +745,10 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.waitFor('id:recent-search-古装');
     expect(app.shows('id:drama-123')).toBe(false);
     await app.press('id:clear-recent-searches');
+    // Clearing search history is destructive: the dialog names the scope before it commits.
+    await app.waitFor('清空搜索记录？');
+    // The trigger and the dialog's confirm share the verb; the dialog's own commit is second.
+    await app.press('id:clear-recent-confirm >> 清空搜索记录');
     await app.waitFor('搜索记录未清空：服务暂时不可用，请稍后重试');
     expect(app.shows('id:recent-search-古装')).toBe(true);
     await app.press('重试清空');
@@ -989,7 +993,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     expect(app.shows('第 3 集 · 本集已看完')).toBe(true);
     expect(app.shows('第 1 集 · 看到 00:09')).toBe(true);
     expect(app.shows('第 3 集 · 看到 01:00')).toBe(false);
-    expect(app.shows('role:header[我的片库]')).toBe(true);
+    expect(app.shows('role:header[观看记录]')).toBe(true);
     expect(app.shows('role:header[首页]')).toBe(false);
     await app.press('id:history-123');
     await app.waitFor('原观看集已不可用，可选择其他已开放集数从头观看。');
@@ -1113,8 +1117,9 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.press('重试');
     await app.waitFor('当前服务暂不支持播放，请稍后重试。');
     expect(app.requests().filter((r) => r.url.includes('/play/info')).length).toBe(2);
+    // The failed stream never plays, so BACK leaves for the detail page on every target —
+    // TV no longer spends a first press hiding controls over the error card.
     await app.back();
-    if (target === 'tv') await app.back();
     expect(app.shows('id:episode-1000')).toBe(true);
     await app.back();
     unavailable = true;

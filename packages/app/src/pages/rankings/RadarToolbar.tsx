@@ -34,7 +34,7 @@ export function RadarToolbar(props: {
         <View class="flex-row items-center gap-4">
           <View class="min-w-0 flex-1">
             <UiText role="meta" lines={1}>
-              {props.meta || '来源：hongguo-radar 外部聚合'}
+              {props.meta || '来源：第三方榜单快照'}
             </UiText>
           </View>
           <Button
@@ -80,9 +80,7 @@ export function RadarToolbar(props: {
       <View class="flex-row flex-wrap items-center justify-between gap-4">
         <View class="min-w-0 flex-1">
           <UiText role="meta">
-            {props.meta
-              ? `${props.meta} · 来源：hongguo-radar 外部聚合`
-              : '来源：hongguo-radar 外部聚合'}
+            {props.meta ? `${props.meta} · 来源：第三方榜单快照` : '来源：第三方榜单快照'}
           </UiText>
         </View>
         <Button
@@ -320,24 +318,11 @@ export function RadarPending(props: { target: ProductTarget }) {
   const rowHeight = tv ? 60 : 84;
   const safe = tv ? 4 : 8;
   const gap = tv ? 8 : 16;
+  // The control band above already renders for real, so this skeleton draws only the table it
+  // stands in for: header row plus data rows, with the same column geometry and no cover images
+  // (the real rows are text-only).
   return (
-    <SkeletonRegion label="正在加载榜单" testID="radar-pending" class="flex-1 min-h-0 gap-3">
-      <View class="flex-row items-center justify-between gap-4">
-        <SkeletonBlock width="42%" height={16} radius={4} />
-        <SkeletonBlock width={tv ? 48 : 80} height={36} radius={12} />
-      </View>
-      <View class="flex-row items-center justify-between gap-4">
-        <View class="flex-row items-center gap-4">
-          <SkeletonBlock width={tv ? 56 : 84} height={36} radius={6} />
-          <SkeletonBlock width={tv ? 48 : 72} height={36} radius={6} />
-        </View>
-      </View>
-      <View class="flex-row flex-wrap items-center gap-2">
-        <SkeletonBlock width={52} height={32} radius={16} />
-        <SkeletonBlock width={52} height={32} radius={16} />
-        <SkeletonBlock width={52} height={32} radius={16} />
-        <SkeletonBlock width={52} height={32} radius={16} />
-      </View>
+    <SkeletonRegion label="正在加载榜单" testID="radar-pending" class="flex-1 min-h-0">
       <View class="flex-1 min-h-0 border-t border-border">
         <View
           class="flex-row items-center border-b border-border"
@@ -356,7 +341,6 @@ export function RadarPending(props: { target: ProductTarget }) {
               style={{ minHeight: rowHeight, gap, paddingHorizontal: safe }}
             >
               <SkeletonBlock width={24} height={18} radius={4} />
-              <SkeletonBlock width={tv ? 35 : 64} height={tv ? 47 : 78} radius={tv ? 4 : 6} />
               <View class="flex-1 gap-2">
                 <SkeletonBlock width="62%" height={18} radius={4} />
                 <SkeletonBlock width="38%" height={12} radius={4} />

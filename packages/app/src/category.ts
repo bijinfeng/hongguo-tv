@@ -54,6 +54,9 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
   };
   const read = async (more = false) => {
     if (!enabled() || loading() || (more && !data()?.has_more)) return;
+    // A continuation pages from the page it started with. When the visible page answers an older
+    // selection, paging from its cursor would merge old-filter cards into the new answer.
+    if (more && data() !== undefined && dataKey() !== key()) return;
     const prior = more ? data() : undefined;
     const offset = prior?.next_offset ?? 0;
     if (more && (!Number.isInteger(offset) || offset < 1 || offset > 100000)) {

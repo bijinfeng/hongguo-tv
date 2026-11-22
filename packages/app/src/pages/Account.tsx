@@ -70,6 +70,7 @@ export function Account(props: {
           props.openUpdates?.(() => loginRef?.focus());
         }
       : undefined,
+    signedIn: props.store.account()?.logged_in === true,
   };
   return (
     <View class="flex-1">
@@ -103,6 +104,7 @@ export function Account(props: {
               <AccountIdentity
                 name={props.store.account()?.profile?.name}
                 signedIn={props.store.account()?.logged_in === true}
+                unready={!props.store.account() && props.store.account.loading()}
                 busy={blocked()}
                 tv={props.tv}
                 testID="account-summary"

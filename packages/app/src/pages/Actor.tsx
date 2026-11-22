@@ -1,5 +1,5 @@
 import { Image, Text, View, resource, signal, effect, lifecycle } from 'nsh';
-import { BackButton, Notice } from '@hongguo/ui';
+import { BackButton, Notice, UiText } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PosterCollection } from '../PosterCollection';
@@ -47,21 +47,13 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
           />
         </If>
         <View class="flex-1 gap-2">
-          <Text
-            role="header"
-            accessibilityLevel={1}
-            class="text-3xl font-semibold text-foreground"
-            style={props.store.target === 'tv' ? { fontSize: 18 } : undefined}
-          >
+          <UiText role="page" lines={2}>
             {data()?.actor.name || props.title}
-          </Text>
+          </UiText>
           <If when={data()?.actor.description}>
-            <Text
-              class="line-clamp-3 text-base text-muted-foreground"
-              style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
-            >
+            <UiText role="body" tone="muted" lines={3}>
               {data()!.actor.description}
-            </Text>
+            </UiText>
           </If>
         </View>
       </View>

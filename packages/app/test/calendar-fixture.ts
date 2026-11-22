@@ -92,6 +92,15 @@ export function calendarFixture(
     if (url.pathname === '/api/v1/search/history' || url.pathname === '/api/v1/search/suggestions')
       return ok({ items: [] });
     if (url.pathname === '/api/v1/search/discovery') return ok({ guesses: [], boards: [] });
+    // The home page's catalog band loads alongside the calendar view; it is read-only here.
+    if (url.pathname === '/api/v1/category')
+      return ok({
+        items: [summary('101')],
+        filters: [],
+        has_more: false,
+        session_id: 'calendar-home-catalog',
+        next_offset: 0,
+      });
     if (url.pathname === '/api/v1/lists/recommend')
       return ok({
         channel: url.searchParams.get('channel'),

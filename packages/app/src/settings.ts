@@ -76,6 +76,8 @@ export interface Settings {
   loaded: Signal<boolean>;
   /** Last read or write failure, shown next to the setting it affects. */
   error: Signal<string>;
+  /** The preference whose save failed, or undefined when the failure is a read. */
+  failedKey: Signal<keyof Preferences | undefined>;
   setTheme(theme: ThemeMode): void;
   setAutoplayNext(value: boolean): void;
   setRememberPosition(value: boolean): void;
@@ -113,6 +115,8 @@ export function createSettings(options: SettingsOptions = {}): Settings {
   const autoCheckUpdates = signal(defaultPreferences.autoCheckUpdates);
   const loaded = signal(false);
   const error = signal('');
+  /** Which preference the last save failure belongs to, so the row can own the message. */
+  const failedKey = signal<keyof Preferences | undefined>(undefined);
   let writes = Promise.resolve();
   let revision = 0;
 
@@ -132,23 +136,34 @@ export function createSettings(options: SettingsOptions = {}): Settings {
     quietWatching.set(values.quietWatching);
     autoCheckUpdates.set(values.autoCheckUpdates);
   };
-  const persist = () => {
-    if (!loaded()) return;
+  const readFailed = () => error().startsWith('设置未能读取');
+  const persist = (key?: keyof Preferences) => {
+    // After a failed read the values in memory are defaults, not what the user saved: writing
+    // them back would silently replace stored preferences. The read must succeed first.
+    if (!loaded() || readFailed()) return;
     const owned = ++revision;
     const raw = JSON.stringify(current());
     writes = writes.then(async () => {
       try {
         await storage.setItem(SETTINGS_STORAGE_KEY, raw);
-        if (owned === revision) error.set('');
+        if (owned === revision) {
+          error.set('');
+          failedKey.set(undefined);
+        }
       } catch {
-        if (owned === revision) error.set('设置未能保存，请重试');
+        if (owned === revision) {
+          error.set('设置未能保存，请重试');
+          failedKey.set(key);
+        }
       }
     });
   };
   const change = <K extends keyof Preferences>(key: K, value: Preferences[K]) => {
+    // Apply for this session so the control answers, but never persist over an unread store.
     apply({ ...current(), [key]: value });
     if (key === 'theme') applyColorScheme(value as ThemeMode);
-    persist();
+    if (readFailed()) error.set('设置未能读取，本次改动未保存；请先重试读取。');
+    persist(key);
   };
   const load = async () => {
     try {
@@ -183,6 +198,7 @@ export function createSettings(options: SettingsOptions = {}): Settings {
     autoCheckUpdates,
     loaded,
     error,
+    failedKey,
     setTheme(value) {
       change('theme', value);
     },
@@ -213,7 +229,11 @@ export function createSettings(options: SettingsOptions = {}): Settings {
       persist();
     },
     retry() {
-      if (!loaded()) {
+      // A failed read must be read again, never turned into a write of the defaults: that would
+      // overwrite a saved preference the user never touched. Only a failed save republishes.
+      if (!loaded() || readFailed()) {
+        loaded.set(false);
+        revision++;
         void load();
         return;
       }

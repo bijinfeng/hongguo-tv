@@ -68,7 +68,9 @@ export function CinemaButton(props: {
         borderRadius: controlMetrics().radius,
         gap: controlMetrics().gap,
       }}
-      class={`flex-row items-center justify-center border border-transparent ${props.quiet || blocked() ? 'bg-transparent' : 'bg-cinema-control'} ${blocked() ? '' : 'hover:bg-cinema-hover active:bg-cinema-active'} focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() || blocked() ? '' : 'transition-colors duration-100'}`}
+      // Disabled keeps the control's own surface and only dims its content, so a blocked row
+      // still reads as one family instead of three different treatments.
+      class={`flex-row items-center justify-center border border-transparent ${props.quiet ? 'bg-transparent' : 'bg-cinema-control'} ${props.quiet || blocked() ? '' : 'hover:bg-cinema-hover active:bg-cinema-active'} focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 selected:bg-cinema-active ${reduceMotion() || blocked() ? '' : 'transition-colors duration-100'}`}
     >
       <If when={props.icon && !props.dropdown}>
         <Icon
@@ -103,6 +105,7 @@ export function CinemaSlider(props: {
   testID?: string;
 }) {
   const enabled = CinemaEnabled();
+  const blocked = () => !!props.disabled || !enabled() || !(props.max > 0);
   return (
     <Slider
       testID={props.testID}
@@ -111,20 +114,22 @@ export function CinemaSlider(props: {
       min={0}
       max={Math.max(0, props.max)}
       step={props.compact ? 0.05 : 1}
-      disabled={props.disabled || !enabled() || !(props.max > 0)}
+      disabled={blocked()}
       onChange={({ value }) => {
         if (typeof value === 'number') props.onChange(value);
       }}
       onChangeEnd={({ value }) => {
         if (typeof value === 'number') props.onCommit?.(value);
       }}
-      class="flex-1 min-w-0 disabled:opacity-40"
+      class="flex-1 min-w-0"
       trackClass="justify-center"
       trackStyle={{ minHeight: controlMetrics().height }}
       indicatorClass="rounded-full bg-cinema-track"
       indicatorStyle={{ height: space('xxs') }}
-      rangeClass="rounded-full bg-primary"
-      thumbClass="rounded-full bg-cinema-foreground hover:bg-cinema-focus active:bg-cinema-focus focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4"
+      // A blocked slider dims its own fill and thumb instead of staying at full brand strength,
+      // matching the disabled buttons beside it.
+      rangeClass={`rounded-full ${blocked() ? 'bg-cinema-muted' : 'bg-primary'}`}
+      thumbClass={`rounded-full ${blocked() ? 'bg-cinema-muted' : 'bg-cinema-foreground'} hover:bg-cinema-focus active:bg-cinema-focus focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4`}
       thumbStyle={{
         width: space('md'),
         height: space('md'),
@@ -330,6 +335,8 @@ export function EpisodePanel(props: {
   open: boolean;
   onClose: () => void;
   cinema?: boolean;
+  /** Accessible name of the dialog; it must match the heading the panel shows. */
+  label: string;
   children?: JSX.Element;
 }) {
   return (
@@ -345,7 +352,7 @@ export function EpisodePanel(props: {
     >
       <View
         role="dialog"
-        accessibilityLabel={props.cinema ? '播放设置' : '选集'}
+        accessibilityLabel={props.label}
         class="flex-1"
         style={{
           padding: space('xl'),
@@ -404,7 +411,7 @@ export function CinemaEpisodeButton(props: {
   const enabled = CinemaEnabled();
   const blocked = () => !!props.disabled || !!props.locked || !enabled();
   const tone = () =>
-    blocked() ? 'cinema-muted' : props.selected ? 'primary-foreground' : 'cinema-foreground';
+    blocked() ? 'cinema-muted' : props.selected ? 'accent-foreground' : 'cinema-foreground';
   return (
     <Button
       testID={props.testID}
@@ -423,10 +430,10 @@ export function CinemaEpisodeButton(props: {
       }}
       class={`flex-row items-center justify-center border focus-visible:outline-2 focus-visible:outline-cinema-focus focus-visible:outline-offset-4 ${reduceMotion() ? '' : 'transition-colors duration-100'} ${
         props.selected
-          ? 'bg-primary border-transparent'
+          ? 'bg-accent border-transparent'
           : blocked()
-            ? 'bg-transparent border-cinema-active'
-            : 'bg-cinema-control border-cinema-active hover:bg-cinema-hover active:bg-cinema-active'
+            ? 'bg-transparent border-cinema-track'
+            : 'bg-cinema-control border-cinema-track hover:bg-cinema-hover active:bg-cinema-active'
       }`}
     >
       <If when={props.locked}>

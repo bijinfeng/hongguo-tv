@@ -12,8 +12,11 @@ export function Home(props: { store: Store }) {
   return (
     <Scroll testID="home-scroll" class="flex-1 min-h-0" contentStyle={{ flexDirection: 'column' }}>
       <ContentColumn store={props.store}>
+        {/* Each draft names home's own h1 instead of repeating the current tab: the greeting
+            carries it on desktop (`.page-heading h1`), and the TV draft starts at the hero,
+            whose featured title takes the level there. */}
         <If when={!tv()}>
-          <UiText role="section">把今晚，留给好故事。</UiText>
+          <UiText role="page">把今晚，留给好故事。</UiText>
         </If>
         <HomeHero store={props.store} />
         <ContinueSection store={props.store} />

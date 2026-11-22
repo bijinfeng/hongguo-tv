@@ -1,5 +1,8 @@
 <resources>
     <style name="TvTheme" parent="android:style/Theme.Material.NoActionBar">
+        <!-- NSH draws its own focus ring (focus-visible:outline). The system's default focus
+             highlight on top of it is the second border seen on real DPAD devices. -->
+        <item name="android:defaultFocusHighlightEnabled">false</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowLightStatusBar">false</item>

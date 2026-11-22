@@ -68,13 +68,14 @@ export function registerCalendarHostTests(
         ).toBe(false);
         await capture(app, 'calendar');
         await app.press('id:calendar-upcoming-301');
-        await app.waitFor('预约提醒暂未开放');
+        // The announcement now carries the real reservation action above its prose.
+        await app.waitFor('id:calendar-reservation');
         expect(readCount(source, '/api/v1/series/detail')).toBe(0);
         await capture(app, 'announcement');
         await app.press('id:calendar-announcement-close');
         await app.wait(250);
         await app.keyboard.press('enter');
-        await app.waitFor('预约提醒暂未开放');
+        await app.waitFor('id:calendar-reservation');
         await app.press('id:calendar-announcement-close');
         await app.press('id:calendar-released-101');
         await app.waitFor('id:episode-1011');
@@ -271,7 +272,7 @@ export function registerCalendarVisualTests(
         await app.keyboard.press('right');
         await capture('date-focus');
         await app.press('id:calendar-upcoming-301');
-        await app.waitFor('预约提醒暂未开放');
+        await app.waitFor('id:calendar-reservation');
         await capture('announcement');
         await app.press('id:calendar-announcement-close');
         await app.press('id:calendar-mode-new');

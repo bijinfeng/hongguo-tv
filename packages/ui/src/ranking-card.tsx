@@ -110,9 +110,10 @@ export function RankingCard(props: RankingCardProps) {
               color: token(
                 props.selected
                   ? 'accent-foreground'
-                  : // `primary` at 24px/400 measures 2.73:1 on white, under the 3:1 large-text bar;
-                    // `primary-strong` keeps the same accent read at 3.3:1.
-                    rank() === 1
+                  : // The podium is the glanceable spine of a ranking board. `primary` at 22px/400
+                    // measures 2.73:1 on white, under the 3:1 large-text bar; `primary-strong`
+                    // keeps the same accent read at 3.3:1.
+                    (rank() ?? 0) <= 3
                     ? 'primary-strong'
                     : 'muted-foreground',
               ),

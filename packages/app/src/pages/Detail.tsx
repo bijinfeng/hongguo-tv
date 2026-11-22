@@ -1,11 +1,22 @@
 import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { BackButton, Button, Cover, EpisodeRange, Notice, StoryFeature, UiText } from '@hongguo/ui';
+import {
+  BackButton,
+  Button,
+  CinemaButton,
+  Cover,
+  EpisodeRange,
+  ExpandableText,
+  Notice,
+  StoryFeature,
+  UiText,
+} from '@hongguo/ui';
 import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
 import { DetailExtras } from '../DetailExtras';
+import { contentGutter } from '../shell/ContentColumn';
 import { createDetailFavorite } from '../detail-favorite';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { FollowAction, FollowNotice } from '../FollowAction';
@@ -52,6 +63,27 @@ export function Detail(props: {
   let initialized = '';
   let selected = '';
   let startRef: ViewRef | undefined;
+  // A fresh detail page must not leave the remote on the navigation bar, where Confirm would
+  // leave the page: TV lands on the play action once episodes have settled. One focus per
+  // mount keeps popups and source restoration in charge of their own focus afterwards.
+  let primaryFocused = false;
+  effect(() => {
+    if (
+      props.store.target !== 'tv' ||
+      primaryFocused ||
+      !active() ||
+      lifecycle() !== 'active' ||
+      !current() ||
+      !startEpisode()
+    )
+      return;
+    primaryFocused = true;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (active() && lifecycle() === 'active') startRef?.focus();
+      }),
+    );
+  });
   effect(() => {
     const key = JSON.stringify([seasons.selectedId(), current().content_type ?? '']);
     if (selected !== key) {
@@ -118,7 +150,8 @@ export function Detail(props: {
       testID="detail-scroll"
       class="flex-1"
       contentStyle={{
-        paddingHorizontal: props.store.target === 'tv' ? 0 : 40,
+        // The shared gutter, so this page's left edge matches every other content page.
+        paddingHorizontal: props.store.target === 'tv' ? 0 : contentGutter(),
         paddingBottom: props.store.target === 'tv' ? 16 : 40,
         paddingTop: props.store.target === 'tv' ? 6 : 12,
         gap: 32,
@@ -142,9 +175,20 @@ export function Detail(props: {
                 class="w-[200px] h-[280px]"
               />
               <View class="flex-1 gap-3">
-                <Text class="text-[32px] font-semibold text-foreground">{current().title}</Text>
-                <Text class="text-base text-muted-foreground">{meta()}</Text>
-                <Text class="text-base text-foreground">{current().intro || '暂无简介'}</Text>
+                <UiText role="page" lines={2}>
+                  {current().title}
+                </UiText>
+                <UiText role="meta" tone="muted">
+                  {meta()}
+                </UiText>
+                {/* The contract allows 1024 characters, so the prose collapses to four lines with
+                    its own disclosure: nothing is permanently cut off, and the actions stay near
+                    the fold. */}
+                <ExpandableText
+                  testID="detail-intro"
+                  text={current().intro || '暂无简介'}
+                  collapsedLines={4}
+                />
                 <View class="flex-row flex-wrap items-center gap-3 pt-3">
                   <Button
                     testID="detail-start"
@@ -197,8 +241,9 @@ export function Detail(props: {
                   if (episode) play(episode, startRef);
                 }}
               />
-              <FavoriteButton favorite={favorite} />
+              <FavoriteButton favorite={favorite} cinema />
               <FollowAction
+                cinema
                 store={props.store}
                 drama={
                   browse.summary()?.series_id === seasons.selectedId()
@@ -231,9 +276,13 @@ export function Detail(props: {
           </View>
         </If>
         <If when={browse.loading()}>
-          <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
-            {episodes().length ? '正在加载演员与相关作品…' : '正在加载详情与选集…'}
-          </Text>
+          {/* Only the first read blocks the page; a later extras read says so beside the extras
+              block it will fill, not above the episode list. */}
+          <If when={!episodes().length}>
+            <Text testID="detail-episodes-loading" class="text-base text-muted-foreground">
+              正在加载详情与选集…
+            </Text>
+          </If>
         </If>
         <If when={browse.error()}>
           <Notice
@@ -293,11 +342,15 @@ export function Detail(props: {
                 variant="quiet"
                 label="定位当前集"
                 compact
+                // With no saved position there is no current episode to locate, and pressing used
+                // to jump to the first segment under a label that promised something else.
+                disabled={!resume()}
                 onPress={() => {
                   const index = episodes().findIndex(
                     (episode) => episode.video_id === resume()?.video_id,
                   );
-                  segment.set(Math.max(0, Math.floor(index / pageSize)));
+                  if (index < 0) return;
+                  segment.set(Math.floor(index / pageSize));
                 }}
               />
             </View>
@@ -345,6 +398,12 @@ export function Detail(props: {
         <If when={browse.drama() && !episodes().length}>
           <Notice message="暂时没有可观看的选集。" />
         </If>
+        {/* The extras block is at the page's end, so its own loading state belongs here. */}
+        <If when={browse.loading() && !!episodes().length}>
+          <Text testID="detail-extras-loading" class="text-base text-muted-foreground">
+            正在加载演员与相关作品…
+          </Text>
+        </If>
         <DetailExtras
           detail={browse.detail()}
           collection={JSON.stringify([
@@ -361,16 +420,35 @@ export function Detail(props: {
   );
 }
 
-function FavoriteButton(props: { favorite: ReturnType<typeof createDetailFavorite> }) {
+function FavoriteButton(props: {
+  favorite: ReturnType<typeof createDetailFavorite>;
+  /** The dark story band pairs its secondary actions with the cinema controls. */
+  cinema?: boolean;
+}) {
   return (
-    <Button
-      testID="detail-favorite"
-      label={props.favorite.selected() ? '已收藏' : '收藏'}
-      icon="bookmark"
-      selected={props.favorite.selected()}
-      pending={props.favorite.pending()}
-      disabled={props.favorite.disabled()}
-      onPress={() => void props.favorite.press()}
-    />
+    <If
+      when={props.cinema}
+      else={
+        <Button
+          testID="detail-favorite"
+          label={props.favorite.selected() ? '已收藏' : '收藏'}
+          icon="bookmark"
+          selected={props.favorite.selected()}
+          pending={props.favorite.pending()}
+          disabled={props.favorite.disabled()}
+          onPress={() => void props.favorite.press()}
+        />
+      }
+    >
+      <CinemaButton
+        testID="detail-favorite"
+        label={props.favorite.selected() ? '已收藏' : '收藏'}
+        icon="bookmark"
+        selected={props.favorite.selected()}
+        pending={props.favorite.pending()}
+        disabled={props.favorite.disabled()}
+        onPress={() => void props.favorite.press()}
+      />
+    </If>
   );
 }

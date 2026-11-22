@@ -40,6 +40,8 @@ export interface UiTextProps {
   lines?: number;
   selectable?: boolean;
   align?: 'start' | 'center' | 'end';
+  /** Overrides the role's default heading level; a draft that names another element h1 uses it. */
+  accessibilityLevel?: number;
   testID?: string;
 }
 
@@ -64,13 +66,19 @@ export function UiText(props: UiTextProps) {
           ['display', 'page', 'section', 'title'].includes(props.role ?? '') ? 'header' : undefined
         }
         accessibilityLevel={
-          props.role === 'display' || props.role === 'page'
+          // Only `page` is a page heading by default; `display` is the featured title inside a
+          // hero and sits one level below, so a page never exposes two level-1 headings. A draft
+          // that marks another element h1 overrides the default explicitly (the TV home hero).
+          props.accessibilityLevel ??
+          (props.role === 'page'
             ? 1
-            : props.role === 'section'
+            : props.role === 'display'
               ? 2
-              : props.role === 'title'
-                ? 3
-                : undefined
+              : props.role === 'section'
+                ? 2
+                : props.role === 'title'
+                  ? 3
+                  : undefined)
         }
         style={{
           fontSize: textSize(props.role),
@@ -306,12 +314,15 @@ export interface NoticeProps {
   retry?: () => void;
   retryLabel?: string;
   testID?: string;
+  /** `cinema` pairs the notice with the dark playback surface it sits on. */
+  tone?: 'page' | 'cinema';
 }
 
 /** An in-place notice keeps error copy and retry together; it never animates on value changes. */
 export function Notice(props: NoticeProps) {
   const width = signal(Infinity);
   const inline = () => width() >= INLINE_MIN_WIDTH;
+  const cinema = () => props.tone === 'cinema';
   return (
     <View
       testID={props.testID}
@@ -324,14 +335,16 @@ export function Notice(props: NoticeProps) {
         paddingVertical: space('md'),
         borderRadius: radius('xl'),
       }}
-      class={`${inline() ? 'flex-row items-center' : 'items-start'} shrink-0 w-full min-w-0 bg-muted`}
+      class={`${inline() ? 'flex-row items-center' : 'items-start'} shrink-0 w-full min-w-0 ${cinema() ? 'bg-cinema-control' : 'bg-muted'}`}
     >
       <If when={props.error}>
         <Icon name="circle-alert" color={token('destructive')} />
       </If>
       <View class={`${inline() ? 'flex-1' : 'w-full'} min-w-0`} style={{ gap: space('xxs') }}>
         <If when={props.title}>
-          <UiText role="body">{props.title}</UiText>
+          <UiText role="body" tone={cinema() ? 'cinema' : undefined}>
+            {props.title}
+          </UiText>
         </If>
         <Text
           android={{ accessibilityLiveRegion: 'polite' }}
@@ -340,13 +353,24 @@ export function Notice(props: NoticeProps) {
             lineHeight: textLineHeight(props.title ? 'meta' : 'body'),
             fontWeight: textWeight(props.title ? 'meta' : 'body'),
           }}
-          class={props.error && !props.title ? 'text-destructive' : 'text-muted-foreground'}
+          class={
+            cinema()
+              ? 'text-cinema-foreground'
+              : props.error && !props.title
+                ? 'text-destructive'
+                : 'text-muted-foreground'
+          }
         >
           {props.message}
         </Text>
       </View>
       <If when={props.retry}>
-        <Button label={props.retryLabel ?? '重试'} onPress={() => props.retry?.()} />
+        <Button
+          label={props.retryLabel ?? '重试'}
+          onPress={() => props.retry?.()}
+          variant={cinema() ? 'quiet' : undefined}
+          class={cinema() ? 'border-cinema-track bg-cinema-control' : undefined}
+        />
       </If>
     </View>
   );

@@ -1,27 +1,19 @@
+import { List, View, effect, cleanup, lifecycle, signal, type ListRef, type ViewRef } from 'nsh';
 import {
-  List,
-  Text,
-  View,
-  effect,
-  cleanup,
-  lifecycle,
-  signal,
-  type ListRef,
-  type ViewRef,
-} from 'nsh';
-import {
-  Button,
   Badge,
+  Button,
   Checkbox,
   ConfirmDialog,
   Cover,
   Notice,
   Progress,
   ResultCard,
+  SkeletonBlock,
+  SkeletonRegion,
+  space,
   Surface,
   Tabs,
   UiText,
-  space,
 } from '@hongguo/ui';
 import type { FavoriteEntry, Library, LibraryKind } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -98,12 +90,9 @@ export function HistoryItem(props: {
         <If
           when={props.managing}
           else={
-            <Text
-              style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
-              class={`${props.store.target === 'tv' ? 'text-xl' : 'text-base'} font-semibold text-foreground`}
-            >
+            <UiText role="content-title" lines={1}>
               {props.entry.drama.title}
-            </Text>
+            </UiText>
           }
         >
           <Checkbox
@@ -116,12 +105,10 @@ export function HistoryItem(props: {
           />
         </If>
         <If when={progress()}>
-          <Text
-            style={props.store.target === 'tv' ? { fontSize: 10 } : undefined}
-            class="text-sm text-muted-foreground"
-          >
+          {/* The progress value is a measurement: numeric keeps the tabular figures. */}
+          <UiText role="numeric" tone="muted" lines={1}>
             {historyProgress(progress())}
-          </Text>
+          </UiText>
         </If>
         <If when={(progress()?.duration ?? 0) > 0}>
           <View class="max-w-[220px]">
@@ -161,9 +148,33 @@ export function LibraryStatus(props: {
     <If when={props.store.library.loading() || props.store.library.error() || empty()}>
       <View class="gap-3">
         <If when={props.store.library.loading()}>
-          <Text class="text-base text-muted-foreground">
-            {favorites() ? '正在读取收藏…' : '正在读取观看记录…'}
-          </Text>
+          {/* Record rows keep their own geometry: cover, title, one meta line. */}
+          <SkeletonRegion
+            label={favorites() ? '正在读取收藏' : '正在读取观看记录'}
+            testID="library-pending"
+            class="flex-col"
+            style={{ gap: 12 }}
+          >
+            <Each of={[0, 1, 2]}>
+              {() => (
+                <View
+                  accessibilityElementsHidden
+                  class="flex-row items-center"
+                  style={{ gap: 12, paddingVertical: 12 }}
+                >
+                  <SkeletonBlock
+                    width={props.store.target === 'tv' ? 54 : 88}
+                    height={props.store.target === 'tv' ? 76 : 112}
+                    radius={6}
+                  />
+                  <View class="flex-1" style={{ gap: 8 }}>
+                    <SkeletonBlock width="40%" height={16} radius={4} />
+                    <SkeletonBlock width="28%" height={12} radius={4} />
+                  </View>
+                </View>
+              )}
+            </Each>
+          </SkeletonRegion>
         </If>
         <If when={errorMessage(props.store.library.error(), '记录加载失败')}>
           <Notice
@@ -264,6 +275,8 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
       .catch((cause) => localError.set(errorMessage(cause, '统计重置失败，请重试')))
       .finally(() => resetBusy.set(false));
   };
+  /** A reset failure belongs to the dialog that owns the action, not to the panel behind it. */
+  const resetError = () => (resetOpen() ? localError() : '');
   return (
     <If when={props.open}>
       <Surface testID="watch-statistics-panel" variant="page">
@@ -283,12 +296,8 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
         <If when={state().loading()}>
           <Notice message="正在读取观看统计…" />
         </If>
-        <If when={state().error() || localError()}>
-          <Notice
-            error
-            message={state().error() || localError()}
-            retry={() => void state().refetch()}
-          />
+        <If when={state().error()}>
+          <Notice error message={state().error()} retry={() => void state().refetch()} />
         </If>
         <If when={!state().loading() && !state().error() && !state().snapshot()}>
           <Notice message="暂时没有可显示的观看统计。开始观看后会出现在这里。" />
@@ -335,12 +344,19 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
                   {(bar) => (
                     <View class="flex-1 items-center" style={{ gap: space('xxs') }}>
                       <View
-                        class="w-full rounded-(--radius) bg-accent"
+                        class="w-full rounded-(--radius) bg-foreground"
                         style={{
-                          height: Math.max(
-                            4,
-                            (bar().value / maxBar()) * (props.store.target === 'tv' ? 42 : 64),
-                          ),
+                          // A zero day draws no bar: a forced 4px stub claims viewing that never
+                          // happened. The bar is data, so it takes foreground, which clears 3:1 on
+                          // the page surface in both themes without borrowing a control token.
+                          height:
+                            bar().value > 0
+                              ? Math.max(
+                                  4,
+                                  (bar().value / maxBar()) *
+                                    (props.store.target === 'tv' ? 42 : 64),
+                                )
+                              : 0,
                         }}
                         accessible
                         accessibilityLabel={`${bar().day} ${statisticsDuration(bar().value)}`}
@@ -385,8 +401,12 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
         description="仅重置当前设备当前用户的观看统计，观看记录和播放进度不会删除。"
         destructive
         pending={resetBusy()}
+        error={resetError()}
         onOpenChange={(event) => {
-          if (!event.open && !resetBusy()) resetOpen.set(false);
+          if (!event.open && !resetBusy()) {
+            localError.set('');
+            resetOpen.set(false);
+          }
         }}
         returnFocus={() => resetRef?.focus()}
         onConfirm={reset}
@@ -813,14 +833,9 @@ export function History(props: { store: Store }) {
       }}
     >
       <View class="flex-row flex-wrap items-center justify-between" style={{ gap: space('md') }}>
-        <Text
-          role="header"
-          accessibilityLevel={1}
-          style={props.store.target === 'tv' ? { fontSize: 22 } : { fontSize: 32 }}
-          class={`${props.store.target === 'tv' ? 'text-4xl' : 'text-3xl'} font-semibold text-foreground`}
-        >
-          我的片库
-        </Text>
+        {/* The heading names the page, and the tab below switches it: a fixed 观看记录 would
+            mislabel the 收藏 view, and would repeat the crumb and the tab a third time. */}
+        <UiText role="page">{favorites() ? '收藏' : '观看记录'}</UiText>
         <View class="flex-row flex-wrap" style={{ gap: space('xs') }}>
           <Button
             testID="history-statistics"

@@ -15,6 +15,7 @@ import { Select as BaseSelect } from 'nsh/base';
 import { controlMetrics, radius, space } from './foundation';
 import { textLineHeight, textSize, textWeight } from './typography';
 import { Button } from './button';
+import { Icon } from './icon';
 import { CardRoot } from './card-controls';
 import { CinemaButton } from './player';
 import { Progress } from './display';
@@ -25,7 +26,6 @@ const CONTINUE_CARD_COVER_WIDTH = 108;
 const CONTINUE_CARD_INSET = 20;
 
 const POSTER_MIN_HEIGHT = 96;
-const POSTER_MAX_HEIGHT = 240;
 const POSTER_FALLBACK_HEIGHT = 352;
 const POSTER_TEXT_ALLOWANCE = 112;
 const CARD_MIN_HEIGHT = 340;
@@ -100,7 +100,6 @@ export function PosterCard(props: {
   testID: string;
   buttonRef?: (ref: ViewRef) => void;
 }) {
-  const textHeight = signal(0);
   return (
     <CardRoot
       ref={(ref) => props.buttonRef?.(ref)}
@@ -122,29 +121,21 @@ export function PosterCard(props: {
         title={props.title}
         class={`w-full group-hover:opacity-95 group-active:opacity-85 ${reduceMotion() ? '' : 'transition-opacity duration-100'}`}
         height={
-          props.availableHeight !== undefined &&
-          props.availableHeight > 0 &&
-          !(props.width && props.width > 0 && props.availableHeight === undefined)
-            ? Math.max(
-                POSTER_MIN_HEIGHT,
-                Math.min(
-                  POSTER_MAX_HEIGHT,
-                  (props.availableHeight || POSTER_FALLBACK_HEIGHT) -
-                    POSTER_TEXT_ALLOWANCE * fontScale(),
-                ),
-              )
-            : Math.min(
-                (props.width ?? 180) * 1.35,
-                props.availableHeight && props.availableHeight > 0 && textHeight() > 0
-                  ? Math.max(96, props.availableHeight - textHeight() - 12)
-                  : Infinity,
-              )
+          // The cover always keeps the 2:2.7 ratio of its column width. A viewport cap may only
+          // shrink that height, never stretch a narrow column into a landscape band.
+          Math.max(
+            POSTER_MIN_HEIGHT,
+            Math.min(
+              (props.width ?? 180) * 1.35,
+              props.availableHeight !== undefined && props.availableHeight > 0
+                ? (props.availableHeight || POSTER_FALLBACK_HEIGHT) -
+                    POSTER_TEXT_ALLOWANCE * fontScale()
+                : Number.POSITIVE_INFINITY,
+            ),
+          )
         }
       />
-      <View
-        style={{ gap: space('xxs') }}
-        onLayout={({ bounds }) => textHeight.set(bounds.size.height)}
-      >
+      <View style={{ gap: space('xxs') }}>
         <Text
           style={{
             fontSize: textSize('content-title'),
@@ -370,21 +361,30 @@ export function ResultCard(props: {
   label?: string;
 }) {
   return (
-    <View
-      accessibilityLabel={props.label}
+    // The whole row is one target. Its trailing affordance is drawn, not a second button: a nested
+    // button would be a second focus stop doing the same thing. The label names the record itself,
+    // which is what readers and tests identify the row by.
+    <CardRoot
+      ref={(ref) => props.buttonRef(ref)}
+      testID={props.testID}
+      selected={props.selected}
+      accessibilityLabel={props.label ?? '记录'}
+      accessibilityDescription="查看详情"
+      onPress={props.onPress}
       style={{ paddingVertical: space('md'), gap: space('md') }}
-      class="flex-row items-center border border-transparent border-b-border"
+      class="flex-row items-center border border-transparent border-b-border hover:bg-muted active:bg-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
     >
       {props.children}
-      <Button
-        buttonRef={props.buttonRef}
-        testID={props.testID}
-        onPress={props.onPress}
-        selected={props.selected}
-        label={`${props.label ?? ''}，查看详情`}
-        displayLabel="查看详情"
-        icon="forward"
-      />
-    </View>
+      <View
+        class="flex-row items-center shrink-0"
+        style={{ gap: space('xs') }}
+        accessibilityElementsHidden
+      >
+        <Text class="text-muted-foreground" style={{ fontSize: textSize('body') }}>
+          查看详情
+        </Text>
+        <Icon name="forward" color={token('muted-foreground')} size="sm" />
+      </View>
+    </CardRoot>
   );
 }

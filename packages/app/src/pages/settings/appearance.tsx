@@ -4,8 +4,8 @@ import type { ThemeMode } from '../../settings';
 
 const themeOptions = [
   { value: 'system', label: '跟随系统' },
-  { value: 'dark', label: '深色模式' },
-  { value: 'light', label: '纸张浅色' },
+  { value: 'dark', label: '深色' },
+  { value: 'light', label: '浅色' },
 ];
 
 /** Appearance preference; the theme is applied by the settings owner as it changes. */
@@ -15,8 +15,10 @@ export function SettingsAppearance(props: { store: Store }) {
     <SettingsSection title="外观">
       <SettingsRow
         label="界面主题"
-        description="跟随系统外观，或者固定深色和纸张浅色。"
         testID="settings-theme-row"
+        error={
+          props.store.settings.failedKey() === 'theme' ? props.store.settings.error() : undefined
+        }
       >
         <Select
           label="界面主题"

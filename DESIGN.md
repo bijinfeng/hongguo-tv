@@ -130,9 +130,9 @@ colors:
 
 | `UiText` 角色 | Web／桌面    | TV           | 字重 | 行高 | 用途                          |
 | ------------- | ------------ | ------------ | ---- | ---- | ----------------------------- |
-| display       | 44           | 56           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
-| page          | 32           | 32           | 600  | 1.3  | 页面标题                      |
-| section       | 24           | 24           | 600  | 1.5  | 栏目标题                      |
+| display       | 44           | 44           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
+| page          | 32           | 28           | 600  | 1.3  | 页面标题                      |
+| section       | 24           | 22           | 600  | 1.5  | 栏目标题                      |
 | title         | 20           | 20           | 600  | 1.5  | 小节／面板标题                |
 | content-title | 18           | 20           | 600  | 1.5  | 海报与续播卡剧名              |
 | body          | 16           | 16           | 400  | 1.5  | 正文                          |
@@ -153,7 +153,7 @@ typography:
     letterSpacing: 0.06em
   display-tv:
     fontFamily: system-ui
-    fontSize: 56px
+    fontSize: 44px
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: 0.06em
@@ -164,7 +164,7 @@ typography:
     lineHeight: 1.3
   page-tv:
     fontFamily: system-ui
-    fontSize: 32px
+    fontSize: 28px
     fontWeight: 600
     lineHeight: 1.3
   section-desktop:
@@ -174,7 +174,7 @@ typography:
     lineHeight: 1.5
   section-tv:
     fontFamily: system-ui
-    fontSize: 24px
+    fontSize: 22px
     fontWeight: 600
     lineHeight: 1.5
   title-desktop:

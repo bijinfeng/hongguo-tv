@@ -134,14 +134,24 @@ export function createStore(
     moreError.set('');
   };
   cleanup(resetContinuation);
+  /** The query whose response is on screen; a newer query means the grid still answers the old one. */
+  const resultsQuery = signal('');
   const results = resource(
     () => query() || undefined,
     (q, { signal }) => {
       resetContinuation();
-      return request<SearchResult>(`/api/v1/search?q=${encodeURIComponent(q)}&source=web`, signal);
+      return request<SearchResult>(
+        `/api/v1/search?q=${encodeURIComponent(q)}&source=web`,
+        signal,
+      ).then((value) => {
+        resultsQuery.set(q);
+        return value;
+      });
     },
   );
   const catalog = () => continued() ?? results();
+  /** True while the grid still shows cards fetched for an earlier keyword. */
+  const resultsStale = () => results() !== undefined && resultsQuery() !== query();
   const loadMore = async () => {
     const current = catalog();
     if (!current?.has_more || results.state() !== 'ready' || loadingMore()) return;
@@ -616,6 +626,7 @@ export function createStore(
     draft,
     query,
     results,
+    resultsStale,
     library,
     account,
     watchStatistics,

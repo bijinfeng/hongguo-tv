@@ -18,7 +18,7 @@ export { ActionRow, type ActionRowProps } from './action-row';
 export { BackButton, type BackButtonProps, type BackButtonTone } from './back-button';
 export { ContentArrival, Controls } from './layout';
 export { SearchInput, type SearchInputProps } from './search-input';
-export { CardControls } from './card-controls';
+export { CardControls, CardRoot } from './card-controls';
 export { SearchPicker, SearchSuggestionRow } from './search-picker';
 export { FilterChoices } from './filter-choices';
 export { DownloadProgress, type DownloadProgressProps } from './download-progress';

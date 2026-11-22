@@ -32,6 +32,11 @@ export interface RadarTableProps {
   /** A new collection resets scroll; refreshing the same collection preserves it. */
   collection?: string;
   /**
+   * The column the rows are ordered by. A collection change scrolls this column into view instead
+   * of resetting to the left edge, so the sorted values are the ones the reader sees.
+   */
+  focusColumn?: string;
+  /**
    * `header` renders the column controls above the table (previews and most callers).
    * `external` lets the page compose them in its own control band.
    */
@@ -64,39 +69,34 @@ export function RadarTable(props: RadarTableProps) {
   const safe = () => space('xs');
   const rowHeight = () => 84;
   const headerHeight = () => space('3xl');
+  /**
+   * Surplus follows the longest values: absolute heat and its increment carry full-precision
+   * service integers, so they take the most; secondary deltas give way.
+   */
   const weight = (column: RadarTableColumn) => {
     switch (column.key) {
       case 'title':
-        return 3.2;
+        return 2.6;
       case 'rank':
-        return 0.62;
+        return 0.5;
       case 'type':
-        return 0.82;
+        return 0.6;
       case 'delta':
         return 1.2;
       case 'streak':
-        return 1.5;
-      case 'd7_hot':
-        return 1.75;
+        return 1.4;
+      case 'hot':
+      case 'd_hot':
+        return 2.4;
       case 'r_hot':
-        return 1.35;
+        return 1.2;
+      case 'd_fav':
+        return 1.6;
+      case 'd7_hot':
+        return 1.4;
       default:
-        return 1.55;
+        return 1.6;
     }
-  };
-  const fixedWidth = (column: RadarTableColumn) => {
-    const wideNumber = ['hot', 'd_hot', 'd_fav', 'd7_hot', 'r_hot'].includes(column.key);
-    return column.key === 'title'
-      ? 240
-      : column.key === 'rank'
-        ? 64
-        : column.key === 'type'
-          ? 72
-          : column.key === 'streak'
-            ? 160
-            : wideNumber
-              ? 280
-              : 136;
   };
   /**
    * A weight share alone can leave a header or a grouped number narrower than its own text, and
@@ -113,15 +113,15 @@ export function RadarTable(props: RadarTableProps) {
         : column.key === 'title'
           ? 96
           : column.numeric
-            ? 84
+            ? 96
             : 64);
-  /** TV columns share the viewport by weight; the desktop table keeps its fixed columns. */
+  /**
+   * Both modes share the viewport: each column takes its measured floor and the surplus is
+   * shared by weight. Fixed desktop widths added up to more than the content column, so the table
+   * scrolled and hid whichever column was sorted by; floors always fit, so it no longer does.
+   */
   const widths = () => {
     const map = new Map<string, number>();
-    if (!row) {
-      for (const column of props.columns) map.set(column.key, fixedWidth(column));
-      return map;
-    }
     const available = Math.max(0, viewport() - safe() * 2);
     const floors = props.columns.map(minWidth);
     const floorTotal = floors.reduce((sum, value) => sum + value, 0);
@@ -138,16 +138,11 @@ export function RadarTable(props: RadarTableProps) {
     });
     return map;
   };
-  const contentWidth = () => {
-    if (row)
-      return Math.max(
-        viewport(),
-        props.columns.reduce((sum, column) => sum + minWidth(column), 0) + safe() * 2,
-      );
-    let total = safe() * 2;
-    for (const column of props.columns) total += fixedWidth(column);
-    return Math.max(viewport(), total);
-  };
+  const contentWidth = () =>
+    Math.max(
+      viewport(),
+      props.columns.reduce((sum, column) => sum + minWidth(column), 0) + safe() * 2,
+    );
   const scrollColumns = (x: number) => {
     if (row) {
       offset.set(0);
@@ -161,13 +156,14 @@ export function RadarTable(props: RadarTableProps) {
     if (row) return;
     let start = safe();
     for (const column of props.columns) {
+      const width = widths().get(column.key) ?? 0;
       if (column.key === 'title') {
-        const end = start + fixedWidth(column) + safe();
+        const end = start + width + safe();
         if (start - safe() < offset()) scrollColumns(start - safe());
         else if (end > offset() + viewport()) scrollColumns(end - viewport());
         break;
       }
-      start += fixedWidth(column);
+      start += width;
     }
   };
   const restore = () => {
@@ -204,6 +200,27 @@ export function RadarTable(props: RadarTableProps) {
     },
   });
   let collection = props.collection;
+  /**
+   * Horizontal offset that brings `key` into view while the row identity stays on screen. The
+   * board can be wider than the window, so the two cannot always both fit; the identity (rank and
+   * title) wins and the sorted column is only scrolled as far as that block allows.
+   */
+  const offsetForColumn = (key: string | undefined) => {
+    if (!key) return 0;
+    let start = safe();
+    let identityEnd = safe();
+    for (const column of props.columns) {
+      const width = widths().get(column.key) ?? 0;
+      if (column.key === 'rank' || column.key === 'title') identityEnd = start + width + safe();
+      if (column.key === key) {
+        const end = start + width + safe();
+        if (end <= viewport()) return 0;
+        return Math.min(end - viewport(), identityEnd);
+      }
+      start += width;
+    }
+    return 0;
+  };
   effect(() => {
     const next = props.collection;
     if (next === collection) return;
@@ -211,7 +228,7 @@ export function RadarTable(props: RadarTableProps) {
     waiting = undefined;
     cancelAnimationFrame(frame);
     list?.scrollToOffset({ offset: 0, animated: false });
-    scrollColumns(0);
+    scrollColumns(offsetForColumn(props.focusColumn));
   });
   cleanup(() => {
     disposed = true;
@@ -318,6 +335,7 @@ export function RadarTable(props: RadarTableProps) {
                       role={column().numeric ? 'numeric' : 'meta'}
                       tone={tone(column(), item().cells[column().key] ?? '—')}
                       align={column().numeric ? 'end' : 'start'}
+                      lines={1}
                     >
                       {item().cells[column().key] ?? '—'}
                     </UiText>

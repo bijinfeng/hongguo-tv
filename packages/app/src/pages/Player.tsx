@@ -411,7 +411,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       hideControls();
       return;
     }
-    if (tv && layer() === 'controls') {
+    // A failed stream has no playback to guard: BACK means the same thing as the error card's
+    // own 返回详情, not "hide the controls" — that would strand focus on the full-stage action
+    // and draw its outline across the whole picture.
+    if (tv && layer() === 'controls' && !error()) {
       hideControls();
       return;
     }
@@ -629,9 +632,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       ? fullScreenPictureHeight()
                       : // A poster is the resting picture even when the stream failed, so it keeps the
                         // full frame; only a stage with neither a picture nor a poster shrinks, because
-                        // an empty full-height frame reads as a broken picture.
+                        // an empty full-height frame reads as a broken picture. The shrink stops at the
+                        // design's minimum, so the stage never drops below 320.
                         !poster() && (error() || (!media() && !preparing()))
-                        ? Math.round(pictureHeight() * 0.42)
+                        ? Math.max(320, Math.round(pictureHeight() * 0.42))
                         : pictureHeight()
                 }
               >
@@ -1019,7 +1023,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
               </View>
             </If>
             <If when={props.store.warning()}>
-              <Notice error message={props.store.warning()} retry={session.retry} />
+              <Notice error message={props.store.warning()} retry={session.retry} tone="cinema" />
             </If>
           </View>
         </Scroll>
@@ -1036,7 +1040,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           />
         </If>
       </View>
-      <EpisodePanel open={panel()} onClose={closePanel} cinema>
+      <EpisodePanel open={panel()} onClose={closePanel} cinema label="选集">
         <View class="flex-row items-center justify-between">
           <CinemaText variant="title">选集</CinemaText>
           <CinemaButton label="关闭选集" icon="close" iconOnly onPress={closePanel} />
@@ -1054,7 +1058,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           onSelect={selectEpisode}
         />
       </EpisodePanel>
-      <EpisodePanel open={more()} onClose={closeMore} cinema>
+      <EpisodePanel open={more()} onClose={closeMore} cinema label="播放设置">
         <View class="flex-row items-center justify-between">
           <CinemaText variant="title">播放设置</CinemaText>
           <CinemaButton label="关闭播放设置" icon="close" iconOnly onPress={closeMore} />

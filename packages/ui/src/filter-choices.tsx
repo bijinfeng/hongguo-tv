@@ -46,7 +46,8 @@ export function FilterChoices(props: {
               {props.label}
             </Text>
           </View>
-          <Scroll horizontal class="flex-1" style={{ height: space('2xl') }}>
+          {/* Room for the chip's focus ring: outline-2 plus offset-4 on both sides. */}
+          <Scroll horizontal class="flex-1" style={{ height: space('2xl') + 16 }}>
             <CardControls
               label={props.label}
               onNavigate={props.onNavigate}
@@ -116,7 +117,13 @@ export function FilterChoices(props: {
             testID={`${props.testID}-trigger`}
             label={`${props.label}：${title()}`}
             displayLabel={
-              chosen() ? title() : props.label === '排序' ? '综合排序' : `全部${props.label}`
+              // An empty value is the cleared filter, so its label must still name the dimension:
+              // two triggers both reading "全部" leave a remote viewer unable to tell them apart.
+              props.value === '' || !chosen()
+                ? props.label === '排序'
+                  ? '综合排序'
+                  : `全部${props.label}`
+                : title()
             }
             selectOpen={open()}
             dropdown

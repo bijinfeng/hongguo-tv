@@ -26,7 +26,9 @@ export interface ActionRowProps {
 }
 
 /** The design draft's list row: 54 on desktop, taller only as the density token grows. */
+/** A row with a description carries two text lines, so its minimum follows the content. */
 const rowHeight = () => controlMetrics().height + space('sm');
+const rowMinHeight = () => rowHeight();
 
 /** Full-row navigation or command target with shared hover, disabled and focus treatment. */
 export function ActionRow(props: ActionRowProps) {
@@ -41,7 +43,8 @@ export function ActionRow(props: ActionRowProps) {
       onPress={() => props.onPress()}
       class={`w-full flex-row items-center justify-between focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.disabled ? '' : 'hover:bg-muted active:bg-border'}`}
       style={{
-        minHeight: rowHeight(),
+        minHeight: props.description ? undefined : rowMinHeight(),
+        paddingVertical: props.description ? space('sm') : 0,
         gap: space('sm'),
         borderTopWidth: props.divided ? border : 0,
         borderTopColor: token('border'),

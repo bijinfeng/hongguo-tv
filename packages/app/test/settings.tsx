@@ -71,13 +71,13 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
     const first = await openSettings();
     await first.waitUntil(() => first.enabled('id:settings-theme-trigger'));
     await first.press('id:settings-theme-trigger');
-    await first.press('纸张浅色');
+    await first.press('浅色');
     await first.waitUntil(() => stored(first)?.theme === 'light');
     await first.press('id:settings-rate-trigger');
     await first.press('1.5×');
     await first.waitUntil(() => stored(first)?.defaultRate === '1.5');
     const second = await openSettings({ storage: first.storage() });
-    await second.waitUntil(() => second.texts().some((text) => text.includes('纸张浅色')));
+    await second.waitUntil(() => second.texts().some((text) => text.includes('浅色')));
     expect(second.texts().some((text) => text.includes('1.5×'))).toBe(true);
   });
 
