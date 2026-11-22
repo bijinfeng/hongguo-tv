@@ -2,6 +2,7 @@ import { cleanup, effect, View, keymap, type ImageAsset } from 'nsh';
 import { BackHandler } from 'nsh/mobile';
 import { type ProductTarget } from '@hongguo/ui';
 import { createUpdates, type UpdateAdapter } from './updates';
+import { canPromptUpdate } from './updates-flow';
 import { createStore, type FocusSource } from './store';
 import { DesktopShell } from './shell/DesktopShell';
 import { TvShell } from './shell/TvShell';
@@ -26,6 +27,13 @@ export function App(props: {
   effect(() => {
     if (!updates || !store.settings.loaded() || !store.settings.autoCheckUpdates()) return;
     if (updates.phase() === 'idle') void updates.check();
+  });
+  // TV only: an actionable update found at startup pops the dialog; never over playback.
+  effect(() => {
+    if (props.target !== 'tv' || !updates) return;
+    if (store.updateDialogOpen() || !canPromptUpdate(updates.phase())) return;
+    if (store.playing()) return;
+    store.promptUpdateDialog();
   });
   cleanup(() => {
     const drained = store.shutdown();

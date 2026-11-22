@@ -1,4 +1,4 @@
-import { View, type JSX } from 'nsh';
+import { View, type JSX, type ViewRef } from 'nsh';
 import { ActionRow, Button, CardControls } from '@hongguo/ui';
 import { AccountCard } from './card';
 
@@ -8,6 +8,8 @@ export interface AccountContentActions {
   onReservations: () => void;
   onNotifications?: () => void;
   onUpdates?: () => void;
+  /** The entry row itself, so closing the update dialog restores this exact source. */
+  onUpdatesRef?: (ref: ViewRef) => void;
   /**
    * A guest sees the same four destinations, but the three account-backed ones need a sign-in.
    * Saying so here avoids sending the reader to a page that only then asks for one.
@@ -47,7 +49,13 @@ export function AccountContent(props: AccountContentActions) {
           />
         </If>
         <If when={props.onUpdates}>
-          <ActionRow label="应用更新" divided testID="account-updates" onPress={props.onUpdates!} />
+          <ActionRow
+            label="应用更新"
+            divided
+            testID="account-updates"
+            buttonRef={props.onUpdatesRef}
+            onPress={props.onUpdates!}
+          />
         </If>
       </View>
     </AccountCard>
@@ -64,7 +72,12 @@ export function AccountContentActions(props: AccountContentActions): JSX.Element
         <Button label="更新提醒" testID="account-notifications" onPress={props.onNotifications!} />
       </If>
       <If when={props.onUpdates}>
-        <Button label="应用更新" testID="account-updates" onPress={props.onUpdates!} />
+        <Button
+          label="应用更新"
+          testID="account-updates"
+          buttonRef={props.onUpdatesRef}
+          onPress={props.onUpdates!}
+        />
       </If>
     </CardControls>
   );

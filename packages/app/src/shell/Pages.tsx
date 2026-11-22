@@ -2,7 +2,6 @@ import { View, reduceMotion } from 'nsh';
 import { NavStack, NavPage } from 'nsh/base';
 import type { Store } from '../store';
 import type { Updates } from '../updates';
-import { UpdatesPage } from '../pages/Updates';
 import { Search } from '../pages/Search';
 import { Discover } from '../pages/Discover';
 import { Actor } from '../pages/Actor';
@@ -176,16 +175,6 @@ export function Pages(props: { store: Store; updates?: Updates }) {
                 />
               )}
             </If>
-            <If when={route.name === 'updates' && props.updates}>
-              <UpdatesPage
-                updates={props.updates!}
-                tv={props.store.target === 'tv'}
-                backLabel={props.store.backLabel()}
-                onBack={() => props.store.back()}
-                active={props.store.nav.routes().at(-1) === route}
-                focusGuard={props.store.focusGuard}
-              />
-            </If>
             <If when={route.name === 'settings'}>
               <SettingsPage
                 store={props.store}
@@ -200,7 +189,7 @@ export function Pages(props: { store: Store; updates?: Updates }) {
                 openUpdates={
                   props.updates
                     ? (restore) => {
-                        props.store.openUpdates(restore);
+                        props.store.openUpdatesEntry(restore);
                       }
                     : undefined
                 }

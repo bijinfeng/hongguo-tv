@@ -1,9 +1,11 @@
 import { Text, View, signal, host } from 'nsh';
-import { Button } from '@hongguo/ui';
+import { Button, SettingsRow } from '@hongguo/ui';
 import { configureTransport, type HistoryChange } from '@hongguo/core-client';
 import { createStore } from '../src/store';
 import { createUpdates, type AppUpdate, type InstallState } from '../src/updates';
-import { UpdatesPage } from '../src/pages/Updates';
+import { isUpdateBusy, updateStatusCopy } from '../src/updates-flow';
+import { UpdateDialog } from '../src/pages/updates/UpdateDialog';
+import { UpdateInlineFacts, UpdatePrimaryButton } from '../src/pages/updates/UpdateInline';
 
 /** Deferred host operations exercise the production controller without an update server. */
 export function UpdatesStateFixture() {
@@ -107,6 +109,12 @@ export function UpdatesStateFixture() {
       if (failSave) throw new Error('保存失败');
     },
   );
+  const versionText = () => {
+    const version = updates.version();
+    // While an operation runs, its title lives on the action button; the row keeps only the version.
+    if (isUpdateBusy(updates.phase())) return version;
+    return [version, updateStatusCopy(updates)].filter(Boolean).join(' · ');
+  };
   return (
     <>
       <View class="flex-1 bg-background">
@@ -167,13 +175,23 @@ export function UpdatesStateFixture() {
             <Button label="切换页面" onPress={() => visible.update((value) => !value)} />
           </View>
         </If>
-        <If when={visible()}>
-          <UpdatesPage
-            updates={updates}
-            tv={host.params.tv === true}
-            backLabel="返回账号"
-            onBack={() => visible.set(false)}
-          />
+        {/* TV renders the shared dialog; desktop renders the inline settings flow. */}
+        <If
+          when={host.params.tv === true}
+          else={
+            <View class="flex-1 items-start p-10">
+              <View class="gap-6" style={{ maxWidth: 800 }}>
+                <SettingsRow label="应用版本" value={versionText()} testID="fixture-version-row">
+                  <UpdatePrimaryButton updates={updates} />
+                </SettingsRow>
+                <UpdateInlineFacts updates={updates} />
+              </View>
+            </View>
+          }
+        >
+          {() => (
+            <UpdateDialog updates={updates} open={visible()} onClose={() => visible.set(false)} />
+          )}
         </If>
       </View>
     </>

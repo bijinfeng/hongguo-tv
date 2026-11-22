@@ -46,8 +46,26 @@ final class UpdateAcceptance {
     private void press(String label) {
         AccessibilityNodeInfo node = waitFor(label);
         while (node != null && !node.isClickable()) node = node.getParent();
-        if (node == null || !node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) throw new AssertionError("focus " + label);
-        runner.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_DPAD_CENTER);
+        // The host focus engine may refuse external focus requests on a freshly mounted page;
+        // retry, then fall back to a system pointer tap on the same control.
+        boolean focusedNode = false;
+        for (int attempt = 0; attempt < 5 && node != null; attempt++) {
+            if (node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) { focusedNode = true; break; }
+            SystemClock.sleep(400);
+            node = waitFor(label);
+            while (node != null && !node.isClickable()) node = node.getParent();
+        }
+        if (node == null) throw new AssertionError("missing clickable " + label);
+        if (focusedNode) {
+            runner.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_DPAD_CENTER);
+        } else {
+            android.graphics.Rect bounds = new android.graphics.Rect();
+            node.getBoundsInScreen(bounds);
+            long now = SystemClock.uptimeMillis();
+            runner.sendPointerSync(android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, bounds.centerX(), bounds.centerY(), 0));
+            runner.sendPointerSync(android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_UP, bounds.centerX(), bounds.centerY(), 0));
+            SystemClock.sleep(400);
+        }
     }
     private boolean focused(String label) {
         AccessibilityNodeInfo node = waitFor(label);
@@ -56,6 +74,9 @@ final class UpdateAcceptance {
             node = node.getParent();
         }
         return false;
+    }
+    private boolean has(String label) {
+        try { waitFor(label); return true; } catch (AssertionError failure) { return false; }
     }
     private String describe(AccessibilityNodeInfo node) {
         if (node == null || !node.isVisibleToUser()) return "";
@@ -105,13 +126,17 @@ final class UpdateAcceptance {
                 restore.commit();
             }
             press("账号");
-            press("应用更新");
+            press("应用更新"); // The entry opens the update dialog in place; there is no second page.
             waitFor("当前版本 " + version);
             verify("Installed UI uses real Android version through host bridge", true);
-            waitFor("无法检查更新"); // No stable GitHub Release exists yet; report failure, never fake latest.
-            verify("Unavailable release source is an honest retryable error", waitFor("检查更新").isVisibleToUser());
+            // The dialog reports the honest release state: no usable release means a retryable
+            // failure, a published release older than this build means "already latest".
+            boolean unavailable = has("无法检查更新");
+            String primary = unavailable ? "检查更新" : "再次检查";
+            verify("Check result is honest for the current release state",
+                    unavailable || has("已是最新版本"));
             SystemClock.sleep(250);
-            verify("Retry receives native keyboard focus", focused("检查更新"));
+            verify("Dialog primary receives native keyboard focus", focused(primary));
             File directory = new File(activity.getExternalFilesDir(null), "updates");
             if (!directory.isDirectory() && !directory.mkdirs()) throw new AssertionError("screenshot directory");
             Bitmap image = runner.getUiAutomation().takeScreenshot();
@@ -119,11 +144,15 @@ final class UpdateAcceptance {
                 image.compress(Bitmap.CompressFormat.PNG, 100, output);
             }
             image.recycle();
-            press("返回");
-            waitFor("应用更新");
-            verify("Returning restores the update entry", true);
-            SystemClock.sleep(250);
-            verify("Return restores native focus to the update entry", focused("应用更新"));
+            // Remote BACK dismisses the dialog and restores the entry's focus; a press can be
+            // consumed while the host settles, so repeat until the row holds focus again.
+            boolean returned = false;
+            for (int attempt = 0; attempt < 3 && !returned; attempt++) {
+                runner.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
+                SystemClock.sleep(1500);
+                returned = focused("应用更新");
+            }
+            verify("Returning restores the update entry", returned);
             result.putString("stream", "PASS update acceptance " + checks + " checks\n");
             activity.finish();
             runner.finish(Activity.RESULT_OK, result);

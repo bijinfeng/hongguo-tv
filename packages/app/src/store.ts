@@ -60,7 +60,6 @@ export type Route =
   | { name: 'actor'; actorId: string; title: string }
   | { name: 'player'; drama: Drama; episode: Episode }
   | { name: 'account' }
-  | { name: 'updates' }
   | { name: 'settings' };
 
 /** One navigation stack and resource lifetime per mounted application. */
@@ -78,6 +77,11 @@ export function createStore(
     nav.routes().at(-1)?.name === 'browse' && section() === name;
   const playing = () => nav.routes().at(-1)?.name === 'player';
   const sources = new Map<number, () => void>();
+  /** The TV update dialog is app-root state: it can open over any page, including from home. */
+  const updateDialogOpen = signal(false);
+  let updateDialogRestore: (() => void) | undefined;
+  // One automatic prompt per session; the user decides about the same candidate afterwards.
+  let updateAutoPrompted = false;
   const primary = new Map<Section, ViewRef>();
   let frame = 0;
   let focusIntent = 0;
@@ -610,9 +614,34 @@ export function createStore(
       if (origin) sources.set(nav.routes().length, () => origin.focus());
       nav.push({ name: 'player', drama, episode });
     },
-    openUpdates(restore: () => void) {
-      sources.set(nav.routes().length, restore);
-      nav.push({ name: 'updates' });
+    updateDialogOpen,
+    openUpdateDialog(restore?: () => void) {
+      updateDialogRestore = restore;
+      updateDialogOpen.set(true);
+    },
+    closeUpdateDialog() {
+      if (!updateDialogOpen()) return;
+      updateDialogOpen.set(false);
+      const restore = updateDialogRestore;
+      updateDialogRestore = undefined;
+      restore?.();
+    },
+    // TV only: the startup auto-check pops once per session when an actionable update appears.
+    promptUpdateDialog() {
+      if (updateAutoPrompted || updateDialogOpen()) return;
+      updateAutoPrompted = true;
+      updateDialogRestore = undefined;
+      updateDialogOpen.set(true);
+    },
+    // The account page's entry: TV opens the dialog in place, desktop routes to settings.
+    openUpdatesEntry(restore?: () => void) {
+      if (target === 'tv') {
+        updateDialogRestore = restore;
+        updateDialogOpen.set(true);
+      } else {
+        if (restore) sources.set(nav.routes().length, restore);
+        nav.push({ name: 'settings' });
+      }
     },
     accountPage(restore?: () => void) {
       account.refetch();
