@@ -1,6 +1,14 @@
 import { Text, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
-import { border, controlMetrics, radius, space, weight, type ControlSize } from './foundation';
+import {
+  border,
+  controlMetrics,
+  radius,
+  space,
+  weight,
+  type ControlSize,
+  focusRingClass,
+} from './foundation';
 import { motionTokens } from './motion';
 import { textSize, textWeight } from './typography';
 
@@ -43,7 +51,7 @@ export function DateChoice(props: DateChoiceProps) {
           onPress={props.onPress}
           onFocus={props.onFocus}
           // selected: wins over hover/active, or the chosen day loses its accent fill on pointer.
-          class="items-center justify-center border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+          class={`items-center justify-center border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent ${focusRingClass(4)}`}
           style={{
             minWidth: size().height * 2,
             minHeight: size().height * 2.4,

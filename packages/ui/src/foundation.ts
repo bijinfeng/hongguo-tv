@@ -1,4 +1,4 @@
-import { token } from 'nsh';
+import { platform, token } from 'nsh';
 
 /** Product input/density family, independent of the host operating system. */
 export type ProductTarget = 'desktop' | 'tv';
@@ -92,6 +92,27 @@ export const focusOffset = border * 3;
 
 /** A field already inside a border keeps its focus outline in place of that border. */
 export const focusOffsetInside = -border;
+
+/**
+ * Focus ring classes for the big CardRoot targets (posters, cards, rows) — the ones with no
+ * other focus-visible declaration. Android's runtime paints its own outline on exactly those
+ * views (`drawOutline` in the theme's ring color), so a CSS outline there doubles the ring;
+ * hosts without that native indicator (web, desktops) need the CSS ring to show focus.
+ * Controls that declare focus styles of their own (Button's `focus-visible:border-transparent`)
+ * mute the runtime ring and must keep the CSS classes instead.
+ */
+export function focusRingClass(offset?: 2 | 4, tone: 'ring' | 'cinema-focus' = 'ring') {
+  if (platform.os === 'android') return '';
+  const width = 'focus-visible:outline-2 focus-visible:outline-' + tone;
+  return offset === undefined ? width : `${width} focus-visible:outline-offset-${offset}`;
+}
+
+/** Same as `focusRingClass` for a container lit up by its focused child. */
+export function focusWithinClass(offset?: 2 | 4, tone: 'ring' | 'cinema-focus' = 'ring') {
+  if (platform.os === 'android') return '';
+  const width = 'focus-within:outline-2 focus-within:outline-' + tone;
+  return offset === undefined ? width : `${width} focus-within:outline-offset-${offset}`;
+}
 
 /** The two label weights the type scale defines. */
 export const weight = {

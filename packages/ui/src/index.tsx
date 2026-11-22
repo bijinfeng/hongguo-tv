@@ -3,6 +3,8 @@ export {
   border,
   controlMetrics,
   focusRing,
+  focusRingClass,
+  focusWithinClass,
   radius,
   space,
   weight,

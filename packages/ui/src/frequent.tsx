@@ -1,6 +1,6 @@
 import { Text, View, cleanup, effect, signal, token, type ViewRef } from 'nsh';
 import { Button } from './button';
-import { controlMetrics, radius, space } from './foundation';
+import { controlMetrics, radius, space, focusRingClass } from './foundation';
 import { UiText } from './display';
 import { textLineHeight, textSize, textWeight } from './typography';
 
@@ -142,7 +142,7 @@ export function RemovableChipGroup(props: RemovableChipGroupProps) {
         accessibilityLabel={props.label}
         focusable={!props.values.length && !props.emptyAction}
         style={{ gap: space('sm'), minHeight: controlMetrics().height, borderRadius: radius('xl') }}
-        class="flex-row flex-wrap items-center focus-visible:outline-2 focus-visible:outline-ring"
+        class={`flex-row flex-wrap items-center ${focusRingClass()}`}
       >
         <Each of={props.values} key={(value) => value.id}>
           {(value) => (

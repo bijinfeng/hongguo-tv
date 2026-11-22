@@ -1,6 +1,14 @@
 import { Text, token, type ViewRef } from 'nsh';
 import { Checkbox as BaseCheckbox } from 'nsh/base';
-import { border, controlMetrics, radius, space, weight, type ControlSize } from './foundation';
+import {
+  border,
+  controlMetrics,
+  radius,
+  space,
+  weight,
+  type ControlSize,
+  focusRingClass,
+} from './foundation';
 import { Icon } from './icon';
 
 /** Controlled boolean selection; NSH handles mixed state, activation and disabled behavior. */
@@ -37,7 +45,7 @@ export function Checkbox(props: CheckboxProps) {
       indeterminate={props.indeterminate}
       disabled={props.disabled}
       onChange={props.onChange}
-      class="flex-row items-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      class={`flex-row items-center ${focusRingClass(2)}`}
       style={{ minHeight: size().height, gap: space('sm') }}
       indicatorClass={`items-center justify-center rounded border ${
         props.disabled

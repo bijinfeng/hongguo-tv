@@ -1,6 +1,6 @@
 import { Text, reduceMotion, token } from 'nsh';
 import { Switch as BaseSwitch } from 'nsh/base';
-import { controlMetrics, space, weight } from './foundation';
+import { controlMetrics, space, weight, focusRingClass } from './foundation';
 import { type CheckboxProps } from './checkbox';
 
 /** An immediately applied preference, controlled by the caller. */
@@ -25,7 +25,7 @@ export function Switch(props: SwitchProps) {
       checked={props.checked}
       disabled={props.disabled}
       onChange={props.onChange}
-      class="flex-row items-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      class={`flex-row items-center ${focusRingClass(2)}`}
       style={{ minHeight: size().height, gap: space('sm') }}
       trackClass={`rounded-full ${props.disabled ? (props.checked ? 'bg-accent' : 'bg-border') : props.checked ? 'bg-primary-strong' : 'bg-muted-foreground'} ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
       trackStyle={{

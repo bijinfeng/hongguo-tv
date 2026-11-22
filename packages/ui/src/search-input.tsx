@@ -1,4 +1,4 @@
-import { signal, token, type InputRef, type InputHostProps } from 'nsh';
+import { platform, signal, token, type InputRef, type InputHostProps } from 'nsh';
 import { Input as BaseInput } from 'nsh/base';
 import {
   border,
@@ -29,6 +29,9 @@ export interface SearchInputProps {
 export function SearchInput(props: SearchInputProps) {
   const size = () => controlMetrics(props.size);
   const focused = signal(false);
+  // Android's runtime already outlines the focused field; our ring would double it. The
+  // invalid state stays outlined there: it reports the query, not the focus.
+  const ringed = () => props.invalid || (focused() && platform.os !== 'android');
   return (
     <BaseInput
       style={{
@@ -39,9 +42,9 @@ export function SearchInput(props: SearchInputProps) {
         paddingVertical: size().paddingVertical,
         // The host placeholder default is too dim on the dark surface; use the shared muted tone.
         placeholderColor: token('muted-foreground'),
-        outlineWidth: props.embedded ? 0 : focused() ? focusRing : border,
+        outlineWidth: props.embedded ? 0 : ringed() ? focusRing : border,
         outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
-        outlineOffset: props.embedded ? 0 : focused() ? focusOffset : focusOffsetInside,
+        outlineOffset: props.embedded ? 0 : ringed() ? focusOffset : focusOffsetInside,
       }}
       testID="search-input"
       ref={props.inputRef}

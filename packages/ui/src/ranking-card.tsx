@@ -2,7 +2,7 @@ import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { Cover } from './content';
 import { Avatar, UiText } from './display';
-import { controlMetrics, space, border } from './foundation';
+import { controlMetrics, space, border, focusRingClass } from './foundation';
 import { Icon } from './icon';
 import { motionTokens } from './motion';
 import { textLineHeight, textSize, textWeight } from './typography';
@@ -80,7 +80,7 @@ export function RankingCard(props: RankingCardProps) {
       selected={props.selected}
       onFocus={props.onFocus}
       onPress={props.onPress}
-      class={`flex-row items-center border-t-transparent border-b-border focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
+      class={`flex-row items-center border-t-transparent border-b-border ${focusRingClass(4)} ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
       style={{
         minHeight: MIN_ROW_HEIGHT[props.density ?? 'regular'],
         paddingVertical: row().padding,

@@ -1,7 +1,7 @@
 import { Text, View, reduceMotion, token } from 'nsh';
 import { Pagination as BasePagination, type PaginationItemState } from 'nsh/base';
 import { Icon } from './icon';
-import { border, controlMetrics, weight, type ControlSize } from './foundation';
+import { border, controlMetrics, weight, type ControlSize, focusRingClass } from './foundation';
 
 /** Hongguo's themed page navigation; paging behavior and semantics stay in `nsh/base`. */
 export interface PaginationProps {
@@ -58,7 +58,7 @@ export function Pagination(props: PaginationProps) {
         testID={props.testID}
         class="flex-row flex-wrap items-center"
         style={{ gap: metrics.gap }}
-        itemClass="flex-row items-center justify-center focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+        itemClass={`flex-row items-center justify-center ${focusRingClass(4)}`}
         // The item style is text-only; the content below gives the item its Button-sized box.
         itemStyle={{ fontSize: metrics.fontSize }}
         renderItem={(item) => (

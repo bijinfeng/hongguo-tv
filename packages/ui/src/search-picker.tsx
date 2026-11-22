@@ -1,5 +1,6 @@
 import {
   Overlay,
+  platform,
   Scroll,
   Text,
   token,
@@ -102,7 +103,9 @@ export function SearchSuggestionRow(props: {
         borderRadius: radius('xl'),
         borderWidth: focusRing,
       }}
-      class={`flex-row items-center border-transparent hover:bg-muted active:bg-border focus:border-ring focus:bg-accent ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
+      // Android's runtime outlines the focused row itself, so the ring-colored border would
+      // double it; the accent wash carries the focused state there instead.
+      class={`flex-row items-center border-transparent hover:bg-muted active:bg-border ${platform.os === 'android' ? 'focus:bg-accent' : 'focus:border-ring focus:bg-accent'} ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
       <Icon name={props.icon} />
       <View class="flex-1" style={{ gap: space('xxs') }}>

@@ -1,6 +1,13 @@
 import { Text, View, signal, effect, cleanup, keymap, token, type ViewRef } from 'nsh';
 import { Slider as BaseSlider } from 'nsh/base';
-import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
+import {
+  border,
+  controlMetrics,
+  space,
+  weight,
+  type ControlSize,
+  focusRingClass,
+} from './foundation';
 
 /** A controlled numeric preview with a separate completion event. */
 export interface SliderProps {
@@ -124,7 +131,7 @@ export function Slider(props: SliderProps) {
         focused.set(false);
         if (editing()) cancel();
       }}
-      class="focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+      class={`${focusRingClass(4)}`}
       style={{ gap: space('xs') }}
     >
       <If when={confirm()}>
@@ -158,7 +165,7 @@ export function Slider(props: SliderProps) {
           indicatorClass="rounded-full bg-border"
           indicatorStyle={{ height: track() }}
           rangeClass="rounded-full bg-primary"
-          thumbClass={`rounded-full border border-input bg-card hover:bg-accent active:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${props.disabled ? 'bg-muted' : ''}`}
+          thumbClass={`rounded-full border border-input bg-card hover:bg-accent active:bg-accent ${focusRingClass(2)} ${props.disabled ? 'bg-muted' : ''}`}
           thumbStyle={{
             width: size().fontSize,
             height: size().fontSize,
