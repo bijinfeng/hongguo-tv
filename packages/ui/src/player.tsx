@@ -44,6 +44,8 @@ export function CinemaButton(props: {
   disabled?: boolean;
   pending?: boolean;
   selected?: boolean;
+  /** What a selected segment reads as: the muted `active` band (default) or the brand `accent`. */
+  selectedTone?: 'active' | 'accent';
   /** Bounded visible label; the accessible name stays `label`. */
   displayLabel?: string;
   /** A list trigger: the chevron trails the label instead of leading it. */
@@ -54,6 +56,7 @@ export function CinemaButton(props: {
 }) {
   const enabled = CinemaEnabled();
   const blocked = () => props.disabled || props.pending || !enabled();
+  const selectedAccent = !!props.selected && props.selectedTone === 'accent';
   return (
     <Button
       ref={(ref) => props.buttonRef?.(ref)}
@@ -76,8 +79,9 @@ export function CinemaButton(props: {
         gap: controlMetrics().gap,
       }}
       // Disabled keeps the control's own surface and only dims its content, so a blocked row
-      // still reads as one family instead of three different treatments.
-      class={`flex-row items-center justify-center border border-transparent ${props.quiet ? 'bg-transparent' : 'bg-cinema-control'} ${props.quiet || blocked() ? '' : 'hover:bg-cinema-hover active:bg-cinema-active'} ${focusRingClass(4, 'cinema-focus')} selected:bg-cinema-active ${reduceMotion() || blocked() ? '' : 'transition-colors duration-100'}`}
+      // still reads as one family instead of three different treatments. A selected segment in
+      // the brand accent reads as "this is the current value", not as a pressed state.
+      class={`flex-row items-center justify-center border border-transparent ${props.quiet ? 'bg-transparent' : 'bg-cinema-control'} ${props.quiet || blocked() ? '' : 'hover:bg-cinema-hover active:bg-cinema-active'} ${focusRingClass(4, 'cinema-focus')} ${selectedAccent ? 'selected:bg-accent' : 'selected:bg-cinema-active'} ${reduceMotion() || blocked() ? '' : 'transition-colors duration-100'}`}
     >
       <If when={props.icon && !props.dropdown}>
         <Icon
@@ -88,7 +92,13 @@ export function CinemaButton(props: {
       <If when={!props.iconOnly}>
         <Text
           style={{ fontSize: controlMetrics().fontSize }}
-          class={blocked() ? 'text-cinema-muted' : 'text-cinema-foreground'}
+          class={
+            blocked()
+              ? 'text-cinema-muted'
+              : selectedAccent
+                ? 'text-accent-foreground'
+                : 'text-cinema-foreground'
+          }
         >
           {props.pending ? (props.displayLabel ?? '处理中…') : (props.displayLabel ?? props.label)}
         </Text>
@@ -97,6 +107,42 @@ export function CinemaButton(props: {
         <Icon name={props.icon!} color={token('cinema-muted')} />
       </If>
     </Button>
+  );
+}
+
+/**
+ * One value chosen from a short set, laid out on the panel row itself: the panel is already
+ * the overlay, so a popup inside it would be a second overlay for a two-press choice.
+ */
+export function CinemaChips(props: {
+  label: string;
+  value: string;
+  items: { value: string; title: string }[];
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  testID?: string;
+}) {
+  return (
+    <View
+      accessibilityLabel={props.label}
+      class="flex-row flex-wrap items-center"
+      style={{ gap: space('xs') }}
+    >
+      <Each of={props.items} key={(item) => item.value}>
+        {(item) => (
+          <CinemaButton
+            testID={props.testID ? `${props.testID}-${item().value}` : undefined}
+            label={item().title}
+            selected={props.value === item().value}
+            selectedTone="accent"
+            disabled={props.disabled}
+            onPress={() => {
+              if (props.value !== item().value) props.onChange(item().value);
+            }}
+          />
+        )}
+      </Each>
+    </View>
   );
 }
 

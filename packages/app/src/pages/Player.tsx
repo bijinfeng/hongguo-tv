@@ -28,6 +28,7 @@ import {
   Notice,
   Controls,
   CinemaButton,
+  CinemaChips,
   CinemaSlider,
   CinemaSelect,
   CinemaControls,
@@ -1064,8 +1065,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           <CinemaButton label="关闭播放设置" icon="close" iconOnly onPress={closeMore} />
         </View>
         <CinemaSettingRow label="倍速">
-          <CinemaSelect
+          <CinemaChips
             label="播放速度"
+            testID="player-rate"
             value={rate()}
             items={PLAYBACK_RATES.map((value) => ({
               value,
@@ -1076,8 +1078,9 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           />
         </CinemaSettingRow>
         <CinemaSettingRow label="清晰度">
-          <CinemaSelect
+          <CinemaChips
             label="清晰度"
+            testID="player-quality"
             value={quality()}
             items={[
               { value: '', title: '自动' },

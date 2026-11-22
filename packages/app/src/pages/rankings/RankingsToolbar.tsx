@@ -2,7 +2,6 @@ import { Scroll, View, cleanup, effect, type ViewRef } from 'nsh';
 import {
   Button,
   CardControls,
-  FilterChoices,
   SkeletonBlock,
   SkeletonRegion,
   UiText,
@@ -170,60 +169,21 @@ export function RankingsToolbar(props: {
   const collapsed = () => !props.expanded && props.groups.length > props.visible;
   /** Only the groups the reader asked for are measured and rendered. */
   const shown = () => (collapsed() ? props.groups.slice(0, props.visible) : props.groups);
-  /**
-   * TV names each group beside its single-select. A remote user cannot scan a chip row and a
-   * bare value does not say what it changes; the label column already exists for the chip rows.
-   */
-  const tvRow = (group: RankingChoices) => (
-    // The row reports its measured height like a chip row: the page's expanded budget is built
-    // from real row heights, so a wrapped select row reserves what it actually takes.
-    <View
-      class="flex-row items-center gap-2"
-      onLayout={({ bounds }) => props.onMeasureRow(group.id, bounds.size.height)}
-    >
-      <View class="justify-center" style={{ width: LABEL_GUTTER }}>
-        <UiText role="meta" tone="muted" lines={1}>
-          {dimensionLabel(group)}
-        </UiText>
-      </View>
-      <FilterChoices
-        variant="select"
-        label={group.label}
-        testID={`ranking-group-${encodeURIComponent(group.id)}`}
-        value={group.value ?? ''}
-        active={props.active}
-        items={group.options.map((option) => ({ value: option.id, title: option.label }))}
-        onSource={props.onSource}
-        onNavigate={props.onNavigate}
-        onChange={(value) => {
-          props.onNavigate();
-          props.onChange(group.id, value);
-        }}
-      />
-    </View>
-  );
   const rows = () => (
     <Each of={shown()} key={(group) => group.id}>
       {(group) => (
-        <If
-          when={props.target === 'tv'}
-          else={
-            <RankingGroupSelector
-              group={group()}
-              collection={props.collection}
-              target={props.target}
-              active={props.active}
-              onChange={props.onChange}
-              onSource={props.onSource}
-              onNavigate={props.onNavigate}
-              onPrimary={props.onPrimary}
-              rowHeight={props.rowHeight}
-              onContentHeight={(height) => props.onMeasureRow(group().id, height)}
-            />
-          }
-        >
-          {tvRow(group())}
-        </If>
+        <RankingGroupSelector
+          group={group()}
+          collection={props.collection}
+          target={props.target}
+          active={props.active}
+          onChange={props.onChange}
+          onSource={props.onSource}
+          onNavigate={props.onNavigate}
+          onPrimary={props.onPrimary}
+          rowHeight={props.rowHeight}
+          onContentHeight={(height) => props.onMeasureRow(group().id, height)}
+        />
       )}
     </Each>
   );

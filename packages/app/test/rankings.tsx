@@ -198,17 +198,10 @@ export function registerRankingsTests() {
       // The filter block is collapsed by default; the later panel groups appear once expanded.
       if (app.shows('id:ranking-filters-toggle')) await app.press('id:ranking-filters-toggle');
       const finalGroup = 'panel:["dense"]:group-31:31';
-      // Desktop lists every option as a chip; TV names each group beside one selector, because a
-      // remote cannot scan a chip row and a bare value would not say what it changes. The TV
-      // fixture's last group keeps `choice-31` as its default, and a selector reports only a
-      // different value, so the TV path chooses the group's second option.
-      const chosen = target === 'desktop' ? 'choice-31' : 'choice-31b';
-      if (target === 'desktop')
-        await app.press(`id:ranking-choice-${encodeURIComponent(finalGroup)}-${chosen}`);
-      else {
-        await app.press(`id:ranking-group-${encodeURIComponent(finalGroup)}-trigger`);
-        await app.press('筛选值31B');
-      }
+      // Both hosts list every option as a chip: TV replaced its single-select popup with the
+      // same inline rows, so the next option is one press away on either target.
+      const chosen = 'choice-31b';
+      await app.press(`id:ranking-choice-${encodeURIComponent(finalGroup)}-${chosen}`);
       await app.waitUntil(() => app.texts().some((text) => text.includes(`rank_panel=${chosen}`)));
       await app.press('id:ranking-drama:1');
       await app.waitFor('text:opened:drama:1');

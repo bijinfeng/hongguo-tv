@@ -151,7 +151,7 @@ export function RadarToolbar(props: {
         else={
           <View class="gap-3">
             <FilterChoices
-              variant={tv() ? 'select' : 'chips'}
+              variant="chips"
               label="排序"
               testID="radar-metric"
               value={props.radar.metric()}
@@ -169,7 +169,7 @@ export function RadarToolbar(props: {
               }}
             />
             <FilterChoices
-              variant={tv() ? 'select' : 'chips'}
+              variant="chips"
               label="类型"
               testID="radar-type"
               value={props.radar.type()}
@@ -192,7 +192,7 @@ export function RadarToolbar(props: {
         }
       >
         <FilterChoices
-          variant={tv() ? 'select' : 'chips'}
+          variant="chips"
           label="分类"
           testID="radar-category"
           value={props.radar.category()}
@@ -216,8 +216,8 @@ export function RadarToolbar(props: {
 }
 
 /**
- * TV keeps the same filters as named single-selects in one row: the remote cannot scan a chip
- * row and a bare value does not say what it changes.
+ * TV keeps the same filter chip rows as the desktop: options laid out inline beat a popup on a
+ * remote, and each row's label column names the dimension it filters.
  */
 function tvFilters(props: {
   radar: RadarController;
@@ -227,86 +227,71 @@ function tvFilters(props: {
 }) {
   const snapshot = props.radar.view() === 'snapshot';
   return (
-    <View class="flex-row flex-wrap items-center gap-4">
+    <View class="gap-3">
       <If
         when={snapshot}
         else={
           <>
-            <View class="flex-row items-center gap-2">
-              <UiText role="meta" tone="muted" lines={1}>
-                排序
-              </UiText>
-              <FilterChoices
-                variant="select"
-                label="排序"
-                testID="radar-metric"
-                value={props.radar.metric()}
-                active={props.active}
-                items={[
-                  { value: 'd_hot', title: '热度增量' },
-                  { value: 'd_fav', title: '收藏增量' },
-                  { value: 'r_hot', title: '热度增长率' },
-                ]}
-                onSource={props.onSource}
-                onNavigate={props.onNavigate}
-                onChange={(value) => {
-                  props.onNavigate();
-                  props.radar.changeMetric(value as RadarMetric);
-                }}
-              />
-            </View>
-            <View class="flex-row items-center gap-2">
-              <UiText role="meta" tone="muted" lines={1}>
-                类型
-              </UiText>
-              <FilterChoices
-                variant="select"
-                label="类型"
-                testID="radar-type"
-                value={props.radar.type()}
-                active={props.active}
-                items={[
-                  { value: 'all', title: '全部' },
-                  { value: 'real', title: '真人' },
-                  { value: 'ai', title: 'AI' },
-                  { value: 'comic', title: '漫剧' },
-                  { value: 'unknown', title: '未知' },
-                ]}
-                onSource={props.onSource}
-                onNavigate={props.onNavigate}
-                onChange={(value) => {
-                  props.onNavigate();
-                  props.radar.changeType(value as RadarKind | 'all');
-                }}
-              />
-            </View>
+            <FilterChoices
+              variant="chips"
+              label="排序"
+              testID="radar-metric"
+              value={props.radar.metric()}
+              active={props.active}
+              items={[
+                { value: 'd_hot', title: '热度增量' },
+                { value: 'd_fav', title: '收藏增量' },
+                { value: 'r_hot', title: '热度增长率' },
+              ]}
+              onSource={props.onSource}
+              onNavigate={props.onNavigate}
+              onChange={(value) => {
+                props.onNavigate();
+                props.radar.changeMetric(value as RadarMetric);
+              }}
+            />
+            <FilterChoices
+              variant="chips"
+              label="类型"
+              testID="radar-type"
+              value={props.radar.type()}
+              active={props.active}
+              items={[
+                { value: 'all', title: '全部' },
+                { value: 'real', title: '真人' },
+                { value: 'ai', title: 'AI' },
+                { value: 'comic', title: '漫剧' },
+                { value: 'unknown', title: '未知' },
+              ]}
+              onSource={props.onSource}
+              onNavigate={props.onNavigate}
+              onChange={(value) => {
+                props.onNavigate();
+                props.radar.changeType(value as RadarKind | 'all');
+              }}
+            />
           </>
         }
       >
-        <View class="flex-row items-center gap-2">
-          <UiText role="meta" tone="muted" lines={1}>
-            分类
-          </UiText>
-          <FilterChoices
-            variant="select"
-            label="分类"
-            testID="radar-category"
-            value={props.radar.category()}
-            active={props.active}
-            items={[
-              { value: 'hot', title: '综合' },
-              { value: 'real', title: '真人' },
-              { value: 'ai', title: 'AI' },
-              { value: 'comic', title: '漫剧' },
-            ]}
-            onSource={props.onSource}
-            onNavigate={props.onNavigate}
-            onChange={(value) => {
-              props.onNavigate();
-              props.radar.changeCategory(value as RadarCategory);
-            }}
-          />
-        </View>
+        <FilterChoices
+          variant="chips"
+          label="分类"
+          testID="radar-category"
+          value={props.radar.category()}
+          active={props.active}
+          items={[
+            { value: 'hot', title: '综合' },
+            { value: 'real', title: '真人' },
+            { value: 'ai', title: 'AI' },
+            { value: 'comic', title: '漫剧' },
+          ]}
+          onSource={props.onSource}
+          onNavigate={props.onNavigate}
+          onChange={(value) => {
+            props.onNavigate();
+            props.radar.changeCategory(value as RadarCategory);
+          }}
+        />
       </If>
     </View>
   );
