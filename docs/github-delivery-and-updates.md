@@ -103,7 +103,7 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 
 ### 资产与支持矩阵
 
-首个发行演练优先 macOS arm64 与 TV arm64，`v0.1.0` 即按此矩阵发布。Windows/Linux 是产品目标，必须各自完成宿主构建和升级验收后才加入正式支持，不能由三系统 Rust CI 推定。
+首个发行演练优先 macOS arm64 与 TV arm64，`v0.1.0` 即按此矩阵发布。Windows/Linux 是产品目标：CI 的 entry 门禁已接入 Windows/Linux 宿主的桌面行为测试，`release-preview` 的 `windows-preview`/`linux-preview` job 产出未签名的预览 ZIP／目录归档（target id `desktop-windows-x64`／`desktop-linux-x64`）；两者都不构成正式支持，仍须各自完成真机安装和升级验收后才加入支持矩阵，不能由三系统 Rust CI 推定。
 
 | 平台                     | 初装文件                                    | 应用内更新资产                                                | 候选验证重点                                                       |
 | ------------------------ | ------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
