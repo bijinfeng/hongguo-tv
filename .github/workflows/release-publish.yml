@@ -111,6 +111,14 @@ jobs:
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           test "$RELEASE_TAG" = "v$version"
           pnpm release:check
+      - name: Select the Xcode the macOS SDK headers compile against
+        run: |
+          set -euo pipefail
+          # The image's default Xcode 16.4 SDK breaks nsh-platform-apple's os_log.c
+          # (os/log.h deprecation macros); the framework compiles against 16.3.
+          test -d /Applications/Xcode_16.3.app
+          sudo xcode-select -s /Applications/Xcode_16.3.app
+          xcodebuild -version
       - name: Build desktop archive
         env:
           HONGGUO_RUNTIME_MODE: native
