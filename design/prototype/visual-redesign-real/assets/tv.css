@@ -49,13 +49,14 @@ body[data-device="tv"] {
   color: var(--muted);
   background: none;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: 9px;
   min-height: 58px;
-  padding: 8px 12px;
+  padding: 8px 20px;
 }
 .tv-nav-item.active {
-  color: var(--fg);
-  border-bottom-color: var(--fg);
+  color: var(--bg);
+  background: var(--fg);
+  font-weight: 600;
 }
 .tv-header > .row {
   margin-left: auto;

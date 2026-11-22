@@ -118,7 +118,7 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
       onNavigate={props.store.noteFocusIntent}
       vertical={props.layout === 'desktop'}
       class={props.layout === 'tv' ? 'items-center' : undefined}
-      gap={props.layout === 'tv' ? 17 : 34}
+      gap={props.layout === 'tv' ? 12 : 34}
     >
       <Each of={groups()} key={(group) => group.label}>
         {(group) => (
@@ -126,44 +126,29 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
             role="group"
             accessibilityLabel={group().label}
             class={props.layout === 'tv' ? 'flex-row items-center' : 'flex-col'}
-            style={{ gap: props.layout === 'tv' ? 17 : 8 }}
+            style={{ gap: props.layout === 'tv' ? 12 : 8 }}
           >
             <Each of={group().items} key={(item) => item.name}>
               {(item) => {
                 // The store's reactive getters must be read inside the binding, not once per row,
                 // or the rail keeps whichever section was current when the row first rendered.
                 const on = () => item().selected(props.store);
-                // TV marks current with a child-view underline instead of a border: NSH couples
-                // its border pass with the CSS outline, so a border-based marker drew a second
-                // ring around the native focus ring on real DPAD hosts.
-                const button = (
+                // Both bars carry `current`; the TV top bar asks for the contrast pairing so the
+                // destination reads as a filled pill at TV distance, while the desktop rail keeps
+                // the muted shared surface.
+                return (
                   <Button
                     testID={item().testID}
                     buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
                     variant="navigation"
-                    align={props.layout === 'desktop' ? 'center' : 'start'}
+                    align={props.layout === 'desktop' ? 'center' : undefined}
                     icon={item().icon}
                     label={item().label}
-                    current={props.layout === 'desktop' ? on() : false}
-                    class={
-                      props.layout === 'desktop'
-                        ? 'w-full justify-start'
-                        : 'rounded-none bg-transparent border-transparent'
-                    }
+                    current={on()}
+                    currentSurface={props.layout === 'tv' ? 'contrast' : undefined}
+                    class={props.layout === 'desktop' ? 'w-full justify-start' : undefined}
                     onPress={() => props.store.navigate(item().name)}
                   />
-                );
-                if (props.layout !== 'tv') return button;
-                return (
-                  <View class="flex-col items-center" style={{ gap: 6 }}>
-                    {button}
-                    <View
-                      accessibilityElementsHidden
-                      importantForAccessibility="no"
-                      class={on() ? 'self-stretch bg-primary' : 'self-stretch bg-transparent'}
-                      style={{ height: 2 }}
-                    />
-                  </View>
                 );
               }}
             </Each>

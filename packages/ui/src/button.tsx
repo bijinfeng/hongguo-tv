@@ -26,8 +26,11 @@ export interface ButtonProps {
   disabled?: boolean;
   pending?: boolean;
   selected?: boolean;
-  /** Marks the destination the user is already on; foreground text on a muted shared surface. */
+  /** Marks the destination the user is already on; foreground text on a muted shared surface.
+   * `contrast` inverts the pairing — foreground surface, background text — for a top bar whose
+   * current item must read at TV distance. */
   current?: boolean;
+  currentSurface?: 'muted' | 'contrast';
   expanded?: boolean;
   accessibilityDescription?: string;
   icon?: IconName;
@@ -78,10 +81,13 @@ export function Button(props: ButtonProps) {
   // Emphasised surfaces stay paired with their foreground; the current destination is not one.
   const emphasised = () => !blocked() && !props.current;
   const selectedSurface = () => emphasised() && !!props.selected;
+  const contrastCurrent = () =>
+    !blocked() && !!props.current && props.currentSurface === 'contrast';
   const tone = () => {
     if (blocked()) return 'muted-foreground';
     if (popupOpen()) return 'accent-foreground';
     if (selectedSurface()) return 'accent-foreground';
+    if (contrastCurrent()) return 'background';
     switch (variant()) {
       case 'primary':
         return 'primary-foreground';
@@ -99,6 +105,10 @@ export function Button(props: ButtonProps) {
     if (blocked()) return 'bg-muted border-transparent';
     if (popupOpen()) return 'bg-accent border-transparent';
     if (props.current) {
+      if (contrastCurrent())
+        // The inverted pill never shows a border: on Android the runtime's own focus outline
+        // would otherwise survive beside it as a second ring.
+        return 'bg-foreground border-transparent hover:bg-foreground/90 active:bg-foreground/80';
       return variant() === 'quiet'
         ? 'bg-transparent border-transparent hover:bg-muted active:bg-border'
         : 'bg-muted border-input hover:bg-muted active:bg-border';
