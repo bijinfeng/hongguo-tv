@@ -169,32 +169,46 @@ export function Badge(props: BadgeProps) {
 export interface AvatarProps {
   src?: string | ImageAsset;
   name: string;
-  size?: 'md' | 'lg';
+  /** `sm` matches a `sm` control's target; `md` the default control height; `lg` a card lead. */
+  size?: 'sm' | 'md' | 'lg';
   /** Empty makes a picture beside its visible name decorative. */
   accessibilityLabel?: string;
   testID?: string;
 }
 
-/** Shows the picture, or stable initials while absent, loading or failed. */
+/**
+ * Shows the picture, or stable initials while absent, loading or failed. The circle is square
+ * at every size, so an avatar sharing a bar with icon-only controls keeps their target height.
+ */
 export function Avatar(props: AvatarProps) {
+  const side = () => {
+    switch (props.size) {
+      case 'sm':
+        return controlMetrics('sm').height;
+      case 'lg':
+        return controlMetrics().height + space('lg');
+      default:
+        return controlMetrics().height;
+    }
+  };
+  const initialSize = () =>
+    props.size === 'lg'
+      ? textSize('section')
+      : props.size === 'sm'
+        ? textSize('meta')
+        : textSize('body');
   return (
     <BaseAvatar
       src={props.src}
       name={props.name}
       accessibilityLabel={props.accessibilityLabel}
       testID={props.testID}
-      style={{
-        width: controlMetrics().height + (props.size === 'lg' ? space('lg') : 0),
-        height: controlMetrics().height + (props.size === 'lg' ? space('lg') : 0),
-      }}
+      style={{ width: side(), height: side() }}
       class="rounded-full shrink-0 overflow-hidden"
       imageClass="rounded-full object-cover"
       fallbackClass="rounded-full bg-muted text-muted-foreground items-center justify-center"
       fallback={
-        <Text
-          class="text-muted-foreground"
-          style={{ fontSize: textSize(props.size === 'lg' ? 'section' : 'body') }}
-        >
+        <Text class="text-muted-foreground" style={{ fontSize: initialSize() }}>
           {props.name.slice(0, 1)}
         </Text>
       }

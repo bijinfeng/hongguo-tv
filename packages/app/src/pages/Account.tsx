@@ -108,6 +108,7 @@ export function Account(props: {
             >
               <AccountIdentity
                 name={props.store.account()?.profile?.name}
+                avatar={props.store.account()?.profile?.avatar ?? undefined}
                 signedIn={props.store.account()?.logged_in === true}
                 unready={!props.store.account() && props.store.account.loading()}
                 busy={blocked()}

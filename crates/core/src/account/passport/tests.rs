@@ -25,6 +25,7 @@ pub(crate) fn verified_fixture(uid: &str) -> VerifiedSession {
     VerifiedSession {
         uid: uid.into(),
         name: "Synthetic account".into(),
+        avatar: None,
         credential,
     }
 }
@@ -559,4 +560,32 @@ async fn qr_rejects_missing_session_invalid_identity_unsafe_redirect_and_invalid
                 .any(|r| r.path == "/service/2/device_register/")
         );
     }
+}
+
+/// An avatar field is only kept when it is an absolute HTTPS picture URL the product already
+/// loads covers from; every other shape leaves the profile without one.
+#[test]
+fn avatar_accepts_only_absolute_https_picture_hosts() {
+    for accepted in [
+        "https://p3-novel.byteimg.com/a~tplv-shrink:640:0.image",
+        "https://p26-passport.fqnovelpic.com/avatar.jpeg",
+        "  https://p9-passport.byteimg.com/x.png  ",
+    ] {
+        let image = client::public_avatar(accepted).expect(accepted);
+        assert_eq!(image, accepted.trim());
+    }
+    for rejected in [
+        "",
+        "   ",
+        "avatar.png",
+        "/avatar.png",
+        "http://p3-novel.byteimg.com/a.png",
+        "https://user@byteimg.com/a.png",
+        "https://byteimg.com:8443/a.png",
+        "https://evil.invalid/a.png",
+        "https://byteimg.com.evil.invalid/a.png",
+    ] {
+        assert!(client::public_avatar(rejected).is_none(), "{rejected}");
+    }
+    assert!(client::public_avatar(&format!("https://byteimg.com/{}", "a".repeat(2048))).is_none());
 }

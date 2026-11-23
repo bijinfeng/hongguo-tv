@@ -1,5 +1,21 @@
-import { View, type JSX, type ViewRef } from 'nsh';
-import { Avatar, Button, Surface, UiText, space } from '@hongguo/ui';
+import { token, View, type JSX, type ViewRef } from 'nsh';
+import { Avatar, Button, Icon, Surface, UiText, controlMetrics, space } from '@hongguo/ui';
+
+/**
+ * The guest's identity mark: the same circle an avatar occupies, holding an outline instead of
+ * an initial, so the card keeps its geometry without inventing a name for someone signed out.
+ */
+function GuestMark() {
+  const side = () => controlMetrics().height + space('lg');
+  return (
+    <View
+      class="rounded-full bg-muted items-center justify-center shrink-0"
+      style={{ width: side(), height: side() }}
+    >
+      <Icon name="user" color={token('muted-foreground')} />
+    </View>
+  );
+}
 
 /**
  * Who the account page is currently acting as: avatar, account state and the one action that
@@ -7,6 +23,8 @@ import { Avatar, Button, Surface, UiText, space } from '@hongguo/ui';
  */
 export function AccountIdentity(props: {
   name?: string;
+  /** Approved profile picture; absent while the account has none the core accepts. */
+  avatar?: string;
   signedIn: boolean;
   busy: boolean;
   /** The account read has not settled: neither guest nor signed-in is known yet. */
@@ -52,8 +70,16 @@ export function AccountIdentity(props: {
   );
   const identity = () => (
     <View class="flex-row items-center min-w-0" style={{ gap: space('md') }}>
-      {/* An unread account has no name yet; the avatar must not claim the guest initial either. */}
-      <Avatar name={props.unready ? '…' : props.name || '未登录'} size="lg" accessibilityLabel="" />
+      {/* A guest has no identity to initialise, and "未" would read as a name; an outline says
+          "nobody is signed in" without inventing a letter. */}
+      <If when={props.signedIn || props.unready} else={<GuestMark />}>
+        <Avatar
+          src={props.avatar}
+          name={props.unready ? '…' : (props.name ?? '')}
+          size="lg"
+          accessibilityLabel=""
+        />
+      </If>
       <View class="flex-1 min-w-0" style={{ gap: space('xxs') }}>
         <UiText role="meta" tone="muted">
           {stateLabel()}

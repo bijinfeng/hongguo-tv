@@ -231,6 +231,7 @@ impl AccountService {
             profile: AccountProfile {
                 uid: verified.uid,
                 name: verified.name,
+                avatar: verified.avatar,
             },
             credential: verified.credential,
         };
@@ -777,6 +778,7 @@ impl AccountService {
                             .filter(|c| !c.is_control())
                             .take(128)
                             .collect(),
+                        avatar: verified.avatar,
                     },
                     credential: verified.credential,
                 };

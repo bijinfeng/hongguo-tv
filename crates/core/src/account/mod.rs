@@ -29,6 +29,10 @@ pub struct AccountProfile {
     pub uid: String,
     /// Display name, bounded by the core.
     pub name: String,
+    /// Approved public HTTPS avatar, absent while Passport supplies none the core accepts. A
+    /// session stored before the field existed decodes with it absent, not invalid.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
 }
 
 /// Input method for the current attempt.

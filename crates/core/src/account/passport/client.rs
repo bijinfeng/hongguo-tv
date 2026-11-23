@@ -13,6 +13,25 @@ use std::net::IpAddr;
 use std::{collections::BTreeMap, time::Duration};
 
 pub(super) const API: &str = "https://api5-normal-lq.fqnovel.com";
+
+/// An avatar the app may load: absolute HTTPS on a picture CDN the product already serves
+/// covers from, with no credentials, port or fragment. Anything else is dropped rather than
+/// rendered, so a malformed field leaves the neutral initial instead of a broken image.
+pub(super) fn public_avatar(text: &str) -> Option<String> {
+    let text = text.trim();
+    if text.is_empty() || text.len() > 2048 {
+        return None;
+    }
+    let url = Url::parse(text).ok()?;
+    let public = url.scheme() == "https"
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.port().is_none()
+        && url.host_str().is_some_and(|host| {
+            host.ends_with(".fqnovelpic.com") || host.ends_with(".byteimg.com")
+        });
+    public.then(|| text.to_owned())
+}
 pub(super) const REGISTER: &str = "https://log.snssdk.com";
 pub(super) const QR: &str = "https://hongguoduanju.com";
 pub(super) const UA: &str = "com.phoenix.read/73532 (Linux; U; Android 16; zh_CN; 25053RT47C; Build/BP2A.250605.031.A3; Cronet/TTNetVersion:04657795 2026-01-23 QuicVersion:c67e9834 2025-09-08)";
@@ -404,11 +423,17 @@ impl PassportClient {
             .chars()
             .take(120)
             .collect();
+        // Passport returns an empty or relative value for accounts without a picture; only an
+        // approved absolute HTTPS image is kept, so a bad field cannot become a broken avatar.
+        let avatar = ["avatar_url", "avatar_larger", "avatar_thumb", "avatar"]
+            .iter()
+            .find_map(|k| d[*k].as_str().and_then(public_avatar));
         self.session.uid = Some(uid.clone());
         self.session.validate_for_uid(&uid)?;
         Ok(VerifiedSession {
             uid,
             name,
+            avatar,
             credential: self.session.clone(),
         })
     }

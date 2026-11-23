@@ -46,6 +46,7 @@ pub(crate) async fn switch(service: &AccountService, owner: &str) {
         profile: AccountProfile {
             uid: verified.uid,
             name: verified.name,
+            avatar: verified.avatar,
         },
         credential: verified.credential,
     };

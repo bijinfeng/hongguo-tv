@@ -1,6 +1,7 @@
 import { View, cleanup, signal } from 'nsh';
 import { Button, IconButton, Logo, UiText } from '@hongguo/ui';
 import type { Store } from '../store';
+import { AccountButton } from './AccountButton';
 import { Navigation } from './Navigation';
 import type { ImageAsset } from 'nsh';
 
@@ -60,11 +61,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
           label="设置"
           onPress={() => props.store.settingsPage()}
         />
-        <IconButton
-          icon="user"
-          label={props.store.account()?.profile?.name || '账号'}
-          onPress={props.store.accountPage}
-        />
+        <AccountButton store={props.store} />
         {/* The clock keeps its own lane so a focus ring never crowds it. */}
         <View style={{ minWidth: 48, marginLeft: 6 }}>
           <UiText role="numeric">{time()}</UiText>

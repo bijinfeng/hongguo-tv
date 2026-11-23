@@ -159,6 +159,7 @@ pub(crate) fn synthetic_verified_fixture(uid: &str) -> VerifiedSession {
     VerifiedSession {
         uid: uid.into(),
         name: "Synthetic account".into(),
+        avatar: None,
         credential,
     }
 }
@@ -166,6 +167,8 @@ pub(crate) fn synthetic_verified_fixture(uid: &str) -> VerifiedSession {
 pub(crate) struct VerifiedSession {
     pub(crate) uid: String,
     pub(crate) name: String,
+    /// An approved absolute HTTPS avatar, or absent when Passport supplied none we accept.
+    pub(crate) avatar: Option<String>,
     pub(crate) credential: PersistedSession,
 }
 

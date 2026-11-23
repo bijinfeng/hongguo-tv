@@ -51,6 +51,7 @@ fn saved(uid: &str) -> SavedSession {
         profile: AccountProfile {
             uid: verified.uid,
             name: verified.name,
+            avatar: verified.avatar,
         },
         credential: verified.credential,
     }

@@ -14,12 +14,19 @@ if (!['web', 'macos', 'tv'].includes(host))
   throw new Error('Expected web|macos|tv; the account page needs a graphical host.');
 const fixture = await browsingFixture();
 const accountId = '9007199254740993';
+/**
+ * A real-shaped avatar URL on a host the core accepts, so the signed-in pass renders the
+ * picture path rather than only the initial. The fixture serves no bytes for it, so the pass
+ * proves layout and the fallback of a picture that fails to load — not image decoding.
+ */
+const accountAvatar =
+  'https://p3-passport.byteimg.com/img/user-avatar/fixture~tplv-shrink:200:200.image';
 const signedInAccount = {
   logged_in: true,
   sync: { state: 'idle', pending: 0, last_sync: 1763500000 },
   owner_id: accountId,
   owner_epoch: 'b'.repeat(32),
-  profile: { uid: accountId, name: '集成账号' },
+  profile: { uid: accountId, name: '集成账号', avatar: accountAvatar },
   qr_login_available: true,
   phone_login_available: true,
   guest_history: { total: 2, available: 1 },
@@ -150,7 +157,7 @@ for (const scheme of ['light', 'dark']) {
     await app.waitFor(${JSON.stringify(host === 'tv' ? 'id:nav-settings' : 'id:nav-settings')});
     ${
       host === 'tv'
-        ? `await app.press(${JSON.stringify('role:button[' + (state === 'signed-in' ? '集成账号' : '账号') + ']')});`
+        ? `await app.press(${JSON.stringify('role:button[' + (state === 'signed-in' ? '集成账号' : '登录') + ']')});`
         : `await app.press('role:button[我的账号]');`
     }
     await app.waitFor('id:account-summary');

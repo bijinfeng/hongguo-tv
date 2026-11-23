@@ -210,6 +210,7 @@ async fn switch(service: &AccountService, uid: &str) {
         profile: AccountProfile {
             uid: verified.uid,
             name: verified.name,
+            avatar: verified.avatar,
         },
         credential: verified.credential,
     };

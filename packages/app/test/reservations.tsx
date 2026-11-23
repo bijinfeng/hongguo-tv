@@ -218,7 +218,7 @@ export function registerReservationTests(target: 'desktop' | 'tv', entry: string
     });
     await app.press(
       target === 'tv'
-        ? `role:button[${f.account.profile?.name || '账号'}]`
+        ? `role:button[${f.account.profile?.name || '登录'}]`
         : `label:账号与记录 >> role:button[${f.account.profile?.name || '登录'}]`,
     );
     await app.press('id:account-reservations');
