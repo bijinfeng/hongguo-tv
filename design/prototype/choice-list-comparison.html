@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>标签列表：三处统一对比</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --fg: #171717;
+    --muted: #f7f7f7;
+    --muted-fg: #686868;
+    --border: #e5e5e5;
+    --input: #d9d9d9;
+    --ring: #c85e00;
+    --accent: #fff1e8;
+    --accent-fg: #a34b00;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    /* control sm */
+    --h: 32px;
+    --fs: 14px;
+    --px: 12px;
+    --gap: 8px;
+    --label-col: 72px;
+    --mark: #c93727;
+    --page: #fbfbfb;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #000000;
+    --fg: #f5f5f5;
+    --muted: #292a2a;
+    --muted-fg: #a0a0a0;
+    --border: #2a2c2c;
+    --input: #424242;
+    --ring: #ff9233;
+    --accent: #3a2415;
+    --accent-fg: #ffb36d;
+    --mark: #ff6b57;
+    --page: #0a0a0a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 32px 96px; }
+
+  header.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  h1 { margin: 0 0 6px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+  .sub { margin: 0; color: var(--muted-fg); font-size: 14px; max-width: 62ch; }
+  .controls { display: flex; gap: 8px; flex-shrink: 0; }
+  .ctl { height: 32px; padding: 0 12px; border: 1px solid var(--input); border-radius: var(--radius-lg); background: var(--bg); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; }
+  .ctl[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--accent-fg); font-weight: 600; }
+  .ctl:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; border-color: transparent; }
+
+  section { padding: 40px 0 8px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .tag { font-size: 12px; color: var(--muted-fg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1px 7px; }
+  .sec-note { margin: 0 0 28px; color: var(--muted-fg); font-size: 13px; max-width: 74ch; }
+
+  .card { border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 24px; margin-bottom: 16px; background: var(--bg); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--muted-fg); letter-spacing: 0.02em; }
+  .card-title b { color: var(--fg); font-weight: 600; }
+
+  /* ---- the chip recipe both components share ---- */
+  .chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gap); }
+  .chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: var(--h); min-height: var(--h);
+    padding: 0 var(--px);
+    border: 1px solid transparent; border-radius: var(--radius-lg);
+    background: transparent; color: var(--fg);
+    font: inherit; font-size: var(--fs); font-weight: 400; line-height: 1.5;
+    cursor: pointer; white-space: nowrap;
+    transition: background-color 100ms, color 100ms;
+  }
+  .chip:hover { background: var(--muted); }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  .chip[aria-pressed="true"]:hover { background: var(--accent); }
+  .chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; border-color: transparent; }
+  .chip[disabled] { color: var(--muted-fg); background: var(--muted); cursor: default; }
+  .chip[disabled]:hover { background: var(--muted); }
+
+  /* ---- legacy reproductions of what ships today ---- */
+  .legacy .chip { border-radius: var(--legacy-radius, var(--radius-lg)); }
+  /* home: radius 6 + minWidth 52 + gap 7 */
+  .legacy-home .chip { border-radius: var(--radius-md); min-width: 52px; }
+  .legacy-home .chips { gap: 7px; }
+  /* discover: horizontal scroll, row stretched to the ring reserve */
+  .legacy-discover .scroll { height: 56px; overflow-x: auto; overflow-y: hidden; }
+  .legacy-discover .scroll .chips { flex-wrap: nowrap; height: 56px; align-items: stretch; }
+  .legacy-discover .scroll .chip { border-radius: var(--radius-lg); align-items: center; height: auto; min-height: 56px; }
+  .legacy-discover .scroll .chip:hover { background: transparent; }
+  .legacy-discover .scroll .chip[aria-pressed="true"] { background: var(--accent); }
+  /* rankings: label column 72, wrap, 32 chip, radius 8, gap 8 */
+  .legacy-rankings .chip { border-radius: var(--radius-lg); }
+
+  /* ---- rows ---- */
+  .row { display: flex; align-items: flex-start; gap: 16px; }
+  .row + .row { margin-top: 12px; }
+  .row-label {
+    flex-shrink: 0; width: var(--label-col);
+    color: var(--muted-fg); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /* sits on the first chip's centre line: (32 - 21) / 2 */
+    padding-top: 5.5px;
+  }
+  .legacy-discover .row-label { width: 40px; }
+  .legacy-home .row-label { display: none; }
+  .row-body { flex: 1; min-width: 0; }
+
+  /* ---- annotation marks: outline only, the deltas row carries the values ---- */
+  .mark {
+    display: inline-flex; border: 1px dashed var(--mark); border-radius: 8px;
+  }
+  html[data-marks="off"] .mark { border-color: transparent; }
+
+  .deltas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .delta { font-size: 12px; line-height: 1.5; color: var(--muted-fg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 8px; }
+  .delta k { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .delta.bad { border-color: var(--mark); color: var(--mark); }
+  .delta.bad k { color: var(--mark); }
+
+  /* ---- spec table ---- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted-fg); font-size: 12px; letter-spacing: 0.02em; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th:nth-child(2), td:nth-child(2) { text-align: right; }
+  tr:last-child td { border-bottom: none; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    background: var(--muted); padding: 1px 5px; border-radius: 4px;
+    overflow-wrap: anywhere;
+  }
+  .api { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .api > .card { min-width: 0; }
+  .api pre {
+    margin: 0; background: var(--muted); border-radius: var(--radius-lg);
+    padding: 16px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; line-height: 1.7; color: var(--fg);
+  }
+  .api pre .c { color: var(--muted-fg); }
+  .api pre .k { color: var(--accent-fg); }
+  .api h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+  .api .note { margin: 8px 0 0; font-size: 14px; color: var(--muted-fg); }
+
+  .callout { display: flex; gap: 10px; padding: 14px 16px; margin-top: 16px; border: 1px solid var(--mark); border-radius: var(--radius-lg); font-size: 14px; line-height: 1.6; }
+  .callout b { color: var(--mark); }
+
+  /* section links for a long page */
+  .secnav { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 0; margin-bottom: 4px; background: var(--bg); box-shadow: 0 1px 0 var(--border); }
+  .secnav a { color: var(--muted-fg); text-decoration: none; font-size: 13px; padding: 3px 8px; border-radius: var(--radius-md); }
+  .secnav a:hover { background: var(--muted); color: var(--fg); }
+  .secnav a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .secnav a[aria-current="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+
+  @media (max-width: 860px) {
+    .api { grid-template-columns: minmax(0, 1fr); }
+    .wrap { padding: 24px 20px 64px; }
+    header.top { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>标签列表：三处统一对比</h1>
+      <p class="sub">首页「今晚，想看什么」、找剧、排行榜三处筛选行。上面是现在实际渲染的几何，下面是拆成两个基础组件后的结果。数据取自真实 token 与源码，不是重画的示意图。</p>
+    </div>
+    <div class="controls">
+      <button class="ctl" id="marks" aria-pressed="true">显示标注</button>
+      <button class="ctl" id="theme">深色</button>
+    </div>
+  </header>
+
+  <nav class="secnav" aria-label="小节">
+    <a href="#before">A · 现在</a>
+    <a href="#after">B · 统一后</a>
+    <a href="#spec">C · 契约</a>
+  </nav>
+
+  <!-- ============ A. BEFORE ============ -->
+  <section id="before">
+    <div class="sec-head"><h2>A · 现在</h2><span class="tag">三份各自实现</span></div>
+    <p class="sec-note">chip 本体都是 <code>Button sm quiet</code>，真正分叉的是圆角、最小宽、间距、溢出策略和标签列。红色虚线标出偏离位置。</p>
+
+    <div class="card legacy legacy-home">
+      <div class="card-head">
+        <span class="card-title">首页 · <b>今晚，想看什么</b></span>
+        <span class="tag">CatalogFilters</span>
+      </div>
+      <div class="row">
+        <div class="row-label" aria-hidden="true">题材</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="题材">
+            <span class="mark"><button class="chip" aria-pressed="true">全部</button></span>
+            <button class="chip">动作</button><button class="chip">冒险</button><button class="chip">魔幻</button>
+            <button class="chip">爱情</button><button class="chip">家庭</button><button class="chip">家族</button>
+            <button class="chip">萌宝</button><button class="chip">悬疑</button><button class="chip">志怪</button>
+            <button class="chip">古装</button><button class="chip">玄幻</button><button class="chip">奇幻</button>
+            <span class="mark"><button class="chip">综合</button></span>
+          </div>
+        </div>
+      </div>
+      <div class="deltas">
+        <span class="delta bad">圆角 <k>6</k></span>
+        <span class="delta bad">最小宽 <k>52</k></span>
+        <span class="delta bad">间距 <k>7</k></span>
+        <span class="delta">无标签列</span>
+        <span class="delta">换行</span>
+      </div>
+    </div>
+
+    <div class="card legacy legacy-discover">
+      <div class="card-head">
+        <span class="card-title">找剧 · <b>类型 / 题材 / 排序</b></span>
+        <span class="tag">FilterChoices · chips</span>
+      </div>
+      <div class="row">
+        <div class="row-label">类型</div>
+        <div class="row-body scroll">
+          <div class="chips" role="group" aria-label="类型">
+            <span class="mark"><button class="chip" aria-pressed="true">全部</button></span>
+            <button class="chip">真人剧</button><button class="chip">漫剧</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">题材</div>
+        <div class="row-body scroll">
+          <div class="chips" role="group" aria-label="题材">
+            <button class="chip" aria-pressed="true">全部</button>
+            <button class="chip">动作</button><button class="chip">冒险</button><button class="chip">魔幻</button>
+            <button class="chip">爱情</button><button class="chip">家庭</button><button class="chip">家族</button>
+            <button class="chip">萌宝</button><button class="chip">悬疑</button><button class="chip">志怪</button>
+            <button class="chip">古装</button><button class="chip">玄幻</button><button class="chip">奇幻</button>
+            <button class="chip">成长</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">排序</div>
+        <div class="row-body scroll">
+          <div class="chips" role="group" aria-label="排序">
+            <button class="chip" aria-pressed="true">综合</button>
+            <button class="chip">最新</button><button class="chip">热度</button>
+          </div>
+        </div>
+      </div>
+      <div class="deltas">
+        <span class="delta bad">chip 高 <k>56</k></span>
+        <span class="delta bad">横向滚动</span>
+        <span class="delta bad">标签列 <k>40</k></span>
+        <span class="delta">圆角 <k>8</k></span>
+        <span class="delta">间距 <k>8</k></span>
+      </div>
+    </div>
+
+    <div class="card legacy legacy-rankings">
+      <div class="card-head">
+        <span class="card-title">排行榜 · <b>榜单 / 子榜 / 综合</b></span>
+        <span class="tag">RankingGroupSelector</span>
+      </div>
+      <div class="row">
+        <div class="row-label">榜单</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="榜单">
+            <button class="chip" aria-pressed="true">全部</button>
+            <button class="chip">系列剧</button><button class="chip">漫剧</button>
+            <button class="chip">真人剧</button><button class="chip">AI剧</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">子榜</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="子榜">
+            <button class="chip" aria-pressed="true">推荐榜</button>
+            <button class="chip">热播榜</button><button class="chip">臻果榜</button>
+            <button class="chip">预约榜</button><button class="chip">新剧榜</button>
+            <button class="chip">热搜榜</button><button class="chip">追更榜</button>
+            <button class="chip">必看榜</button><button class="chip">收藏榜</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">综合</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="综合">
+            <button class="chip" aria-pressed="true">总榜</button>
+            <button class="chip">女频</button><button class="chip">男频</button>
+          </div>
+        </div>
+      </div>
+      <div class="deltas">
+        <span class="delta">chip 高 <k>32</k></span>
+        <span class="delta">换行</span>
+        <span class="delta">标签列 <k>72</k></span>
+        <span class="delta">圆角 <k>8</k></span>
+        <span class="delta">间距 <k>8</k></span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span aria-hidden="true">◆</span>
+      <div><b>最严重的一处不是观感，是几何错误。</b>找剧的 <code>Scroll</code> 设了 <code>height: space(2xl)+16 = 56</code> 只为给焦点环留位，但横向滚动容器默认把子项在交叉轴拉伸，chip 被动变成 56 高——比另外两处高一倍。所以找剧的标签行看起来又高又散，原因不在间距。</div>
+    </div>
+  </section>
+
+  <!-- ============ B. AFTER ============ -->
+  <section id="after">
+    <div class="sec-head"><h2>B · 统一后</h2><span class="tag">两个组件</span></div>
+    <p class="sec-note">同一份 chip 渲染，<code>LabeledChoiceList</code> 只是多一列名称。三处全部由这两个组件构成。</p>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">首页 · <b>今晚，想看什么</b></span>
+        <span class="tag">ChoiceList</span>
+      </div>
+      <div class="row">
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="题材">
+            <button class="chip" aria-pressed="true">全部</button>
+            <button class="chip">动作</button><button class="chip">冒险</button><button class="chip">魔幻</button>
+            <button class="chip">爱情</button><button class="chip">家庭</button><button class="chip">家族</button>
+            <button class="chip">萌宝</button><button class="chip">悬疑</button><button class="chip">志怪</button>
+            <button class="chip">古装</button><button class="chip">玄幻</button><button class="chip">奇幻</button>
+            <button class="chip">成长</button><button class="chip">传奇</button><button class="chip">年代</button>
+            <button class="chip">都市</button><button class="chip">青春</button><button class="chip">喜剧</button>
+            <button class="chip">科幻</button><button class="chip">灾难</button><button class="chip">战争</button>
+            <button class="chip">综艺</button><button class="chip">剧情</button><button class="chip">逆袭</button>
+            <button class="chip">惊悚</button><button class="chip">恐怖</button>
+          </div>
+        </div>
+      </div>
+      <div class="deltas">
+        <span class="delta">chip 高 <k>32</k></span>
+        <span class="delta">换行</span>
+        <span class="delta">圆角 <k>8</k></span>
+        <span class="delta">间距 <k>8</k></span>
+        <span class="delta">无最小宽</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">找剧 · <b>类型 / 题材 / 排序</b></span>
+        <span class="tag">LabeledChoiceList</span>
+      </div>
+      <div class="row">
+        <div class="row-label">类型</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="类型">
+            <button class="chip" aria-pressed="true">全部</button>
+            <button class="chip">真人剧</button><button class="chip">漫剧</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">题材</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="题材">
+            <button class="chip" aria-pressed="true">全部</button>
+            <button class="chip">动作</button><button class="chip">冒险</button><button class="chip">魔幻</button>
+            <button class="chip">爱情</button><button class="chip">家庭</button><button class="chip">家族</button>
+            <button class="chip">萌宝</button><button class="chip">悬疑</button><button class="chip">志怪</button>
+            <button class="chip">古装</button><button class="chip">玄幻</button><button class="chip">奇幻</button>
+            <button class="chip">成长</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">排序</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="排序">
+            <button class="chip" aria-pressed="true">综合</button>
+            <button class="chip">最新</button><button class="chip">热度</button>
+          </div>
+        </div>
+      </div>
+      <div class="deltas">
+        <span class="delta">chip 高 <k>32</k></span>
+        <span class="delta">换行</span>
+        <span class="delta">标签列 <k>72</k></span>
+        <span class="delta">圆角 <k>8</k></span>
+        <span class="delta">间距 <k>8</k></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">排行榜 · <b>榜单 / 子榜 / 综合</b></span>
+        <span class="tag">LabeledChoiceList</span>
+      </div>
+      <div class="row">
+        <div class="row-label">榜单</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="榜单">
+            <button class="chip" aria-pressed="true">全部</button>
+            <button class="chip">系列剧</button><button class="chip">漫剧</button>
+            <button class="chip">真人剧</button><button class="chip">AI剧</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">子榜</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="子榜">
+            <button class="chip" aria-pressed="true">推荐榜</button>
+            <button class="chip">热播榜</button><button class="chip">臻果榜</button>
+            <button class="chip">预约榜</button><button class="chip">新剧榜</button>
+            <button class="chip">热搜榜</button><button class="chip">追更榜</button>
+            <button class="chip">必看榜</button><button class="chip">收藏榜</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">综合</div>
+        <div class="row-body">
+          <div class="chips" role="group" aria-label="综合">
+            <button class="chip" aria-pressed="true">总榜</button>
+            <button class="chip">女频</button><button class="chip">男频</button>
+          </div>
+        </div>
+      </div>
+      <div class="deltas">
+        <span class="delta">chip 高 <k>32</k></span>
+        <span class="delta">换行</span>
+        <span class="delta">标签列 <k>72</k></span>
+        <span class="delta">圆角 <k>8</k></span>
+        <span class="delta">间距 <k>8</k></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ C. SPEC ============ -->
+  <section id="spec">
+    <div class="sec-head"><h2>C · 契约</h2><span class="tag">两个组件</span></div>
+    <p class="sec-note">所有值取自已生成的 theme token，组件内不写裸色裸数值。</p>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>项目</th><th>统一值</th><th>来源</th><th>被替换掉的</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>chip 本体</td><td class="num">Button sm quiet</td><td>三处本来就相同</td><td>—</td></tr>
+          <tr><td>chip 高</td><td class="num">32</td><td><code>--control-sm-height</code></td><td>找剧的 56</td></tr>
+          <tr><td>字号 / 内距</td><td class="num">14 / 12</td><td><code>--control-sm-*</code></td><td>—</td></tr>
+          <tr><td>圆角</td><td class="num">8</td><td><code>--radius-lg</code></td><td>首页的 6</td></tr>
+          <tr><td>chip 间距</td><td class="num">8</td><td><code>--space-xs</code></td><td>首页的 7</td></tr>
+          <tr><td>最小宽</td><td class="num">无</td><td>由内容决定</td><td>首页的 52</td></tr>
+          <tr><td>溢出</td><td class="num">换行</td><td>排行榜注释：横向滚动会藏选项</td><td>找剧的横向滚动</td></tr>
+          <tr><td>标签列</td><td class="num">72</td><td>容得下 5 字组名</td><td>找剧的 40</td></tr>
+          <tr><td>标签对齐</td><td class="num">首行 chip 中线</td><td>不随多行块漂移</td><td>找剧的顶对齐</td></tr>
+          <tr><td>选中</td><td class="num">accent 实底 + 600</td><td>现有规范</td><td>—</td></tr>
+          <tr><td>焦点</td><td class="num">ring 轮廓 offset 4</td><td>现有规范</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="api">
+      <div class="card">
+        <h3>ChoiceList</h3>
+        <pre><span class="c">/** 一组可选标签：单一聚焦组。 */</span>
+<span class="k">function</span> ChoiceList(props: {
+  label: string;      <span class="c">// 组的可访问名称</span>
+  value: string;
+  items: ChoiceOption[];
+  onChange: (value: string) =&gt; void;
+  testID?: string;
+  onSource?: (restore: () =&gt; void) =&gt; void;
+  onNavigate?: () =&gt; void;
+  onPrimary?: (ref: ViewRef) =&gt; void;
+})</pre>
+        <p class="note">首页用。无标签列，换行。</p>
+      </div>
+      <div class="card">
+        <h3>LabeledChoiceList</h3>
+        <pre><span class="c">/** 同一组标签，前置一列名称。 */</span>
+<span class="k">function</span> LabeledChoiceList(
+  props: ChoiceListProps &amp; {
+    title: string;
+    onOptionFocus?: (ref: ViewRef) =&gt; void;
+  }
+)</pre>
+        <p class="note">找剧、排行榜、上新日历、榜单雷达用。<code>onOptionFocus</code> 供排行榜做 <code>reveal</code>。</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span aria-hidden="true">◆</span>
+      <div><b>href 之外只剩一处行为差异。</b>排行榜在聚焦时需要把行滚进视口（<code>row.reveal</code>），并发一个 primary ref 给页面主焦点。这两个都做成可选回调，不写进样式，组件也不会因此分裂。</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  var html = document.documentElement;
+  var marks = document.getElementById('marks');
+  var marksOn = true;
+  marks.addEventListener('click', function () {
+    marksOn = !marksOn;
+    html.setAttribute('data-marks', marksOn ? 'on' : 'off');
+    marks.setAttribute('aria-pressed', String(marksOn));
+  });
+  var theme = document.getElementById('theme');
+  theme.addEventListener('click', function () {
+    var dark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', dark ? 'light' : 'dark');
+    theme.textContent = dark ? '深色' : '浅色';
+  });
+  // Clicking a chip selects it within its own group.
+  document.querySelectorAll('.chips[role="group"]').forEach(function (group) {
+    group.addEventListener('click', function (event) {
+      var chip = event.target.closest('.chip');
+      if (!chip || !group.contains(chip)) return;
+      group.querySelectorAll('.chip').forEach(function (node) {
+        node.setAttribute('aria-pressed', String(node === chip));
+      });
+    });
+  });
+  // Keyboard: arrows move within the group, as CardControls does.
+  document.querySelectorAll('.chips[role="group"]').forEach(function (group) {
+    group.addEventListener('keydown', function (event) {
+      var chips = Array.prototype.slice.call(group.querySelectorAll('.chip'));
+      var index = chips.indexOf(document.activeElement);
+      if (index < 0) return;
+      var next = null;
+      if (event.key === 'ArrowRight') next = chips[Math.min(index + 1, chips.length - 1)];
+      else if (event.key === 'ArrowLeft') next = chips[Math.max(index - 1, 0)];
+      else if (event.key === 'Home') next = chips[0];
+      else if (event.key === 'End') next = chips[chips.length - 1];
+      if (next) { event.preventDefault(); next.focus(); }
+    });
+  });
+  html.setAttribute('data-marks', 'on');
+  // A jump link lands its heading below the sticky bar rather than under it.
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.secnav a'));
+  navLinks.forEach(function (link) {
+    link.addEventListener('click', function () {
+      var target = document.querySelector(link.getAttribute('href'));
+      if (target) target.style.scrollMarginTop = '52px';
+    });
+  });
+  // Mark the section in view, as a reader scrolls.
+  var sections = navLinks.map(function (link) {
+    return document.querySelector(link.getAttribute('href'));
+  });
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var index = sections.indexOf(entry.target);
+        navLinks.forEach(function (link, at) {
+          link.setAttribute('aria-current', at === index ? 'true' : 'false');
+        });
+      });
+    }, { rootMargin: '-52px 0px -70% 0px' });
+    sections.forEach(function (section) { if (section) observer.observe(section); });
+  }
+</script>
+</body>
+</html>

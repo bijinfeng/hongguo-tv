@@ -157,7 +157,7 @@ export function registerFollowingTests(target: 'desktop' | 'tv', entry: string) 
       network: { '*': f.network, 'POST *': f.network },
     });
     if (target === 'tv') {
-      await app.press(`role:button[${f.account.profile?.name || '账号'}]`);
+      await app.press(`role:button[${f.account.profile?.name || '登录'}]`);
       await app.press('id:account-following');
     } else await app.press('id:nav-following');
     return app;

@@ -16,16 +16,10 @@ import {
 } from 'nsh';
 import { Button, Select, Sheet, Slider } from 'nsh/base';
 import { Icon, type IconName } from './icon';
-import {
-  controlMetrics,
-  radius,
-  space,
-  weight,
-  focusWithinClass,
-  focusRingClass,
-} from './foundation';
+import { controlMetrics, radius, space, weight, focusRingClass } from './foundation';
 import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
+import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { textSize, textWeight } from './typography';
 
 const CinemaEnabled = context<() => boolean>(() => true);
@@ -224,7 +218,7 @@ export function CinemaSelect(props: {
           accessibilityLabel={props.label}
           disabled={props.disabled || !enabled()}
           onPress={() => open.set(true)}
-          class={`flex-row items-center justify-center ${focusRingClass(4, 'cinema-focus')} ${open() ? `bg-cinema-active ${focusWithinClass(4, 'cinema-focus')}` : 'bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active'}`}
+          class={`flex-row items-center justify-center ${focusRingClass(4, 'cinema-focus')} ${open() ? 'bg-cinema-active' : 'bg-cinema-control hover:bg-cinema-hover active:bg-cinema-active'}`}
           style={{
             minHeight: controlMetrics().height,
             borderRadius: controlMetrics().radius,
@@ -263,14 +257,17 @@ export function CinemaSelect(props: {
           暂无可选项
         </Text>
       }
-      itemClass="text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
+      itemClass={selectItemClass()}
       itemStyle={{
         minHeight: controlMetrics().height,
         fontSize: controlMetrics().fontSize,
+        fontWeight: weight.regular(),
+        lineHeight: selectItemLineHeight(controlMetrics().fontSize),
         paddingHorizontal: controlMetrics().paddingHorizontal,
         paddingVertical: controlMetrics().paddingVertical,
         borderRadius: radius('lg'),
       }}
+      renderItem={(entry) => <SelectItemLabel entry={entry} />}
     />
   );
 }

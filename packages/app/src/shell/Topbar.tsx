@@ -3,6 +3,7 @@ import { Button, Controls, UiText } from '@hongguo/ui';
 import { SearchForm } from '../SearchForm';
 import { sectionLabels } from '../sections';
 import type { Section, Store } from '../store';
+import { AccountButton } from './AccountButton';
 
 /** Every browse section the topbar can show, in the order the crumb resolves them. */
 const sections: Section[] = [
@@ -42,13 +43,7 @@ export function Topbar(props: { store: Store }) {
           label="观看记录"
           onPress={() => props.store.navigate('history')}
         />
-        <Button
-          icon="user"
-          variant="quiet"
-          compact
-          label={props.store.account()?.profile?.name || '登录'}
-          onPress={props.store.accountPage}
-        />
+        <AccountButton store={props.store} testID="topbar-account" />
       </Controls>
     </View>
   );

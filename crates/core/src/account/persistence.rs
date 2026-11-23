@@ -22,6 +22,11 @@ impl SavedSession {
     pub fn validate(&self) -> Result<(), AccountError> {
         if self.profile.name.chars().count() > 128
             || self.profile.name.chars().any(char::is_control)
+            || self
+                .profile
+                .avatar
+                .as_ref()
+                .is_some_and(|avatar| avatar.chars().count() > 2048)
         {
             return Err(AccountError::InvalidSession);
         }

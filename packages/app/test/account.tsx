@@ -148,7 +148,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
     await app.waitFor('id:nav-history');
-    await app.press(target === 'tv' ? '账号' : '登录');
+    await app.press('登录');
     await app.waitFor('id:account-login-open');
     await app.press('id:account-login-open');
     await app.waitFor('id:account-login-dialog');
@@ -212,7 +212,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       colorScheme: 'dark',
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(target === 'tv' ? '账号' : '登录');
+    await app.press('登录');
     await app.waitFor('id:account-login-open');
     await app.press('id:account-login-open');
     await app.waitFor('id:account-login-dialog');
@@ -285,7 +285,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(target === 'tv' ? '账号' : '登录');
+    await app.press('登录');
     await app.waitFor('id:account-login-open');
     await app.press('id:account-login-open');
     await app.waitFor('id:account-login-dialog');

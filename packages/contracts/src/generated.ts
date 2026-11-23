@@ -591,6 +591,11 @@ export interface components {
         };
         /** @description Public account identity; no session credentials or upstream response objects. */
         AccountProfile: {
+            /**
+             * @description Approved public HTTPS avatar, absent while Passport supplies none the core accepts. A
+             *     session stored before the field existed decodes with it absent, not invalid.
+             */
+            avatar?: string | null;
             /** @description Display name, bounded by the core. */
             name: string;
             /** @description Verified nonzero decimal identity, kept as a string. */

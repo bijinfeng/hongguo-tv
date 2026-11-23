@@ -122,7 +122,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ### 设置／维护／更新
 
-设置页已实现主题、自动播放、记住位置、默认倍速、安静观看、账号入口、应用更新（仅宿主有 updater）与恢复默认；偏好经 NSH Storage 本机持久化；桌面经 NSH 0.6.0 `installOnQuit` 暂存安装。
+设置页已实现主题、自动播放、记住位置、默认倍速、安静观看、账号入口、应用更新（仅宿主有 updater）与恢复默认；偏好经 NSH Storage 本机持久化；桌面经 NSH `installOnQuit` 暂存安装。
 
 - 三端 app settings 回归各 4／4；三端套件 233（Web）／244（Desktop）／246（TV，1 跳过）在 `f5cd6e8` 源码上通过（`870f7e5` 提交说明另记「Web 142, Desktop 149, TV 151」，与本批口径不同且无留存日志可仲裁；当前工作树的套件总数本次未留存，不以任一旧数代当前值），`pnpm check`、`pnpm build`、`cargo nextest` 408／408 通过。
 - 截图由三端设置宿主脚本（`nsh test … --target <web／macos／android>`，`tooling/src/settings-host.mjs:41`；Android 由设备自报尺寸，脚本不设窗口，`:15`）在 2026-11-17 生成，存于 `artifacts/design/settings/`；该目录当前不在本机，截图不可复现；同年 11-19 的 TV 960×540dp 浅／深设置页见 `artifacts/tv-visual/web/tv-settings-{light,dark}.png`。共享更新状态回归 7／7（含暂存、提前重启失败仍保留暂存、回执只报告一次）。
@@ -136,6 +136,10 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 2026-11-20 首次正式发布 `v0.1.0`；2026-11-21 从 master 发布 `v0.1.1`（源码 `722cbd8`，run 44764824518）。两次的 `quality`／`security` 前置 job 均通过，两端构建成功；`v0.1.1` 的产物已下载实测：APK 证书 `8d34d7e8…` 与 `tooling/release-policy.json` 一致（`CN=Hongguo TV Release`），两端 SHA-256 与各自清单一致，两份更新清单的 Ed25519 签名以配置公钥验签通过。发布细节与逐项未验见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
 
 - Windows／Linux 实际安装、公开 Web 会话隔离／部署、正式签名／公证／SBOM、无 Go 干净环境及完整产品矩阵未完成。2026-11-22 接入两平台的工程门禁：ci.yml entry 在 windows-2025／ubuntu-24.04 跑桌面行为测试，release-preview 的 `windows-preview`／`linux-preview` 产出未签名预览 ZIP／归档；两者首次流水线运行与产物真机验收均未完成，不据此宣称平台支持。
+- **Linux x64 源码构建与打包已在本机 Ubuntu 26.04（GTK 4.22／WebKitGTK 6.0 2.52）通过**（2026-11-23）：`pnpm setup:workspace`、`pnpm check --target desktop`、`pnpm build --target desktop`、`pnpm package:desktop` 均退出码 0，产出 `apps/desktop/.nsh/out/红果` 与 `红果.tar.gz`；包内 `App` 的 `ldd` 无缺失库，启动后真实 GTK 窗口渲染出侧边栏与首页骨架，并在 `~/.local/share/dev.hongguo.desktop/` 建立 `guest.sqlite3`／`account.sqlite3`／`watch-statistics.sqlite3` 与媒体 lease 目录；`strace` 记录到 DNS 与多条 443 外连，说明 native core 的真实上游请求已发出。**限制：本机无 GTK 开发头文件，构建借用 `/tmp` 之外的隔离 sysroot（解包的 `libgtk-4-dev`／`libwebkitgtk-6.0-dev`／GStreamer dev 包）而非系统安装，因此该结论不等于「干净宿主按文档可构建」；安装包交互（桌面文件安装、启动器、N-1 升级）、真实数据能否在界面完成加载、以及窗口装饰仍未验收。**
+- **桌面默认窗口尺寸此前缺失，本次修正**：`apps/desktop/nsh.json` 未配置 `"window"`，NSH 的 Linux 宿主回退到其内部 `390×844` 手机尺寸（`nsh-platform-linux-0.6.0/src/app.rs:207`），与 DESIGN「390px 窄窗口已退出产品范围／正式桌面按 1180×780、1440×1000 检查」冲突。已按 1180×780 写入 `window.defaultSize`，打包后 `app.json` 携带该值，X11 实测窗口尺寸由 390×844 变为 1180×780。**该尺寸只在 X11／XWayland 量化确认；GNOME Wayland 原生窗口未取得窗口几何证据。**
+- **Linux 窗口无边框／阴影：0.6.1 未改变，且原先的 Yaru 归因被受控实验证伪**。`nsh-platform-linux` 的 `src/system.rs`（运行时改写 `gtk-application-prefer-dark-theme`／`gtk-interface-color-scheme` 处）在 0.6.0 与 0.6.1 之间 md5 一致；该 crate 两版唯一源码改动是 `src/native.rs` 的视频 `paused` 状态。0.6.1 打包后窗口仍报 `Theme parser error: Failed to import resource:///com/ubuntu/themes/Yaru/4.0/gtk.css`，`_GTK_FRAME_EXTENTS` 仍为 `25,25,25,25`。**该警告不影响装饰绘制**：PyGObject 探针执行与 NSH 相同的两个 `set_property`（报该警告）与不执行（不报）两种模式，其窗口 `xwd` 输出逐字节相同（450×387，md5 一致）。**真正待判的是合成器**：本机 X 会话 `_NET_WM_CM_S0` 为 `not found`（无合成器），16/24 位 `xwd` 的 25px 边距区读到纯黑且不含 alpha，因此**窗口装饰在本机仍未取得通过或失败的可靠视觉证据**。下一步：在带合成器环境（GNOME Wayland 原生会话或 Xvfb+picom）取 32 位 ARGB 截图判定，再决定是否需报 NSH 上游。
+- **NSH 0.6.1 升级的影响面已逐项核查**（2026-11-23，本机 Ubuntu 26.04）：`.nsh-version`、`Cargo.toml` 三个 `nsh-*`、`tooling/tv-toolchain.json`（version+commit `2f51d86`）、CLI 与 `Cargo.lock` 五处一致。`Cargo.lock` 仅 8 个 `nsh-*` 包换版本号与 checksum，**无新增／删除包，第三方依赖未动**。`pnpm verify` 退出码 0：245 项 NSH 测试全过（web 75.6s／desktop 785.2s／tv 675.5s），`release:check` 返回 ok；`pnpm security` 退出码 0。`nsh-updater` 源码与 0.6.0 完全相同（仅 `Cargo.toml` 版本行），更新清单签名格式不变。**未验证／受影响项**：①本机无 `~/.nsh/runtime/android`，TV 打包与真机验证未做；②`packages/app/test/history-management.tsx:481` 那条仅为 TV 跳过的用例在 0.6.1 下**仍失败**（临时启用后 177/178，`id:history-fixture-detail-return` 5s 未出现；`active:true` 已能正确上报，但详情面板仍未切换），跳过标记保留；③Windows／Linux 真机安装与 N-1 升级仍未验。
 - macOS 为 ad hoc 签名，无 Developer ID／公证，按已确认决定由用户手动放行。
 - `v0.1.0` 的 tag 在功能分支上，不符合发布规范；`v0.1.1` 是第一个从 master 发布的版本。
 - **N-1 → N 桌面升级已在真实宿主机通过**（2026-11-21，本机 `/Applications/红果.app`）：机器上原装 `0.1.0`（build 1），经应用内更新路径升级后 `Contents/Info.plist` 为 `0.1.1`（build 2），`updates/` 目录 mtime 与换入时刻一致（08:49），`update-expected-version` 回执已被启动流程消费（读一次即删，符合 `apps/desktop/native/src/updates.rs` 的 `confirm`），升级后的 `0.1.1` 新进程正常启动并成为活动窗口（pid 40300）。服务端侧同步核对：`releases/latest` 302 到 `v0.1.1`，`latest.json` 返回 version `0.1.1`、URL 与 sha256 均指向该 Release。**该结论只覆盖 macOS arm64 与应用内更新路径；强制终止后回执报「上次更新未完成」、立即重启失败后退出仍完成换入两条分支，以及 Windows／Linux 升级仍未验。**
@@ -143,7 +147,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ### 安全
 
-`cargo-deny` 的 bans／sources 通过；依赖已升到 NSH 0.6.0（`Cargo.toml:43-45` 的 `nsh-base`／`nsh-core`／`nsh-engine`）。2026-11-20 按[依赖检查](docs/dependencies/native-release-security.md)给 4 项许可证与 2 项 unmaintained advisory 补精确版本例外后，`deny.toml` 保留 bans／sources 与全局 `allow`，`unused-ignored-advisory = "deny"`（`deny.toml:17-21`），`pnpm security` 退出码 0。
+`cargo-deny` 的 bans／sources 通过；依赖已升到 NSH 0.6.1（`Cargo.toml:45-47` 的 `nsh-base`／`nsh-core`／`nsh-engine`）。2026-11-20 按[依赖检查](docs/dependencies/native-release-security.md)给 4 项许可证与 2 项 unmaintained advisory 补精确版本例外后，`deny.toml` 保留 bans／sources 与全局 `allow`，`unused-ignored-advisory = "deny"`（`deny.toml:17-21`），`pnpm security` 退出码 0。2026-11-23 升到 0.6.1 后 `pnpm security` 仍退出码 0（advisories／bans／licenses／sources 全 ok）；同两条 advisory 的 `chrono 0.4.45`／`ttf-parser 0.25.1` 在 0.6.1 依赖图中未变，例外继续适用；`deny.toml:105` 的 `webpki-roots` 许可证例外在 0.6.1 依赖图中未命中，只产生 `license-exception-not-encountered` warning，不影响门禁结果。
 
 - `pnpm security` 只按根工作区跑 `cargo deny --locked check`（`tooling/src/cli.mjs:338-341`，cwd 固定为仓库根），NSH 生成宿主锁文件（`apps/*/.nsh/rust/Cargo.lock`，含 bincode 1.3.3、syntect、two-face）不在其范围。
 - 两条 advisory（chrono 0.4.45 RUSTSEC-2026-0543、ttf-parser 0.25.1 RUSTSEC-2026-0192）均无修复版本，到期 2027-02-28；根门禁按精确版本例外放行，`v0.1.0` 即在该策略下发布，宿主锁文件仍未纳入同一策略。
@@ -151,14 +155,15 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ## 开放问题与下一步
 
-| 问题                                 | 证据／影响                                                                                            | 下一步                                                     |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 原生 409／PLAYBACK_IDENTITY_MISMATCH | `desktop-native-2026-11-15T10-19-31Z/` 及 `account-live/public-media-probe-diagnostic-2026-11-15.log` | 保留身份校验；用已有诊断区分来源；后来的成功不解释旧失败   |
-| 真实详情／系列超时                   | 最新 Web 轮次 `2026-11-15T09-27-22-243Z/` 在管理后打开保留项详情超时                                  | 最小复现并区分上游／产品／环境，针对受影响路径补验         |
-| 真实播放间歇失败                     | `2026-11-15T08-21-31-073Z/` 和 `08-29-22-483Z/`，后者一次 UI 重试恢复但整轮仍失败                     | 保留原始失败与安全诊断，单列恢复路径；不宣称稳定性通过     |
-| 封面加载与 UI 证据不足               | 最新 Web 历史和失败详情仍有灰占位，原生错误页焦点仍在搜索框                                           | 补实际成功加载与错误／重试焦点观察；不从 JSON 或静态图推断 |
-| E1／平台剩余流程                     | 当前通知变更任务除 4.3 外已完成；三端 NSH 检查／构建／测试及通知功能／UI 审查通过                     | 按端补正式入口真实流程；账号通知 4.3 仍开放，不自动关闭 E1 |
-| 供应链与发行阻塞                     | 根 `pnpm security` 通过，但两条 advisory 无修复版本、宿主锁文件不在根图；Windows／Linux 无安装包      | 按依赖责任处理并保留门禁；签名、安装与升级通道各自验收     |
+| 问题                                 | 证据／影响                                                                                                       | 下一步                                                      |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 原生 409／PLAYBACK_IDENTITY_MISMATCH | `desktop-native-2026-11-15T10-19-31Z/` 及 `account-live/public-media-probe-diagnostic-2026-11-15.log`            | 保留身份校验；用已有诊断区分来源；后来的成功不解释旧失败    |
+| 真实详情／系列超时                   | 最新 Web 轮次 `2026-11-15T09-27-22-243Z/` 在管理后打开保留项详情超时                                             | 最小复现并区分上游／产品／环境，针对受影响路径补验          |
+| 真实播放间歇失败                     | `2026-11-15T08-21-31-073Z/` 和 `08-29-22-483Z/`，后者一次 UI 重试恢复但整轮仍失败                                | 保留原始失败与安全诊断，单列恢复路径；不宣称稳定性通过      |
+| 封面加载与 UI 证据不足               | 最新 Web 历史和失败详情仍有灰占位，原生错误页焦点仍在搜索框                                                      | 补实际成功加载与错误／重试焦点观察；不从 JSON 或静态图推断  |
+| E1／平台剩余流程                     | 当前通知变更任务除 4.3 外已完成；三端 NSH 检查／构建／测试及通知功能／UI 审查通过                                | 按端补正式入口真实流程；账号通知 4.3 仍开放，不自动关闭 E1  |
+| 供应链与发行阻塞                     | 根 `pnpm security` 通过，但两条 advisory 无修复版本、宿主锁文件不在根图；Windows／Linux 无安装包                 | 按依赖责任处理并保留门禁；签名、安装与升级通道各自验收      |
+| Linux 窗口无边框／阴影               | 0.6.1 未修复（`system.rs` 与 0.6.0 逐字节相同）；Yaru 归因已被受控实验证伪；本机无合成器，装饰未取得可靠视觉证据 | 在带合成器环境取 32 位 ARGB 截图判定，再决定是否报 NSH 上游 |
 
 ## 证据索引
 

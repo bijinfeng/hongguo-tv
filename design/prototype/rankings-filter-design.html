@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>排行榜页面设计稿</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #ffffff;
+        --foreground: #1d1d1d;
+        --muted-foreground: #77736d;
+        --border: #e4e1dd;
+        --muted: #f6f4f1;
+        --accent: #fff0e6;
+        --accent-foreground: #a84f00;
+        --ring: #bf610f;
+        --radius: 22px;
+        --control-radius: 10px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--page);
+        color: var(--foreground);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      button {
+        font: inherit;
+      }
+      button:focus-visible {
+        outline: 3px solid var(--ring);
+        outline-offset: 3px;
+      }
+      .page {
+        max-width: 1920px;
+        margin: 0 auto;
+        padding: 34px 54px 96px;
+      }
+      .source-tabs {
+        display: flex;
+        gap: 42px;
+        border-bottom: 1px solid var(--border);
+      }
+      .source-tab {
+        position: relative;
+        min-height: 64px;
+        padding: 0 8px;
+        border: 0;
+        background: transparent;
+        color: var(--muted-foreground);
+        font-size: clamp(22px, 2vw, 32px);
+        cursor: pointer;
+      }
+      .source-tab[aria-selected='true'] {
+        color: var(--foreground);
+        font-weight: 650;
+      }
+      .source-tab[aria-selected='true']::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 3px;
+        background: #f57b22;
+      }
+      .hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 250px;
+        margin-top: 42px;
+        overflow: hidden;
+        border-radius: var(--radius);
+        background: linear-gradient(108deg, #7f1d14 0%, #9a251b 54%, #5a1712 100%);
+      }
+      .hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgb(39 8 5 / 10%), transparent 62%);
+        pointer-events: none;
+      }
+      .hero h1 {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        padding-left: 52px;
+        color: #fff;
+        font-size: clamp(42px, 4vw, 68px);
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+      .hero img {
+        position: absolute;
+        z-index: 1;
+        top: 14px;
+        right: 40px;
+        width: 190px;
+        height: 222px;
+        object-fit: cover;
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgb(35 8 5 / 24%);
+      }
+      .filters {
+        margin-top: 36px;
+      }
+      .filter-list {
+        padding: 4px 0 8px;
+      }
+      .filter-row {
+        display: grid;
+        grid-template-columns: clamp(82px, 9vw, 150px) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+        padding: 8px 0;
+      }
+      .filter-label {
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        color: var(--muted-foreground);
+        font-size: clamp(18px, 1.35vw, 26px);
+      }
+      .choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 18px;
+      }
+      .choice {
+        min-height: 40px;
+        padding: 0 16px;
+        border: 1px solid transparent;
+        border-radius: var(--control-radius);
+        background: transparent;
+        color: var(--foreground);
+        cursor: pointer;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease,
+          transform 0.15s ease;
+      }
+      .choice:hover {
+        background: var(--muted);
+      }
+      .choice:active {
+        transform: translateY(1px);
+      }
+      .choice[aria-pressed='true'] {
+        background: var(--accent);
+        color: var(--accent-foreground);
+        font-weight: 650;
+      }
+      .filter-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: 58px;
+        padding: 12px 0 8px;
+        border-top: 1px solid var(--border);
+      }
+      .filter-footer.has-count {
+        justify-content: space-between;
+      }
+      .count {
+        color: var(--muted-foreground);
+        font-size: 14px;
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--control-radius);
+        background: var(--page);
+        color: var(--foreground);
+        cursor: pointer;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+      .toggle:hover {
+        background: var(--muted);
+      }
+      .toggle[aria-expanded='true'] {
+        border-color: transparent;
+        background: var(--accent);
+        color: var(--accent-foreground);
+      }
+      .toggle .icon {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.18s ease;
+      }
+      .toggle[aria-expanded='true'] .icon {
+        transform: rotate(180deg);
+      }
+      .extra-rows {
+        display: none;
+      }
+      .filter-panel.is-expanded .extra-rows {
+        display: block;
+      }
+      .results {
+        margin-top: 58px;
+        border-top: 1px solid var(--border);
+      }
+      .result-row {
+        display: grid;
+        grid-template-columns: 170px minmax(0, 1fr) auto;
+        gap: 34px;
+        align-items: center;
+        padding: 38px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .result-cover {
+        width: 170px;
+        height: 220px;
+        object-fit: cover;
+        border-radius: 16px;
+      }
+      .result-copy {
+        min-width: 0;
+      }
+      .result-title {
+        display: flex;
+        align-items: baseline;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .result-title h2 {
+        margin: 0;
+        font-size: clamp(24px, 2vw, 38px);
+        line-height: 1.2;
+      }
+      .result-title span,
+      .result-copy p {
+        color: var(--muted-foreground);
+        font-size: clamp(16px, 1.3vw, 24px);
+      }
+      .result-copy p {
+        margin: 22px 0 28px;
+      }
+      .detail-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--foreground);
+        font-size: clamp(18px, 1.4vw, 26px);
+        cursor: pointer;
+      }
+      .detail-link .icon {
+        width: 20px;
+        height: 20px;
+      }
+      @media (max-width: 880px) {
+        .page {
+          padding: 24px 28px 72px;
+        }
+        .hero {
+          min-height: 180px;
+          margin-top: 28px;
+        }
+        .hero h1 {
+          padding-left: 28px;
+          font-size: 42px;
+        }
+        .hero img {
+          right: 20px;
+          width: 132px;
+          height: 152px;
+          border-radius: 16px;
+        }
+        .filter-row {
+          grid-template-columns: 76px minmax(0, 1fr);
+          gap: 12px;
+        }
+        .choices {
+          gap: 6px 8px;
+        }
+        .choice {
+          padding: 0 10px;
+        }
+        .result-row {
+          grid-template-columns: 108px minmax(0, 1fr);
+          gap: 18px;
+        }
+        .result-cover {
+          width: 108px;
+          height: 148px;
+        }
+        .detail-link {
+          grid-column: 2;
+        }
+      }
+      @media (max-width: 560px) {
+        .source-tabs {
+          gap: 22px;
+        }
+        .source-tab {
+          min-height: 52px;
+          font-size: 20px;
+        }
+        .hero img {
+          right: 14px;
+          width: 96px;
+          height: 122px;
+        }
+        .hero h1 {
+          padding-left: 22px;
+          font-size: 34px;
+        }
+        .filter-row {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+        .filter-label {
+          min-height: 28px;
+          font-size: 14px;
+        }
+        .result-row {
+          grid-template-columns: 84px minmax(0, 1fr);
+          padding: 24px 0;
+        }
+        .result-cover {
+          width: 84px;
+          height: 116px;
+          border-radius: 12px;
+        }
+        .result-title {
+          gap: 6px;
+        }
+        .result-title h2 {
+          font-size: 20px;
+        }
+        .result-title span,
+        .result-copy p {
+          font-size: 14px;
+        }
+        .result-copy p {
+          margin: 10px 0 16px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <nav class="source-tabs" aria-label="榜单来源">
+        <button class="source-tab" aria-selected="true">红果榜</button>
+        <button class="source-tab" aria-selected="false">榜单雷达</button>
+      </nav>
+      <section class="hero" aria-labelledby="ranking-title">
+        <h1 id="ranking-title">推荐榜</h1>
+        <img src="visual-redesign-real/assets/media/guard.jpg" alt="推荐榜封面示意" />
+      </section>
+      <section class="filters" aria-label="排行榜筛选">
+        <div class="filter-panel" data-filter-panel>
+          <div class="filter-list">
+            <div class="filter-row">
+              <div class="filter-label">榜单</div>
+              <div class="choices" role="group" aria-label="榜单">
+                <button class="choice" aria-pressed="true">全部</button
+                ><button class="choice" aria-pressed="false">系列剧</button
+                ><button class="choice" aria-pressed="false">漫剧</button
+                ><button class="choice" aria-pressed="false">真人剧</button
+                ><button class="choice" aria-pressed="false">AI剧</button>
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="filter-label">子榜</div>
+              <div class="choices" role="group" aria-label="子榜">
+                <button class="choice" aria-pressed="true">推荐榜</button
+                ><button class="choice" aria-pressed="false">热播榜</button
+                ><button class="choice" aria-pressed="false">臻果榜</button
+                ><button class="choice" aria-pressed="false">预约榜</button
+                ><button class="choice" aria-pressed="false">新剧榜</button
+                ><button class="choice" aria-pressed="false">热搜榜</button
+                ><button class="choice" aria-pressed="false">追更榜</button
+                ><button class="choice" aria-pressed="false">必看榜</button
+                ><button class="choice" aria-pressed="false">收藏榜</button>
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="filter-label">综合</div>
+              <div class="choices" role="group" aria-label="综合">
+                <button class="choice" aria-pressed="true">总榜</button
+                ><button class="choice" aria-pressed="false">女频</button
+                ><button class="choice" aria-pressed="false">男频</button>
+              </div>
+            </div>
+            <div class="extra-rows">
+              <div class="filter-row">
+                <div class="filter-label">时段</div>
+                <div class="choices" role="group" aria-label="时段">
+                  <button class="choice" aria-pressed="true">全部</button
+                  ><button class="choice" aria-pressed="false">今日</button
+                  ><button class="choice" aria-pressed="false">本周</button>
+                </div>
+              </div>
+              <div class="filter-row">
+                <div class="filter-label">状态</div>
+                <div class="choices" role="group" aria-label="状态">
+                  <button class="choice" aria-pressed="true">全部</button
+                  ><button class="choice" aria-pressed="false">连载中</button
+                  ><button class="choice" aria-pressed="false">已完结</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-footer has-count">
+            <span class="count">已选 1 项</span>
+            <button class="toggle" type="button" aria-expanded="false" data-filter-toggle>
+              <i data-icon="chevron-down" aria-hidden="true"></i
+              ><span data-filter-label>展开筛选</span>
+            </button>
+          </div>
+        </div>
+      </section>
+      <section class="results" aria-label="榜单内容">
+        <article class="result-row">
+          <img
+            class="result-cover"
+            src="visual-redesign-real/assets/media/exam.jpg"
+            alt="得了一种只能说真话的病"
+          />
+          <div class="result-copy">
+            <div class="result-title">
+              <h2>得了一种只能说真话的病</h2>
+              <span>983万推荐 · 悬疑 · 全71集 · 一飞</span>
+            </div>
+            <p>闺蜜反复确认宋怜怜安全，得到的答案是“不是”</p>
+            <button class="detail-link">
+              查看详情 <i data-icon="chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script src="visual-redesign-real/assets/icons.js"></script>
+    <script>
+      const panel = document.querySelector('[data-filter-panel]');
+      const toggle = document.querySelector('[data-filter-toggle]');
+      const label = document.querySelector('[data-filter-label]');
+      toggle.addEventListener('click', () => {
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        panel.classList.toggle('is-expanded', !expanded);
+        label.textContent = expanded ? '展开筛选' : '收起筛选';
+      });
+      document.querySelectorAll('.choices').forEach((group) => {
+        group.addEventListener('click', (event) => {
+          const choice = event.target.closest('.choice');
+          if (!choice) return;
+          group
+            .querySelectorAll('.choice')
+            .forEach((item) => item.setAttribute('aria-pressed', 'false'));
+          choice.setAttribute('aria-pressed', 'true');
+        });
+      });
+    </script>
+  </body>
+</html>

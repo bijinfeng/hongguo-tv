@@ -1,7 +1,7 @@
-import { Scroll, View, cleanup, effect, type ViewRef } from 'nsh';
+import { Scroll, View, type ViewRef } from 'nsh';
 import {
   Button,
-  CardControls,
+  LabeledChoiceList,
   SkeletonBlock,
   SkeletonRegion,
   UiText,
@@ -18,17 +18,7 @@ import type { RankingChoices } from '../../rankings';
 const dimensionLabel = (group: RankingChoices) =>
   group.dimension === 'rank' ? '榜单' : group.dimension === 'rank_sub' ? '子榜' : group.label;
 
-/**
- * One label column for every selector row. The width fits the longest service group name a
- * panel can carry in Chinese ("服务端时段" is five characters at meta size); a longer upstream
- * name ellipsizes here rather than shifting the chips off the shared spine.
- */
-const LABEL_GUTTER = 72;
-
-/** The shared `sm` control height, used to align a group label with its first option line. */
-const RANKING_CHIP_HEIGHT = 32;
-
-/** One filter row: chips stay one focus group with a stable collection source anchor. */
+/** One filter row: the shared labelled option list, with this page's focus and reveal behaviour. */
 function RankingGroupSelector(props: {
   group: RankingChoices;
   collection: string;
@@ -38,96 +28,46 @@ function RankingGroupSelector(props: {
   onSource: (restore: () => void) => void;
   onNavigate: () => void;
   onPrimary: (ref: ViewRef) => void;
-  rowHeight: number;
-  onContentHeight: (height: number) => void;
+  onMeasureRow: (height: number) => void;
 }) {
   const refs = new Map<string, ViewRef>();
   let row: ViewRef | undefined;
+  const primaryFor = (group: RankingChoices) => {
+    // Collapsed upstream state has no value: the first option is the one in effect.
+    const first = group.options[0]?.id;
+    return group.value === undefined ? first : group.value;
+  };
+  /** A restore only reaches a live collection: a superseded ranking may not steal the focus. */
+  const restoreFor = (value: string) => {
+    const collection = props.collection;
+    return () => {
+      if (props.active && collection === props.collection) refs.get(value)?.focus();
+    };
+  };
   return (
     <View
       ref={(ref) => {
         row = ref;
       }}
-      class="flex-row items-start gap-4"
+      onLayout={({ bounds }) => props.onMeasureRow(bounds.size.height)}
     >
-      {/* The label names the whole group, so it aligns with the first option line: centring it
-          against a four-line block would float it away from the row it belongs to. */}
-      <View class="justify-center" style={{ width: LABEL_GUTTER, height: RANKING_CHIP_HEIGHT + 8 }}>
-        <UiText role="meta" tone="muted" lines={1}>
-          {dimensionLabel(props.group)}
-        </UiText>
-      </View>
-      {/* The options wrap onto as many lines as they need: the service supplies dozens of
-          categories and a horizontal scroller would hide most of them behind a scrollbar. */}
-      <View class="flex-1" style={{ minWidth: 0, paddingVertical: 4 }}>
-        <View onLayout={({ bounds }) => props.onContentHeight(bounds.size.height)}>
-          <CardControls
-            label={props.group.label}
-            class="flex-row flex-wrap items-center"
-            gap={space('xs')}
-            onNavigate={props.onNavigate}
-          >
-            <Each of={Array.from({ length: props.group.options.length }, (_, index) => index)}>
-              {(slot) => {
-                const option = () => props.group.options[slot()];
-                let ref: ViewRef | undefined;
-                effect(() => {
-                  const id = option().id;
-                  if (ref) {
-                    refs.set(id, ref);
-                    if (
-                      props.group.dimension === 'rank' &&
-                      (props.group.value === id ||
-                        (props.group.value === undefined && slot() === 0))
-                    )
-                      props.onPrimary(ref);
-                  }
-                  cleanup(() => {
-                    if (refs.get(id) === ref) refs.delete(id);
-                  });
-                });
-                const source = () => {
-                  const id = option().id;
-                  const collection = props.collection;
-                  return () => {
-                    if (props.active && collection === props.collection) refs.get(id)?.focus();
-                  };
-                };
-                return (
-                  <Button
-                    size="sm"
-                    variant="quiet"
-                    buttonRef={(node) => {
-                      ref = node;
-                      refs.set(option().id, node);
-                      if (
-                        props.group.dimension === 'rank' &&
-                        (props.group.value === option().id ||
-                          (props.group.value === undefined && slot() === 0))
-                      )
-                        props.onPrimary(node);
-                    }}
-                    testID={`ranking-choice-${encodeURIComponent(props.group.id)}-${encodeURIComponent(option().id)}`}
-                    label={option().label}
-                    labelLines={1}
-                    selected={props.group.value === option().id}
-                    onFocus={() => {
-                      if (props.active) row?.reveal({ vertical: 'nearest', animated: false });
-                      props.onSource(source());
-                    }}
-                    onPress={() => {
-                      const id = option().id;
-                      props.onNavigate();
-                      props.onChange(props.group.id, id);
-                      props.onSource(source());
-                    }}
-                  />
-                );
-              }}
-            </Each>
-          </CardControls>
-        </View>
-      </View>
+      <LabeledChoiceList
+        title={dimensionLabel(props.group)}
+        label={props.group.label}
+        value={props.group.value ?? props.group.options[0]?.id ?? ''}
+        items={props.group.options.map((option) => ({ value: option.id, title: option.label }))}
+        testID={`ranking-choice-${encodeURIComponent(props.group.id)}`}
+        onNavigate={props.onNavigate}
+        onOptionRef={(value, ref) => {
+          refs.set(value, ref);
+          if (props.group.dimension === 'rank' && value === primaryFor(props.group))
+            props.onPrimary(ref);
+        }}
+        onOptionFocus={() => row?.reveal({ vertical: 'nearest', animated: false })}
+        restoreFor={restoreFor}
+        onSource={(restore) => props.onSource(restore)}
+        onChange={(value) => props.onChange(props.group.id, value)}
+      />
     </View>
   );
 }
@@ -165,8 +105,14 @@ export function RankingsToolbar(props: {
   onPrimary: (ref: ViewRef) => void;
   onMeasureRow: (id: string, height: number) => void;
 }) {
-  /** `visible` is how many groups the collapsed view keeps, so equality still needs collapsing. */
-  const collapsed = () => !props.expanded && props.groups.length > props.visible;
+  /**
+   * A group with one option is descriptive data, not an actionable filter. Keep it visible instead
+   * of adding a disclosure footer when the ranking only has three real choices.
+   */
+  const expandableGroups = () =>
+    props.groups.slice(props.visible).filter((group) => group.options.length > 1);
+  const canExpand = () => expandableGroups().length > 0;
+  const collapsed = () => !props.expanded && canExpand();
   /** Only the groups the reader asked for are measured and rendered. */
   const shown = () => (collapsed() ? props.groups.slice(0, props.visible) : props.groups);
   const rows = () => (
@@ -181,8 +127,7 @@ export function RankingsToolbar(props: {
           onSource={props.onSource}
           onNavigate={props.onNavigate}
           onPrimary={props.onPrimary}
-          rowHeight={props.rowHeight}
-          onContentHeight={(height) => props.onMeasureRow(group().id, height)}
+          onMeasureRow={(height) => props.onMeasureRow(group().id, height)}
         />
       )}
     </Each>
@@ -225,15 +170,24 @@ export function RankingsToolbar(props: {
           {rows()}
         </Scroll>
       </If>
-      <If when={props.groups.length > props.visible}>
-        <View class="flex-row items-center gap-2" style={{ paddingTop: space('xxs') }}>
+      <If when={canExpand()}>
+        <View
+          class={`flex-row items-center border-t border-border ${collapsed() && props.hiddenChoices > 0 ? 'justify-between' : 'justify-end'}`}
+          style={{ paddingVertical: space('xs') }}
+        >
+          <If when={collapsed() && props.hiddenChoices > 0}>
+            <UiText role="meta" tone="muted" lines={1}>
+              {`已选 ${props.hiddenChoices} 项`}
+            </UiText>
+          </If>
           <Button
             testID="ranking-filters-toggle"
             size="sm"
-            variant="quiet"
+            variant="default"
             label={props.expanded ? '收起筛选' : '展开筛选'}
             icon="down"
             expanded={props.expanded}
+            selected={props.expanded}
             accessibilityDescription={
               props.hiddenChoices ? `已收起 ${props.hiddenChoices} 个筛选条件` : '显示其余筛选条件'
             }
@@ -244,12 +198,6 @@ export function RankingsToolbar(props: {
               props.onExpandedChange(!props.expanded);
             }}
           />
-          {/* A collapsed group keeps its choice, so the count is the only visible trace of it. */}
-          <If when={collapsed() && props.hiddenChoices > 0}>
-            <UiText role="meta" tone="muted" lines={1}>
-              {`已选 ${props.hiddenChoices} 项`}
-            </UiText>
-          </If>
         </View>
       </If>
     </View>

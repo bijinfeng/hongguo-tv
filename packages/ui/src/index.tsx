@@ -23,6 +23,12 @@ export { SearchInput, type SearchInputProps } from './search-input';
 export { CardControls, CardRoot } from './card-controls';
 export { SearchPicker, SearchSuggestionRow } from './search-picker';
 export { FilterChoices } from './filter-choices';
+export {
+  ChoiceList,
+  LabeledChoiceList,
+  type ChoiceListOption,
+  type ChoiceListProps,
+} from './choice-list';
 export { DownloadProgress, type DownloadProgressProps } from './download-progress';
 export * from './text-input';
 export * from './field';

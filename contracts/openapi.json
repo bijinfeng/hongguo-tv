@@ -3473,6 +3473,13 @@
           "name"
         ],
         "properties": {
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Approved public HTTPS avatar, absent while Passport supplies none the core accepts. A\nsession stored before the field existed decodes with it absent, not invalid."
+          },
           "name": {
             "type": "string",
             "description": "Display name, bounded by the core."

@@ -1,7 +1,7 @@
 [advisories]
 version = 2
 
-# NSH 0.6.0 carries two unmaintained crates that cannot be removed without an upstream NSH
+# NSH 0.6.1 carries two unmaintained crates that cannot be removed without an upstream NSH
 # change. Neither is a vulnerability advisory: both crates are unmaintained, have no fixed
 # release, and are non-optional dependencies of nsh-core. cargo-deny 0.20.2 accepts only `id`
 # and `reason` per entry, so owner and expiry live in the reason text; per-entry `expiry` needs
