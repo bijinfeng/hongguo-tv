@@ -105,8 +105,14 @@ export function RankingsToolbar(props: {
   onPrimary: (ref: ViewRef) => void;
   onMeasureRow: (id: string, height: number) => void;
 }) {
-  /** `visible` is how many groups the collapsed view keeps, so equality still needs collapsing. */
-  const collapsed = () => !props.expanded && props.groups.length > props.visible;
+  /**
+   * A group with one option is descriptive data, not an actionable filter. Keep it visible instead
+   * of adding a disclosure footer when the ranking only has three real choices.
+   */
+  const expandableGroups = () =>
+    props.groups.slice(props.visible).filter((group) => group.options.length > 1);
+  const canExpand = () => expandableGroups().length > 0;
+  const collapsed = () => !props.expanded && canExpand();
   /** Only the groups the reader asked for are measured and rendered. */
   const shown = () => (collapsed() ? props.groups.slice(0, props.visible) : props.groups);
   const rows = () => (
@@ -164,15 +170,24 @@ export function RankingsToolbar(props: {
           {rows()}
         </Scroll>
       </If>
-      <If when={props.groups.length > props.visible}>
-        <View class="flex-row items-center gap-2" style={{ paddingTop: space('xxs') }}>
+      <If when={canExpand()}>
+        <View
+          class={`flex-row items-center border-t border-border ${collapsed() && props.hiddenChoices > 0 ? 'justify-between' : 'justify-end'}`}
+          style={{ paddingVertical: space('xs') }}
+        >
+          <If when={collapsed() && props.hiddenChoices > 0}>
+            <UiText role="meta" tone="muted" lines={1}>
+              {`已选 ${props.hiddenChoices} 项`}
+            </UiText>
+          </If>
           <Button
             testID="ranking-filters-toggle"
             size="sm"
-            variant="quiet"
+            variant="default"
             label={props.expanded ? '收起筛选' : '展开筛选'}
             icon="down"
             expanded={props.expanded}
+            selected={props.expanded}
             accessibilityDescription={
               props.hiddenChoices ? `已收起 ${props.hiddenChoices} 个筛选条件` : '显示其余筛选条件'
             }
@@ -183,12 +198,6 @@ export function RankingsToolbar(props: {
               props.onExpandedChange(!props.expanded);
             }}
           />
-          {/* A collapsed group keeps its choice, so the count is the only visible trace of it. */}
-          <If when={collapsed() && props.hiddenChoices > 0}>
-            <UiText role="meta" tone="muted" lines={1}>
-              {`已选 ${props.hiddenChoices} 项`}
-            </UiText>
-          </If>
         </View>
       </If>
     </View>

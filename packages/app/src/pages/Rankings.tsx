@@ -103,6 +103,7 @@ function OfficialRankings(props: OfficialProps) {
       .slice(COLLAPSED_GROUPS)
       .filter(
         (group) =>
+          group.options.length > 1 &&
           group.value !== undefined &&
           group.value !== '' &&
           group.value !== group.options.find((option) => option.selected)?.id,

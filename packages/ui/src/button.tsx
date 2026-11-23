@@ -175,11 +175,26 @@ export function Button(props: ButtonProps) {
             !props.artwork && ((props.icon && !dropdown()) || (props.iconOnly && props.pending))
           }
         >
-          <Icon
-            name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
-            color={token(tone())}
-            size={sizeName()}
-          />
+          <View
+            class={
+              !dropdown() && props.expanded !== undefined && !reduceMotion()
+                ? 'transition-transform duration-150'
+                : ''
+            }
+            style={{
+              transform: [
+                {
+                  rotate: !dropdown() && props.expanded !== undefined && props.expanded ? 180 : 0,
+                },
+              ],
+            }}
+          >
+            <Icon
+              name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
+              color={token(tone())}
+              size={sizeName()}
+            />
+          </View>
         </If>
         <If when={!props.iconOnly && (props.artwork ? !!props.displayLabel : true)}>
           <Text
