@@ -1,9 +1,37 @@
 import { Text, View, signal, effect, token, type ViewProps, type ViewRef } from 'nsh';
-import { Select as BaseSelect } from 'nsh/base';
+import { Select as BaseSelect, type SelectEntry } from 'nsh/base';
 import { controlMetrics, radius, space, weight, type ControlSize } from './foundation';
 import { Button } from './button';
 import { Icon } from './icon';
+import { textLineHeightRatio } from './typography';
 import { type ChoiceOption } from './choice';
+
+/**
+ * The candidate row every Select popup shares. The row centres its content and sets the type
+ * scale's line height, so a label sits on the row's centre line at any control size. The chosen
+ * row carries only its check mark: `accent` belongs to the pointer's and the keyboard's cursor,
+ * so a freshly opened list does not read as a second selection.
+ */
+export function selectItemClass() {
+  return 'group justify-center text-popover-foreground hover:bg-muted focus:bg-accent disabled:text-muted-foreground';
+}
+
+/** Line height that centres a candidate's label in its row; the row keeps its own density. */
+export function selectItemLineHeight(fontSize: number) {
+  return Math.round(fontSize * textLineHeightRatio('body'));
+}
+
+/** A candidate's content: its title, and the check mark on the chosen row alone. */
+export function SelectItemLabel(props: { entry: SelectEntry; size?: ControlSize }) {
+  return (
+    <View class="w-full flex-row items-center justify-between" style={{ gap: space('xs') }}>
+      <Text style={{ flexShrink: 1, numberOfLines: 1 }}>{props.entry.title}</Text>
+      <View class="opacity-0 group-selected:opacity-100">
+        <Icon name="check" size={props.size} color={token('accent-foreground')} />
+      </View>
+    </View>
+  );
+}
 
 /** Controlled selection from a bounded list. */
 export interface SelectProps {
@@ -91,11 +119,12 @@ export function Select(props: SelectProps) {
         padding: space('xxs'),
         borderRadius: radius('xl'),
       }}
-      itemClass="group text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent disabled:text-muted-foreground"
+      itemClass={selectItemClass()}
       itemStyle={{
         minHeight: size().height,
         fontSize: size().fontSize,
         fontWeight: weight.regular(),
+        lineHeight: selectItemLineHeight(size().fontSize),
         borderRadius: radius('lg'),
         paddingHorizontal: space('sm'),
         paddingVertical: space('xxs'),
@@ -113,19 +142,7 @@ export function Select(props: SelectProps) {
           暂无可选项
         </Text>
       }
-      renderItem={(item) => (
-        <View class="w-full flex-row items-center justify-between" style={{ gap: space('xs') }}>
-          <Text
-            class="group-selected:text-accent-foreground"
-            style={{ flexShrink: 1, numberOfLines: 1 }}
-          >
-            {item.title}
-          </Text>
-          <View class="opacity-0 group-selected:opacity-100">
-            <Icon name="check" size={props.size} color={token('accent-foreground')} />
-          </View>
-        </View>
-      )}
+      renderItem={(item) => <SelectItemLabel entry={item} size={props.size} />}
     />
   );
 }

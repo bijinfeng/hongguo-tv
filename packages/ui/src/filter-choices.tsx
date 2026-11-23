@@ -1,6 +1,7 @@
 import { Text, View, Scroll, signal, effect, cleanup, token, type ViewRef } from 'nsh';
 import { Select } from 'nsh/base';
 import { Button } from './button';
+import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { CardControls } from './card-controls';
 import { border, radius, space, type ControlSize } from './foundation';
 import { textSize, textWeight } from './typography';
@@ -132,13 +133,15 @@ export function FilterChoices(props: {
         }
         popupClass="bg-popover border border-border"
         popupStyle={{ padding: space('xs'), borderRadius: radius('xl'), borderWidth: border }}
-        itemClass="text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
+        itemClass={selectItemClass()}
         itemStyle={{
           paddingHorizontal: space('sm'),
           paddingVertical: space('xs'),
           borderRadius: radius('lg'),
           fontSize: textSize('body'),
+          lineHeight: selectItemLineHeight(textSize('body')),
         }}
+        renderItem={(entry) => <SelectItemLabel entry={entry} />}
       />
     </If>
   );

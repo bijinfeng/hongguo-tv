@@ -5,9 +5,13 @@ import {
   CardControls,
   Notice,
   PosterCard,
+  SelectItemLabel,
   SkeletonBlock,
   SkeletonRegion,
   UiText,
+  radius,
+  selectItemClass,
+  selectItemLineHeight,
 } from '@hongguo/ui';
 import type { Store } from '../../store';
 
@@ -104,8 +108,16 @@ function CatalogFilters(props: { store: Store }) {
         }
         popupClass="bg-popover border border-border rounded-(--radius) p-2"
         popupStyle={{ minWidth: 180 }}
-        itemClass="text-popover-foreground rounded-lg hover:bg-muted focus:bg-accent selected:bg-accent"
-        itemStyle={{ minHeight: 36, fontSize: 14, paddingHorizontal: 12, paddingVertical: 8 }}
+        itemClass={selectItemClass()}
+        itemStyle={{
+          minHeight: 36,
+          fontSize: 14,
+          lineHeight: selectItemLineHeight(14),
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: radius('lg'),
+        }}
+        renderItem={(entry) => <SelectItemLabel entry={entry} />}
       />
     </View>
   );

@@ -18,6 +18,7 @@ import { Button } from './button';
 import { Icon } from './icon';
 import { CardRoot } from './card-controls';
 import { CinemaButton } from './player';
+import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { Progress } from './display';
 
 /** Continue cards keep a fixed thumbnail lane and a generous inset around the copy. */
@@ -211,14 +212,16 @@ export function EpisodeRange(props: {
       }
       popupClass="bg-popover border border-border"
       popupStyle={{ padding: space('xs'), borderRadius: radius('xl') }}
-      itemClass="text-popover-foreground hover:bg-muted focus:bg-accent selected:bg-accent"
+      itemClass={selectItemClass()}
       itemStyle={{
         minHeight: controlMetrics().height,
         fontSize: controlMetrics().fontSize,
+        lineHeight: selectItemLineHeight(controlMetrics().fontSize),
         paddingHorizontal: controlMetrics().paddingHorizontal,
         paddingVertical: controlMetrics().paddingVertical,
         borderRadius: radius('lg'),
       }}
+      renderItem={(entry) => <SelectItemLabel entry={entry} />}
     />
   );
 }
