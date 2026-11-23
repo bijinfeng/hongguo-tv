@@ -439,6 +439,16 @@ TV 行为用显式 props，不从 size 推导：
 | `Button`（导航） | `align="start"`                                | 居中                  |
 | `FilterChoices`  | `variant="select"`                             | `variant="chips"`     |
 
+### 标签列表
+
+筛选标签只有两个组件：`ChoiceList`（纯标签行）与 `LabeledChoiceList`（同一行加名称列）。首页、找剧、排行榜、上新日历与榜单雷达全部由这两者构成，页面只提供值与回调，不写自己的圆角、最小宽、间距或换行策略。
+
+- 选项取 `Button sm quiet`：32 高、圆角 8、间距 8，选中用 `accent` 配对，未选正文色，禁用 `muted-foreground`。不设最小宽，宽度由文字决定；页面不覆盖这些值。
+- 选项**换行**而非横向滚动：横滚会把大部分选项藏在不可见边缘之后，读者既不知道有多少项，也不知道还能往哪滚。行内为焦点轮廓预留上下各 6（2 轮廓 + 4 offset），不再靠固定 56 容器留位。
+- `LabeledChoiceList` 的名称列 72 宽，放得下服务端最长的中文组名（“服务端时段”五字）。名称与首行选项同中线，不随多行块漂移，也不因折叠而消失。
+- 列表以位置为槽位而非以值为键：`CardControls` 按挂载顺序登记成员，值键会让重排或收缩后的 Home/End 与方向键沿旧顺序移动。每次槽位读取新的值时要重新登记引用。
+- 聚焦组、方向键、来源恢复与遥控语义仍归 `CardControls`；页面可选的 `onOptionFocus`（滚动到可视区）和 `restoreFor`（守卫过期来源）只表达行为，不影响样式。
+
 ```yaml
 components:
   button-sm:

@@ -3,6 +3,7 @@ import { View, signal, windowSize } from 'nsh';
 import {
   Button,
   CardControls,
+  ChoiceList,
   Notice,
   PosterCard,
   SelectItemLabel,
@@ -52,7 +53,7 @@ function cardWidth(store: Store) {
   return Math.max(150, Math.floor(usable / count));
 }
 
-/** Filter chips own the query; keep controls grouped above the grid and wrap when space is tight. */
+/** Filter chips own the query; the shared option row wraps before the grid. */
 function CatalogFilters(props: { store: Store }) {
   const catalog = props.store.homeCatalog;
   const sortOpen = signal(false);
@@ -60,65 +61,57 @@ function CatalogFilters(props: { store: Store }) {
   const sortTitle = () =>
     sortChoices().find((choice) => choice.value === catalog.selection().sort)?.title ?? '综合';
   return (
-    <View class="flex-row min-w-0 flex-wrap items-start" style={{ gap: 7, marginBottom: 22 }}>
-      <CardControls
-        label="题材"
-        onNavigate={props.store.noteFocusIntent}
-        gap={7}
-        class="min-w-0 flex-1 flex-wrap"
-      >
-        <Each of={catalog.choices('category_dim_theme')} key={(choice) => `theme-${choice.value}`}>
-          {(choice) => (
+    <View style={{ marginBottom: 22 }}>
+      <View class="flex-row min-w-0 flex-wrap items-start" style={{ gap: 7 }}>
+        <View class="min-w-0 flex-1">
+          <ChoiceList
+            label="题材"
+            value={catalog.selection().category_dim_theme}
+            items={catalog.choices('category_dim_theme')}
+            testID="home-filter-theme"
+            onNavigate={props.store.noteFocusIntent}
+            onChange={(value) => catalog.change('category_dim_theme', value)}
+          />
+        </View>
+        <Select
+          testID="home-filter-sort"
+          accessibilityLabel="排序方式"
+          value={catalog.selection().sort}
+          open={sortOpen()}
+          onOpenChange={({ open }) => sortOpen.set(open)}
+          items={sortChoices()}
+          onChange={({ value }) => {
+            if (value !== null) {
+              props.store.noteFocusIntent();
+              catalog.change('sort', value);
+            }
+          }}
+          trigger={
             <Button
-              label={choice().title}
+              label="排序方式"
+              displayLabel={sortTitle()}
+              icon="down"
               size="sm"
               variant="quiet"
-              style={{ borderRadius: 6, minWidth: 52 }}
-              selected={catalog.selection().category_dim_theme === choice().value}
-              testID={`home-filter-theme-${choice().value || 'all'}`}
-              onPress={() => catalog.change('category_dim_theme', choice().value)}
+              selectOpen={sortOpen()}
+              style={{ minWidth: 132 }}
+              onPress={() => sortOpen.set(true)}
             />
-          )}
-        </Each>
-      </CardControls>
-      <Select
-        testID="home-filter-sort"
-        accessibilityLabel="排序方式"
-        value={catalog.selection().sort}
-        open={sortOpen()}
-        onOpenChange={({ open }) => sortOpen.set(open)}
-        items={sortChoices()}
-        onChange={({ value }) => {
-          if (value !== null) {
-            props.store.noteFocusIntent();
-            catalog.change('sort', value);
           }
-        }}
-        trigger={
-          <Button
-            label="排序方式"
-            displayLabel={sortTitle()}
-            icon="down"
-            size="sm"
-            variant="quiet"
-            selectOpen={sortOpen()}
-            style={{ minWidth: 132 }}
-            onPress={() => sortOpen.set(true)}
-          />
-        }
-        popupClass="bg-popover border border-border rounded-(--radius) p-2"
-        popupStyle={{ minWidth: 180 }}
-        itemClass={selectItemClass()}
-        itemStyle={{
-          minHeight: 36,
-          fontSize: 14,
-          lineHeight: selectItemLineHeight(14),
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          borderRadius: radius('lg'),
-        }}
-        renderItem={(entry) => <SelectItemLabel entry={entry} />}
-      />
+          popupClass="bg-popover border border-border rounded-(--radius) p-2"
+          popupStyle={{ minWidth: 180 }}
+          itemClass={selectItemClass()}
+          itemStyle={{
+            minHeight: 36,
+            fontSize: 14,
+            lineHeight: selectItemLineHeight(14),
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: radius('lg'),
+          }}
+          renderItem={(entry) => <SelectItemLabel entry={entry} />}
+        />
+      </View>
     </View>
   );
 }
@@ -129,11 +122,11 @@ function FilterSkeleton() {
     <View
       accessibilityElementsHidden
       class="flex-row min-w-0 flex-wrap items-center justify-between"
-      style={{ gap: 7, marginBottom: 22 }}
+      style={{ gap: 8, marginBottom: 22, paddingVertical: 6 }}
     >
-      <View class="flex-row min-w-0 flex-wrap items-center" style={{ gap: 7 }}>
+      <View class="flex-row min-w-0 flex-wrap items-center" style={{ gap: 8 }}>
         <Each of={[52, 64, 56, 60]}>
-          {(width) => <SkeletonBlock width={width()} height={36} radius={6} />}
+          {(width) => <SkeletonBlock width={width()} height={32} radius={8} />}
         </Each>
       </View>
       <SkeletonBlock width={132} height={36} radius={6} />

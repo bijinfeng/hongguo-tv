@@ -1,10 +1,10 @@
-import { Text, View, Scroll, signal, effect, cleanup, token, type ViewRef } from 'nsh';
+import { signal, effect, type ViewRef } from 'nsh';
 import { Select } from 'nsh/base';
 import { Button } from './button';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
-import { CardControls } from './card-controls';
-import { border, radius, space, type ControlSize } from './foundation';
-import { textSize, textWeight } from './typography';
+import { LabeledChoiceList } from './choice-list';
+import { border, radius, space } from './foundation';
+import { textSize } from './typography';
 
 /** Approved inline choice row or single selector. The caller owns the service value. */
 export function FilterChoices(props: {
@@ -12,8 +12,6 @@ export function FilterChoices(props: {
   testID: string;
   /** `chips` shows every choice in a row; `select` opens one selector. */
   variant?: 'chips' | 'select';
-  /** Control density of the chips and the selector trigger. */
-  size?: ControlSize;
   value: string;
   items: { value: string; title: string }[];
   onChange: (value: string) => void;
@@ -23,7 +21,6 @@ export function FilterChoices(props: {
 }) {
   const open = signal(false);
   let trigger: ViewRef | undefined;
-  const refs = new Map<string, ViewRef>();
   effect(() => {
     if (!props.active) open.set(false);
   });
@@ -35,65 +32,16 @@ export function FilterChoices(props: {
     <If
       when={props.variant === 'select'}
       else={
-        <View class="flex-row items-start" style={{ gap: space('lg') }}>
-          <View style={{ width: space('2xl'), paddingTop: space('xs') }}>
-            <Text
-              style={{
-                fontSize: textSize('meta'),
-                fontWeight: textWeight('meta'),
-                color: token('muted-foreground'),
-              }}
-            >
-              {props.label}
-            </Text>
-          </View>
-          {/* Room for the chip's focus ring: outline-2 plus offset-4 on both sides. */}
-          <Scroll horizontal class="flex-1" style={{ height: space('2xl') + 16 }}>
-            <CardControls
-              label={props.label}
-              onNavigate={props.onNavigate}
-              gap={space('xs')}
-              class="flex-nowrap"
-            >
-              <Each of={Array.from({ length: props.items.length }, (_, index) => index)}>
-                {(slot) => {
-                  const item = () => props.items[slot()];
-                  let ref: ViewRef | undefined;
-                  effect(() => {
-                    const value = item().value;
-                    if (ref) refs.set(value, ref);
-                    cleanup(() => {
-                      if (refs.get(value) === ref) refs.delete(value);
-                    });
-                  });
-                  const source = () => {
-                    const value = item().value;
-                    return () => refs.get(value)?.focus();
-                  };
-                  return (
-                    <Button
-                      buttonRef={(node) => {
-                        ref = node;
-                        refs.set(item().value, node);
-                      }}
-                      onFocus={() => props.onSource?.(source())}
-                      size={props.size ?? 'sm'}
-                      variant="quiet"
-                      testID={`${props.testID}-${item().value || 'all'}`}
-                      label={item().title}
-                      selected={props.value === item().value}
-                      onPress={() => {
-                        const restore = source();
-                        props.onChange(item().value);
-                        props.onSource?.(restore);
-                      }}
-                    />
-                  );
-                }}
-              </Each>
-            </CardControls>
-          </Scroll>
-        </View>
+        <LabeledChoiceList
+          title={props.label}
+          label={props.label}
+          value={props.value}
+          items={props.items}
+          onChange={props.onChange}
+          testID={props.testID}
+          onSource={props.onSource}
+          onNavigate={props.onNavigate}
+        />
       }
     >
       <Select
