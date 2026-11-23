@@ -7,6 +7,9 @@
   "rust": "native",
   "theme": "../../packages/ui/theme.json",
   "appearance": "system",
+  "window": {
+    "defaultSize": { "width": 1180, "height": 780 }
+  },
   "updater": {
     "github": "bijinfeng/hongguo-tv",
     "publicKey": "8Jh3DGUqKclFPZZM13LTAW92DuZZVFotKx9z60lad88="

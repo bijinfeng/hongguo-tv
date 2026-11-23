@@ -1,7 +1,7 @@
 {
   "nsh": {
-    "version": "0.6.0",
-    "commit": "5541637",
+    "version": "0.6.1",
+    "commit": "2f51d86",
     "runtime": "android/release"
   },
   "jdk": {
