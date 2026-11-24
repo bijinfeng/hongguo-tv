@@ -562,14 +562,16 @@ async fn qr_rejects_missing_session_invalid_identity_unsafe_redirect_and_invalid
     }
 }
 
-/// An avatar field is only kept when it is an absolute HTTPS picture URL the product already
-/// loads covers from; every other shape leaves the profile without one.
+/// An avatar field is only kept when it is an absolute HTTPS URL on a picture CDN the product
+/// serves pictures from; every other shape leaves the profile without one.
 #[test]
 fn avatar_accepts_only_absolute_https_picture_hosts() {
     for accepted in [
         "https://p3-novel.byteimg.com/a~tplv-shrink:640:0.image",
         "https://p26-passport.fqnovelpic.com/avatar.jpeg",
         "  https://p9-passport.byteimg.com/x.png  ",
+        // The live account's own `avatar_url`: Passport serves avatars from its account CDN.
+        "https://p6-passport.byteacctimg.com/img/mosaic-legacy/3793/3131589739~120x256.image",
     ] {
         let image = client::public_avatar(accepted).expect(accepted);
         assert_eq!(image, accepted.trim());
@@ -584,6 +586,9 @@ fn avatar_accepts_only_absolute_https_picture_hosts() {
         "https://byteimg.com:8443/a.png",
         "https://evil.invalid/a.png",
         "https://byteimg.com.evil.invalid/a.png",
+        // A look-alike is not the account CDN: the check is a dot-prefixed suffix, not a contains.
+        "https://byteacctimg.com.evil.invalid/a.png",
+        "https://evilbyteacctimg.com/a.png",
     ] {
         assert!(client::public_avatar(rejected).is_none(), "{rejected}");
     }

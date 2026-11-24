@@ -95,6 +95,8 @@ pub(super) enum Endpoint {
     SetFollow,
     ReservationList,
     SetReservation,
+    /// The signed-in account's own display identity: the name and picture Passport omits.
+    UserInfo,
 }
 impl Endpoint {
     fn path(self) -> &'static str {
@@ -110,13 +112,16 @@ impl Endpoint {
             Self::SetFollow => "/reading/user/subscribe/delete/v",
             Self::ReservationList => "/reading/user/subscribe/list/v1/",
             Self::SetReservation => "/reading/bookapi/search/uncover_subscribe/v",
+            Self::UserInfo => "/reading/user/info/v1/",
         }
     }
     fn method(self) -> Method {
         match self {
-            Self::History | Self::Favorites | Self::FollowList | Self::ReservationList => {
-                Method::GET
-            }
+            Self::History
+            | Self::Favorites
+            | Self::FollowList
+            | Self::ReservationList
+            | Self::UserInfo => Method::GET,
             _ => Method::POST,
         }
     }
@@ -251,6 +256,45 @@ impl PassportClient {
         next.validate_for_uid(&uid)?;
         self.session = next;
         Ok(payload)
+    }
+
+    /// The signed-in account's own display identity.
+    ///
+    /// Passport's `account/info` returns the placeholder name it generates for an account that
+    /// never set one ("用户" plus an id), and it is the only name the login payload carries. The
+    /// reading API returns the name the account actually goes by, and its picture. This is a
+    /// best-effort enrichment: a failure leaves the caller with the Passport values rather than
+    /// failing a login that already succeeded.
+    pub(crate) async fn read_identity(
+        &mut self,
+    ) -> Result<(Option<String>, Option<String>), CloudError> {
+        let payload = self
+            .cloud_request(Endpoint::UserInfo, BTreeMap::new(), None)
+            .await?;
+        let data = object_data(&payload)?;
+        // The name arrives as `user_name` on this endpoint; the other keys are the spellings
+        // Passport uses, kept so a schema shift does not silently fall back to the placeholder.
+        let name = ["user_name", "screen_name", "nickname", "name"]
+            .iter()
+            .find_map(|key| data.get(*key).and_then(Value::as_str))
+            .map(str::trim)
+            .filter(|name| !name.is_empty() && name.chars().count() <= 128)
+            .filter(|name| !name.chars().any(char::is_control))
+            .map(str::to_owned);
+        // The picture is either a plain URL or `{ url_list: [...] }`; only an approved absolute
+        // HTTPS picture URL survives, so a malformed field leaves the neutral initial alone.
+        let avatar = [
+            "avatar_url",
+            "avatar_large_url",
+            "avatar_large",
+            "avatar_medium",
+            "avatar_thumb",
+            "avatar",
+        ]
+        .iter()
+        .find_map(|key| data.get(*key).and_then(avatar_candidate))
+        .and_then(|value| super::client::public_avatar(&value));
+        Ok((name, avatar))
     }
 
     /// Pull all membership before exposing a result; metadata outages retain retryable cards.
@@ -703,6 +747,20 @@ fn object_data(payload: &Value) -> Result<&serde_json::Map<String, Value>, Passp
         .get("data")
         .and_then(Value::as_object)
         .ok_or(PassportError::InvalidResponse)
+}
+
+/// One image field as a URL string: the field itself, or the first entry of its `url_list`.
+/// Some endpoints answer with `{"url_list": ["https://…"]}` instead of a bare string.
+fn avatar_candidate(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => Some(text.clone()),
+        Value::Object(object) => object
+            .get("url_list")
+            .and_then(Value::as_array)
+            .and_then(|list| list.iter().find_map(Value::as_str))
+            .map(str::to_owned),
+        _ => None,
+    }
 }
 fn optional_number(value: Option<&Value>) -> Result<u64, PassportError> {
     match value {

@@ -14,9 +14,12 @@ use std::{collections::BTreeMap, time::Duration};
 
 pub(super) const API: &str = "https://api5-normal-lq.fqnovel.com";
 
-/// An avatar the app may load: absolute HTTPS on a picture CDN the product already serves
-/// covers from, with no credentials, port or fragment. Anything else is dropped rather than
-/// rendered, so a malformed field leaves the neutral initial instead of a broken image.
+/// An avatar the app may load: absolute HTTPS on a picture CDN Passport and the catalog already
+/// serve pictures from, with no credentials, port or fragment. Anything else is dropped rather
+/// than rendered, so a malformed field leaves the neutral initial instead of a broken image.
+///
+/// `byteacctimg.com` is Passport's own avatar host: a live account's `avatar_url` resolves to
+/// `p6-passport.byteacctimg.com`, so leaving it out dropped every real picture on the floor.
 pub(super) fn public_avatar(text: &str) -> Option<String> {
     let text = text.trim();
     if text.is_empty() || text.len() > 2048 {
@@ -28,7 +31,9 @@ pub(super) fn public_avatar(text: &str) -> Option<String> {
         && url.password().is_none()
         && url.port().is_none()
         && url.host_str().is_some_and(|host| {
-            host.ends_with(".fqnovelpic.com") || host.ends_with(".byteimg.com")
+            host.ends_with(".fqnovelpic.com")
+                || host.ends_with(".byteimg.com")
+                || host.ends_with(".byteacctimg.com")
         });
     public.then(|| text.to_owned())
 }

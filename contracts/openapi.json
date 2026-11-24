@@ -3482,7 +3482,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Display name, bounded by the core."
+            "description": "Display name, bounded by the core. It comes from the reading API's own account record,\nwhich is the name the account goes by; Passport's placeholder name is only the fallback\nfor an account whose profile could not be read."
           },
           "uid": {
             "type": "string",
