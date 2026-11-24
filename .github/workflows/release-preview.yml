@@ -275,6 +275,8 @@ jobs:
       - name: Build the native TV preview
         env:
           HONGGUO_RUNTIME_MODE: native
+          # Previews never report: their events would land in the same project as releases.
+          TV_SENTRY_DSN: ''
         run: pnpm package:tv
       - name: Describe TV preview
         env:

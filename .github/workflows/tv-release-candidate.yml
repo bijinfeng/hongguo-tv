@@ -57,6 +57,8 @@ jobs:
           TV_RELEASE_STORE_PASSWORD: ${{ secrets.TV_RELEASE_STORE_PASSWORD }}
           TV_RELEASE_KEY_ALIAS: ${{ secrets.TV_RELEASE_KEY_ALIAS }}
           TV_RELEASE_KEY_PASSWORD: ${{ secrets.TV_RELEASE_KEY_PASSWORD }}
+          # Empty when unset, which keeps diagnostics reporting off in the built APK.
+          TV_SENTRY_DSN: ${{ secrets.TV_SENTRY_DSN }}
         run: pnpm package:tv
       - name: Verify candidate identity and describe artifact
         env:
