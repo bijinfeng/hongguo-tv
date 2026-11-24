@@ -34,8 +34,20 @@ const passed = {
   entry: 'success',
   security: 'success',
 };
-const full = { rust: 'true', web: 'true', desktop: 'true', tv: 'true' };
-const docs = { rust: 'false', web: 'false', desktop: 'false', tv: 'false' };
+const full = {
+  rust: 'true',
+  web: 'true',
+  desktop: 'true',
+  tv: 'true',
+  entry: JSON.stringify({ include: [{ target: 'web', os: 'macos-15' }] }),
+};
+const docs = {
+  rust: 'false',
+  web: 'false',
+  desktop: 'false',
+  tv: 'false',
+  entry: JSON.stringify({ include: [] }),
+};
 
 test('a full matrix that passed is accepted', async () => {
   const gate = await script();
@@ -92,6 +104,28 @@ test('a run that did work the scope did not ask for fails the run', async () => 
   // Both directions matter: skipping unneeded work is the optimisation, silently accepting a
   // mismatch in either direction would hide a broken selection.
   assert.notEqual(run(gate, { results: passed, selection: docs }).status, 0);
-  const targetOnly = { rust: 'false', web: 'false', desktop: 'false', tv: 'true' };
-  assert.notEqual(run(gate, { results: passed, selection: targetOnly }).status, 0);
+  const tvOnly = {
+    rust: 'false',
+    web: 'false',
+    desktop: 'false',
+    tv: 'true',
+    entry: JSON.stringify({ include: [{ target: 'tv', os: 'macos-15' }] }),
+  };
+  assert.notEqual(run(gate, { results: passed, selection: tvOnly }).status, 0);
+});
+
+test('an entry matrix is built only from the selected targets', async () => {
+  const { entryMatrix } = await import('../src/ci-paths.mjs');
+  assert.deepEqual(entryMatrix({ web: false, desktop: false, tv: false }), []);
+  assert.deepEqual(entryMatrix({ web: true, desktop: false, tv: false }), [
+    { target: 'web', os: 'macos-15' },
+  ]);
+  assert.deepEqual(
+    entryMatrix({ web: false, desktop: true, tv: false }).map((row) => row.os),
+    ['macos-15', 'windows-2025', 'ubuntu-24.04'],
+  );
+  assert.deepEqual(entryMatrix({ web: true, desktop: false, tv: true }), [
+    { target: 'web', os: 'macos-15' },
+    { target: 'tv', os: 'macos-15' },
+  ]);
 });

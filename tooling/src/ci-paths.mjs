@@ -50,6 +50,24 @@ export function select(paths) {
   return combine(paths.map(classify));
 }
 
+// One runner per target; desktop additionally gates on the Windows and Linux hosts, matching
+// the ENGINEERING matrix's desktop-windows / desktop-linux rows.
+const ENTRY_HOSTS = {
+  web: ['macos-15'],
+  desktop: ['macos-15', 'windows-2025', 'ubuntu-24.04'],
+  tv: ['macos-15'],
+};
+
+/**
+ * The `entry` job's matrix for a selection. A job-level `if` cannot read `matrix`, so the
+ * scope computes the matrix instead and the job expands whatever it is given.
+ */
+export function entryMatrix(selection) {
+  return Object.entries(ENTRY_HOSTS)
+    .filter(([target]) => selection[target])
+    .flatMap(([target, hosts]) => hosts.map((os) => ({ target, os })));
+}
+
 async function git(args, cwd) {
   const { execFile } = await import('node:child_process');
   return new Promise((done, fail) => {

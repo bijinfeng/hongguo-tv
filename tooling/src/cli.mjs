@@ -21,7 +21,7 @@ import {
   targets,
 } from './process.mjs';
 import { boundaries } from './boundaries.mjs';
-import { selectJobs } from './ci-paths.mjs';
+import { entryMatrix, selectJobs } from './ci-paths.mjs';
 import { codegen } from './codegen.mjs';
 import { designTokens } from './design-tokens.mjs';
 import { dev } from './dev.mjs';
@@ -358,9 +358,12 @@ try {
         cwd: root,
       });
       const outputs = Object.entries(selection).map(([name, needed]) => `${name}=${needed}`);
+      // `entry` cannot branch on `matrix` in a job-level `if`, so its matrix is decided here.
+      const matrix = entryMatrix(selection);
+      outputs.push(`entry=${JSON.stringify({ include: matrix })}`);
       if (process.env.GITHUB_OUTPUT)
         await appendFile(process.env.GITHUB_OUTPUT, `${outputs.join('\n')}\n`);
-      console.log(JSON.stringify(selection));
+      console.log(JSON.stringify({ ...selection, entry: matrix }));
       break;
     }
     case 'package':

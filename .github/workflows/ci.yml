@@ -22,6 +22,7 @@ jobs:
       web: ${{ steps.select.outputs.web }}
       desktop: ${{ steps.select.outputs.desktop }}
       tv: ${{ steps.select.outputs.tv }}
+      entry: ${{ steps.select.outputs.entry }}
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
@@ -111,18 +112,12 @@ jobs:
     # development flows run on.
     name: ${{ matrix.target }} (${{ matrix.os }})
     needs: scope
-    # Each target's own suite runs only when this change can reach that app's code.
-    if: needs.scope.outputs[matrix.target] == 'true'
+    # Each target's suite runs only when the change can reach that app; `scope` builds this
+    # matrix because a job-level `if` cannot read `matrix`.
+    if: needs.scope.outputs.entry != ''
     strategy:
       fail-fast: false
-      matrix:
-        target: [web, desktop, tv]
-        os: [macos-15]
-        include:
-          - target: desktop
-            os: windows-2025
-          - target: desktop
-            os: ubuntu-24.04
+      matrix: ${{ fromJSON(needs.scope.outputs.entry) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.os == 'windows-2025' && 45 || matrix.os == 'ubuntu-24.04' && 30 || 25 }}
     defaults:
@@ -240,7 +235,8 @@ jobs:
           needed = selection.get('rust') == 'true'
           rust = results.get('rust')
           assert rust == ('success' if needed else 'skipped'), f'rust ran as {rust} while needed={needed}'
-          target_needed = any(selection.get(t) == 'true' for t in ('web', 'desktop', 'tv'))
+          matrix = json.loads(selection['entry'] or '{"include": []}')
+          target_needed = bool(matrix['include'])
           entry = results.get('entry')
           assert entry == ('success' if target_needed else 'skipped'), (
               f'entry ran as {entry} while targets_needed={target_needed}'
