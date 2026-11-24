@@ -177,12 +177,16 @@ jobs:
             while read -r name; do [ -f "$archives/$name" ] || echo missing; done | wc -l)
           echo "apt archives absent from the cache: $missing"
           # `runner.temp` is mode 0700 under the runner user, so the `_apt` sandbox user cannot
-          # traverse it; downloads into a custom archive directory must run as root instead.
+          # traverse it; apt runs as root into the archive directory instead. That leaves
+          # root-owned `partial/` and `lock` files behind, which the cache's tar step (running
+          # as the runner user) could not read, so the handover back is explicit.
           sudo apt-get install --no-install-recommends --yes \
             -o Dir::Cache::archives="$archives" \
             -o APT::Sandbox::User=root \
             -o APT::Keep-Downloaded-Packages=true \
             $packages
+          sudo rm -rf "$archives/partial" "$archives/lock"
+          sudo chown -R "$(id -u):$(id -g)" "$archives"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: entry-${{ matrix.target }}-${{ matrix.os }}
