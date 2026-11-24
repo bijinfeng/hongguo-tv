@@ -21,10 +21,13 @@ async function script() {
 }
 
 function run(scriptText, { results, selection }) {
-  return spawnSync('python3', ['-c', scriptText], {
-    env: { ...process.env, RESULTS: JSON.stringify(results), SELECTION: JSON.stringify(selection) },
-    encoding: 'utf8',
-  });
+  // Each gate arrives as its own environment variable, matching how the workflow passes them.
+  const env = { ...process.env, SELECTION: JSON.stringify(selection) };
+  for (const [name, result] of Object.entries(results))
+    env[`${name.toUpperCase()}_RESULT`] = result;
+  for (const name of ['scope', 'rust', 'workspace', 'entry', 'security'])
+    env[`${name.toUpperCase()}_RESULT`] ??= 'skipped';
+  return spawnSync('python3', ['-c', scriptText], { env, encoding: 'utf8' });
 }
 
 const passed = {

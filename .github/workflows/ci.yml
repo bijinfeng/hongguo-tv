@@ -218,28 +218,37 @@ jobs:
     steps:
       - name: Require every gate that had work to do
         env:
-          RESULTS: ${{ toJSON(needs.*.result) }}
+          # Named per job: `needs.*.result` flattens to an unlabelled array, which cannot say
+          # which gate produced which result.
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          RUST_RESULT: ${{ needs.rust.result }}
+          WORKSPACE_RESULT: ${{ needs.workspace.result }}
+          ENTRY_RESULT: ${{ needs.entry.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
           SELECTION: ${{ toJSON(needs.scope.outputs) }}
         run: |
           python3 - <<'PY'
           import json, os
-          results = json.loads(os.environ['RESULTS'])
+          results = {
+              name: os.environ[f'{name.upper()}_RESULT']
+              for name in ('scope', 'rust', 'workspace', 'entry', 'security')
+          }
           selection = json.loads(os.environ['SELECTION'] or '{}')
           # `scope` decides what runs, so a failed or missing decision invalidates the run.
-          assert results.get('scope') == 'success', 'the path scope could not be decided'
+          assert results['scope'] == 'success', 'the path scope could not be decided'
           # These always run once the scope succeeded.
           for name in ('workspace', 'security'):
-              assert results.get(name) == 'success', f'{name} did not pass: {results.get(name)}'
+              assert results[name] == 'success', f'{name} did not pass: {results[name]}'
           # A skipped job is acceptable only where `scope` proved the change cannot reach it;
           # claiming something was needed but it did not run is a workflow mistake.
           needed = selection.get('rust') == 'true'
-          rust = results.get('rust')
-          assert rust == ('success' if needed else 'skipped'), f'rust ran as {rust} while needed={needed}'
+          assert results['rust'] == ('success' if needed else 'skipped'), (
+              f"rust ran as {results['rust']} while needed={needed}"
+          )
           matrix = json.loads(selection['entry'] or '{"include": []}')
           target_needed = bool(matrix['include'])
-          entry = results.get('entry')
-          assert entry == ('success' if target_needed else 'skipped'), (
-              f'entry ran as {entry} while targets_needed={target_needed}'
+          assert results['entry'] == ('success' if target_needed else 'skipped'), (
+              f"entry ran as {results['entry']} while targets_needed={target_needed}"
           )
           print('every applicable gate passed', selection)
           PY
