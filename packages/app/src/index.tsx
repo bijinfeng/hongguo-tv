@@ -73,3 +73,12 @@ export function App(props: {
 export { NativeApp } from './NativeApp';
 
 export type { UpdateAdapter, AppUpdate, InstallState } from './updates';
+export {
+  reportFailure,
+  reportDiagnostic,
+  diagnosticEvent,
+  sanitizeDiagnosticText,
+  diagnosticsAvailable,
+  diagnosticsConsent,
+} from './diagnostics';
+export type { DiagnosticCategory, DiagnosticEvent } from './diagnostics';

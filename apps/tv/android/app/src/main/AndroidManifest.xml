@@ -10,6 +10,9 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/TvTheme" android:supportsRtl="true"
         android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="false" tools:targetApi="s">
+        <!-- The SDK's init provider would otherwise start it at launch, before the user has
+             agreed and with no DSN yet. Reporting is initialized from the consent switch. -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
         <receiver android:name=".UpdateResultReceiver" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

@@ -12,6 +12,8 @@ def releaseKeyAlias = System.getenv('TV_RELEASE_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('TV_RELEASE_KEY_PASSWORD')
 def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword]
         .every { it != null && !it.isBlank() }
+// Absent in local builds and in CI runs without the secret: the reporter then stays off.
+def sentryDsn = System.getenv('TV_SENTRY_DSN') ?: ''
 
 android {
     namespace 'dev.hongguo.tv'
@@ -21,6 +23,7 @@ android {
     buildFeatures { buildConfig true }
     defaultConfig {
         buildConfigField 'String', 'UPDATE_CERTIFICATE_SHA256', '"' + releasePolicy.tv.signingCertificateSha256 + '"'
+        buildConfigField 'String', 'SENTRY_DSN', '"' + sentryDsn + '"'
         applicationId appMetadata.id
         resValue 'string', 'app_name', appMetadata.name
         minSdk toolchain.android.minSdk
@@ -77,4 +80,9 @@ tasks.configureEach {
 }
 
 // Official embedding classes; the matching mixed libnsh.so comes from NSH package.
-dependencies { implementation files(new File(generated, 'nsh-classes.jar')) }
+// `sentry-android` reports diagnostics; its runtime dependencies are androidx libraries, which
+// is why the host sets android.useAndroidX=true. NSH's own classes reference none of them.
+dependencies {
+    implementation files(new File(generated, 'nsh-classes.jar'))
+    implementation 'io.sentry:sentry-android:8.65.1'
+}

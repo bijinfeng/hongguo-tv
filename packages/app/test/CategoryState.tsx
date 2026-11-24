@@ -1,6 +1,7 @@
 import { signal, Text, View, cleanup } from 'nsh';
 import { Button } from '@hongguo/ui';
 import { createCategory } from '../src/category';
+import { bindDiagnosticsConsent } from '../src/diagnostics';
 import type { CategoryResult } from '@hongguo/core-client';
 
 export const categoryRows = [
@@ -36,6 +37,9 @@ export function CategoryStateFixture() {
   const active = signal(false);
   const shown = signal(true);
   const events = signal<string[]>([]);
+  // Diagnostics tests drive consent here; the product binds the same source from settings.
+  const diagnosticsConsent = signal(false);
+  bindDiagnosticsConsent(() => diagnosticsConsent());
   const log = (event: string) => events.update((all) => [...all, event]);
   const pending = new Map<number, { resolve: (value: unknown) => void; reject: () => void }>();
   let number = 0;
@@ -111,6 +115,10 @@ export function CategoryStateFixture() {
     <View class="flex-1 bg-background">
       <View class="flex-row flex-wrap">
         <Button label="激活分类" onPress={() => active.set(true)} />
+        <Button
+          label="发送诊断数据"
+          onPress={() => diagnosticsConsent.set(!diagnosticsConsent())}
+        />
         <Button label="隐藏分类" onPress={() => active.set(false)} />
         <Button label="完成首屏" onPress={() => complete(1)} />
         <Button label="完成大量首屏" onPress={() => complete(number, false, false, true)} />

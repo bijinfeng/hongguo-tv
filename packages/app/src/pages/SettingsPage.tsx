@@ -4,6 +4,7 @@ import type { Store } from '../store';
 import type { Updates } from '../updates';
 import { SettingsAccount } from './settings/account';
 import { SettingsAppearance } from './settings/appearance';
+import { SettingsDiagnostics } from './settings/diagnostics';
 import { SettingsLocalData } from './settings/local-data';
 import { SettingsPlayback } from './settings/playback';
 import { SettingsUpdates } from './settings/updates';
@@ -37,6 +38,7 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
               {() => <SettingsUpdates store={props.store} updates={props.updates!} tv={props.tv} />}
             </If>
             <SettingsLocalData store={props.store} />
+            <SettingsDiagnostics store={props.store} />
           </View>
         </View>
       </Scroll>
