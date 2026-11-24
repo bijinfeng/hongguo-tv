@@ -758,6 +758,10 @@ impl AccountService {
                     .credential
                     .validate_for_uid(&verified.uid)
                     .map_err(protocol_error)?;
+                // The reading API names the account as it goes by and carries its picture;
+                // Passport only has the placeholder name it generates and a session record.
+                // Best effort: a failure here must not fail a login that already succeeded.
+                let (name, avatar) = protocol.client.read_identity().await.unwrap_or_default();
                 let library = LibraryStore::open_for_owner(
                     self.directory
                         .join("accounts")
@@ -772,13 +776,13 @@ impl AccountService {
                 let saved = SavedSession {
                     profile: AccountProfile {
                         uid: verified.uid,
-                        name: verified
-                            .name
+                        name: name
+                            .unwrap_or(verified.name)
                             .chars()
                             .filter(|c| !c.is_control())
                             .take(128)
                             .collect(),
-                        avatar: verified.avatar,
+                        avatar: avatar.or(verified.avatar),
                     },
                     credential: verified.credential,
                 };

@@ -596,7 +596,11 @@ export interface components {
              *     session stored before the field existed decodes with it absent, not invalid.
              */
             avatar?: string | null;
-            /** @description Display name, bounded by the core. */
+            /**
+             * @description Display name, bounded by the core. It comes from the reading API's own account record,
+             *     which is the name the account goes by; Passport's placeholder name is only the fallback
+             *     for an account whose profile could not be read.
+             */
             name: string;
             /** @description Verified nonzero decimal identity, kept as a string. */
             uid: string;

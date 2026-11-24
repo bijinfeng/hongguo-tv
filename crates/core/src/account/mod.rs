@@ -27,7 +27,9 @@ use utoipa::ToSchema;
 pub struct AccountProfile {
     /// Verified nonzero decimal identity, kept as a string.
     pub uid: String,
-    /// Display name, bounded by the core.
+    /// Display name, bounded by the core. It comes from the reading API's own account record,
+    /// which is the name the account goes by; Passport's placeholder name is only the fallback
+    /// for an account whose profile could not be read.
     pub name: String,
     /// Approved public HTTPS avatar, absent while Passport supplies none the core accepts. A
     /// session stored before the field existed decodes with it absent, not invalid.

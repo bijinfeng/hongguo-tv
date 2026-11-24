@@ -839,3 +839,79 @@ async fn invalid_uploads_stop_before_network_and_32_digit_ids_stay_numbers() {
         large.card.drama.series_id
     );
 }
+
+/// The reading identity carries the name the account goes by, which Passport's placeholder
+/// does not, and the picture. Both are optional: a missing or malformed field is not a failure.
+#[tokio::test]
+async fn reading_identity_prefers_its_own_name_and_accepts_picture_shapes() {
+    let fixture = Fixture::new(|request| {
+        assert_eq!(request.method, "GET");
+        assert_eq!(request.path, "/reading/user/info/v1/");
+        Response::json(value!({
+            "code": 0,
+            "data": {
+                "biz_user_id": "066831371270",
+                "user_name": "  柯柏  ",
+                "avatar_url": "https://p6-passport.byteacctimg.com/img/mosaic-legacy/3793/a~120x256.image",
+            }
+        }))
+    })
+    .await;
+    let mut client = fixture.client();
+    assert_eq!(
+        client.read_identity().await.unwrap(),
+        (
+            Some("柯柏".into()),
+            Some(
+                "https://p6-passport.byteacctimg.com/img/mosaic-legacy/3793/a~120x256.image".into()
+            )
+        )
+    );
+}
+
+#[tokio::test]
+async fn reading_identity_accepts_url_list_and_falls_back_to_passport_spellings() {
+    let fixture = Fixture::new(|_| {
+        Response::json(value!({
+            "code": 0,
+            "data": {
+                "nickname": "备用昵称",
+                "avatar": { "url_list": ["https://p3-novel.byteimg.com/a~tplv-shrink:200:200.image"] },
+            }
+        }))
+    })
+    .await;
+    let mut client = fixture.client();
+    assert_eq!(
+        client.read_identity().await.unwrap(),
+        (
+            Some("备用昵称".into()),
+            Some("https://p3-novel.byteimg.com/a~tplv-shrink:200:200.image".into())
+        )
+    );
+}
+
+/// A rejected host or an unusable name leaves that field absent rather than inventing one;
+/// the caller then keeps the Passport values.
+#[tokio::test]
+async fn reading_identity_drops_unusable_fields_without_failing() {
+    let fixture = Fixture::new(|_| {
+        Response::json(value!({
+            "code": 0,
+            "data": {
+                "user_name": "   ",
+                "avatar_url": "http://evil.invalid/a.png",
+            }
+        }))
+    })
+    .await;
+    let mut client = fixture.client();
+    assert_eq!(client.read_identity().await.unwrap(), (None, None));
+}
+
+#[tokio::test]
+async fn reading_identity_reports_a_rejected_envelope() {
+    let fixture = Fixture::new(|_| Response::json(value!({ "code": 1003, "data": {} }))).await;
+    let mut client = fixture.client();
+    assert!(client.read_identity().await.is_err());
+}
