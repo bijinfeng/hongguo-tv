@@ -10,7 +10,37 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  # Decides which jobs a change can reach. ENGINEERING §8 allows trimming the matrix once it
+  # is stable: a documentation-only change has no binaries to build or run, so the whole
+  # matrix would only be waiting on nothing. Everything whose reach is not provably limited
+  # stays on the full matrix, so a wrong guess costs redundant work, never a missing gate.
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      rust: ${{ steps.select.outputs.rust }}
+      web: ${{ steps.select.outputs.web }}
+      desktop: ${{ steps.select.outputs.desktop }}
+      tv: ${{ steps.select.outputs.tv }}
+      entry: ${{ steps.select.outputs.entry }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          # The range below needs the merge base, so the shallow default is not enough.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - id: select
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node tooling/src/cli.mjs ci:jobs
   rust:
+    needs: scope
+    if: needs.scope.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -81,16 +111,13 @@ jobs:
     # matrix's desktop-windows / desktop-linux rows); web and tv keep the macOS host their
     # development flows run on.
     name: ${{ matrix.target }} (${{ matrix.os }})
+    needs: scope
+    # Each target's suite runs only when the change can reach that app; `scope` builds this
+    # matrix because a job-level `if` cannot read `matrix`.
+    if: needs.scope.outputs.entry != ''
     strategy:
       fail-fast: false
-      matrix:
-        target: [web, desktop, tv]
-        os: [macos-15]
-        include:
-          - target: desktop
-            os: windows-2025
-          - target: desktop
-            os: ubuntu-24.04
+      matrix: ${{ fromJSON(needs.scope.outputs.entry) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.os == 'windows-2025' && 45 || matrix.os == 'ubuntu-24.04' && 30 || 25 }}
     defaults:
@@ -122,15 +149,44 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - name: Restore the Linux engine's GTK baseline packages
+        if: runner.os == 'Linux'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/apt-archives
+          # The package list only changes when the baseline below changes, so the key is the
+          # step's own definition rather than a date that would expire the cache for free.
+          key: apt-gtk-baseline-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
       - name: Install the Linux engine's GTK baseline
         if: runner.os == 'Linux'
         run: |
           set -euo pipefail
           # The pinned NSH engine runs on GTK 4 and reports media through GStreamer; these are
           # the documented nsh.dev Linux baseline (GTK >= 4.14 on Ubuntu 24.04), not app code.
+          # The runner's Ubuntu mirror transferred this closure at ~50 kB/s, which cost 975s of
+          # this job's 1350s. Keeping the downloaded .debs in the cached archive directory lets
+          # a warm run install them without touching the network.
+          archives="$RUNNER_TEMP/apt-archives"
+          mkdir -p "$archives"
+          packages="libgtk-4-dev clang libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev"
           sudo apt-get update
-          sudo apt-get install --no-install-recommends --yes libgtk-4-dev clang \
-            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          # A full cache hit needs no network at all: every archive the closure resolves to is
+          # already in the directory. `--print-uris` reports that closure without downloading.
+          missing=$(apt-get install --print-uris --no-install-recommends --yes $packages 2>/dev/null |
+            sed -n "s/^'[^']*'.*\s\([^ ]*\.deb\)\s.*/\1/p" |
+            while read -r name; do [ -f "$archives/$name" ] || echo missing; done | wc -l)
+          echo "apt archives absent from the cache: $missing"
+          # `runner.temp` is mode 0700 under the runner user, so the `_apt` sandbox user cannot
+          # traverse it; apt runs as root into the archive directory instead. That leaves
+          # root-owned `partial/` and `lock` files behind, which the cache's tar step (running
+          # as the runner user) could not read, so the handover back is explicit.
+          sudo apt-get install --no-install-recommends --yes \
+            -o Dir::Cache::archives="$archives" \
+            -o APT::Sandbox::User=root \
+            -o APT::Keep-Downloaded-Packages=true \
+            $packages
+          sudo rm -rf "$archives/partial" "$archives/lock"
+          sudo chown -R "$(id -u):$(id -g)" "$archives"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: entry-${{ matrix.target }}-${{ matrix.os }}
@@ -161,14 +217,42 @@ jobs:
       - run: pnpm security
   required:
     if: ${{ always() }}
-    needs: [rust, workspace, entry, security]
+    needs: [scope, rust, workspace, entry, security]
     runs-on: ubuntu-24.04
     steps:
-      - name: Require every gate
+      - name: Require every gate that had work to do
         env:
-          RESULTS: ${{ toJSON(needs.*.result) }}
+          # Named per job: `needs.*.result` flattens to an unlabelled array, which cannot say
+          # which gate produced which result.
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          RUST_RESULT: ${{ needs.rust.result }}
+          WORKSPACE_RESULT: ${{ needs.workspace.result }}
+          ENTRY_RESULT: ${{ needs.entry.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          SELECTION: ${{ toJSON(needs.scope.outputs) }}
         run: |
           python3 - <<'PY'
           import json, os
-          assert all(result == 'success' for result in json.loads(os.environ['RESULTS']))
+          results = {
+              name: os.environ[f'{name.upper()}_RESULT']
+              for name in ('scope', 'rust', 'workspace', 'entry', 'security')
+          }
+          selection = json.loads(os.environ['SELECTION'] or '{}')
+          # `scope` decides what runs, so a failed or missing decision invalidates the run.
+          assert results['scope'] == 'success', 'the path scope could not be decided'
+          # These always run once the scope succeeded.
+          for name in ('workspace', 'security'):
+              assert results[name] == 'success', f'{name} did not pass: {results[name]}'
+          # A skipped job is acceptable only where `scope` proved the change cannot reach it;
+          # claiming something was needed but it did not run is a workflow mistake.
+          needed = selection.get('rust') == 'true'
+          assert results['rust'] == ('success' if needed else 'skipped'), (
+              f"rust ran as {results['rust']} while needed={needed}"
+          )
+          matrix = json.loads(selection['entry'] or '{"include": []}')
+          target_needed = bool(matrix['include'])
+          assert results['entry'] == ('success' if target_needed else 'skipped'), (
+              f"entry ran as {results['entry']} while targets_needed={target_needed}"
+          )
+          print('every applicable gate passed', selection)
           PY

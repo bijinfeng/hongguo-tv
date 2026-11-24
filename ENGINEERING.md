@@ -182,6 +182,7 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 
 | Job               | 环境                   | 必需内容                                                                     |
 | ----------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| `scope`           | 固定 Linux runner      | 按改动路径判定哪些 job 适用；无法判定时回退完整矩阵                          |
 | `quality`         | 固定 Linux runner/镜像 | frozen install、格式、Oxlint、契约生成检查、包边界、提交/PR 标题             |
 | `rust-core`       | Linux                  | 根锁检查、core/http-api 的 Clippy/nextest/doctest/覆盖率、测试向量与并发场景 |
 | `web`             | Linux + 浏览器         | NSH check/build/headless、静态产物、Web API 集成与浏览器冒烟                 |
@@ -195,6 +196,12 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 只有已经接通并验收的目标才宣称受支持；支持的目标失败不能改成 allow-failure。新增目标先完成工作流与验收，再加入支持矩阵。
 
 共享包、契约、锁文件、工具链、CI 配置或核心变更触发完整适用矩阵。纯端侧改动可缩减到该端与公共检查；Rust crate 图不能只用 pnpm 的 changed filter 推导影响。默认全跑，矩阵稳定后再优化路径过滤。
+
+路径过滤由 `tooling/src/ci-paths.mjs` 实现，`pnpm ci:jobs` 输出 `rust`／`web`／`desktop`／`tv` 四个 job 是否适用。规则只允许「可证明受限」的裁剪：`docs/`、`design/`、`openspec/`、`upstream/` 与根级声明文档不触发构建；`apps/<target>/` 只触发该端；`apps/{desktop,tv}/native/` 属于 Rust 工作区成员，触发 Rust 矩阵。其余位置（packages、contracts、crates、services、tooling、根配置与锁文件）一律返回完整矩阵，Git 范围不可用时同样回退完整矩阵——判错只会多跑，不会少跑。
+
+`required` 同时校验两个方向：需要跑的 job 必须 `success`，被判定不适用的 job 必须是 `skipped`；某 job 实际跑了但 `scope` 判定不需要也算失败。这样裁剪逻辑本身出错时会在汇聚 job 暴露，而不是悄悄放行。对应回归在 `tooling/test/ci-paths.test.mjs` 与 `tooling/test/ci-gate.test.mjs`。
+
+Linux entry job 的 GTK／GStreamer 基线约 45 MB，runner 的 Ubuntu 镜像曾以约 50 kB/s 传输，单次 975 秒。下载的 deb 缓存在 `runner.temp/apt-archives`，缓存键为 workflow 文件哈希，基线变更才失效。
 
 Actions 固定完整 commit SHA，默认 `contents: read`。非信任 PR 不获得签名/部署密钥，不通过 `pull_request_target` 执行其代码。缓存键包含 OS/架构、编译器、锁文件、features/target；不缓存账号数据或签名材料。
 
