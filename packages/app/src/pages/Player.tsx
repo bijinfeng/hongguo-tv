@@ -20,6 +20,7 @@ import { playbackActivity, playbackLease, progressSession } from '../playback';
 import { createWatchStatisticsCollector, watchContentType } from '../watch-statistics';
 import { playbackTime as timeLabel } from '../format';
 import { errorMessage } from '../error-messages';
+import { reportFailure } from '../diagnostics';
 import { createSeasons, isFinalEpisode } from '../seasons';
 import { PLAYBACK_RATES, type PlaybackRate } from '../settings';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
@@ -252,6 +253,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
         code:
           failure && prepareErrorCodes.has(failure.code) ? failure.code : 'PLAYBACK_UNKNOWN_ERROR',
       });
+      reportFailure('playback', '准备播放', reason);
       preparing.set(false);
       error.set(
         reason instanceof CoreError && reason.status === 501

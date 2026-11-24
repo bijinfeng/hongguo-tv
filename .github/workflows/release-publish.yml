@@ -319,6 +319,8 @@ jobs:
           TV_RELEASE_STORE_PASSWORD: ${{ secrets.TV_RELEASE_STORE_PASSWORD }}
           TV_RELEASE_KEY_ALIAS: ${{ secrets.TV_RELEASE_KEY_ALIAS }}
           TV_RELEASE_KEY_PASSWORD: ${{ secrets.TV_RELEASE_KEY_PASSWORD }}
+          # Empty when unset, which keeps diagnostics reporting off in the shipped APK.
+          TV_SENTRY_DSN: ${{ secrets.TV_SENTRY_DSN }}
         run: |
           set -euo pipefail
           pnpm package:tv

@@ -31,6 +31,7 @@ import { createReservationState } from './reservation-state';
 import { createNotificationsState } from './notifications-state';
 import { createSearchSuggestions } from './search-suggestions';
 import { createSettings } from './settings';
+import { setDiagnosticsConsent } from './diagnostics';
 import { validateSearchInput } from './search-input';
 import { createCategory } from './category';
 import { errorMessage } from './error-messages';
@@ -70,7 +71,8 @@ export function createStore(
 ) {
   const request = captureRequest();
   const nav = createNavStack<Route>([{ name: 'browse' }]);
-  const settings = createSettings();
+  // The host owns the reporter, so turning the switch on asks it first and keeps its refusal.
+  const settings = createSettings({ applyDiagnosticsConsent: setDiagnosticsConsent });
   const section = signal<Section>('home');
   const libraryKind = signal<'history' | 'favorites'>('history');
   const activePage = (name: Section) =>

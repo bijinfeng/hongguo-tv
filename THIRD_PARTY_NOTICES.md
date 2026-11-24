@@ -30,3 +30,17 @@ process nonce 与合成 nonce 生成，不含真实注册身份、账号凭据�
 界面图标使用固定版本的 Lucide 官方 SVG，许可证见
 [`packages/ui/assets/lucide/LICENSE`](../packages/ui/assets/lucide/LICENSE)。
 设计稿原型中的第三方资源许可证见对应目录内 LICENSE。
+
+## TV 诊断上报（Sentry SDK）
+
+`apps/tv/android/app/build.gradle` 引入 `io.sentry:sentry-android:8.65.1`（MIT，Sentry，
+<https://github.com/getsentry/sentry-java>）。该 SDK 的运行时依赖是 androidx 库，因此
+`apps/tv/android/gradle.properties` 的 `android.useAndroidX` 为 `true`；NSH 的
+`nsh-classes.jar` 不含任何 `androidx/` 引用，开启它只影响依赖解析。
+
+`gradle/verification-metadata.xml` 记录本次新增组件的 SHA-256。manifest 声明
+`io.sentry.auto-init=false`，SDK 只在用户打开诊断开关时初始化。
+
+不使用 ANR、Session Replay、Tracing、Profiling 或 NDK 崩溃能力（初始化时显式关闭）。
+分发时随包保留 MIT 许可证文本。
+
