@@ -88,7 +88,9 @@ A 分段／锁定恢复与 D 系列切季已接；actors/related 共享页面已
 
 Rust 准备／Range 与定稿 Player 已接；Web 官网闭环、TV native 三主题观看／后台／重启续播已验；macOS 本机真实播放／暂停恢复已观察（8→87→160 秒），重开后的续播入口未观察。
 
-取源新增 [Mobile-v5 链路](playback-v5.md)：`crates/core/src/playback/provider/mobile_v5.rs` 位于 `video_tab` 之后、旧 multi 之前，独立身份槽，仅确认 HTTP 200 空正文时轮换一次。签名层 `crates/core/src/playback/sign_v5.rs` 以 40 组固定向量逐字节校验通过（32 组 F13 旋转、4 组 carrier、4 组 wire），`cargo test -p hongguo-core --lib` 285 通过、clippy 零告警。**未做真实取源验收**：2026-11-20 上游该端点与本项目其余来源同样返回 HTTP 200 + 0 字节，属上游行为；本链路只确认请求被接受（有 `X-Tt-Logid` 且触发单次身份轮换），不因此宣称播放恢复。许可归属见 [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)，公开发行前待确认。
+取源新增 [Mobile-v5 链路](playback-v5.md)：`crates/core/src/playback/provider/mobile_v5.rs` 位于 `video_tab` 之后、旧 multi 之前，独立身份槽，仅确认 HTTP 200 空正文时轮换一次。签名层 `crates/core/src/playback/sign_v5.rs` 以 40 组固定向量逐字节校验通过（32 组 F13 旋转、4 组 carrier、4 组 wire），`cargo nextest -p hongguo-core` 除一条既有账号同步时序抖动外全过、clippy 零告警。
+
+2026-11-24 修正两个协议字段后，v5 已取得真实模型：`manifest_version_code=74332` 必须随最终 query 签名，播放证明字段 21 使用 wire 值 `738`；旧值 `754` 会返回 HTTP 200 空正文。修复前「重生」在 9 路来源全部空响应后失败；修复后四个真实入口（重生／甜宠／逆袭／穿越）均准备出 HEVC 媒体（720P–1080P，3.94–10.16 MB），正式 `GET /api/v1/play/info` 返回 `ok:true`，代理 Range 为 `206 video/mp4`，`ffprobe` 与 `ffmpeg` 全片解码通过。这是取源与媒体准备证据，各宿主播放器首帧／进度／暂停恢复仍按 VALIDATION 待验。许可归属见 [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)，公开发行前待确认。
 
 ### 倍速／音量／清晰度／全屏／偏好
 

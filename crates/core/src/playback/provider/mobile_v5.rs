@@ -150,6 +150,7 @@ fn mobile_v5_query(
         ("app_name", "novelread"),
         ("version_code", "74332"),
         ("version_name", "7.4.3.32"),
+        ("manifest_version_code", "74332"),
         ("channel", "vivo_8662_64"),
         ("device_platform", "android"),
         ("device_type", "PGT-AN10"),
@@ -195,6 +196,10 @@ mod tests {
         assert_eq!(query["device_id"], "789");
         assert_eq!(query["iid"], "321");
         assert_eq!(query["version_name"], "7.4.3.32");
+        assert_eq!(
+            query["manifest_version_code"], "74332",
+            "the signed manifest version is required for a non-empty response"
+        );
         assert!(
             !query.contains_key("_rticket"),
             "ticket is added by signing"
