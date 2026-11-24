@@ -18,6 +18,18 @@ node tooling/src/update-manifest.mjs tv \
 
 该命令重新读取 APK 字节，核对包名、版本、minSdk、ABI、非 debug 和完整单签名者身份，然后生成 `tv-latest.json` / `tv-latest.json.sig`。预期证书和清单公钥来自 `tooling/release-policy.json`，不从待签 APK 自行建立信任；私钥不写入清单、记录或日志。APK 报告是受信任构建 job 的输出，独立提供文本报告不能替代 APK 实际验签。
 
+桌面侧从三个平台 job 的归档生成，在签名 job 里执行：
+
+```sh
+node tooling/src/update-manifest.mjs desktop \
+  --dir <三平台归档目录> \
+  --repository bijinfeng/hongguo-tv \
+  --source-sha <40位源码SHA> \
+  --key <仓库外的桌面清单私钥文件>
+```
+
+该命令先按 `nsh-updater` 的暂存规则检查每个归档（单一顶层目录、应用可执行文件、`nsh/app.json` 的应用 ID，见 `tooling/src/desktop-archive.mjs`），再用 `desktop-release.json` 记录实际字节、调用固定 NSH CLI 生成三平台 `latest.json` 并签名，最后重新验签并核对清单、校验和与发布记录一致。
+
 发布 job 不需要私钥，下载两端候选后执行：
 
 ```sh
@@ -32,7 +44,7 @@ node tooling/src/update-manifest.mjs verify \
 
 workflow 顺序为：候选回验 → 上传草稿 → 鉴权下载回验 → 发布为非 latest → 匿名下载、逐字节比较和回验 → 晋级 latest。构建 job 只有 contents: read，发布 job 才有 contents: write；签名临时文件由 always 步骤清理。失败不自动覆盖已有同名草稿或资产；需核对后恢复，不承诺自动幂等重试。
 
-桌面正式归档名为 `hongguo-desktop-<version>-macos-aarch64.tar.gz`。固定 NSH CLI 对原 `macos-arm64` 后缀会生成空 platforms；回归测试直接调用 CLI 生成真实清单，避免仅凭手写 JSON 测试掩盖该问题。
+桌面正式归档名为 `hongguo-desktop-<version>-macos-aarch64.tar.gz`、`hongguo-desktop-<version>-windows-x86_64.zip`、`hongguo-desktop-<version>-linux-x86_64.tar.gz`，清单平台键分别为 `macos-aarch64`、`windows-x86_64`、`linux-x86_64`。固定 NSH CLI 对 `macos-arm64` 后缀会生成空 platforms、对 `x64` 后缀直接报格式错误；回归测试直接调用 CLI 生成真实三平台清单，避免仅凭手写 JSON 测试掩盖该问题。
 
 ## 本次验证
 

@@ -76,11 +76,132 @@ jobs:
       - run: pnpm security
 
   desktop:
-    name: Build desktop with signed update metadata
+    name: Build desktop archive (${{ matrix.platform }})
     needs: [quality, security]
-    runs-on: macos-15
-    environment: release-signing
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-aarch64
+            os: macos-15
+          - platform: windows-x86_64
+            os: windows-2025
+          - platform: linux-x86_64
+            os: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - run: npm install --global pnpm@11.1.3
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install pinned NSH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:NSH_VERSION = "v$((Get-Content .nsh-version -Raw).Trim())"
+          Invoke-WebRequest https://nsh.dev/install.ps1 -OutFile "$env:RUNNER_TEMP\nsh-install.ps1"
+          & "$env:RUNNER_TEMP\nsh-install.ps1"
+          Add-Content $env:GITHUB_PATH "$env:LOCALAPPDATA\nsh\bin"
+          "NSH_BIN=$env:LOCALAPPDATA\nsh\bin\nsh.exe" | Add-Content $env:GITHUB_ENV
+      - name: Install pinned NSH (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: |
+          curl --fail --silent --show-error --location https://nsh.dev/install.sh -o "$RUNNER_TEMP/nsh-install.sh"
+          NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
+      - name: Install the Linux engine's GTK baseline
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          # The pinned NSH engine's Linux host links GTK 4, WebKitGTK 6.0 and GStreamer; these
+          # are the documented build packages (nsh.dev/zh-CN/docs/linux) on Ubuntu 24.04.
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes libgtk-4-dev clang \
+            libwebkitgtk-6.0-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+      - run: pnpm setup:workspace
+      - name: Validate release identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          test "$RELEASE_TAG" = "v$version"
+          pnpm release:check
+      - name: Select the Xcode the macOS SDK headers compile against
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          # The image's default Xcode 16.4 SDK breaks nsh-platform-apple's os_log.c
+          # (os/log.h deprecation macros); the framework compiles against 16.3.
+          test -d /Applications/Xcode_16.3.app
+          sudo xcode-select -s /Applications/Xcode_16.3.app
+          xcodebuild -version
+      - name: Build desktop archive
+        env:
+          HONGGUO_RUNTIME_MODE: native
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          pnpm package:desktop
+          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
+          release_dir="$RUNNER_TEMP/desktop-release"
+          mkdir -p "$release_dir"
+          out=apps/desktop/.nsh/out
+          case "$PLATFORM" in
+            macos-aarch64)
+              archive="$release_dir/hongguo-desktop-${version}-macos-aarch64.tar.gz"
+              tar -C "$out" -czf "$archive" 红果.app
+              ;;
+            windows-x86_64)
+              # NSH writes <name>.zip beside the runner directory with the archivable
+              # metadata (icon, entry); that is the archive the updater expects.
+              archive="$release_dir/hongguo-desktop-${version}-windows-x86_64.zip"
+              cp "$out"/*.zip "$archive"
+              ;;
+            linux-x86_64)
+              archive="$release_dir/hongguo-desktop-${version}-linux-x86_64.tar.gz"
+              # nsh package writes its own archive beside the runner directory; copy it so
+              # the release ships exactly the bytes NSH recorded permissions with.
+              tgz=$(find "$out" -maxdepth 1 -name '*.tar.gz' | head -n 1)
+              if [ -n "$tgz" ]; then
+                cp "$tgz" "$archive"
+              else
+                tar -C "$out" -czf "$archive" 红果
+              fi
+              ;;
+          esac
+          # The updater stages exactly one top-level directory holding this app's bundle;
+          # a runner that renamed or flattened it fails here, before anything is signed.
+          node tooling/src/desktop-archive.mjs --archive "$archive" --platform "$PLATFORM"
+      - name: Upload desktop archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: ${{ runner.temp }}/desktop-release
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop-manifest:
+    name: Sign desktop update metadata
+    needs: [desktop]
+    runs-on: ubuntu-24.04
+    environment: release-signing
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
@@ -98,43 +219,15 @@ jobs:
           NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
-      - run: pnpm setup:workspace
-      - name: Validate release identity
-        env:
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: |
-          set -euo pipefail
-          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
-          test "$RELEASE_TAG" = "v$version"
-          pnpm release:check
-      - name: Select the Xcode the macOS SDK headers compile against
-        run: |
-          set -euo pipefail
-          # The image's default Xcode 16.4 SDK breaks nsh-platform-apple's os_log.c
-          # (os/log.h deprecation macros); the framework compiles against 16.3.
-          test -d /Applications/Xcode_16.3.app
-          sudo xcode-select -s /Applications/Xcode_16.3.app
-          xcodebuild -version
-      - name: Build desktop archive
-        env:
-          HONGGUO_RUNTIME_MODE: native
-        run: |
-          set -euo pipefail
-          pnpm package:desktop
-          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
-          release_dir="$RUNNER_TEMP/desktop-release"
-          archive="$release_dir/hongguo-desktop-${version}-macos-aarch64.tar.gz"
-          mkdir -p "$release_dir"
-          tar -C apps/desktop/.nsh/out -czf "$archive" 红果.app
-          printf '%s\n' "$archive"
-      - name: Sign desktop update manifest
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: desktop-*
+          path: ${{ runner.temp }}/desktop-platforms
+          merge-multiple: true
+      - name: Sign the three-platform update manifest
         env:
           DESKTOP_UPDATE_MANIFEST_KEY: ${{ secrets.DESKTOP_UPDATE_MANIFEST_KEY }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
         run: |
           set -euo pipefail
           test -n "$DESKTOP_UPDATE_MANIFEST_KEY"
@@ -142,34 +235,14 @@ jobs:
           key="$RUNNER_TEMP/desktop-update.secret"
           printf '%s' "$DESKTOP_UPDATE_MANIFEST_KEY" > "$key"
           chmod 600 "$key"
-          version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
-          archive="$RUNNER_TEMP/desktop-release/hongguo-desktop-${version}-macos-aarch64.tar.gz"
-          nsh update-manifest \
-            --entry apps/desktop \
-            --key "$key" \
-            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}" \
-            --out "$RUNNER_TEMP/desktop-release" \
-            "$archive"
-          sha=$(git rev-parse HEAD)
-          node - "$archive" "$RUNNER_TEMP/desktop-release/candidate.json" "$RELEASE_TAG" "$version" <<'NODE'
-          const fs = require('node:fs');
-          const [artifact, output, tag, version] = process.argv.slice(2);
-          fs.writeFileSync(output, JSON.stringify({
-            channel: 'stable',
-            artifacts: [{
-              target: 'desktop-macos-arm64',
-              path: artifact,
-              url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/${tag}/hongguo-desktop-${version}-macos-aarch64.tar.gz`,
-              kind: 'installer',
-            }],
-          }, null, 2));
-          NODE
-          pnpm release:record \
-            --input "$RUNNER_TEMP/desktop-release/candidate.json" \
+          pnpm release:check
+          # Records all three archives from the bytes each platform job built, then signs
+          # one latest.json whose platform keys NSH looks up at runtime.
+          node tooling/src/update-manifest.mjs desktop \
+            --dir "$RUNNER_TEMP/desktop-platforms" \
             --repository "$GITHUB_REPOSITORY" \
-            --source-sha "$sha" \
-            --out "$RUNNER_TEMP/desktop-release/desktop-release.json" \
-            --checksums "$RUNNER_TEMP/desktop-release/desktop-SHA256SUMS"
+            --source-sha "$SOURCE_SHA" \
+            --key "$key"
       - name: Remove desktop signing material
         if: always()
         run: |
@@ -178,7 +251,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-release
-          path: ${{ runner.temp }}/desktop-release
+          path: ${{ runner.temp }}/desktop-platforms
           if-no-files-found: error
           retention-days: 14
 
@@ -308,7 +381,7 @@ jobs:
 
   publish:
     name: Publish GitHub Release and update metadata
-    needs: [desktop, tv]
+    needs: [desktop-manifest, tv]
     permissions:
       contents: write
     runs-on: ubuntu-24.04
@@ -365,11 +438,13 @@ jobs:
             --verify-tag \
             --draft \
             --title "Hongguo TV $version" \
-            --notes "Desktop archive with signed update metadata and signed Android TV APK for $RELEASE_TAG."
+            --notes "macOS, Windows and Linux desktop archives with signed update metadata, and the signed Android TV APK for $RELEASE_TAG."
           test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq '.sha')" = "$SOURCE_SHA"
           gh release upload "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             "$desktop/hongguo-desktop-${version}-macos-aarch64.tar.gz" \
+            "$desktop/hongguo-desktop-${version}-windows-x86_64.zip" \
+            "$desktop/hongguo-desktop-${version}-linux-x86_64.tar.gz" \
             "$tv/hongguo-tv-${version}-android-arm64.apk" \
             "$desktop/latest.json" \
             "$desktop/latest.json.sig" \

@@ -63,6 +63,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/release-preview"
           archive="$RUNNER_TEMP/release-preview/hongguo-desktop-preview-${version}-macos-aarch64.tar.gz"
           tar -C apps/desktop/.nsh/out -czf "$archive" 红果.app
+          node tooling/src/desktop-archive.mjs --archive "$archive" --platform macos-aarch64
           sha=$(git rev-parse HEAD)
           node - "$archive" "$RUNNER_TEMP/release-preview/candidate.json" <<'NODE'
           const fs = require('node:fs');
@@ -127,7 +128,7 @@ jobs:
           $version = (Get-Content product-version.json -Raw | ConvertFrom-Json).version
           $dir = Join-Path $env:RUNNER_TEMP 'release-preview'
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          $archive = Join-Path $dir "hongguo-desktop-preview-$version-windows-x64.zip"
+          $archive = Join-Path $dir "hongguo-desktop-preview-$version-windows-x86_64.zip"
           # nsh package writes the runner directory and its own zip; prefer the ready-made one.
           $zip = Get-ChildItem $out -Filter *.zip -File | Select-Object -First 1
           if ($zip) {
@@ -135,6 +136,9 @@ jobs:
           } else {
             Compress-Archive -Path (Join-Path $out '红果') -DestinationPath $archive -Force
           }
+          # The updater stages one top-level directory holding this app; a preview that
+          # cannot be staged would hide the problem until a release build.
+          node tooling/src/desktop-archive.mjs --archive $archive --platform windows-x86_64
           "PREVIEW_ARCHIVE=$archive" | Add-Content $env:GITHUB_ENV
       - name: Describe Windows preview
         env:
@@ -201,7 +205,7 @@ jobs:
           find "$out" -maxdepth 2
           version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('product-version.json')).version)")
           mkdir -p "$RUNNER_TEMP/release-preview"
-          archive="$RUNNER_TEMP/release-preview/hongguo-desktop-preview-${version}-linux-x64.tar.gz"
+          archive="$RUNNER_TEMP/release-preview/hongguo-desktop-preview-${version}-linux-x86_64.tar.gz"
           # nsh package writes the runner directory and its own archive; prefer the ready-made one.
           tgz=$(find "$out" -maxdepth 1 -name '*.tar.gz' | head -n 1)
           if [ -z "$tgz" ]; then
@@ -209,6 +213,9 @@ jobs:
           else
             cp "$tgz" "$archive"
           fi
+          # The updater stages one top-level directory holding this app; a preview that
+          # cannot be staged would hide the problem until a release build.
+          node tooling/src/desktop-archive.mjs --archive "$archive" --platform linux-x86_64
           # Record the produced bundle's dynamic-library dependencies as acceptance evidence;
           # the ENGINEERING desktop-linux row requires the fixed GTK baseline to be visible.
           deps="$RUNNER_TEMP/release-preview/linux-dynamic-deps.txt"

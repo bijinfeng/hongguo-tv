@@ -3,8 +3,14 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { pathToFileURL } from 'node:url';
-import { root } from './process.mjs';
-import { sha256Sums, verifyReleaseRecord } from './release.mjs';
+import { executable, output, root } from './process.mjs';
+import {
+  sha256Sums,
+  verifyReleaseRecord,
+  createReleaseRecord,
+  readProductVersion,
+} from './release.mjs';
+import { verifyDesktopArchive } from './desktop-archive.mjs';
 
 // NSH 0.6.1 2f51d86 nsh-updater::sign/verify; sign the original bytes, including whitespace.
 const context = Buffer.from('nsh-updater-manifest\0');
@@ -53,18 +59,39 @@ export async function releasePolicy() {
   };
 }
 
+/**
+ * Desktop archives, in the order the release publishes them. The archive name is what
+ * NSH parses into its `<os>-<arch>` platform key, so it keeps the underscore
+ * (`x86_64`); a release record's target only allows hyphens.
+ */
+function desktopAssets(version) {
+  return [
+    {
+      target: 'desktop-macos-arm64',
+      platform: 'macos-aarch64',
+      name: `hongguo-desktop-${version}-macos-aarch64.tar.gz`,
+    },
+    {
+      target: 'desktop-windows-x64',
+      platform: 'windows-x86_64',
+      name: `hongguo-desktop-${version}-windows-x86_64.zip`,
+    },
+    {
+      target: 'desktop-linux-x64',
+      platform: 'linux-x86_64',
+      name: `hongguo-desktop-${version}-linux-x86_64.tar.gz`,
+    },
+  ];
+}
+
 function installer(record, target, repository, name) {
-  if (record.channel !== 'stable' || record.artifacts.length !== 1)
-    throw new Error('Stable release must contain exactly one installer per platform');
-  const asset = record.artifacts[0];
+  if (record.channel !== 'stable')
+    throw new Error('Stable release must only contain stable channel assets');
+  const asset = record.artifacts.find((entry) => entry.target === target);
+  if (!asset) throw new Error(`Release installer is missing for ${target}`);
   if (asset.size >= 2 ** 31) throw new Error('Release installer exceeds GitHub asset size limit');
   const url = `https://github.com/${repository}/releases/download/v${record.version}/${name}`;
-  if (
-    asset.target !== target ||
-    asset.kind !== 'installer' ||
-    asset.artifact !== name ||
-    asset.url !== url
-  )
+  if (asset.kind !== 'installer' || asset.artifact !== name || asset.url !== url)
     throw new Error('Release installer identity or immutable URL mismatch');
   return asset;
 }
@@ -137,6 +164,61 @@ export function verifyApkIdentity({ badging, certificates, record, policy }) {
     throw new Error('APK signer set mismatch');
 }
 
+/**
+ * Builds one desktop release from the archives the three platform jobs produced: checks
+ * each archive is the bundle NSH stages, records the bytes, and signs the manifest NSH
+ * reads. The platform keys are `<os>-<arch>` because that is what `nsh-updater` looks up
+ * at runtime, and the archive name is what the CLI parses them from.
+ */
+export async function createDesktopRelease({
+  dir,
+  entry = resolve(root, 'apps/desktop'),
+  repository,
+  sourceSha,
+  keyPath,
+  policy,
+  versionPath,
+}) {
+  const product = await readProductVersion(versionPath);
+  const artifacts = [];
+  for (const { target, platform, name } of desktopAssets(product.version)) {
+    const path = join(dir, name);
+    verifyDesktopArchive({ archive: path, platform, policy: { id: policy.desktop.id } });
+    artifacts.push({
+      target,
+      path,
+      kind: 'installer',
+      url: `https://github.com/${repository}/releases/download/v${product.version}/${name}`,
+    });
+  }
+  const record = await createReleaseRecord({
+    input: { channel: 'stable', artifacts },
+    sourceRepository: repository,
+    sourceSha,
+    versionPath,
+  });
+  await writeFile(join(dir, 'desktop-release.json'), `${JSON.stringify(record, null, 2)}\n`);
+  await writeFile(join(dir, 'desktop-SHA256SUMS'), sha256Sums(record));
+  output(
+    executable('nsh'),
+    [
+      'update-manifest',
+      '--entry',
+      entry,
+      '--key',
+      keyPath,
+      '--base-url',
+      `https://github.com/${repository}/releases/download/v${product.version}`,
+      '--out',
+      dir,
+      ...desktopAssets(product.version).map(({ name }) => join(dir, name)),
+    ],
+    { cwd: dir },
+  );
+  await verifyDesktopUpdate({ dir, repository, sourceSha, policy, versionPath });
+  return record;
+}
+
 export async function createTvManifest({
   dir,
   repository,
@@ -161,79 +243,89 @@ export async function createTvManifest({
   await writeFile(join(dir, 'tv-latest.json.sig'), signature);
 }
 
-export async function verifyUpdateAssets({
-  desktopDir,
-  tvDir,
-  repository,
-  sourceSha,
-  policy,
-  versionPath,
-}) {
-  for (const [dir, name, publicKey, id, target] of [
-    [
-      desktopDir,
-      'latest',
-      policy.desktop.updater.publicKey,
-      policy.desktop.id,
-      'desktop-macos-arm64',
-    ],
-    [tvDir, 'tv-latest', policy.signing.publicKey, policy.tv.id, 'tv-android-arm64'],
-  ]) {
-    const record = await verifyReleaseRecord({
-      record: await json(
-        join(dir, target.startsWith('desktop') ? 'desktop-release.json' : 'tv-release.json'),
-      ),
-      artifactDir: dir,
-      sourceRepository: repository,
-      sourceSha,
-      versionPath,
-    });
-    const sums = await readFile(
-      join(dir, target.startsWith('desktop') ? 'desktop-SHA256SUMS' : 'tv-SHA256SUMS'),
-      'utf8',
-    );
-    if (sums !== sha256Sums(record)) throw new Error('Release checksum file mismatch');
-    const manifest = openManifest(
-      await readFile(join(dir, `${name}.json`)),
-      await readFile(join(dir, `${name}.json.sig`), 'utf8'),
-      publicKey,
-    );
-    if (manifest.id !== id || manifest.version !== record.version)
-      throw new Error('Update manifest app or version mismatch');
-    if (name === 'tv-latest') {
-      if (!isDeepStrictEqual(manifest, tvManifest(record, repository, policy)))
-        throw new Error('TV update manifest metadata mismatch');
-    } else {
-      const asset = installer(
-        record,
-        target,
-        repository,
-        `hongguo-desktop-${record.version}-macos-aarch64.tar.gz`,
-      );
-      if (
-        !isDeepStrictEqual(Object.keys(manifest.platforms || {}), ['macos-aarch64']) ||
-        manifest.package
-      )
-        throw new Error('Desktop update platform mismatch');
-      const offered = manifest.platforms['macos-aarch64'];
-      if (
-        offered.url !== asset.url ||
-        offered.sha256 !== asset.sha256 ||
-        offered.size !== asset.size
-      )
-        throw new Error('Desktop update manifest metadata mismatch');
-    }
+/**
+ * Rejects a desktop manifest that offers anything but this release's archives: the
+ * platform keys are NSH's `<os>-<arch>`, so a renamed or extra entry would be dead
+ * weight at best and a misdirected download at worst.
+ */
+export function verifyDesktopManifest({ manifest, record, repository, policy }) {
+  const expected = desktopAssets(record.version);
+  if (manifest.id !== policy.desktop.id) throw new Error('Desktop update app id mismatch');
+  if (manifest.version !== record.version) throw new Error('Desktop update version mismatch');
+  if (manifest.package !== undefined) throw new Error('Desktop update must not offer a package');
+  if (
+    !isDeepStrictEqual(
+      Object.keys(manifest.platforms || {}).sort(),
+      expected.map((entry) => entry.platform).sort(),
+    )
+  )
+    throw new Error('Desktop update platform mismatch');
+  for (const { target, platform, name } of expected) {
+    const asset = installer(record, target, repository, name);
+    const offered = manifest.platforms[platform];
+    if (offered.url !== asset.url || offered.sha256 !== asset.sha256 || offered.size !== asset.size)
+      throw new Error(`Desktop update manifest metadata mismatch: ${platform}`);
   }
+}
+
+export async function verifyDesktopUpdate({ dir, repository, sourceSha, policy, versionPath }) {
+  const record = await verifyReleaseRecord({
+    record: await json(join(dir, 'desktop-release.json')),
+    artifactDir: dir,
+    sourceRepository: repository,
+    sourceSha,
+    versionPath,
+  });
+  const sums = await readFile(join(dir, 'desktop-SHA256SUMS'), 'utf8');
+  if (sums !== sha256Sums(record)) throw new Error('Release checksum file mismatch');
+  const manifest = openManifest(
+    await readFile(join(dir, 'latest.json')),
+    await readFile(join(dir, 'latest.json.sig'), 'utf8'),
+    policy.desktop.updater.publicKey,
+  );
+  if (manifest.id !== policy.desktop.id || manifest.version !== record.version)
+    throw new Error('Desktop update manifest app or version mismatch');
+  verifyDesktopManifest({ manifest, record, repository, policy });
+  return record;
+}
+
+export async function verifyTvUpdate({ dir, repository, sourceSha, policy, versionPath }) {
+  const record = await verifyReleaseRecord({
+    record: await json(join(dir, 'tv-release.json')),
+    artifactDir: dir,
+    sourceRepository: repository,
+    sourceSha,
+    versionPath,
+  });
+  const sums = await readFile(join(dir, 'tv-SHA256SUMS'), 'utf8');
+  if (sums !== sha256Sums(record)) throw new Error('Release checksum file mismatch');
+  const manifest = openManifest(
+    await readFile(join(dir, 'tv-latest.json')),
+    await readFile(join(dir, 'tv-latest.json.sig'), 'utf8'),
+    policy.signing.publicKey,
+  );
+  if (manifest.id !== policy.tv.id || manifest.version !== record.version)
+    throw new Error('TV update manifest app or version mismatch');
+  if (!isDeepStrictEqual(manifest, tvManifest(record, repository, policy)))
+    throw new Error('TV update manifest metadata mismatch');
+  return record;
+}
+
+export async function verifyUpdateAssets({ desktopDir, tvDir, ...common }) {
+  await verifyDesktopUpdate({ ...common, dir: desktopDir });
+  await verifyTvUpdate({ ...common, dir: tvDir });
 }
 
 async function main([command, ...args]) {
   const allowed =
     command === 'tv'
       ? ['dir', 'repository', 'source-sha', 'badging', 'certificates', 'key']
-      : command === 'verify'
-        ? ['desktop-dir', 'tv-dir', 'repository', 'source-sha']
-        : [];
-  if (!allowed.length) throw new Error('Expected update-manifest.mjs tv|verify');
+      : command === 'desktop'
+        ? ['dir', 'repository', 'source-sha', 'key']
+        : command === 'verify'
+          ? ['desktop-dir', 'tv-dir', 'repository', 'source-sha']
+          : [];
+  if (!allowed.length) throw new Error('Expected update-manifest.mjs desktop|tv|verify');
   const options = {};
   for (let i = 0; i < args.length; i += 2) {
     const name = args[i].slice(2);
@@ -253,7 +345,13 @@ async function main([command, ...args]) {
     sourceSha: options['source-sha'],
     policy: await releasePolicy(),
   };
-  if (command === 'tv') {
+  if (command === 'desktop') {
+    await createDesktopRelease({
+      ...common,
+      dir: options.dir,
+      keyPath: options.key,
+    });
+  } else if (command === 'tv') {
     await createTvManifest({
       ...common,
       dir: options.dir,
