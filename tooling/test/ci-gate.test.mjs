@@ -1,0 +1,97 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { root } from '../src/process.mjs';
+
+// The `required` job decides whether a run may merge. Its script is embedded in the workflow,
+// so it is extracted here and exercised against real result/selection combinations; a change
+// that lets a needed-but-skipped gate through, or accepts a matrix run nobody needed, fails.
+
+async function script() {
+  const workflow = await readFile(resolve(root, '.github/workflows/ci.yml'), 'utf8');
+  const match = /run: \|\n(\s+)python3 - <<'PY'\n([\s\S]*?)\n\s+PY/.exec(workflow);
+  assert.ok(match, 'the required job runs an inline python gate');
+  const indent = match[1].length;
+  return match[2]
+    .split('\n')
+    .map((line) => (line.startsWith(' '.repeat(indent)) ? line.slice(indent) : line.trim()))
+    .join('\n');
+}
+
+function run(scriptText, { results, selection }) {
+  return spawnSync('python3', ['-c', scriptText], {
+    env: { ...process.env, RESULTS: JSON.stringify(results), SELECTION: JSON.stringify(selection) },
+    encoding: 'utf8',
+  });
+}
+
+const passed = {
+  scope: 'success',
+  rust: 'success',
+  workspace: 'success',
+  entry: 'success',
+  security: 'success',
+};
+const full = { rust: 'true', web: 'true', desktop: 'true', tv: 'true' };
+const docs = { rust: 'false', web: 'false', desktop: 'false', tv: 'false' };
+
+test('a full matrix that passed is accepted', async () => {
+  const gate = await script();
+  assert.equal(run(gate, { results: passed, selection: full }).status, 0);
+});
+
+test('a documentation-only run that skipped every build is accepted', async () => {
+  const gate = await script();
+  const results = { ...passed, rust: 'skipped', entry: 'skipped' };
+  assert.equal(run(gate, { results, selection: docs }).status, 0);
+});
+
+test('a gate that was needed but did not run fails the run', async () => {
+  const gate = await script();
+  for (const skipped of [
+    { ...passed, rust: 'skipped' },
+    { ...passed, entry: 'skipped' },
+    { ...passed, rust: 'skipped', entry: 'skipped' },
+  ]) {
+    assert.notEqual(
+      run(gate, { results: skipped, selection: full }).status,
+      0,
+      JSON.stringify(skipped),
+    );
+  }
+});
+
+test('a failed gate fails the run', async () => {
+  const gate = await script();
+  for (const failed of [
+    { ...passed, rust: 'failure' },
+    { ...passed, entry: 'failure' },
+    { ...passed, workspace: 'failure' },
+    { ...passed, security: 'failure' },
+  ]) {
+    assert.notEqual(
+      run(gate, { results: failed, selection: full }).status,
+      0,
+      JSON.stringify(failed),
+    );
+  }
+});
+
+test('an undecided scope fails the run', async () => {
+  const gate = await script();
+  assert.notEqual(
+    run(gate, { results: { ...passed, scope: 'failure' }, selection: docs }).status,
+    0,
+  );
+});
+
+test('a run that did work the scope did not ask for fails the run', async () => {
+  const gate = await script();
+  // Both directions matter: skipping unneeded work is the optimisation, silently accepting a
+  // mismatch in either direction would hide a broken selection.
+  assert.notEqual(run(gate, { results: passed, selection: docs }).status, 0);
+  const targetOnly = { rust: 'false', web: 'false', desktop: 'false', tv: 'true' };
+  assert.notEqual(run(gate, { results: passed, selection: targetOnly }).status, 0);
+});

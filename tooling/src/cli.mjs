@@ -1,4 +1,4 @@
-import { readFile, access, mkdir, rm } from 'node:fs/promises';
+import { readFile, access, mkdir, rm, appendFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
@@ -21,6 +21,7 @@ import {
   targets,
 } from './process.mjs';
 import { boundaries } from './boundaries.mjs';
+import { selectJobs } from './ci-paths.mjs';
 import { codegen } from './codegen.mjs';
 import { designTokens } from './design-tokens.mjs';
 import { dev } from './dev.mjs';
@@ -347,6 +348,21 @@ try {
       await cargo(['deny', '--locked', 'check']);
       await pnpm(['audit', '--audit-level', 'moderate']);
       break;
+    case 'ci:jobs': {
+      // Writes `rust`, `web`, `desktop` and `tv` as GitHub Actions step outputs. Skipped jobs
+      // can only come from paths whose reach is provably limited; anything else is the full
+      // matrix, so a wrong guess fails safe towards running more.
+      const selection = await selectJobs({
+        base: process.env.CI_BASE_SHA,
+        head: process.env.CI_HEAD_SHA || 'HEAD',
+        cwd: root,
+      });
+      const outputs = Object.entries(selection).map(([name, needed]) => `${name}=${needed}`);
+      if (process.env.GITHUB_OUTPUT)
+        await appendFile(process.env.GITHUB_OUTPUT, `${outputs.join('\n')}\n`);
+      console.log(JSON.stringify(selection));
+      break;
+    }
     case 'package':
       if (!target) throw new Error('package requires --target');
       {

@@ -53,9 +53,11 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - run: pnpm setup:workspace
+      # `pnpm verify` runs `cargo nextest`, so the pinned tools stay. The clippy run that used
+      # to follow it repeated `check`'s own `--all-targets -- -D warnings` pass over the same
+      # compiled workspace, which is why that duplicate is gone.
       - run: pnpm setup:tools
       - run: pnpm verify
-      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
   security:
     name: Require release dependency policy
