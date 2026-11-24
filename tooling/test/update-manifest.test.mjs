@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPrivateKey, createPublicKey, sign } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { executable, nshVersion, output } from '../src/process.mjs';
 import { createReleaseRecord, sha256Sums } from '../src/release.mjs';
 import {
+  createDesktopRelease,
   createTvManifest,
   openManifest,
   signManifest,
@@ -37,69 +38,90 @@ const badging =
   "package: name='dev.hongguo.tv' versionCode='7' versionName='1.2.3' platformBuildVersionName='15'\nminSdkVersion:'26'\nnative-code: 'arm64-v8a'\n";
 const certificates = `Signer #1 certificate SHA-256 digest: ${'a'.repeat(64)}\n`;
 
+const desktopArchives = [
+  ['hongguo-desktop-1.2.3-macos-aarch64.tar.gz', 'macos-aarch64'],
+  ['hongguo-desktop-1.2.3-windows-x86_64.zip', 'windows-x86_64'],
+  ['hongguo-desktop-1.2.3-linux-x86_64.tar.gz', 'linux-x86_64'],
+];
+
+/** The bundle `nsh package` writes, so the updater's staging rules apply to the fixture. */
+async function writeArchive(dir, name, platform) {
+  const staged = await mkdtemp(join(dir, 'staged-'));
+  const app = join(staged, platform === 'macos-aarch64' ? '红果.app' : '红果');
+  const binary =
+    platform === 'macos-aarch64'
+      ? join(app, 'Contents/MacOS/App')
+      : join(app, platform === 'windows-x86_64' ? '红果.exe' : 'App');
+  await mkdir(
+    platform === 'macos-aarch64' ? join(app, 'Contents/Resources/nsh') : join(app, 'nsh'),
+    {
+      recursive: true,
+    },
+  );
+  await mkdir(dirname(binary), { recursive: true });
+  await writeFile(
+    join(app, platform === 'macos-aarch64' ? 'Contents/Resources/nsh' : 'nsh', 'app.json'),
+    JSON.stringify({ id: policy.desktop.id }),
+  );
+  await writeFile(binary, 'runner');
+  // The updater refuses a staged Unix executable without an execute bit; tar keeps the mode.
+  if (platform !== 'windows-x86_64') await output('chmod', ['+x', binary]);
+  const file = join(dir, name);
+  if (platform === 'windows-x86_64')
+    output('zip', ['-q', '-r', file, basename(app)], { cwd: staged });
+  else output('tar', ['-C', staged, '-czf', file, basename(app)]);
+  await rm(staged, { recursive: true, force: true });
+  return file;
+}
+
 async function fixture() {
   const dir = await mkdtemp(join(tmpdir(), 'hongguo-update-'));
   const versionPath = join(dir, 'version.json');
   await writeFile(versionPath, JSON.stringify({ version: '1.2.3', build: 7 }));
   const desktopDir = join(dir, 'desktop');
-  const tvDir = join(dir, 'tv');
-  for (const [destination, target, name] of [
-    [desktopDir, 'desktop-macos-arm64', 'hongguo-desktop-1.2.3-macos-aarch64.tar.gz'],
-    [tvDir, 'tv-android-arm64', 'hongguo-tv-1.2.3-android-arm64.apk'],
-  ]) {
-    await mkdir(destination);
-    const path = join(destination, name);
-    await writeFile(path, 'installer fixture');
-    const record = await createReleaseRecord({
-      input: {
-        artifacts: [
-          {
-            target,
-            path,
-            kind: 'installer',
-            url: `https://github.com/${repository}/releases/download/v1.2.3/${name}`,
-            ...(target.startsWith('tv') ? { signingIdentity: `sha256:${'a'.repeat(64)}` } : {}),
-          },
-        ],
-      },
-      sourceRepository: repository,
-      sourceSha,
-      versionPath,
-    });
-    await writeFile(
-      join(destination, target.startsWith('tv') ? 'tv-release.json' : 'desktop-release.json'),
-      JSON.stringify(record),
-    );
-    await writeFile(
-      join(destination, target.startsWith('tv') ? 'tv-SHA256SUMS' : 'desktop-SHA256SUMS'),
-      sha256Sums(record),
-    );
-    if (target.startsWith('desktop')) {
-      await writeFile(
-        join(destination, 'nsh.json'),
-        JSON.stringify({
-          name: 'test',
-          id: policy.desktop.id,
-          version: '1.2.3',
-          updater: { github: repository, publicKey },
-        }),
-      );
-      await writeFile(join(destination, 'test.secret'), secret, { mode: 0o600 });
-      output(executable('nsh'), [
-        'update-manifest',
-        '--entry',
-        destination,
-        '--key',
-        join(destination, 'test.secret'),
-        '--base-url',
-        `https://github.com/${repository}/releases/download/v1.2.3`,
-        '--out',
-        destination,
-        path,
-      ]);
-    }
-  }
+  await mkdir(desktopDir);
+  for (const [name, platform] of desktopArchives) await writeArchive(desktopDir, name, platform);
+  // The entry NSH reads the app's id, version and updater key from; the fixture's own key.
+  await writeFile(
+    join(desktopDir, 'nsh.json'),
+    JSON.stringify({
+      name: 'test',
+      id: policy.desktop.id,
+      version: '1.2.3',
+      updater: { github: repository, publicKey },
+    }),
+  );
+  await writeFile(join(desktopDir, 'test.secret'), secret, { mode: 0o600 });
   const common = { repository, sourceSha, policy, versionPath };
+  await createDesktopRelease({
+    ...common,
+    dir: desktopDir,
+    entry: desktopDir,
+    keyPath: join(desktopDir, 'test.secret'),
+  });
+  const tvDir = join(dir, 'tv');
+  await mkdir(tvDir);
+  const name = 'hongguo-tv-1.2.3-android-arm64.apk';
+  const path = join(tvDir, name);
+  await writeFile(path, 'installer fixture tv');
+  const record = await createReleaseRecord({
+    input: {
+      artifacts: [
+        {
+          target: 'tv-android-arm64',
+          path,
+          kind: 'installer',
+          url: `https://github.com/${repository}/releases/download/v1.2.3/${name}`,
+          signingIdentity: `sha256:${'a'.repeat(64)}`,
+        },
+      ],
+    },
+    sourceRepository: repository,
+    sourceSha,
+    versionPath,
+  });
+  await writeFile(join(tvDir, 'tv-release.json'), JSON.stringify(record));
+  await writeFile(join(tvDir, 'tv-SHA256SUMS'), sha256Sums(record));
   await createTvManifest({ ...common, dir: tvDir, key: secret, badging, certificates });
   return { ...common, dir, tvDir, desktopDir };
 }
@@ -260,10 +282,53 @@ test('publish verification rejects correctly signed but mismatched metadata', as
   }
 });
 
+test('desktop manifest covers every published platform and rejects a missing archive', async () => {
+  const files = await fixture();
+  const record = JSON.parse(await readFile(join(files.desktopDir, 'desktop-release.json'), 'utf8'));
+  const manifest = openManifest(
+    await readFile(join(files.desktopDir, 'latest.json')),
+    await readFile(join(files.desktopDir, 'latest.json.sig'), 'utf8'),
+    publicKey,
+  );
+  assert.equal(manifest.id, policy.desktop.id);
+  assert.equal(manifest.version, '1.2.3');
+  assert.deepEqual(Object.keys(manifest.platforms).sort(), [
+    'linux-x86_64',
+    'macos-aarch64',
+    'windows-x86_64',
+  ]);
+  for (const artifact of record.artifacts) {
+    const offered = Object.values(manifest.platforms).find((entry) => entry.url === artifact.url);
+    assert.equal(offered?.sha256, artifact.sha256);
+    assert.equal(offered?.size, artifact.size);
+  }
+  // The manifest must offer the archives this release checksums, not a name that merely parses.
+  const windows = join(files.desktopDir, 'hongguo-desktop-1.2.3-windows-x86_64.zip');
+  await rm(windows);
+  await assert.rejects(
+    async () =>
+      createDesktopRelease({
+        dir: files.desktopDir,
+        repository: files.repository,
+        sourceSha: files.sourceSha,
+        policy: files.policy,
+        versionPath: files.versionPath,
+        keyPath: join(files.desktopDir, 'test.secret'),
+        entry: files.desktopDir,
+      }),
+    /Missing desktop archive|Unsupported desktop archive/i,
+  );
+});
+
 test('publish verification rejects desktop wrong platform, signature, URL and hashes', async () => {
   const files = await fixture();
   const file = join(files.desktopDir, 'latest.json');
   const original = JSON.parse(await readFile(file, 'utf8'));
+  assert.deepEqual(Object.keys(original.platforms).sort(), [
+    'linux-x86_64',
+    'macos-aarch64',
+    'windows-x86_64',
+  ]);
   for (const change of [
     (m) => {
       m.platforms['macos-arm64'] = m.platforms['macos-aarch64'];
@@ -274,6 +339,25 @@ test('publish verification rejects desktop wrong platform, signature, URL and ha
     },
     (m) => {
       m.platforms['macos-aarch64'].url = 'https://other.test/app.tar.gz';
+    },
+    (m) => {
+      delete m.platforms['windows-x86_64'];
+    },
+    (m) => {
+      m.platforms['linux-x64'] = m.platforms['linux-x86_64'];
+      delete m.platforms['linux-x86_64'];
+    },
+    (m) => {
+      m.platforms['windows-x86_64'].url = m.platforms['windows-x86_64'].url.replace(
+        'windows-x86_64',
+        'windows-x64',
+      );
+    },
+    (m) => {
+      m.platforms['linux-x86_64'].size += 1;
+    },
+    (m) => {
+      m.package = { version: '1.2.3', build: 7, url: 'https://other.test/a.nshpkg' };
     },
   ]) {
     const manifest = structuredClone(original);

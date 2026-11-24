@@ -150,7 +150,7 @@ C1／C2 已接默认原生入口、写队列关闭与显式 preview；TV 原生�
 
 ### 公网隔离／发行
 
-未完成。2026-11-20 `deny.toml` 按精确版本补齐 4 项许可证与 2 项 unmaintained advisory 例外后根工作区 `pnpm security` 通过，`v0.1.0` 已在该门禁下首次正式发布；但两条 advisory 无修复版本、生成宿主锁文件不在根图内、Windows／Linux 安装与签名公证仍未做，完整产品矩阵与 N-1 升级未验。
+未完成。2026-11-20 `deny.toml` 按精确版本补齐 4 项许可证与 2 项 unmaintained advisory 例外后根工作区 `pnpm security` 通过，`v0.1.0` 已在该门禁下首次正式发布；但两条 advisory 无修复版本、生成宿主锁文件不在根图内、Windows／Linux 安装与签名公证仍未做，完整产品矩阵与 N-1 升级未验。2026-11-24 发布流水线扩为 macOS／Windows／Linux 三平台桌面归档与一份合并签名的 `latest.json`（新增 `desktop-manifest` job），preview 与 publish 共用归档布局校验；这改变的是流水线形状，Windows／Linux 真机安装与升级仍未验收。
 
 ### 刷剧／频道推荐（用户取消页面）
 

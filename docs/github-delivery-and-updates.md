@@ -34,12 +34,16 @@ latest.json.sig
 tv-latest.json
 tv-latest.json.sig
 hongguo-desktop-<version>-macos-aarch64.tar.gz
+hongguo-desktop-<version>-windows-x86_64.zip
+hongguo-desktop-<version>-linux-x86_64.tar.gz
 hongguo-tv-<version>-android-arm64.apk
 desktop-release.json
 desktop-SHA256SUMS
 tv-release.json
 tv-SHA256SUMS
 ```
+
+归档名必须保留 NSH 的 `<os>-<arch>` 拼写（`x86_64` 带下划线）：CLI 从文件名解析出 `latest.json` 的平台键，`nsh-updater` 运行时按 `windows-x86_64`／`linux-x86_64` 查找；写成 `x64` 会得到客户端永远查不到的键。发行记录里的 `target` 只允许连字符，因此仍是 `desktop-windows-x64`／`desktop-linux-x64`，两者不是同一个字段。
 
 首期只生成 stable。后续预览渠道使用独立 `.preview` 应用身份、预览签名和独立 Release；不能让预览包覆盖正式应用或修改 stable。PR artifact 与公开预览包都不能存放保密测试数据；确有保密需求时另用受限存储，不把“尚未正式发布”当成私有。
 
@@ -103,14 +107,16 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 
 ### 资产与支持矩阵
 
-首个发行演练优先 macOS arm64 与 TV arm64，`v0.1.0` 即按此矩阵发布。Windows/Linux 是产品目标：CI 的 entry 门禁已接入 Windows/Linux 宿主的桌面行为测试，`release-preview` 的 `windows-preview`/`linux-preview` job 产出未签名的预览 ZIP／目录归档（target id `desktop-windows-x64`／`desktop-linux-x64`）；两者都不构成正式支持，仍须各自完成真机安装和升级验收后才加入支持矩阵，不能由三系统 Rust CI 推定。
+首个发行演练优先 macOS arm64 与 TV arm64，`v0.1.0` 即按此矩阵发布。从 `v0.1.5` 起 `release-publish.yml` 的 `desktop` job 改为 macOS／Windows／Linux 矩阵，三者各自构建归档后由 `desktop-manifest` job 合并成一份三平台 `latest.json`；`release-preview.yml` 的 `windows-preview`/`linux-preview` 使用同一套归档名与同一布局校验。**流水线存在不等于平台受支持**：Windows／Linux 仍须各自完成真机安装、应用内更新和 N-1 → N 升级验收后才能转成已支持，不能由三系统 CI 或 Rust 构建通过推定。
 
-| 平台                     | 初装文件                                    | 应用内更新资产                                                | 候选验证重点                                                       |
-| ------------------------ | ------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
-| macOS arm64，后续 x86_64 | 已签名、公证的 app 归档；需要时再提供 DMG   | NSH 识别的 `*-macos-aarch64.tar.gz` / `*-macos-x86_64.tar.gz` | Developer ID、notarization/staple、Gatekeeper、可写/不可写安装位置 |
-| Windows x64              | 固定 CLI 实际支持且验收的安装程序或便携 ZIP | NSH 平台更新 ZIP                                              | Authenticode、时间戳、文件占用、安装目录权限、重启 helper          |
-| Linux x64                | NSH 目录归档 `.tar.gz`                      | 用户可写目录中的 NSH 归档                                     | 动态库/系统基线；系统包管理安装不承诺自行替换                      |
-| Android TV arm64-v8a     | 最终 Gradle release APK                     | 同一个完整 APK                                                | APK 签名、applicationId、versionCode、minSdk、ABI、TV 安装器遥控   |
+| 平台                     | 初装文件                                  | 应用内更新资产                                                | 候选验证重点                                                       |
+| ------------------------ | ----------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| macOS arm64，后续 x86_64 | 已签名、公证的 app 归档；需要时再提供 DMG | NSH 识别的 `*-macos-aarch64.tar.gz` / `*-macos-x86_64.tar.gz` | Developer ID、notarization/staple、Gatekeeper、可写/不可写安装位置 |
+| Windows x64              | NSH 输出的 `*-windows-x86_64.zip`         | 同一个 ZIP                                                    | Authenticode、时间戳、文件占用、安装目录权限、重启 helper          |
+| Linux x64                | NSH 目录归档 `*-linux-x86_64.tar.gz`      | 同一个 `.tar.gz`                                              | 动态库/系统基线；系统包管理安装不承诺自行替换                      |
+| Android TV arm64-v8a     | 最终 Gradle release APK                   | 同一个完整 APK                                                | APK 签名、applicationId、versionCode、minSdk、ABI、TV 安装器遥控   |
+
+三种桌面归档都由 `nsh package` 产出，`tooling/src/desktop-archive.mjs` 在签名前按 `nsh-updater` 的暂存规则复核：只有一个顶层目录、目录内有该应用的可执行文件、`nsh/app.json` 的 id 与 `dev.hongguo.desktop` 一致。归档没有 Authenticode／Developer ID 签名时，更新来源由清单签名与系统 Gatekeeper／SmartScreen 决定，不能把“清单已验签”当成平台代码签名。
 
 以 NSH 实际产物名为准，统一归档显示名宜使用稳定 ASCII，避免中文/空格 URL 与脚本解析问题。macOS universal 的更新平台键映射须单独实验，不先承诺通用包。首发不额外增加 AppImage、deb/rpm、MSIX 或双播放器包矩阵。
 
@@ -120,16 +126,16 @@ https://github.com/bijinfeng/hongguo-tv/releases/latest/download/tv-latest.json.
 
 现有CI及发行工作流定义在.github/workflows；Android／各桌面真实宿主和设备矩阵的缺口以VALIDATION为准，接通的产品目标纳入required。工程入口沿用 pnpm/Cargo，不新增 Go 发行依赖。干净 runner 执行 frozen install、setup、setup:tools、doctor、verify；发行另外执行 security、包检查和安装/升级验收。缺工具、缺报告、缺平台或安全失败都应阻止正式晋级。
 
-| 工作流                                  | 触发与权限                                                                      | 交付                                                                          |
-| --------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥          | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                         |
-| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS arm64 与原生 TV arm64 预览包，不拿生产密钥         | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable          |
-| `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK   | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                     |
-| `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；使用 `release-signing` environment 构建两端并校验资产 | 草稿回验 → 非latest发布 → 匿名回验 → latest晋级；不需要 `HONGGUO_CORE_ORIGIN` |
+| 工作流                                  | 触发与权限                                                                                   | 交付                                                                          |
+| --------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `release-validation.yml`（同仓库）      | 手动选择确定 SHA；验证源码版本、完整公共门禁和元数据契约，不拿生产密钥                       | 可追溯的源码验证记录；不产生可安装候选，不投放 stable                         |
+| `release-preview.yml`（同仓库）         | 手动选择确定 SHA；构建 macOS／Windows／Linux 桌面临时包与原生 TV arm64 预览包，不拿生产密钥  | 短期 Actions artifact、`release.json` 和 `SHA256SUMS`；不投放 stable          |
+| `tv-release-candidate.yml`（同仓库）    | `release-signing` environment；读取 TV keystore secrets，构建并验签 arm64 APK                | 正式签名 TV 候选与证书摘要；不创建 Release、不投放 stable                     |
+| `release-publish.yml`（已加入，同仓库） | 指定源码 SHA 与 `vX.Y.Z`；三平台桌面构建 + `desktop-manifest` 签名 job + TV 构建，均校验资产 | 草稿回验 → 非latest发布 → 匿名回验 → latest晋级；不需要 `HONGGUO_CORE_ORIGIN` |
 
 版本必须先写入源码再形成候选。tag 先建或后补均需校验指向同一 SHA，晋级／上传阶段复用已验收的最终字节，不再自动重构建另一份文件。候选过期、文件缺失、重签名或字节变化必须重新验收。正式标记前最终文件需完成平台验签及安装冒烟。
 
-当前的 `release-publish.yml` 直接读取手动输入的确定源码 SHA 与 tag，分别在 macOS/Ubuntu runner 构建，再由 publish job 校验两份 `release.json` 的 source SHA 后上传草稿。不能只按 artifact 名称查找“最新成功构建”，也不能把任意 fork PR 的 artifact 当成可签名/可发布候选。GITHUB_TOKEN 按 job 分配所需权限即可完成同仓库晋级。
+当前的 `release-publish.yml` 直接读取手动输入的确定源码 SHA 与 tag：`desktop` job 在三个原生 runner 上各产一个归档并立即用归档布局校验器复核，`desktop-manifest` job 只下载这三份归档、生成 `desktop-release.json`／`desktop-SHA256SUMS` 并签名一份三平台 `latest.json`，不重新构建；`tv` job 在 Ubuntu 上产签名 APK 和 `tv-latest.json`。publish job 校验两份记录的 source SHA 后上传草稿。不能只按 artifact 名称查找“最新成功构建”，也不能把任意 fork PR 的 artifact 当成可签名/可发布候选。GITHUB_TOKEN 按 job 分配所需权限即可完成同仓库晋级。
 
 顺序约束：
 
