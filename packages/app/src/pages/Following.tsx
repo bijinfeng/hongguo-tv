@@ -3,7 +3,7 @@ import { Button, CardControls, ContentArrival, Cover, Notice, UiText } from '@ho
 import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
-import { desktopContentFrame } from '../shell/ContentColumn';
+import { PageScroll } from '../shell/PageScroll';
 
 /** These labels are remote observations, never local playback checkpoints or inferred schedules. */
 export function followCaption(item: FollowItem): string {
@@ -211,13 +211,12 @@ export function Following(props: { store: Store }) {
     refs.clear();
   });
   return (
-    <View
+    <PageScroll
+      target={props.store.target}
       testID="following-page"
-      class="flex-1"
-      style={{
-        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
-        gap: props.store.target === 'tv' ? 8 : 16,
-      }}
+      top={24}
+      gap={props.store.target === 'tv' ? 8 : 16}
+      onScrollSettled={capture}
     >
       <View
         class="flex-row flex-wrap items-center justify-between"
@@ -286,16 +285,17 @@ export function Following(props: { store: Store }) {
               list = ref;
             }}
             testID="following-list"
+            viewport={props.store.target === 'tv' ? 'own' : 'parent'}
             each={items()}
             keyExtractor={(item) => item.series_id}
             estimatedItemSize={(props.store.target === 'tv' ? 114 : 180) * fontScale()}
-            class="flex-1"
+            class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
             contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
             onLayout={() => {
               if (waiting) reveal();
             }}
             onScroll={() => {
-              if (active()) void capture();
+              if (props.store.target === 'tv' && active()) void capture();
             }}
           >
             {(item) => (
@@ -310,7 +310,7 @@ export function Following(props: { store: Store }) {
           </List>
         </ContentArrival>
       </If>
-    </View>
+    </PageScroll>
   );
 }
 

@@ -1,5 +1,5 @@
 import { Select } from 'nsh/base';
-import { View, signal, windowSize } from 'nsh';
+import { View, signal } from 'nsh';
 import {
   Button,
   CardControls,
@@ -16,41 +16,17 @@ import {
 } from '@hongguo/ui';
 import type { Store } from '../../store';
 
-/** Fluid poster grid: keep desktop cards near 180px and add columns as the window grows. */
-const minCard = 180;
-const columnGap = 20;
+import { POSTER_GAP, posterGrid } from '../../shell/poster-grid';
 
-function gutter() {
-  return Math.min(64, Math.max(24, windowSize().width * 0.035));
-}
-
-/** Content width after the 176px rail and the shared content-column inset. */
-function gridWidth() {
-  const available = windowSize().width - 176;
-  const inset = Math.max(gutter(), (available - 1660) / 2);
-  return Math.max(0, available - inset * 2);
-}
+/** The shared poster grid: one column count and card width for home and every browse page. */
+const columnGap = POSTER_GAP;
 
 function columns(store: Store) {
-  if (store.target === 'tv') return 4;
-  const count = Math.floor((gridWidth() + columnGap) / (minCard + columnGap));
-  return Math.max(2, Math.min(8, count));
+  return posterGrid(store.target).columns;
 }
 
 function cardWidth(store: Store) {
-  if (store.target === 'tv') {
-    // The TV shell pads 44 on each side (TvShell); the skeleton already promises these 4 columns,
-    // so the loaded grid derives the same width from the viewport instead of a fixed 326 that
-    // only fits two cards in 960dp and leaves the row's right third empty.
-    const available = windowSize().width - 88;
-    return Math.max(
-      150,
-      Math.floor((available - (columns(store) - 1) * columnGap) / columns(store)),
-    );
-  }
-  const count = columns(store);
-  const usable = gridWidth() - (count - 1) * columnGap;
-  return Math.max(150, Math.floor(usable / count));
+  return posterGrid(store.target).cardWidth;
 }
 
 /** Filter chips own the query; the shared option row wraps before the grid. */

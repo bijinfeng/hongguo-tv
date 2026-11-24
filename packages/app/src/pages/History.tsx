@@ -20,7 +20,7 @@ import type { Store } from '../store';
 import { historyProgress, playbackTime } from '../format';
 import { errorMessage } from '../error-messages';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
-import { desktopContentFrame } from '../shell/ContentColumn';
+import { PageScroll } from '../shell/PageScroll';
 
 type Entry = Library['entries'][number];
 type LibraryItem = Entry | FavoriteEntry;
@@ -598,6 +598,24 @@ export function History(props: { store: Store }) {
       refs.delete(key);
     }
   };
+  const captureAnchor = () => {
+    if (!props.store.activePage('history')) return;
+    const snapshot = props.store.library();
+    const items = entries();
+    const currentCategory = category();
+    const pageEpoch = epoch;
+    void list?.measureScrollPosition().then((position) => {
+      const entry = position && items[position.index];
+      if (
+        present() &&
+        epoch === pageEpoch &&
+        snapshot === props.store.library() &&
+        entry &&
+        position
+      )
+        anchors[currentCategory] = { id: entry.drama.series_id, offset: position.offset };
+    });
+  };
   const restoreAnchor = (
     position: { id: string; offset: number } | undefined,
     owns = focusGuard(),
@@ -824,13 +842,12 @@ export function History(props: { store: Store }) {
     rowRefs.clear();
   });
   return (
-    <View
+    <PageScroll
+      target={props.store.target}
       testID="history-page"
-      class="flex-1"
-      style={{
-        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
-        gap: space('md'),
-      }}
+      top={24}
+      gap={space('md')}
+      onScrollSettled={captureAnchor}
     >
       <View class="flex-row flex-wrap items-center justify-between" style={{ gap: space('md') }}>
         {/* The heading names the page, and the tab below switches it: a fixed 观看记录 would
@@ -959,29 +976,17 @@ export function History(props: { store: Store }) {
         onLayout={() => {
           if (waiting) reveal();
         }}
-        onScroll={() => {
-          if (!props.store.activePage('history')) return;
-          const snapshot = props.store.library();
-          const items = entries();
-          const currentCategory = category();
-          const pageEpoch = epoch;
-          void list?.measureScrollPosition().then((position) => {
-            const entry = position && items[position.index];
-            if (
-              present() &&
-              epoch === pageEpoch &&
-              snapshot === props.store.library() &&
-              entry &&
-              position
-            )
-              anchors[currentCategory] = { id: entry.drama.series_id, offset: position.offset };
-          });
-        }}
+        // On desktop the page scrolls this list, so `onScroll` never fires here: the page calls
+        // `captureAnchor` instead. TV still scrolls the list itself.
+        onScroll={props.store.target === 'tv' ? captureAnchor : undefined}
         testID="history-list"
+        // Desktop scrolls the page, so the rows scroll with the heading, tabs and statistics
+        // above them; TV keeps the lane the remote moves through.
+        viewport={props.store.target === 'tv' ? 'own' : 'parent'}
         each={entries()}
         keyExtractor={(entry) => `${category()}:${entry.drama.series_id}`}
         estimatedItemSize={managing() ? 210 : 154}
-        class="flex-1"
+        class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
         contentStyle={{ gap: props.store.target === 'tv' ? 6 : 12, padding: 8 }}
       >
         {(entry) => (
@@ -1069,6 +1074,6 @@ export function History(props: { store: Store }) {
           )
         }
       />
-    </View>
+    </PageScroll>
   );
 }

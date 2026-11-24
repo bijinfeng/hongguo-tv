@@ -11,7 +11,7 @@ import {
 } from '@hongguo/ui';
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { desktopContentFrame } from '../shell/ContentColumn';
+import { PageScroll } from '../shell/PageScroll';
 
 export function notificationLabel(item: NotificationItem): string {
   return item.kind === 'reservation_online' ? '预约已上线' : '追更有更新';
@@ -135,13 +135,11 @@ export function Notifications(props: { store: Store }) {
     restoreAction(item.id, plan);
   };
   return (
-    <View
+    <PageScroll
+      target={props.store.target}
       testID="notifications-page"
-      class="flex-1"
-      style={{
-        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
-        gap: props.store.target === 'tv' ? 8 : 16,
-      }}
+      top={24}
+      gap={props.store.target === 'tv' ? 8 : 16}
     >
       <View
         class="flex-row flex-wrap items-center justify-between"
@@ -263,10 +261,11 @@ export function Notifications(props: { store: Store }) {
               list = ref;
             }}
             testID="notifications-list"
+            viewport={props.store.target === 'tv' ? 'own' : 'parent'}
             each={items()}
             keyExtractor={(item: NotificationItem) => item.id}
             estimatedItemSize={(props.store.target === 'tv' ? 84 : 132) * fontScale()}
-            class="flex-1"
+            class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
             contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
             onLayout={scheduleRestore}
           >
@@ -293,7 +292,7 @@ export function Notifications(props: { store: Store }) {
           </List>
         </ContentArrival>
       </If>
-    </View>
+    </PageScroll>
   );
 }
 

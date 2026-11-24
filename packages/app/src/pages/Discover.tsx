@@ -8,10 +8,9 @@ import {
   SkeletonRegion,
   UiText,
 } from '@hongguo/ui';
-import { PosterCollection } from '../PosterCollection';
+import { PosterPage } from './PosterPage';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
-import { desktopContentFrame } from '../shell/ContentColumn';
 
 const dimensions: { key: CategoryDimension; label: string }[] = [
   { key: 'genre', label: '类型' },
@@ -31,15 +30,8 @@ export function Discover(props: { store: Store }) {
     if (props.store.activePage('discover') && !category.data()?.has_more && !category.error())
       props.store.focusPrimary();
   };
-  return (
-    <View
-      class="flex-1"
-      style={
-        props.store.target === 'tv'
-          ? { paddingTop: 16, gap: 14 }
-          : desktopContentFrame({ top: 24, gap: 28 })
-      }
-    >
+  const header = () => (
+    <View style={{ gap: props.store.target === 'tv' ? 14 : 28 }}>
       <View class="flex-row items-center justify-between">
         {/* One destination, one name: the rail, the crumb and this heading all say 找剧. */}
         <UiText role="page">找剧</UiText>
@@ -122,23 +114,10 @@ export function Discover(props: { store: Store }) {
       <If when={category.error()}>
         <Notice error message={category.error()} retry={category.retry} />
       </If>
-      <PosterCollection
-        target={props.store.target}
-        active={props.store.activePage('discover')}
-        testID="category-results"
-        collection={category.key()}
-        label="分类短剧"
-        items={category.data()?.items ?? []}
-        selected={category.selected()}
-        onNavigate={props.store.noteFocusIntent}
-        onSource={props.store.categorySource}
-        focusGuard={props.store.focusGuard}
-        caption={(drama) => (drama.episode_count ? `${drama.episode_count} 集` : undefined)}
-        onOpen={(drama, restore) => {
-          category.selected.set(drama.series_id);
-          props.store.open(drama, restore);
-        }}
-      />
+    </View>
+  );
+  const footer = () => (
+    <View style={{ gap: 12 }}>
       {/* Paging belongs to the page that owns the cursor: while a new filter is pending or has
           failed, this button would merge old-filter cards into the new answer. The trailing edge
           matches the home catalog's 查看更多: one load-more pattern on every page. */}
@@ -193,5 +172,28 @@ export function Discover(props: { store: Store }) {
         </CardControls>
       </If>
     </View>
+  );
+  return (
+    <PosterPage
+      target={props.store.target}
+      active={props.store.activePage('discover')}
+      testID="category-results"
+      collection={category.key()}
+      label="分类短剧"
+      items={category.data()?.items ?? []}
+      selected={category.selected()}
+      onNavigate={props.store.noteFocusIntent}
+      onSource={props.store.categorySource}
+      focusGuard={props.store.focusGuard}
+      frame={{ top: 24, gap: 28 }}
+      tvFrame={{ top: 16, gap: 14 }}
+      caption={(drama) => (drama.episode_count ? `${drama.episode_count} 集` : undefined)}
+      onOpen={(drama, restore) => {
+        category.selected.set(drama.series_id);
+        props.store.open(drama, restore);
+      }}
+      header={header}
+      footer={footer}
+    />
   );
 }

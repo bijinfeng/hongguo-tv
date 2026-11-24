@@ -2,8 +2,7 @@ import { Image, Text, View, resource, signal, effect, lifecycle } from 'nsh';
 import { BackButton, Notice, UiText } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
-import { PosterCollection } from '../PosterCollection';
-import { desktopContentFrame } from '../shell/ContentColumn';
+import { PosterPage } from './PosterPage';
 
 export function Actor(props: { store: Store; actorId: string; title: string; active: boolean }) {
   const request = captureRequest();
@@ -19,16 +18,8 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
     if (data) snapshot.set(data);
   });
   const data = () => snapshot() ?? result();
-  return (
-    <View
-      testID="actor-works"
-      class="flex-1"
-      style={
-        props.store.target === 'tv'
-          ? { gap: 14, paddingTop: 6 }
-          : desktopContentFrame({ top: 16, gap: 28 })
-      }
-    >
+  const header = () => (
+    <View style={{ gap: 28 }}>
       <BackButton
         testID="actor-back"
         label={props.store.backLabel()}
@@ -66,22 +57,27 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
       <If when={data() && !data()!.items.length}>
         <Notice message="暂时没有可展示的作品" />
       </If>
-      <PosterCollection
-        onNavigate={props.store.noteFocusIntent}
-        focusGuard={props.store.focusGuard}
-        target={props.store.target}
-        active={props.active}
-        items={data()?.items ?? []}
-        collection={props.actorId}
-        testID="actor-results"
-        label="演员作品"
-        selected={selected()}
-        caption={(drama) => (drama.episode_count ? `${drama.episode_count} 集` : undefined)}
-        onOpen={(drama, restore) => {
-          selected.set(drama.series_id);
-          props.store.open(drama, restore);
-        }}
-      />
     </View>
+  );
+  return (
+    <PosterPage
+      target={props.store.target}
+      active={props.active}
+      testID="actor-results"
+      collection={props.actorId}
+      label="演员作品"
+      items={data()?.items ?? []}
+      selected={selected()}
+      onNavigate={props.store.noteFocusIntent}
+      focusGuard={props.store.focusGuard}
+      frame={{ top: 16, gap: 28 }}
+      tvFrame={{ top: 6, gap: 14 }}
+      caption={(drama) => (drama.episode_count ? `${drama.episode_count} 集` : undefined)}
+      onOpen={(drama, restore) => {
+        selected.set(drama.series_id);
+        props.store.open(drama, restore);
+      }}
+      header={header}
+    />
   );
 }
