@@ -19,6 +19,11 @@
 
 测试向量 `crates/core/src/playback/sign_v5/vectors-*.json` 由参考实现以合成身份、合成
 process nonce 与合成 nonce 生成，不含真实注册身份、账号凭据、媒体地址或内容密钥。
+其中 `vectors-wire.json` 取自上游 `bc2e41c`（2026-11-23）修复后的
+`testdata/signing-v5-wire.json`，用于把 `manifest_version_code` 与字段 21 的 `738`
+固定在回归测试里；该 fixture 在更早版本中来自
+[`jackotom/hongguo-drama`](https://github.com/jackotom/hongguo-drama)
+`b20413b2d46a3d0e5d51e22694cb121477ce1d5d` 的已验证 SDK 封装。
 
 ## 图标
 

@@ -10,7 +10,8 @@
 
 - `POST https://api5-normal-sinfonlinea.fqnovel.com/novel/player/multi_video_model/player/v1`，路径无结尾斜线。
 - body 为 gzip JSON，`mixed_video_id_map` 保留所选内容类型（默认 `1004`），`dr_scene=player`。
-- query 只含固定 12 个移动端字段，签名时追加 `_rticket`；不发送 `ts`、`cdid`、账号 Cookie。
+- query 只含固定 13 个移动端字段，签名时追加 `_rticket`；不发送 `ts`、`cdid`、账号 Cookie。
+- 两个字段不是可选项：`manifest_version_code=74332` 必须出现在最终 query 并参与签名，播放证明字段 21 使用 wire 值 `738`（zigzag 前 `369`）。任一退回到旧值都会得到 HTTP 200 空正文。
 - 仅发送 `X-Khronos` / `X-Helios` / `X-Medusa` / `X-SS-STUB` 与请求票据；不带 Argus、Gorgon、Ladon。
 - `X-SS-STUB` 是**实际压缩字节**的 MD5。
 - 签名使用 F13 branch 低半字节 12，只微调 `_rticket`（最多 1024 次）命中。
@@ -31,7 +32,7 @@
 cargo test -p hongguo-core --lib playback::sign_v5
 ```
 
-覆盖 32 组 F13 时间旋转、4 组 carrier 时间变体、4 组完整 wire（query + Medusa + Helios）。
+覆盖 32 组 F13 时间旋转、4 组 carrier 时间变体、4 组完整 wire（query + Medusa + Helios）。wire 向量已对齐上游 2026-11-23 修复后的签署器，`manifest_version_code` 参与签名且字段 21 为 `738`。
 
 真实接口验证需显式开启，且结果不代表上游长期承诺：
 
@@ -39,7 +40,11 @@ cargo test -p hongguo-core --lib playback::sign_v5
 cargo run -p hongguo-core --example playback_probe -- --live <搜索词> .local/playback-probe
 ```
 
-截至 2026-11-20，上游该端点与本项目全部来源同样返回 `HTTP 200` + 0 字节；此为上游行为，不是签名被拒。签名链路已确认被接受（有 `X-Tt-Logid`，且触发了单次身份轮换）。
+2026-11-20 首次实测时，上游该端点与本项目其余来源同样返回 `HTTP 200` + 0 字节；当时归因为上游行为。2026-11-23 上游定位到这是本项目协议字段缺失导致的签名不合格，而非上游下线：补上 `manifest_version_code` 与字段 21 的 `738` 后，同一批请求立即返回候选源。
+
+2026-11-24 本机复验（Ubuntu，`master` @ `9d704e4` 加本次修复）：修复前对「重生」「甜宠」两个真实入口分别得到 9 路 `PLAYBACK_SOURCE_EMPTY` 并最终失败；修复后 `video_tab` 仍空，但 `MobileV5` 直接返回模型，「重生」「甜宠」「逆袭」「穿越」四剧分别准备出 7.95 MB／10.16 MB／3.94 MB／6.34 MB 的 HEVC 媒体（1080P／720P）。同一路径经正式 HTTP 入口 `GET /api/v1/play/info` 返回 `ok:true`、`video_codec:hevc`、`quality:1080P`，代理 Range 请求返回 `206` + `video/mp4`，`ffprobe` 识别 HEVC 1920×1080 + AAC 91.37 秒，`ffmpeg -f null` 全片解码无错误。
+
+以上是取源与媒体准备的证据，不等于各宿主播放器已实看：Web／Desktop／TV 的首帧、进度、暂停恢复、后台和物理设备仍需按 VALIDATION 分别验收。
 
 ## 许可
 

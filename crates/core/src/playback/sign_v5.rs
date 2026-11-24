@@ -156,7 +156,8 @@ fn request_proto(
     blob(&mut p, 15, &count);
     sint(&mut p, 17, i64::from(ts));
     text(&mut p, 20, "none");
-    sint(&mut p, 21, 377);
+    // v04.10.03 expects wire value 738; the former 754 returns HTTP 200 with an empty body.
+    sint(&mut p, 21, 369);
     blob(&mut p, 23, &env);
     text(
         &mut p,
@@ -384,11 +385,12 @@ fn helios(ts: u32, nonce: u32) -> String {
 }
 
 /// The mobile request's fixed query order; only `_rticket` is tuned.
-const QUERY_ORDER: [&str; 13] = [
+const QUERY_ORDER: [&str; 14] = [
     "aid",
     "app_name",
     "version_code",
     "version_name",
+    "manifest_version_code",
     "channel",
     "device_platform",
     "device_type",

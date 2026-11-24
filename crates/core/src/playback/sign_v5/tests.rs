@@ -85,6 +85,7 @@ fn signatures_bind_the_final_query_body_and_identity() {
         ("app_name", "novelread"),
         ("version_code", "74332"),
         ("version_name", "7.4.3.32"),
+        ("manifest_version_code", "74332"),
         ("channel", "vivo_8662_64"),
         ("device_platform", "android"),
         ("device_type", "PGT-AN10"),
@@ -138,6 +139,7 @@ fn wire_vectors_match_the_recorded_signer() {
             ("app_name", "novelread"),
             ("version_code", "74332"),
             ("version_name", "7.4.3.32"),
+            ("manifest_version_code", "74332"),
             ("channel", "vivo_8662_64"),
             ("device_platform", "android"),
             ("device_type", "PGT-AN10"),
@@ -177,6 +179,11 @@ fn wire_vectors_match_the_recorded_signer() {
             recorded.get("aid"),
             actual.get("aid"),
             "query shape at {}",
+            row.ts
+        );
+        assert!(
+            raw.contains("&manifest_version_code=74332&"),
+            "manifest version is signed at {}",
             row.ts
         );
         assert_eq!(headers["x-helios"], row.helios, "helios at {}", row.ts);
