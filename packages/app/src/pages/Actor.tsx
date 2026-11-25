@@ -64,6 +64,7 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
       target={props.store.target}
       active={props.active}
       testID="actor-results"
+      pageTestID="actor-works"
       collection={props.actorId}
       label="演员作品"
       items={data()?.items ?? []}

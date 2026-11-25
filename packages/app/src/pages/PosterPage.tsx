@@ -34,7 +34,9 @@ export function PosterPage(props: {
   items: Drama[];
   collection: string;
   label: string;
+  /** The grid's test id; the page's own is `pageTestID` when a page needs both. */
   testID?: string;
+  pageTestID?: string;
   selected: string;
   onNavigate: () => void;
   focusGuard: () => () => boolean;
@@ -207,7 +209,7 @@ export function PosterPage(props: {
     return (
       <PageScroll
         target={props.target}
-        testID={props.testID}
+        testID={props.pageTestID ?? props.testID}
         top={props.frame?.top}
         bottom={props.frame?.bottom}
         gap={props.frame?.gap}
@@ -226,6 +228,7 @@ export function PosterPage(props: {
 
   return (
     <View
+      testID={props.pageTestID ?? props.testID}
       class="flex-1"
       style={{
         paddingTop: props.tvFrame?.top ?? 16,
