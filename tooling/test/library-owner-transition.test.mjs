@@ -27,7 +27,11 @@ registerHooks({
   resolve(specifier, context, next) {
     if (specifier === 'nsh') return { url: reactivePort, shortCircuit: true };
     if (specifier === '@hongguo/core-client') return { url: clientPort, shortCircuit: true };
-    if (specifier === './library-writer' || specifier === './error-messages')
+    if (
+      specifier === './library-writer' ||
+      specifier === './error-messages' ||
+      specifier === './diagnostics'
+    )
       return next(`${specifier}.ts`, context);
     return next(specifier, context);
   },

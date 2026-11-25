@@ -23,6 +23,7 @@
 | 账号追更／预约／更新提醒 | 已实现待真实验收 | 真实账号变化、预约写读、已读、重启、owner 隔离         |
 | 观看统计                 | 部分验收         | Desktop／TV、重启恢复、重置、账号切换、物理 TV         |
 | 设置／维护／更新         | 部分验收         | 物理端设置、真实播放偏好、签名升级、诊断／许可         |
+| TV 诊断上报              | 部分验收         | 业务失败实际上报、未捕获异常进程收敛、物理 TV          |
 | 平台与发行               | 首发完成         | Windows／Linux、公开 Web、签名公证、N-1 升级、SBOM     |
 | 安全                     | 根门禁通过       | 宿主锁文件不在根图；两条 advisory 无修复版本           |
 
@@ -139,6 +140,17 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 - 物理 Android TV／桌面真机设置与遥控操作、安静观看／自动播放／续播行为的真实播放实看、正式签名升级仍开放。
 - 桌面真实「准备安装 → 退出 → 下次启动为新版本」、强杀后回执报告「上次更新未完成」、立即重启失败后退出仍完成换入均未验。
 - 离线剧集能力待核对，不以预取代证。
+
+### TV 诊断上报
+
+TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿主以官方 `io.sentry:sentry-android:8.65.1` 初始化上报，创建／搜索记录／播放准备三类失败经 `diagnostics.report` 交给宿主。事件字段固定为 `category`／`code`／`operation` 加发行版标识，脱敏在 TSX 侧完成（URL 查询串与片段、Bearer／JWT、邮箱、手机号）；DSN 经 `TV_SENTRY_DSN` 注入，不进仓库。
+
+- 工程门禁：`pnpm verify` 退出码 0（Web 255／Desktop 257／TV 182 项 NSH 测试，TV 1 项历史跳过；含本轮新增脱敏、旧偏好兼容与宿主通道用例）；`pnpm security` 退出码 0（cargo-deny advisories／bans／licenses／sources 全 ok）。
+- TSX→宿主契约（TV 入口 `apps/tv/App.test.tsx`，用真实 category 失败路径，不是 mock）：未同意时零 `diagnostics.report`；同意后一次失败恰好一条上报，`category=catalog`、`operation=加载分类`，序列化结果不含 `http://`、`sign=` 或 `/api/v1/`，且 `category-error` 恢复界面照常出现。
+- 2026-11-24 API 34 arm64 模拟器（`hongguo-tv-api34-arm64`）：同意关闭时启动无 `cache/sentry`、无 SDK 初始化；打开开关后 SDK 初始化，`.options-cache/release.json` 为 `"0.1.5+6"`、`environment.json` 为 `"production"`；重启后已存同意自动重放，`cache/sentry` 重新出现。直接向 DSN 端点投递 envelope 返回 `200` 与 event id，Sentry 问题列表出现对应条目（`HONGGUO-TV-1`）。
+- **未验证**：引擎致命错误经 `NshView` 转发到 Sentry 的设备侧证据；后端不可达时用户可见行为不变；未捕获异常被 SDK 接管后的进程收敛。这三项需要能精确注入网络故障的环境（当前模拟器无 root，`/etc/hosts` 与 iptables 均不可用），留待物理设备。ANR 与 NDK 崩溃不在本变更范围。
+- 真机踩到的两处与设计不符已在 `openspec/changes/add-diagnostics-reporting/design.md` 更正：纯 Java `io.sentry:sentry` 在 Android 上拒绝初始化；`sentry-android` 的 `SentryInitProvider` 会绕过同意，须以 `io.sentry.auto-init=false` 关闭。
+- 桌面 `nsh.json` 未声明 `capabilities`，而 NSH 一旦出现该块就默认拒绝未列出的能力；因此诊断宿主测试注册在 TV 入口（TV 已有完整能力白名单），桌面 manifest 保持原样，不为其引入能力收紧风险。
 
 ### 平台与发行
 

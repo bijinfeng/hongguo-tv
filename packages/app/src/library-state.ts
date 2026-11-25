@@ -11,6 +11,7 @@ import {
   type Library,
 } from '@hongguo/core-client';
 import { errorMessage } from './error-messages';
+import { reportFailure } from './diagnostics';
 
 type OwnerScope = { ownerId: string; epoch: number; ownerEpoch?: string };
 type ManagedOperation = HistoryOperation & { category: LibraryKind; scope: OwnerScope };
@@ -624,6 +625,7 @@ export function createLibraryState(
         if (!existing || existing.sequence < checkpoint.sequence)
           failedProgress.set(key, checkpoint);
         console.warn('观看进度写入失败', cause);
+        reportFailure('storage', '保存观看进度', cause);
         warning.set(errorMessage(cause, '观看进度未保存'));
       };
       let scope: OwnerScope;

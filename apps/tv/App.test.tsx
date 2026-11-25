@@ -31,3 +31,7 @@ registerBrowsingTests('tv', './HttpFixture.tsx');
 
 registerAccountTests('tv', './HttpFixture.tsx');
 registerSettingsTests('tv', './HttpFixture.tsx');
+
+// Diagnostics reporting is a TV change: the host channel is granted in this app's nsh.json.
+import { registerDiagnosticsHostTests } from '@hongguo/app/testing';
+registerDiagnosticsHostTests();

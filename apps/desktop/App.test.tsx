@@ -37,3 +37,6 @@ registerLibraryLifecycleTests();
 
 registerAccountTests('desktop', './HttpFixture.tsx');
 registerSettingsTests('desktop', './HttpFixture.tsx');
+
+import { registerDiagnosticsTests } from '@hongguo/app/testing';
+registerDiagnosticsTests();

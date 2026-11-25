@@ -91,6 +91,31 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
     expect(app.texts().some((text) => text.includes('跟随系统'))).toBe(true);
   });
 
+  test('settings: a value stored before a preference existed keeps its other fields', async () => {
+    // The shape written before `diagnosticsReporting` existed: no such key, real choices.
+    const older = {
+      theme: 'light',
+      autoplayNext: false,
+      rememberPosition: true,
+      defaultRate: '1.5',
+      quietWatching: true,
+      autoCheckUpdates: true,
+    };
+    const app = await openSettings({ storage: { 'settings.v1': JSON.stringify(older) } });
+    await app.waitUntil(() => app.texts().some((text) => text.includes('1.5×')));
+    // No "unrecognized" notice: only the absent field took its default, and it is off.
+    expect(app.texts().some((text) => text.includes('无法识别'))).toBe(false);
+  });
+
+  test('settings: diagnostics reporting is absent without a host to receive it', async () => {
+    // The headless fixture embeds no host handler, so the row must not promise it.
+    const app = await openSettings();
+    await app.waitUntil(() => app.enabled('id:settings-autoplay'));
+    expect(app.shows('id:settings-diagnostics-row')).toBe(false);
+    // Whatever the surface shows, the stored default is off.
+    expect(stored(app)?.diagnosticsReporting ?? false).toBe(false);
+  });
+
   test('settings: reachable from the target navigation and back leaves the page', async () => {
     const app = await openSettings();
     await app.waitUntil(() => app.enabled('id:settings-autoplay'));

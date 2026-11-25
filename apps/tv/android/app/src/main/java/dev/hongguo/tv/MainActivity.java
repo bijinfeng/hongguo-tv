@@ -13,12 +13,18 @@ public final class MainActivity extends Activity {
     private NshView nsh;
     private TvRemote remote;
     private UpdateInstaller updates;
+    private DiagnosticsReporter diagnostics;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         nsh = new NshView(this);
         updates = new UpdateInstaller(this, nsh);
-        nsh.setErrorListener(message -> Log.e("HongguoTV", message));
+        diagnostics = new DiagnosticsReporter(nsh, BuildConfig.SENTRY_DSN);
+        // The local line is unconditional; forwarding depends on the user's choice.
+        nsh.setErrorListener(message -> {
+            Log.e("HongguoTV", message);
+            diagnostics.captureFatal(message);
+        });
         FrameLayout frame = new FrameLayout(this) {
             @Override public boolean dispatchTouchEvent(MotionEvent event) {
                 if (remote != null && event.getActionMasked() == MotionEvent.ACTION_DOWN)

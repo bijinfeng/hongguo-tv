@@ -13,3 +13,5 @@ export { registerRankingsTests } from './rankings';
 export { registerAccountTests } from './account';
 export { registerNotificationsStateTests } from './notifications-state';
 export { registerSettingsTests } from './settings';
+export { registerDiagnosticsTests } from './diagnostics';
+export { registerDiagnosticsHostTests } from './diagnostics-host';

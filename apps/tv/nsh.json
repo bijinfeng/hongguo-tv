@@ -22,6 +22,13 @@
     "audio": true,
     "openUrl": true,
     "windows": true,
-    "host": ["update.info", "update.permission", "update.install", "update.allocate"]
+    "host": [
+      "update.info",
+      "update.permission",
+      "update.install",
+      "update.allocate",
+      "diagnostics.report",
+      "diagnostics.consent"
+    ]
   }
 }
