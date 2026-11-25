@@ -106,6 +106,11 @@ export function NotificationsStateFixture() {
       <UiText>{`unread:${state.unreadCount() ?? 'none'}`}</UiText>
       <UiText>{`row:${state.snapshot()?.items[0]?.read === true ? 'read' : state.snapshot() ? 'unread' : 'none'}`}</UiText>
       <UiText>{`mutation:${state.mutation()?.state ?? 'none'}`}</UiText>
+      <Button label="后台" onPress={() => active.set(false)} />
+      <Button label="恢复" onPress={() => active.set(true)} />
+      <Button label="切换账号代次" onPress={() => current.set(account('b'))} />
+      <Button label="读取失败" onPress={() => (failRead = true)} />
+      <Button label="读取恢复" onPress={() => (failRead = false)} />
       <Button label="完成读取" onPress={() => finishRead()} />
       <Button label="完成最新读取" onPress={() => finishRead(true)} />
       <Button label="标为已读" onPress={() => void state.markRead(itemId)} />
@@ -117,11 +122,6 @@ export function NotificationsStateFixture() {
       />
       <Button label="刷新" onPress={() => void state.refresh()} />
       <Button label="重试" onPress={() => void state.retry()} />
-      <Button label="读取失败" onPress={() => (failRead = true)} />
-      <Button label="读取恢复" onPress={() => (failRead = false)} />
-      <Button label="后台" onPress={() => active.set(false)} />
-      <Button label="恢复" onPress={() => active.set(true)} />
-      <Button label="切换账号代次" onPress={() => current.set(account('b'))} />
       <Button label="销毁" onPress={state.dispose} />
     </View>
   );
