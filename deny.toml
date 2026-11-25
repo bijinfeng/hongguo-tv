@@ -1,7 +1,7 @@
 [advisories]
 version = 2
 
-# NSH 0.6.1 carries two unmaintained crates that cannot be removed without an upstream NSH
+# NSH 0.7.0 carries two unmaintained crates that cannot be removed without an upstream NSH
 # change. Neither is a vulnerability advisory: both crates are unmaintained, have no fixed
 # release, and are non-optional dependencies of nsh-core. cargo-deny 0.20.2 accepts only `id`
 # and `reason` per entry, so owner and expiry live in the reason text; per-entry `expiry` needs
@@ -16,8 +16,8 @@ version = 2
 # docs/dependencies/native-release-security.md.
 unused-ignored-advisory = "deny"
 ignore = [
-  { id = "RUSTSEC-2026-0543", reason = "chrono 0.4.45 unmaintained, no safe upgrade; non-optional dependency of nsh-core (nsh-core-0.6.0/Cargo.toml:59-62; used in mobile.rs, storage.rs, ops.rs) and of nsh-base (nsh-base-0.6.0/Cargo.toml:71-74; date_picker.rs, time_field.rs, calendar.rs), so it is in the graph of both apps. Unmaintained scope stays at its default (all); only this crate+advisory is exempt. Owner: jfbi. Expires: 2027-02-28; before then re-check NSH's migration to jiff/time." },
-  { id = "RUSTSEC-2026-0192", reason = "ttf-parser 0.25.1 unmaintained, no safe upgrade; direct non-optional dependency of nsh-core (nsh-core-0.6.0/Cargo.toml:144-145, text.rs) and of the nsh-macros proc macro (nsh-macros-0.6.0/Cargo.toml:51-52, assets.rs), not behind an optional feature. Unmaintained scope stays at its default (all); only this crate+advisory is exempt. Owner: jfbi. Expires: 2027-02-28; before then re-check NSH's migration to skrifa." },
+  { id = "RUSTSEC-2026-0543", reason = "chrono 0.4.45 unmaintained, no safe upgrade; non-optional dependency of nsh-core (nsh-core-0.7.0/Cargo.toml; used in mobile.rs, storage.rs, ops.rs) and of nsh-base (nsh-base-0.7.0/Cargo.toml; date_picker.rs, time_field.rs, calendar.rs), so it is in the graph of both apps. Unmaintained scope stays at its default (all); only this crate+advisory is exempt. Owner: jfbi. Expires: 2027-02-28; before then re-check NSH's migration to jiff/time." },
+  { id = "RUSTSEC-2026-0192", reason = "ttf-parser 0.25.1 unmaintained, no safe upgrade; direct non-optional dependency of nsh-core (nsh-core-0.7.0/Cargo.toml, text.rs) and of the nsh-macros proc macro (nsh-macros-0.7.0/Cargo.toml, assets.rs), not behind an optional feature. Unmaintained scope stays at its default (all); only this crate+advisory is exempt. Owner: jfbi. Expires: 2027-02-28; before then re-check NSH's migration to skrifa." },
 ]
 
 [licenses]
@@ -46,7 +46,7 @@ name = "webpki-root-certs"
 version = "=1.0.12"
 allow = ["CDLA-Permissive-2.0"]
 
-# NSH 0.6.0 native graph. Each licence is pinned to the reviewed version rather than joining
+# NSH 0.7.0 native graph. Each licence is pinned to the reviewed version rather than joining
 # the global allow list, so a new version or another crate is reviewed again. Every entry also
 # states its parent chain, since cargo-deny only checks crates reachable in the resolved graph.
 # Owner for every entry below: jfbi.
@@ -99,7 +99,7 @@ allow = ["CDLA-Permissive-2.0"]
 # Same licence and the same certificate data; 0.26.11 is the semver-trick shim that re-exports
 # 1.0.12. It arrives through tokio-tungstenite 0.28, which nsh-js declares with
 # `rustls-tls-webpki-roots` as a non-optional target dependency for non-wasm
-# (nsh-js-0.6.0/Cargo.toml), so it is not gated behind NSH's `websocket` feature.
+# (nsh-js-0.7.0/Cargo.toml), so it is not gated behind NSH's `websocket` feature.
 # Owner: jfbi. Expires: 2027-05-31.
 [[licenses.exceptions]]
 name = "webpki-roots"

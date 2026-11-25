@@ -478,7 +478,7 @@ export function registerHistoryManagementTests(
     expect(app.requests()).toEqual([]);
   });
   // The fixture's detail-flow signal does not settle on the 960x540dp TV surface under
-  // NSH 0.6.0: open() reports active=false but the detail pane never flips. Tracked
+  // NSH 0.7.0: open() reports active=false but the detail pane never flips. Tracked
   // separately from the upgrade; the behaviour stays covered by the desktop target.
   const detailReturnTest = target === 'tv' ? test.skip : test;
   detailReturnTest(

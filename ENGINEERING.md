@@ -10,7 +10,7 @@ pnpm 提供统一入口，各语言工具保留自身职责。开发机和 CI �
 | ------------ | ------------------------------------------ | ---------------------------------------------------------------------------------- |
 | Node         | `.node-version`、`engines`                 | 初始锁定当前已验证的 26.12.1；其他版本经矩阵验证后再声明支持                       |
 | pnpm         | 根 `package.json#packageManager`           | 初始锁定已验证的 `pnpm@11.1.3`；提交单一 `pnpm-lock.yaml`                          |
-| NSH          | `.nsh-version`                             | 保持 0.6.1；CLI、runtime、Rust `nsh-*` 依赖保持一致                                |
+| NSH          | `.nsh-version`                             | 保持 0.7.0；CLI、runtime、Rust `nsh-*` 依赖保持一致                                |
 | Rust         | `rust-toolchain.toml`                      | 固定 1.97.0，包含 rustfmt、clippy；宿主兼容性按目标实际构建与验收                  |
 | Rust 包      | 根 `Cargo.toml`、`Cargo.lock`              | Edition 2024、resolver 3；显式成员、共享依赖与 lints；应用锁文件提交               |
 | JS 工具      | 根 devDependencies + pnpm lock             | Oxlint、Oxfmt、Lefthook、commitlint、契约生成器使用精确版本                        |

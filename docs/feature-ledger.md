@@ -98,7 +98,7 @@ Rust 准备／Range 与定稿 Player 已接；Web 官网闭环、TV native 三�
 
 ### 历史／续播／管理／清空
 
-E1 管理 UI／写屏障已接，当前管理切片 12／13；共享 History 回归 headless 25／25 通过（唯一跳过项 `detail return restores…` 在 TV 目标为 `test.skip`：960×540dp 下 detail-flow 信号在 NSH 0.6.0 不落定，`9bc20a4` 引入，Desktop 仍覆盖该行为；`packages/app/test/history-management.tsx:483`），冻结源码 `pnpm verify` 通过；真实 Web 管理与持久化有局部证据，后续播放错误／详情超时保留；完整真实焦点／后台及原生 Desktop／当前 TV 包待验，整体未验收。
+E1 管理 UI／写屏障已接，当前管理切片 12／13；共享 History 回归 headless 25／25 通过（唯一跳过项 `detail return restores…` 在 TV 目标为 `test.skip`：960×540dp 下 detail-flow 信号在 NSH 0.7.0 不落定，`9bc20a4` 引入，Desktop 仍覆盖该行为；`packages/app/test/history-management.tsx:483`），冻结源码 `pnpm verify` 通过；真实 Web 管理与持久化有局部证据，后续播放错误／详情超时保留；完整真实焦点／后台及原生 Desktop／当前 TV 包待验，整体未验收。
 
 ### 观看统计
 

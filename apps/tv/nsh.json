@@ -22,6 +22,8 @@
     "audio": true,
     "openUrl": true,
     "windows": true,
+    "application": true,
+    "homeDir": true,
     "host": [
       "update.info",
       "update.permission",

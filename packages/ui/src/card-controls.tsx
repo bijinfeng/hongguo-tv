@@ -189,6 +189,7 @@ export function CardRoot(props: {
             ref.focus();
           },
           blur: () => ref.blur(),
+          clearSelection: () => ref.clearSelection(),
           measure: () => ref.measure(),
           reveal: (options) => ref.reveal(options),
           animateLayout: (transition) => ref.animateLayout(transition),
