@@ -91,6 +91,8 @@ async function fixture() {
       updater: { github: repository, publicKey },
     }),
   );
+  // NSH 0.7.0 resolves an app directory through its TSX entry when reading metadata.
+  await writeFile(join(desktopDir, 'App.tsx'), 'export default function App() { return null; }\n');
   await writeFile(join(desktopDir, 'test.secret'), secret, { mode: 0o600 });
   const common = { repository, sourceSha, policy, versionPath };
   await createDesktopRelease({
@@ -138,6 +140,7 @@ test('manifest signature matches pinned NSH CLI framing and rejects raw JSON sig
       updater: { github: repository, publicKey },
     }),
   );
+  await writeFile(join(dir, 'App.tsx'), 'export default function App() { return null; }\n');
   await writeFile(join(dir, 'test.secret'), secret, { mode: 0o600 });
   output(executable('nsh'), [
     'update-manifest',
