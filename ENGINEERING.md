@@ -203,7 +203,9 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 
 Linux entry job 的 GTK／GStreamer 基线约 45 MB，runner 的 Ubuntu 镜像曾以约 50 kB/s 传输，单次 975 秒。下载的 deb 缓存在 `runner.temp/apt-archives`，缓存键为 workflow 文件哈希，基线变更才失效。
 
-Actions 固定完整 commit SHA，默认 `contents: read`。非信任 PR 不获得签名/部署密钥，不通过 `pull_request_target` 执行其代码。缓存键包含 OS/架构、编译器、锁文件、features/target；不缓存账号数据或签名材料。
+Rust 缓存只保存仓库根的 `target/`，而 `nsh` 默认把构建写进 `apps/<app>/target`。`rust`、`workspace`、`entry` 因此统一 `CARGO_TARGET_DIR` 到仓库根 `target`：clippy、`nsh check`、`nsh build` 与 `nsh test` 共用同一份产物，entry job 的产物也才进得了自己的缓存。该变量参与 rust-cache 的缓存键，三个 job 必须取同一值，否则共用 `shared-key` 的 job 之间不再命中。实测（desktop，本机）：同目录二次运行 122 秒、改动 `crates/core` 后 182 秒，冷启动 775 秒。entry job 测试后断言 headless runner 落在 `target/debug`；产物跑偏会直接失败，而不是静默退化成每次冷编译。
+
+Actions 固定完整 commit SHA，默认 `contents: read`。非信任 PR 不获得签名/部署密钥，不通过 `pull_request_target` 执行其代码。缓存键包含 OS/架构、编译器、锁文件、features/target；不缓存账号数据或签名材料。缓存键固定后 `saveCache` 会跳过已存在的键，所以不能靠冻结锁文件哈希来复用旧缓存——内容会停在首次保存的状态，越跑越慢。
 
 CI 上传按语言区分的测试/覆盖率、NSH 构建日志、安装冒烟日志与必要截图。失败报告区分工具缺失、编译、行为、网络与设备故障；重试有上限，不能反复重跑掩盖不稳定测试。
 

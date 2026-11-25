@@ -47,6 +47,10 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2025]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    # Cargo's default is this same directory; naming it keeps the cache key identical to the
+    # workspace job's, which must set it for `nsh` (see there).
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     defaults:
       run:
         shell: bash
@@ -60,8 +64,10 @@ jobs:
           tool: cargo-nextest@0.9.151
       - run: rustup show active-toolchain
       - run: cargo fmt --all -- --check
-      # Shares the target directory with the workspace job on macOS: both run the same clippy
-      # and the same Rust crates behind `nsh check`, which was 446s of rebuilding without it.
+      # Shares the target directory with the workspace job on the same OS: both run the same
+      # clippy and the same Rust crates behind `nsh check`, which was 446s of rebuilding
+      # without it. Setting `CARGO_TARGET_DIR` also changes this cache's key (the action hashes
+      # every `CARGO*` variable), so the generation saved against the old layout is not reused.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: ${{ matrix.os }}
@@ -71,6 +77,12 @@ jobs:
   workspace:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Every `nsh` command builds into its own `apps/<app>/target` unless told otherwise, and
+    # the cache below only saves this repository's `target/`. `pnpm check` therefore compiled
+    # the whole graph with clippy and `nsh check` compiled the same crates again from zero:
+    # 114s on Linux, 232s on macOS. One directory shares clippy with the app checks and build.
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
@@ -120,6 +132,12 @@ jobs:
       matrix: ${{ fromJSON(needs.scope.outputs.entry) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.os == 'windows-2025' && 45 || matrix.os == 'ubuntu-24.04' && 30 || 25 }}
+    # `nsh` builds into `apps/<app>/target` unless `CARGO_TARGET_DIR` says otherwise, and the
+    # cache below saves this repository's `target/` only: the 345-443 MB it restored here held
+    # the registry and nothing this job produced, so every run rebuilt the headless runner from
+    # zero (5m35 on macOS, 5m30 on Windows; 8m03 + 13m19 for TV once NSH itself changed).
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     defaults:
       run:
         shell: bash
@@ -198,6 +216,25 @@ jobs:
       - name: Behavior in ${{ matrix.target }} on ${{ matrix.os }}
         working-directory: apps/${{ matrix.target }}
         run: nsh test
+      # The cache above only holds this repository's `target/`. A Rust app whose build lands in
+      # `apps/<app>/target` again would make every run cold while all of this still passed, so
+      # the loss is caught here instead of being paid for silently. Apps without a Rust crate
+      # (`web`) never produce a runner and are skipped by the same test.
+      - name: Assert the build landed in the cached directory
+        working-directory: apps/${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          if ! node -e 'process.exit(JSON.parse(require("fs").readFileSync("nsh.json","utf8")).rust ? 0 : 1)'; then
+            echo "No Rust crate in nsh.json; nothing to check."
+            exit 0
+          fi
+          found=$(find "$CARGO_TARGET_DIR/debug" -maxdepth 1 -name 'nsh-app-*-test*' -print -quit)
+          if [ -z "$found" ]; then
+            echo "::error::nsh built outside CARGO_TARGET_DIR ($CARGO_TARGET_DIR)"
+            find . -maxdepth 5 -name 'nsh-app-*-test*' -print
+            exit 1
+          fi
+          echo "Headless runner: $found"
   security:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
