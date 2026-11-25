@@ -13,7 +13,7 @@ import { Button, CardControls, ContentArrival, Cover, Notice, UiText } from '@ho
 import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
-import { desktopContentFrame } from '../shell/ContentColumn';
+import { PageScroll } from '../shell/PageScroll';
 
 type Mode = 'upcoming' | 'online';
 type Action = 'open' | 'cancel';
@@ -241,13 +241,12 @@ export function Reservations(props: { store: Store }) {
     refs.clear();
   });
   return (
-    <View
+    <PageScroll
+      target={props.store.target}
       testID="reservations-page"
-      class="flex-1"
-      style={{
-        ...(props.store.target === 'tv' ? { paddingTop: 16 } : desktopContentFrame({ top: 24 })),
-        gap: props.store.target === 'tv' ? 8 : 16,
-      }}
+      top={24}
+      gap={props.store.target === 'tv' ? 8 : 16}
+      onScrollSettled={capture}
     >
       <View
         class="flex-row flex-wrap items-center justify-between"
@@ -332,16 +331,17 @@ export function Reservations(props: { store: Store }) {
               list = ref;
             }}
             testID="reservations-list"
+            viewport={props.store.target === 'tv' ? 'own' : 'parent'}
             each={items()}
             keyExtractor={reservationItemId}
             estimatedItemSize={(props.store.target === 'tv' ? 120 : 200) * fontScale()}
-            class="flex-1"
+            class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
             contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
             onLayout={() => {
               if (waiting) reveal();
             }}
             onScroll={() => {
-              if (active()) void capture();
+              if (props.store.target === 'tv' && active()) void capture();
             }}
           >
             {(item) => (
@@ -356,7 +356,7 @@ export function Reservations(props: { store: Store }) {
           </List>
         </ContentArrival>
       </If>
-    </View>
+    </PageScroll>
   );
 }
 

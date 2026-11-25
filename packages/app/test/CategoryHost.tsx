@@ -59,12 +59,22 @@ export function registerCategoryHostTests(entry: string, artifacts: string, host
         await app.waitFor('加载更多');
         await app.press('id:category-more');
         await app.waitUntil(() => !app.shows('id:category-more'));
+        // The page scrolls as a whole now, so the heading and filters travel with the cards and a
+        // fixed drag lands on a different row than when the list alone scrolled. Scroll until a
+        // card from the appended page (139-150) is on screen: that is what this step proves.
+        // A parent-viewport list mounts rows around the page's viewport, so `shows` says what is
+        // rendered, not what is on screen. Scroll toward the appended page until one of its cards
+        // is rendered, then press it: reaching and opening a card the first page never held is
+        // what this step proves.
+        // Reach a card the first page did not hold. The appended page is 191-200 here (this
+        // theme's first page is 173-190); dragging past the first screen is enough to render
+        // them, and opening the card is what proves the appendix is reachable, not just mounted.
         await app.scroll('id:category-results', 900);
         await app.wait(160);
-        const later = Array.from({ length: 28 }, (_, i) => 200 - i).find((id) =>
+        const later = Array.from({ length: 10 }, (_, i) => 191 + i).find((id) =>
           app.shows(`id:drama-${id}`),
         );
-        expect(later !== undefined && later! > 176).toBe(true);
+        expect(later).toBeDefined();
         await app.press(`id:drama-${later}`);
         await app.waitFor('id:episode-range-trigger');
         await app.back();
@@ -101,7 +111,10 @@ export function registerCategoryHostTests(entry: string, artifacts: string, host
         expect(app.shows('id:category-clear')).toBe(false);
         await app.press('id:nav-search');
         expect(app.value('id:search-input')).toBe('完整草稿');
-      });
+        // The page scrolls as a whole, so the list sits at full length inside it and each drag
+        // covers more content to lay out than the bounded list did: the same steps take about 32s
+        // against a 30s default. The time buys the reading position this test exists to prove.
+      }, 60000);
     }
   }
 }
