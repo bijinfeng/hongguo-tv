@@ -15,7 +15,8 @@
     "titleBar": {
       "style": "hidden",
       "height": 48
-    }
+    },
+    "title": "红果"
   },
   "updater": {
     "github": "bijinfeng/hongguo-tv",

@@ -1,7 +1,7 @@
 import { View, token, type JSX } from 'nsh';
 import { TitleBar as NativeTitleBar } from 'nsh/base';
 import { isAvailable, titleBar, windowState } from 'nsh/desktop';
-import { border, space } from '@hongguo/ui';
+import { space } from '@hongguo/ui';
 
 /**
  * The window's own title bar height. `apps/desktop/nsh.json` sets the same value as the window's
@@ -47,7 +47,11 @@ export function TitleBar(props: { children?: JSX.Element; collapsed?: boolean })
     return (
       <View
         class="w-full flex-row items-center gap-3"
-        style={{ minHeight: TITLE_BAR_HEIGHT, height: TITLE_BAR_HEIGHT }}
+        style={{
+          minHeight: TITLE_BAR_HEIGHT,
+          height: TITLE_BAR_HEIGHT,
+          backgroundColor: props.collapsed ? undefined : token('card'),
+        }}
       >
         {props.children}
       </View>
@@ -60,9 +64,10 @@ export function TitleBar(props: { children?: JSX.Element; collapsed?: boolean })
         height: TITLE_BAR_HEIGHT,
         paddingLeft: controlInset('left'),
         paddingRight: controlInset('right'),
-        backgroundColor: props.collapsed ? undefined : token('background'),
-        borderBottomWidth: props.collapsed ? 0 : border,
-        borderColor: token('border'),
+        // The bar is part of the rail's chrome, not the page: same surface, no divider. A line
+        // here would be the border-as-layering the design spec rules out, and it showed as a
+        // hard rule across the window in the real host.
+        backgroundColor: props.collapsed ? undefined : token('card'),
       }}
     >
       {props.collapsed ? undefined : props.children}

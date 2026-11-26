@@ -41,6 +41,15 @@ Branch: `feat/visual-system-direction-c`, base commit `4ac1a5e` (`master`, inclu
 - [x] 7.2 Capture real renders of the home page in light and dark through the product entry and verify the hero card boundary is visible and the surface order reads correctly.
 - [ ] 7.3 Observe the desktop host at 1180×780 and 1440×1000 in both themes, recording what was seen per platform, and leave TV and any unobserved host as pending rather than claiming a pass.
 
+  Observed on the real Linux desktop host (Ubuntu GNOME, Wayland, `GDK_BACKEND=x11`), 1180×780 content window, light and dark:
+
+  - The ladder holds in the light host: page `#ffffff`, hero card `(247,248,248)`, rail and title bar `#f9f9f9`, search field `(242,243,243)` — four distinct steps in the intended order, where `card` and `background` were both `#ffffff` before this change and the hero's left half was invisible.
+  - Dark reads `#1a1c1c` for the rail and title bar on a black page, with the popover ahead of `muted` as specified.
+  - The rail has no divider line: it separates from the page by surface alone, and the title bar continues that same surface across the top, so the window has one chrome band instead of a bar over a second bar.
+  - Icons at the new 1.75 stroke sit at the label's weight beside the 14pt rail text.
+
+  Not observed: a maximized or fullscreen desktop window at 1440×1000, and the TV host at 960×540dp. Evidence in `artifacts/window-chrome/linux-titlebar-controls-faint.png` (light) and `linux-titlebar-controls-dark.png` (dark); both stay out of the repository, as `artifacts/` is ignored.
+
   Blocked locally: `pnpm ui:host:desktop` resolves `nsh-macos-host`, which this Linux machine does not have, and the WSL Wayland session has no working X capture. Web renders through the real product entry are captured in `artifacts/browsing/web/home-{light,dark}.png` and verified; the native desktop host and TV remain implemented-pending-real-acceptance.
 
 ## Workflow follow-up
