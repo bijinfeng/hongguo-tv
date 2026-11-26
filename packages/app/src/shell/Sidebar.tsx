@@ -41,6 +41,7 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
           label="设置"
           testID="nav-settings"
           current={props.store.nav.routes().at(-1)?.name === 'settings'}
+          buttonRef={(ref) => props.store.primaryRef('settings', ref)}
           onPress={() => props.store.settingsPage()}
         />
       </CardControls>

@@ -45,7 +45,7 @@ const readBlocks = (source) => {
   for (const match of source.matchAll(/^```yaml\n([\s\S]*?)^```$/gm)) {
     const lines = match[1].split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'));
     if (!lines.length) continue;
-    const group = lines[0].match(/^([a-z]+):\s*$/)?.[1];
+    const group = lines[0].match(/^([a-z-]+):\s*$/)?.[1];
     if (!group) throw drift('every YAML block must open with a top-level group');
     blocks[group] = parseYaml(lines);
   }
@@ -90,13 +90,17 @@ const px = (name, value) => {
   return Number(match[1]);
 };
 
-const scale = (group, blocks) => {
-  const entries = blocks[group];
-  if (!entries) throw drift(`DESIGN.md is missing the ${group} block`);
+const scale = (group, blocks, surface = 'desktop') => {
+  if (!blocks[group]) throw drift(`DESIGN.md is missing the ${group} block`);
+  const entries = {
+    ...(blocks[group] ?? {}),
+    ...(surface === 'tv' ? (blocks[`${group}-tv`] ?? {}) : {}),
+  };
   const out = {};
   for (const [name, value] of Object.entries(entries)) out[name] = px(`${group}.${name}`, value);
   for (const [name, value] of Object.entries(out))
-    if (!Number.isInteger(value)) throw drift(`${group}.${name} must be an integer`);
+    if (!Number.isInteger(value) || value < 0)
+      throw drift(`${group}.${name} must be a non-negative integer`);
   return out;
 };
 
@@ -160,9 +164,12 @@ const controls = (blocks) => {
   return out;
 };
 
-const colorsOf = (blocks) => {
-  const entries = blocks.colors;
-  if (!entries) throw drift('DESIGN.md is missing the colors block');
+const colorsOf = (blocks, surface = 'desktop') => {
+  if (!blocks.colors) throw drift('DESIGN.md is missing the colors block');
+  const entries = {
+    ...(blocks.colors ?? {}),
+    ...(surface === 'tv' ? (blocks['colors-tv'] ?? {}) : {}),
+  };
   const light = {};
   const dark = {};
   for (const [name, value] of Object.entries(entries)) {
@@ -193,6 +200,13 @@ const references = (blocks, radius) => {
         if (prop === 'rounded') check(`controls.${size}-${surface}.${prop}`, value);
   for (const [name, value] of Object.entries(radius))
     if (!Number.isInteger(value)) throw drift(`rounded.${name} must be an integer`);
+  for (const group of ['colors-tv', 'rounded-tv']) {
+    const base = group.replace(/-tv$/, '');
+    for (const name of Object.keys(blocks[group] ?? {})) {
+      if (!Object.prototype.hasOwnProperty.call(blocks[base] ?? {}, name))
+        throw drift(`${group}.${name} does not override a known ${base} token`);
+    }
+  }
 };
 
 const spacingFor = (blocks, surface) => {
@@ -207,10 +221,10 @@ const spacingFor = (blocks, surface) => {
 
 const themeOf = (blocks, surface) => {
   const space = spacingFor(blocks, surface);
-  const radius = scale('rounded', blocks);
+  const radius = scale('rounded', blocks, surface);
   const { type, ratios } = typography(blocks);
   const control = controls(blocks);
-  const { light, dark } = colorsOf(blocks);
+  const { light, dark } = colorsOf(blocks, surface);
   const geometry = { radius: `${radius.xl}px` };
   const weights = [...new Set(Object.values(ratios).map((ratio) => ratio.fontWeight))];
   for (const [name, value] of Object.entries(radius)) geometry[`radius-${name}`] = `${value}px`;
@@ -266,20 +280,27 @@ const renderType = (ratios) => {
   return lines.join('\n');
 };
 
-export const compile = (source, theme) => {
+export const compile = (source, themes, { check = false } = {}) => {
   const blocks = readBlocks(source);
+  for (const group of ['colors', 'spacing', 'rounded'])
+    if (!blocks[group]) throw drift(`DESIGN.md is missing the ${group} block`);
   const radius = scale('rounded', blocks);
   references(blocks, radius);
   const { ratios } = typography(blocks);
-  const design = colorsOf(blocks);
-  checkColors(design, theme, 'theme.json');
+  if (check) {
+    checkColors(colorsOf(blocks, 'desktop'), themes.desktop, 'theme.json');
+    checkColors(colorsOf(blocks, 'tv'), themes.tv, 'theme.tv.json');
+  }
   return { themes: { desktop: themeOf(blocks, 'desktop'), tv: themeOf(blocks, 'tv') }, ratios };
 };
 
 export const designTokens = async (check = false) => {
   const source = await readFile(designFile, 'utf8');
-  const current = JSON.parse(await readFile(themes.desktop, 'utf8'));
-  const { themes: nextThemes, ratios } = compile(source, current);
+  const current = {
+    desktop: JSON.parse(await readFile(themes.desktop, 'utf8')),
+    tv: JSON.parse(await readFile(themes.tv, 'utf8')),
+  };
+  const { themes: nextThemes, ratios } = compile(source, current, { check });
   const writes = [
     [themes.desktop, renderTheme(nextThemes.desktop)],
     [themes.tv, renderTheme(nextThemes.tv)],

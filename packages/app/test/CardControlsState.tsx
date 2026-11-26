@@ -1,5 +1,5 @@
 import { signal, Text, View, keymap, type ViewRef } from 'nsh';
-import { Button, CardControls, FilterChoices, PosterCard } from '@hongguo/ui';
+import { Button, CardControls, CardRoot, FilterChoices, PosterCard } from '@hongguo/ui';
 
 /** Exercises the shared card group's public focus and disposal contract. */
 export function CardControlsStateFixture() {
@@ -63,8 +63,12 @@ export function SourceControlsStateFixture() {
     <View class="flex-1 bg-background p-4 gap-4">
       <CardControls label="来源命令">
         <Button testID="command-a" label="命令A" onPress={() => event.set('a')} />
+        <CardRoot testID="passive-card" accessibilityLabel="只读说明">
+          <Text>只读说明</Text>
+        </CardRoot>
         <Button label="禁用命令B" disabled onPress={() => event.set('b')} />
         <Button
+          testID="command-c"
           buttonRef={(ref) => {
             last = ref;
           }}
@@ -75,6 +79,7 @@ export function SourceControlsStateFixture() {
       </CardControls>
       <Button label="聚焦命令C" onPress={() => last?.focus()} />
       <Button label="禁用当前命令" onPress={disable} />
+      <Button label="启用命令C" onPress={() => disabled.set(false)} />
       <FilterChoices
         label="题材"
         testID="source-topic"

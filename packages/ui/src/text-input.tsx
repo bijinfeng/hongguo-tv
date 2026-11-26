@@ -1,3 +1,4 @@
+import { Search, X } from 'nsh-icon-lucide';
 import {
   Text,
   View,
@@ -5,6 +6,7 @@ import {
   effect,
   cleanup,
   keymap,
+  platform,
   token,
   type InputHostProps,
   type InputRef,
@@ -23,7 +25,6 @@ import {
 import { Button } from './button';
 import { Icon } from './icon';
 import { Field } from './field';
-import { Search } from 'nsh-icon-lucide';
 
 /** A controlled text field. Input changes belong to the caller, including during composition. */
 export interface TextInputProps {
@@ -147,9 +148,11 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
       style={{
         minHeight: size().height,
         borderRadius: size().radius,
-        outlineWidth: focused() ? focusRing : border,
-        outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
-        outlineOffset: focused() ? focusOffset : focusOffsetInside,
+        outlineWidth: focused() && platform.os !== 'android' ? focusRing : border,
+        outlineColor: token(
+          props.invalid ? 'destructive' : focused() && platform.os !== 'android' ? 'ring' : 'input',
+        ),
+        outlineOffset: focused() && platform.os !== 'android' ? focusOffset : focusOffsetInside,
       }}
     >
       <If when={props.search}>
@@ -201,6 +204,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
             fontWeight: weight.regular(),
             paddingHorizontal: size().paddingHorizontal,
             paddingVertical: size().paddingVertical,
+            outlineWidth: 0,
           }}
         />
       </If>
@@ -227,7 +231,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
       <If when={props.search && !!props.value && !props.readonly}>
         <Button
           label="清空搜索"
-          icon="close"
+          icon={X}
           iconOnly
           variant="quiet"
           disabled={props.disabled}

@@ -3,6 +3,7 @@ import type { Route, Section } from './store';
 /** Product names of the browse sections; the topbar crumb and the back entries share them. */
 export const sectionLabels: Record<Section, string> = {
   home: '发现',
+  mine: '我的',
   discover: '找剧',
   search: '找剧',
   history: '观看记录',
@@ -30,9 +31,20 @@ export function backLabelFor(
   routes: readonly Route[],
   section: Section,
   searchFromCategory: boolean,
+  target: 'desktop' | 'tv' = 'desktop',
+  rootDestination?: Section,
+  libraryKind: 'history' | 'favorites' = 'history',
 ) {
+  const label = (name: Section) =>
+    name === 'history' && libraryKind === 'favorites'
+      ? '收藏'
+      : target === 'tv'
+        ? ({ home: '精选', search: '搜索', rankings: '榜单' }[
+            name as 'home' | 'search' | 'rankings'
+          ] ?? sectionLabels[name])
+        : sectionLabels[name];
   const previous = routes.length > 1 ? routes[routes.length - 2] : undefined;
   if (previous)
-    return `返回${previous.name === 'browse' ? sectionLabels[section] : routeLabels[previous.name]}`;
-  return `返回${searchFromCategory ? sectionLabels.discover : sectionLabels.home}`;
+    return `返回${previous.name === 'browse' ? label(section) : routeLabels[previous.name]}`;
+  return `返回${label(rootDestination ?? (searchFromCategory ? 'discover' : 'home'))}`;
 }

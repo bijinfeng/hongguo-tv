@@ -1,3 +1,4 @@
+import { Bookmark, Lock, Play } from 'nsh-icon-lucide';
 import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -9,7 +10,6 @@ import {
   EpisodeRange,
   ExpandableText,
   Notice,
-  StoryFeature,
   UiText,
 } from '@hongguo/ui';
 import { createSeasons } from '../seasons';
@@ -17,11 +17,11 @@ import { createSeasonDetail, seasonEpisode } from '../season-detail';
 import { SeasonPicker } from '../SeasonPicker';
 import { DetailExtras } from '../DetailExtras';
 import { contentGutter } from '../shell/ContentColumn';
+import { tvColumns } from '../shell/tv-layout';
 import { createDetailFavorite } from '../detail-favorite';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { FollowAction, FollowNotice } from '../FollowAction';
 import { ReservationAction, ReservationNotice } from '../ReservationAction';
-import { Bookmark, Play } from 'nsh-icon-lucide';
 
 export function Detail(props: {
   drama: Drama;
@@ -54,8 +54,8 @@ export function Detail(props: {
     () => active() && lifecycle() === 'active',
   );
   const segment = signal(0);
-  const pageSize = props.store.target === 'tv' ? 12 : 24;
-  const columns = () => (props.store.target === 'tv' ? 6 : 8);
+  const pageSize = 24;
+  const columns = () => (props.store.target === 'tv' ? tvColumns('episodes') : 8);
   const resume = () => props.store.resume(current());
   const episodes = () => browse.drama()?.episodes ?? [];
   const saved = () =>
@@ -155,12 +155,12 @@ export function Detail(props: {
         paddingHorizontal: props.store.target === 'tv' ? 0 : contentGutter(),
         paddingBottom: props.store.target === 'tv' ? 16 : 40,
         paddingTop: props.store.target === 'tv' ? 6 : 12,
-        gap: 32,
+        gap: props.store.target === 'tv' ? 24 : 32,
         width: '100%',
         alignItems: 'stretch',
       }}
     >
-      <View class="w-full gap-8">
+      <View class="w-full" style={{ gap: props.store.target === 'tv' ? 24 : 32 }}>
         <BackButton
           testID="detail-back"
           label={props.store.backLabel()}
@@ -220,41 +220,55 @@ export function Detail(props: {
             </View>
           }
         >
-          <StoryFeature
-            detail
-            title={current().title}
-            image={current().cover_fallback || current().cover}
-            meta={meta()}
-            description={current().intro}
-          >
-            <View class="flex-row flex-wrap items-center" style={{ gap: 8 }}>
-              <Button
-                testID="detail-start"
-                primary
-                icon={Play}
-                label={startLabel()}
-                disabled={!startEpisode()}
-                buttonRef={(ref) => {
-                  startRef = ref;
-                }}
-                onPress={() => {
-                  const episode = startEpisode();
-                  if (episode) play(episode, startRef);
-                }}
-              />
-              <FavoriteButton favorite={favorite} cinema />
-              <FollowAction
-                cinema
-                store={props.store}
-                drama={
-                  browse.summary()?.series_id === seasons.selectedId()
-                    ? browse.summary()
-                    : undefined
-                }
-                active={active() && lifecycle() === 'active'}
+          <View class="flex-row items-start" style={{ gap: 24 }}>
+            <View accessibilityElementsHidden style={{ width: 132, flexShrink: 0 }}>
+              <Cover
+                src={current().cover_fallback || current().cover}
+                title={current().title}
+                height={178}
+                variant="compact-poster"
+                fit="contain"
               />
             </View>
-          </StoryFeature>
+            <View class="flex-1 min-w-0" style={{ gap: 12 }}>
+              <UiText role="display" lines={2}>
+                {current().title}
+              </UiText>
+              <UiText role="meta">{meta()}</UiText>
+              <ExpandableText
+                testID="detail-intro"
+                text={current().intro || '暂无简介'}
+                collapsedLines={3}
+              />
+              <View class="flex-row flex-wrap items-center" style={{ gap: 8 }}>
+                <Button
+                  testID="detail-start"
+                  primary
+                  size="lg"
+                  icon={Play}
+                  label={startLabel()}
+                  disabled={!startEpisode()}
+                  buttonRef={(ref) => {
+                    startRef = ref;
+                  }}
+                  onPress={() => {
+                    const episode = startEpisode();
+                    if (episode) play(episode, startRef);
+                  }}
+                />
+                <FavoriteButton favorite={favorite} />
+                <FollowAction
+                  store={props.store}
+                  drama={
+                    browse.summary()?.series_id === seasons.selectedId()
+                      ? browse.summary()
+                      : undefined
+                  }
+                  active={active() && lifecycle() === 'active'}
+                />
+              </View>
+            </View>
+          </View>
         </If>
         <FollowNotice
           store={props.store}
@@ -298,7 +312,7 @@ export function Detail(props: {
         </If>
         <View
           style={{
-            maxWidth: props.store.target === 'tv' ? 610 : 1000,
+            maxWidth: props.store.target === 'tv' ? undefined : 1000,
             gap: props.store.target === 'tv' ? 12 : 20,
           }}
         >
@@ -381,11 +395,11 @@ export function Detail(props: {
                       label={`第 ${episode().index} 集${episode().locked ? ' · 未开放' : ''}`}
                       displayLabel={
                         props.store.target === 'tv'
-                          ? `第 ${episode().index} 集`
+                          ? String(episode().index)
                           : String(episode().index).padStart(2, '0')
                       }
                       episode
-                      icon={episode().locked ? 'lock' : undefined}
+                      icon={episode().locked ? Lock : undefined}
                       disabled={episode().locked}
                       selected={episode().video_id === resume()?.video_id}
                       onPress={() => play(episode(), ref)}

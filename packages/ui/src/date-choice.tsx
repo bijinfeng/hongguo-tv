@@ -33,6 +33,8 @@ export interface DateChoiceProps {
   onFocus?: () => void;
   /** Control density; the calendar cell keeps its larger date inside the tier. */
   size?: ControlSize;
+  /** Inline dates leave room for the result list on a television. */
+  presentation?: 'calendar' | 'inline';
   testID?: string;
 }
 export function DateChoice(props: DateChoiceProps) {
@@ -54,8 +56,8 @@ export function DateChoice(props: DateChoiceProps) {
           class={`items-center justify-center border border-input bg-card hover:bg-muted active:bg-border selected:bg-accent selected:border-transparent ${focusRingClass(4)}`}
           style={{
             minWidth: size().height * 2,
-            minHeight: size().height * 2.4,
-            borderRadius: radius('xl'),
+            minHeight: size().height * (props.presentation === 'inline' ? 1 : 2.4),
+            borderRadius: props.presentation === 'inline' ? size().radius : radius('xl'),
             borderWidth: border,
             flexShrink: 0,
             padding: space('sm'),
@@ -64,25 +66,50 @@ export function DateChoice(props: DateChoiceProps) {
             transitionDuration: reduceMotion() ? 0 : motionTokens.fast,
           }}
         >
-          <Text
-            style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta'), color: muted() }}
+          <If
+            when={props.presentation === 'inline'}
+            else={
+              <>
+                <Text
+                  style={{
+                    fontSize: textSize('meta'),
+                    fontWeight: textWeight('meta'),
+                    color: muted(),
+                  }}
+                >
+                  {props.label}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: textSize('title'),
+                    fontWeight: weight.strong(),
+                    color: foreground(),
+                  }}
+                >
+                  {String(date().day)}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: textSize('meta'),
+                    fontWeight: textWeight('meta'),
+                    color: muted(),
+                  }}
+                >
+                  {`${date().month} 月`}
+                </Text>
+              </>
+            }
           >
-            {props.label}
-          </Text>
-          <Text
-            style={{
-              fontSize: textSize('title'),
-              fontWeight: weight.strong(),
-              color: foreground(),
-            }}
-          >
-            {String(date().day)}
-          </Text>
-          <Text
-            style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta'), color: muted() }}
-          >
-            {`${date().month} 月`}
-          </Text>
+            <Text
+              style={{
+                fontSize: size().fontSize,
+                fontWeight: props.selected ? weight.strong() : weight.regular(),
+                color: foreground(),
+              }}
+            >
+              {`${date().month}月${date().day}日 ${props.label}`}
+            </Text>
+          </If>
         </CardRoot>
       )}
     </If>

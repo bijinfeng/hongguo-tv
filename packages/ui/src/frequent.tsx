@@ -1,3 +1,4 @@
+import { X } from 'nsh-icon-lucide';
 import { Text, View, cleanup, effect, signal, token, type ViewRef } from 'nsh';
 import { Button } from './button';
 import { controlMetrics, radius, space, focusRingClass } from './foundation';
@@ -149,7 +150,7 @@ export function RemovableChipGroup(props: RemovableChipGroupProps) {
             <Button
               label={`移除条件：${value().label}`}
               displayLabel={value().label}
-              icon="x"
+              icon={X}
               onPress={() => {
                 const id = value().id;
                 focusedIndex = props.values.findIndex((entry) => entry.id === id);

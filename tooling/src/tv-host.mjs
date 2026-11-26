@@ -97,14 +97,14 @@ export async function packageTvHost() {
     resolve(generated, 'lib/arm64-v8a/libnsh.so'),
     resolve(generated, 'jni/arm64-v8a/libnsh.so'),
   );
-  const theme = JSON.parse(await readFile(resolve(root, 'packages/ui/theme.json'), 'utf8'));
+  const theme = JSON.parse(await readFile(resolve(root, 'apps/tv', metadata.theme), 'utf8'));
   for (const [mode, folder] of [
     ['light', 'values'],
     ['dark', 'values-night'],
   ]) {
     const tokens = theme.cssVars[mode];
     await mkdir(resolve(generated, 'res', folder), { recursive: true });
-    const colors = ['background', 'ring']
+    const colors = ['background', 'ring', 'cinema-focus']
       .map((token) => `<color name="tv_${token.replaceAll('-', '_')}">${tokens[token]}</color>`)
       .join('\n');
     await writeFile(

@@ -27,7 +27,8 @@ export function registerCalendarHostTests(
   const readCount = (source: ReturnType<typeof calendarFixture>, prefix: string) =>
     source.reads.filter((path) => path.startsWith(prefix)).length;
   const enterCalendar = async (app: App) => {
-    await app.press(product === 'tv' ? 'id:home-calendar' : 'id:nav-calendar');
+    if (product === 'tv') await app.press('id:nav-discover');
+    await app.press(product === 'tv' ? 'id:discover-calendar' : 'id:nav-calendar');
     await app.waitFor('id:calendar-upcoming-301');
   };
   const readonly = (source: ReturnType<typeof calendarFixture>) => {
@@ -263,7 +264,8 @@ export function registerCalendarVisualTests(
             `${artifacts}/images-${name}-${product}-${size.width}-${colorScheme}.png`,
           );
         };
-        await app.press(product === 'tv' ? 'id:home-calendar' : 'id:nav-calendar');
+        if (product === 'tv') await app.press('id:nav-discover');
+        await app.press(product === 'tv' ? 'id:discover-calendar' : 'id:nav-calendar');
         await app.waitFor('id:calendar-upcoming-301');
         await capture('calendar');
         await app.scroll('id:calendar-results', 240);

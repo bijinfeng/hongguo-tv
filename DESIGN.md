@@ -63,6 +63,31 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 控件边界（`input`）在浅色取与分隔线同族的浅灰，在深色比分隔线高一档，让输入框、下拉、复选和按钮读作同一种线；可操作识别由表面、文字、形状和独立的 3:1 焦点环承担，边界不单独承担识别。禁用控件边界与内容分隔线使用 `border`；进入 `muted` 表面的控件按禁用处理。影院滑杆和焦点使用影院角色另验。对比度计算验证 token 配对，真实宿主还要观察细线、缩放、焦点裁切和状态组合。
 
 ```yaml
+colors-tv:
+  cinema-focus: '#ffffff'
+  cinema-focus-dark: '#ffffff'
+  background-dark: '#141619'
+  foreground-dark: '#f4f4f5'
+  card-dark: '#212428'
+  card-foreground-dark: '#f4f4f5'
+  popover-dark: '#212428'
+  popover-foreground-dark: '#f4f4f5'
+  muted-dark: '#2c3035'
+  muted-foreground-dark: '#b1b5bc'
+  border-dark: '#3b4048'
+  input-dark: '#525861'
+  primary-dark: '#ff874d'
+  primary-foreground-dark: '#24130b'
+  accent-dark: '#3c4148'
+  accent-foreground-dark: '#ffffff'
+  ring: '#1c2026'
+  ring-dark: '#ffffff'
+  destructive-dark: '#ffafa5'
+```
+
+`colors-tv` is an optional TV-only override. Keys must already exist in `colors`; omitted roles inherit the shared color. The generator rejects unknown override keys and keeps desktop/Web colors unchanged.
+
+```yaml
 colors:
   background: '#ffffff'
   background-dark: '#000000'
@@ -130,14 +155,14 @@ colors:
 
 | `UiText` 角色 | 桌面         | TV           | 字重 | 行高 | 用途                          |
 | ------------- | ------------ | ------------ | ---- | ---- | ----------------------------- |
-| display       | 44           | 44           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
-| page          | 32           | 28           | 600  | 1.3  | 页面标题                      |
-| section       | 24           | 22           | 600  | 1.5  | 栏目标题                      |
-| title         | 20           | 20           | 600  | 1.5  | 小节／面板标题                |
-| content-title | 18           | 20           | 600  | 1.5  | 海报与续播卡剧名              |
-| body          | 16           | 16           | 400  | 1.5  | 正文                          |
-| meta          | 14           | 14           | 400  | 1.5  | 元信息、说明、错误            |
-| numeric       | 16，等宽数字 | 16，等宽数字 | 400  | 1.5  | 时间、进度、榜位              |
+| display       | 44           | 28           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
+| page          | 32           | 22           | 600  | 1.3  | 页面标题                      |
+| section       | 24           | 18           | 600  | 1.5  | 栏目标题                      |
+| title         | 20           | 18           | 600  | 1.5  | 小节／面板标题                |
+| content-title | 18           | 14           | 600  | 1.5  | 海报与续播卡剧名              |
+| body          | 16           | 14           | 400  | 1.5  | 正文                          |
+| meta          | 14           | 12           | 400  | 1.5  | 元信息、说明、错误            |
+| numeric       | 16，等宽数字 | 14，等宽数字 | 400  | 1.5  | 时间、进度、榜位              |
 
 `title` 用于小节／面板标题，`content-title` 用于海报与续播卡的剧名；内容标题不因字号自动成为页面标题层级。时间、进度和榜位使用等宽数字。长剧名采用明确限行或换行；完整内容需要阅读时提供展开，不用无意义副标题补充。系统字号放大时允许容器增长，不固定高度裁掉文字。
 
@@ -153,7 +178,7 @@ typography:
     letterSpacing: 0.06em
   display-tv:
     fontFamily: system-ui
-    fontSize: 44px
+    fontSize: 28px
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: 0.06em
@@ -164,7 +189,7 @@ typography:
     lineHeight: 1.3
   page-tv:
     fontFamily: system-ui
-    fontSize: 28px
+    fontSize: 22px
     fontWeight: 600
     lineHeight: 1.3
   section-desktop:
@@ -174,7 +199,7 @@ typography:
     lineHeight: 1.5
   section-tv:
     fontFamily: system-ui
-    fontSize: 22px
+    fontSize: 18px
     fontWeight: 600
     lineHeight: 1.5
   title-desktop:
@@ -184,7 +209,7 @@ typography:
     lineHeight: 1.5
   title-tv:
     fontFamily: system-ui
-    fontSize: 20px
+    fontSize: 18px
     fontWeight: 600
     lineHeight: 1.5
   content-title-desktop:
@@ -194,7 +219,7 @@ typography:
     lineHeight: 1.5
   content-title-tv:
     fontFamily: system-ui
-    fontSize: 20px
+    fontSize: 14px
     fontWeight: 600
     lineHeight: 1.5
   body-desktop:
@@ -204,7 +229,7 @@ typography:
     lineHeight: 1.5
   body-tv:
     fontFamily: system-ui
-    fontSize: 16px
+    fontSize: 14px
     fontWeight: 400
     lineHeight: 1.5
   meta-desktop:
@@ -214,7 +239,7 @@ typography:
     lineHeight: 1.5
   meta-tv:
     fontFamily: system-ui
-    fontSize: 14px
+    fontSize: 12px
     fontWeight: 400
     lineHeight: 1.5
   numeric-desktop:
@@ -225,7 +250,7 @@ typography:
     fontFeature: '"tnum" 1'
   numeric-tv:
     fontFamily: system-ui
-    fontSize: 16px
+    fontSize: 14px
     fontWeight: 400
     lineHeight: 1.5
     fontFeature: '"tnum" 1'
@@ -241,9 +266,9 @@ typography:
 | ---------- | ---------------------------------------------------------------------------------------------------------------- |
 | 桌面外壳   | 176 侧栏、86 顶栏、360 搜索区、内容最大宽 1660                                                                   |
 | 桌面内容   | 12 列网格；继续观看三列；片库为流体海报网格（最小卡宽 180、2–8 列；1180 为 4 列、1440 为 5 列）；详情最大宽 1000 |
-| 详情选集   | 桌面每段 24 集／八列；TV 每段 12 集／六列；播放器侧面板独立四列，不混为同一布局                                  |
+| 详情选集   | 桌面每段 24 集／八列；TV 每段 24 集，列数上限按文字档位为10／8／6，局部空间不足继续减列；播放器侧面板独立四列    |
 | 桌面播放器 | 整页暗色观看带；画面高 `clamp(320, 视口高−428, 660)`、选集栏 316、间距 24；画面下方独立播控带                    |
-| TV 外壳    | 内边距 44、顶栏高 66                                                                                             |
+| TV 外壳    | 标准横向36／纵向24，保守48／27，与系统insets取较大值后另留6点焦点余量；顶栏最小52，随文字和换行增高              |
 | TV 播放器  | 可用舞台等比容纳竖片；方向／确认／返回操作控制层和选集                                                           |
 
 集合可增长时使用 `List`，小而有界的面板可用 `Scroll`；列表按稳定 ID 保存锚点，回收不串状态。
@@ -266,14 +291,14 @@ spacing:
   2xl: 40px
   3xl: 48px
   none-tv: 0px
-  xxs-tv: 6px
-  xs-tv: 10px
-  sm-tv: 14px
-  md-tv: 20px
-  lg-tv: 28px
-  xl-tv: 36px
-  2xl-tv: 48px
-  3xl-tv: 56px
+  xxs-tv: 4px
+  xs-tv: 8px
+  sm-tv: 12px
+  md-tv: 16px
+  lg-tv: 24px
+  xl-tv: 32px
+  2xl-tv: 40px
+  3xl-tv: 48px
 ```
 
 | 关系           | 桌面／TV 参考值 | 使用条件                                       |
@@ -306,6 +331,15 @@ spacing:
 ## Shapes
 
 普通控件及内容表面的基准圆角为 `xl`（12）；紧凑控件、密集组合和 `Button sm` 使用 `lg`（8）；Badge 与局部小表面使用 `md`（6）；骨架文字行、封面内元素使用 `sm`（4）；头像与滑杆拇指为 `full`。不向页面开放任意圆角覆盖。
+
+```yaml
+rounded-tv:
+  md: 6px
+  lg: 8px
+  xl: 12px
+```
+
+`rounded-tv` is an optional TV-only override. It may only override existing rounded roles; omitted roles inherit the shared scale.
 
 ```yaml
 rounded:
@@ -371,7 +405,7 @@ rounded:
 
 - `size` 只决定几何，不决定交互；不能写 `if (size === 'lg')` 触发遥控行为。
 - 40 是桌面鼠标密度：16 号字、1.5 行高（24）加 8×2 垂直内距正好 40；44 是移动端触控目标，桌面偏大。32 容纳 14 号字、1.5 行高（21）加 4×2 垂直内距，并留 3px 余量。
-- TV 表面实测是 960×540dp（1080p 与 4K 电视的 dp 宽都归一到这里）。`theme.tv.json` 因此给 TV 自己的值：控件统一 48dp（18 号字、20／10 内距、10 gap、12 圆角、22 图标），sm／md／lg 三档同值，组件传任何 `size` 都不改变 TV 视觉。
+- TV 的设计基线是 960×540 points；实际 windowSize、pixelRatio、字号和安全区按宿主度量核对，不能把浏览器或单台模拟器结果推广到所有 4K 设备。`theme.tv.json` 使用紧凑的 TV 档位：sm 32／14、md 36／14、lg 40／14；控件随语义选择档位，不再把所有按钮放大到同一个 48 高度。文字放大时允许内容增高，不整体放大画布。
 - `lg` 的桌面值只在确有超大动作时使用；标 * 的值在 TV 上不生效。
 - `controlMetrics(size)` 读 `--control-<size>-*`；`space(name)`、`radius(name)`、`textSize(role)` 读对应 token。没有 `unit()`／`adaptive()`／`Scale`。
 - 选集是组件配方，不新增档位：桌面详情 48、播放器面板 42、TV 48。Badge 28、RankingCard 42 也归配方。
@@ -404,29 +438,29 @@ controls:
     iconSize: 26px
     rounded: '{rounded.xl}'
   sm-tv:
-    height: 48px
-    fontSize: 18px
-    paddingHorizontal: 20px
-    paddingVertical: 10px
-    gap: 10px
-    iconSize: 22px
-    rounded: '{rounded.xl}'
+    height: 32px
+    fontSize: 14px
+    paddingHorizontal: 12px
+    paddingVertical: 4px
+    gap: 6px
+    iconSize: 16px
+    rounded: '{rounded.md}'
   md-tv:
-    height: 48px
-    fontSize: 18px
-    paddingHorizontal: 20px
-    paddingVertical: 10px
-    gap: 10px
-    iconSize: 22px
-    rounded: '{rounded.xl}'
+    height: 36px
+    fontSize: 14px
+    paddingHorizontal: 16px
+    paddingVertical: 6px
+    gap: 8px
+    iconSize: 18px
+    rounded: '{rounded.md}'
   lg-tv:
-    height: 48px
-    fontSize: 18px
-    paddingHorizontal: 20px
-    paddingVertical: 10px
-    gap: 10px
-    iconSize: 22px
-    rounded: '{rounded.xl}'
+    height: 40px
+    fontSize: 14px
+    paddingHorizontal: 18px
+    paddingVertical: 8px
+    gap: 8px
+    iconSize: 20px
+    rounded: '{rounded.md}'
 ```
 
 TV 行为用显式 props，不从 size 推导：
@@ -531,7 +565,7 @@ components:
 
 - `primary` 属于当前决策区的默认观看或提交动作，不因操作常用、只有一个按钮或位于卡片内就使用红色。全局搜索为普通／轻量操作；独立搜索页的搜索提交可为 primary。重复续播卡使用普通按钮，详情／TV 推荐主区保留主要观看动作；不要求每页必须有红色按钮。
 - 页面级返回统一使用 `BackButton`：前导箭头加目的地名（“返回发现”“返回详情”），静止态无表面与边界，悬停／按下沿用 `Button quiet` 的 `muted`／`border` 底色；箭头本身对齐页面文字轴，不另加左侧内距，也不在页面上方单开一条带内距的返回栏。它位于页面内容列的第一行，随该页滚动；影院语境用 `tone="cinema"`，底色改为影院配对。标签由目标决定，不用泛化“返回”掩盖去向。
-- 深色内容区的辅助操作使用已有 `CinemaButton`；普通页面使用 `Button`。TV 推荐区即使位于浅色页面也保持影院配对，不让辅助操作变成白色实底。播放主动作仍使用 primary。
+- 深色内容区的辅助操作使用已有 `CinemaButton`；普通页面使用 `Button`。TV 精选区使用当前页面的配对与主观看动作，影院色仅用于实际播放层；播放主动作仍使用 primary。
 - Button 外观优先级为：disabled／pending → selected → variant 的默认／hover／pressed。选中背景、文字和图标必须成对使用 accent／accent-foreground；不能保留 primary-foreground。禁用／等待覆盖选中外观但保留调用方的选中值；可用性恢复后仍显示原选择。
 - focus 是独立轮廓，可与以上状态并存，不替代选择、不改变尺寸。选中项的 hover／pressed 不覆盖选中配对；危险操作始终通过动作名称表达后果，选中不能成为执行危险动作的确认。
 - 选中与可用性切换即时更新；未选中按钮沿用 100ms 颜色反馈；焦点即时；减少动态效果时去掉颜色过渡。层级调整不增加入场、位移、缩放或新状态机。
@@ -563,11 +597,11 @@ components:
 
 封面用于识别内容，不承载唯一剧名、状态或操作。只使用实际内容源；样板图片不冒充业务素材。共享 Cover 持有裁切与失败状态，页面不自定义遮罩或取景。
 
-| Cover 组合                | 裁切与几何                                         | 内容安全区                                                                                                                                               |
-| ------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 默认海报                  | object-cover；桌面 center 30%，TV top；独立圆角 12 | 桌面常规比例 2:2.7；有限视口按实际文字高度收缩封面，最小 96，空间充足保留比例；TV 沿用可用高度约束。剧名与两行元信息在图外，完整内容保留可访问名称／说明 |
-| inline（续播）            | object-cover、top；内圆角 0，由外框裁切            | 固定左图宽，右侧文字与操作不覆盖图片                                                                                                                     |
-| feature（精选／详情影院） | object-cover、center 28%；内圆角 0                 | 沿用右侧 48% 图片、左侧文案与影院渐隐；不把文字压在主体脸部上                                                                                            |
+| Cover 组合                | 裁切与几何                                                     | 内容安全区                                                                                                                                                                                            |
+| ------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 默认海报                  | 桌面 object-cover、center 30%；TV完整图片使用contain与紧凑圆角 | 桌面常规比例 2:2.7；有限视口按实际文字高度收缩封面，最小 96，空间充足保留比例；TV紧凑卡片按宽度保持比例，不因局部视口压扁封面，长内容由集合滚动。剧名与两行元信息在图外，完整内容保留可访问名称／说明 |
+| inline（续播）            | object-cover、top；内圆角 0，由外框裁切                        | 固定左图宽，右侧文字与操作不覆盖图片                                                                                                                                                                  |
+| feature（精选／详情影院） | object-cover、center 28%；内圆角 0                             | 沿用右侧 48% 图片、左侧文案与影院渐隐；不把文字压在主体脸部上                                                                                                                                         |
 
 缺失或加载失败显示中性占位，保留标题、选集与操作；src 变化后重新尝试，列表身份与焦点不因此重置。不得从图片颜色推导界面主题。图片允许裁切，实际视频必须等比 contain；封面规则不应用到播放画面。
 
@@ -578,7 +612,7 @@ components:
 - 打开态只由 accent 配对、chevron 朝向与候选光标表达，不再叠加焦点轮廓：指针打开也会落焦点，画环等于把键盘提示发给鼠标用户，且 4 单位 offset 的轮廓正好被贴边弹层裁掉下弧。键盘 Tab 到关闭的触发器仍使用独立 `ring` 轮廓。这与 Menu／Popover 触发器的打开态一致。
 - 候选行内容垂直居中：行自身居中并读取档位行高（1.5 比例），使文字盒落在行中线上；不靠上下内距硬凑，档位变化时仍居中。已选行只保留 `accent-foreground` 勾选标记和正文色文字，不使用选中底色；`accent` 只属于指针与键盘光标所在的候选行，因此刚打开时不会同时出现两种“选中”观感。未选行文字保持正文色，禁用行降为 muted-foreground。
 - Tabs 用 2 单位品牌下划线标出选中项，下划线压住整行分隔线；可用未选项使用正文色和常规字重，不用药丸底色，hover 才出现 muted 填充。禁用项只用 muted-foreground 文字、不填充表面，保留名称；选中且禁用时保留下划线，配对改为禁用色。ChoiceGroup 禁用同样覆盖强调配对，但保留勾选标记；标记槽始终占位，切换不移动文字。focus 始终独立，不以降低整个区域透明度表示禁用。
-- TV 顶栏导航的当前项不用下划线：`Button` 以 `currentSurface="contrast"` 把当前配对换成 `foreground` 实底与 `background` 文字的反色胶囊，三米距离可辨；桌面侧栏当前项保持 `muted` 共享表面。两种表达共用同一 `current` 语义，读屏一致。TV 头部动作统一为默认边框控件——搜索带字，设置与账号为图标钮，时钟是栏内唯一裸文本；头部与内容之间靠间距分层，不加表面或分隔线。
+- TV 顶栏导航的当前项不用下划线：`Button` 以 `currentSurface="contrast"` 把当前配对换成 `foreground` 实底与 `background` 文字的反色胶囊，三米距离可辨；桌面侧栏当前项保持 `muted` 共享表面。两种表达共用同一 `current` 语义，读屏一致。TV 头部以精选、找剧、榜单、我的为四个入口，搜索带字，设置为图标钮；账号归我的；头部与内容之间靠间距分层，不加表面或分隔线。 主导航按内容自然宽度参与顶栏换行，不能压缩到文字或焦点框侵入工具按钮；工具组换行后仍靠右，导航在更窄区域内继续换行。
 - 账号只有一个带名字的入口：桌面在侧栏底部与设置同组，顶栏右侧只放头像（未登录时是轮廓图标），不再重复账号名。顶栏是固定高度的条，账号名可能是服务端给的“用户”加一长串数字，写在那里既与侧栏重名又会撑开条宽；头像本身已经表明身份，名称在账号页和侧栏承担。
 - 滚动承载为外轮廓留安全区，覆盖首末行及两侧；安全区按实际 outline 与 offset 取足够值，不能因 TV 缩放而小于轮廓范围。
 - 桌面 Tab 进入区域，方向键依控件语义处理。NSH Tabs 方向激活；Select 候选移动不提交，确认才选择。
@@ -590,10 +624,10 @@ components:
 
 - 每个操作具备名称、角色、当前值和适用状态；纯图标由所属操作命名，装饰图形隐藏。真正的页面／栏目标题使用标题语义与层级，卡片剧名不因字号大就成为标题。
 - 字段的可见名称与可访问名称一致；错误不仅变红，还提供具体原因并关联到输入。`Field` 负责排版和可见反馈，不自动向任意 children 注入属性；调用方给 `TextInput` 显式传入相同 label、invalid 和 description（优先错误，其次帮助）。组合控件负责完整传递。
-- TV 的进入编辑目标与编辑中的输入保持名称、值、禁用、错误和说明的一致性。禁用阻止操作；只读允许阅读当前值；两者不能互代。实际读屏遍历与遥控焦点分别验收。
+- TV 的进入编辑目标与编辑中的输入保持名称、值、禁用、错误和说明的一致性。禁用阻止操作；只读允许阅读当前值；两者不能互代。实际读屏遍历与遥控焦点分别验收。 Android 触摸探索开启时由系统读屏绘制焦点指示，宿主遥控外框让出绘制权；关闭后恢复，模式切换即时重绘，不能叠加两层轮廓。
 - pending 是动作正在进行，disabled 是当前不可操作。等待需有可见状态和可访问忙碌表达，既可由按钮也可由所属状态区域提供；仅把按钮变灰不够。保留输入与选择、防止重复提交，结束后表达实际结果和可用恢复动作，不宣告尚未完成的成功。
 - 选择控件禁用后仍能辨认既有选中／部分选中／开关值；标记、前景与底色成对验证。禁用选中使用 `accent` 实底与 `accent-foreground` 标记／拇指，禁用未选中使用 `muted` 表面与 `border` 边界，禁用开关关闭态使用 `border` 轨道与 `muted-foreground` 拇指，保留开关结构。禁用态不直接套用可操作控件的对比度合规结论，但不能因此隐藏用户已有值。
-- 错误、加载完成等关键状态在适当时机播报，不抢焦点；进度变化不逐帧播报。隐藏与非活动内容退出焦点和可访问遍历，弹层关闭、列表删除后恢复有效来源。
+- 错误、加载完成等关键状态在适当时机播报，不抢焦点；进度变化不逐帧播报。隐藏与非活动内容退出焦点和可访问遍历，弹层关闭、列表删除后恢复有效来源。 设置行的保存失败与恢复动作相邻；重试连续失败仍留在原字段，成功移除反馈与重试按钮，焦点交给有效控件。
 
 状态按组件职责验收，不给所有组件硬加 pending／error 等 API：动作检查 selected＋disabled／pending 和恢复；输入检查错误＋焦点、只读、禁用和 IME；选择检查 checked／mixed＋disabled；弹层检查打开、取消、失败、来源消失与焦点返回；反馈检查未知总量与减少动态效果；内容检查长文、缺图和稳定身份。浅深主题与适用端型都要覆盖，行为、外观和语义分开记录。
 

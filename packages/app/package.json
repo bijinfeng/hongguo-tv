@@ -11,6 +11,8 @@
     "./testing/player-controls-host": "./test/PlayerControlsHost.tsx",
     "./testing/player-host": "./test/PlayerHost.tsx",
     "./testing/player-media-host": "./test/PlayerMediaHost.tsx",
+    "./testing/episode-grid": "./test/EpisodeGrid.tsx",
+    "./testing/poster-collection": "./test/PosterCollectionState.tsx",
     "./testing/native-startup": "./test/NativeStartup.tsx",
     "./testing/search-state": "./test/SearchState.tsx",
     "./testing/recent-search-state": "./test/RecentSearchState.tsx",

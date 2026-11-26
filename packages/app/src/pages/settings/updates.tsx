@@ -23,6 +23,13 @@ export function SettingsUpdates(props: { store: Store; updates: Updates; tv: boo
         label="自动检查更新"
         description="打开应用后检查是否有新的安装包。"
         testID="settings-auto-updates-row"
+        error={
+          props.store.settings.failedKey() === 'autoCheckUpdates'
+            ? props.store.settings.error()
+            : undefined
+        }
+        onRetry={props.store.settings.retry}
+        retryLabel="重试保存"
       >
         <Switch
           label="自动检查更新"

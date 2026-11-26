@@ -100,6 +100,18 @@ final class PlayerAcceptance {
         if (node == null || !node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) throw new AssertionError("click " + label);
         SystemClock.sleep(300);
     }
+    private boolean scroll(AccessibilityNodeInfo node, int action) {
+        if (node == null) return false;
+        if (node.isScrollable() && node.performAction(action)) return true;
+        for (int i = 0; i < node.getChildCount(); i++) if (scroll(node.getChild(i), action)) return true;
+        return false;
+    }
+    private void reveal(String label, int action) {
+        for (int page = 0; page < 10 && !has(label); page++) {
+            if (!scroll(root(), action)) break;
+            SystemClock.sleep(150);
+        }
+    }
     private EditText input(View view) {
         if (view instanceof EditText) return (EditText) view;
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { EditText found = input(((ViewGroup) view).getChildAt(i)); if (found != null) return found; }
@@ -124,6 +136,13 @@ final class PlayerAcceptance {
             if (launch == null) throw new AssertionError("missing TV launcher");
             Activity activity = runner.startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             check("production browse route", () -> has("找剧"));
+            for (int i = 0; i < 10 && !focused("设置"); i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            if (!focused("设置")) throw new AssertionError("remote settings tool unreachable");
+            confirm();
+            check("native settings opens from the header", () -> has("外观") && has("本机数据"));
+            key(KeyEvent.KEYCODE_BACK);
+            check("settings Back restores its confirmed header source", () -> focused("设置") && has("找剧"));
+            key(KeyEvent.KEYCODE_DPAD_LEFT);
             key(KeyEvent.KEYCODE_MEDIA_NEXT); // Must be discarded, never queued for the next player.
             for (int i = 0; i < 10 && !focused("搜索短剧"); i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
             if (!focused("搜索短剧")) throw new AssertionError("remote search tool unreachable");
@@ -136,8 +155,16 @@ final class PlayerAcceptance {
             key(KeyEvent.KEYCODE_ENTER);
             check("HTTP fixture result", () -> has("自制媒体验收"));
             click("自制媒体验收");
-            check("real detail route", () -> has("开始观看"));
-            click("开始观看");
+            check("production detail exposes its watch action", () -> has("开始观看") || has("继续第 2 集"));
+            boolean fresh = has("开始观看");
+            reveal("第 1 集", AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+            check("production detail exposes its exact episode", () -> has("第 1 集"));
+            // Appearance passes retain the fixture's committed history; never clear it to reset UI.
+            if (fresh) {
+                reveal("开始观看", AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+                click("开始观看");
+            }
+            else click("第 1 集");
             // A moving media clock is not an idle accessibility tree. Pause, then inspect it.
             SystemClock.sleep(5000);
             key(KeyEvent.KEYCODE_MEDIA_PAUSE);
@@ -196,7 +223,9 @@ final class PlayerAcceptance {
                 return has("自制媒体验收 · 第 2 集") && position() >= 1 && next != null && !next.isEnabled();
             });
             key(KeyEvent.KEYCODE_BACK); key(KeyEvent.KEYCODE_ESCAPE);
-            if (!has("开始观看")) throw new AssertionError("layered Back/Escape returns to original detail");
+            // The retained detail reflects the real checkpoint instead of remounting its old CTA.
+            if (!has("继续第 2 集") || !has("自制媒体验收"))
+                throw new AssertionError("layered Back/Escape returns to the original detail with its latest resume episode");
             result.putString("stream", "TV player acceptance: " + checks + " checks passed\n");
             runner.finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {

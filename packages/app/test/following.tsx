@@ -1,3 +1,4 @@
+import { openAccount } from './navigation';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import type {
   Account,
@@ -157,7 +158,7 @@ export function registerFollowingTests(target: 'desktop' | 'tv', entry: string) 
       network: { '*': f.network, 'POST *': f.network },
     });
     if (target === 'tv') {
-      await app.press(`role:button[${f.account.profile?.name || '登录'}]`);
+      await openAccount(app, target, f.account.profile?.name || '登录');
       await app.press('id:account-following');
     } else await app.press('id:nav-following');
     return app;

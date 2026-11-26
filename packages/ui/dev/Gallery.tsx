@@ -1,4 +1,29 @@
-import { Scroll, Text, View, signal, type JSX, type ViewRef, type ScrollRef } from 'nsh';
+import {
+  Check,
+  CircleAlert,
+  Maximize,
+  Pause,
+  Play,
+  Search,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  X,
+} from 'nsh-icon-lucide';
+import {
+  reduceMotion,
+  Scroll,
+  Text,
+  View,
+  signal,
+  windowSize,
+  pixelRatio,
+  fontScale,
+  safeArea,
+  type JSX,
+  type ViewRef,
+  type ScrollRef,
+} from 'nsh';
 import {
   UiText,
   Surface,
@@ -15,6 +40,7 @@ import {
   Field,
   FieldGroup,
   TextInput,
+  RemoteKeyboard,
   SearchField,
   Select,
   Checkbox,
@@ -65,7 +91,6 @@ import {
   GalleryTransferRecipe,
   GalleryCinemaRecipe,
 } from './GalleryExtras';
-import { Search } from 'nsh-icon-lucide';
 
 export const gallerySheets = [
   { id: 'foundation', label: '基础规范' },
@@ -149,6 +174,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
   const checked = signal(false);
   const mixed = signal(true);
   const enabled = signal(true);
+  const settingsSaveError = signal(true);
   const selectionDisabled = signal(false);
   const selectDisabled = signal(false);
   const genre = signal<string | null>('all');
@@ -217,6 +243,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
           >
             <If when={shown('foundation')}>
               <Section title="文字与表面" viewRef={(ref) => anchors.set('foundation', ref)}>
+                <HostMetrics />
                 <UiText role="page">春山不负</UiText>
                 <UiText role="section">继续观看</UiText>
                 <UiText role="title">第 12 集</UiText>
@@ -241,8 +268,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                 <Separator />
                 <View class="flex-row flex-wrap items-center gap-4">
                   <Badge label="已完结" />
-                  <Badge label="已选择" tone="selected" icon="check" />
-                  <Badge label="加载失败" tone="error" icon="circle-alert" />
+                  <Badge label="已选择" tone="selected" icon={Check} />
+                  <Badge label="加载失败" tone="error" icon={CircleAlert} />
                   <Avatar name="游客" />
                   <Avatar name="林" size="lg" />
                   <Icon icon={Search} />
@@ -316,7 +343,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   <Button
                     label="开始观看"
                     variant="primary"
-                    icon="play"
+                    icon={Play}
                     onPress={() => result.set('已选择开始观看')}
                   />
                   <Button label="查看详情" onPress={() => result.set('已选择查看详情')} />
@@ -326,7 +353,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     variant="destructive"
                     onPress={() => confirm.set(true)}
                   />
-                  <IconButton label="关闭" icon="x" onPress={() => result.set('已关闭')} />
+                  <IconButton label="关闭" icon={X} onPress={() => result.set('已关闭')} />
                 </View>
                 <View class="flex-row flex-wrap items-center gap-3">
                   <Button label="已选择" selected onPress={() => {}} />
@@ -354,7 +381,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   <Button
                     label={selectedAction() ? '已选择观看' : '选择观看'}
                     variant="primary"
-                    icon={selectedAction() ? 'check' : 'play'}
+                    icon={selectedAction() ? Check : Play}
                     selected={selectedAction()}
                     pending={pendingAction()}
                     testID="gallery-primary-selected"
@@ -455,6 +482,16 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     />
                   </Field>
                 </FieldGroup>
+                <If when={props.target === 'tv'}>
+                  <RemoteKeyboard
+                    testID="gallery-remote-keyboard"
+                    value={query()}
+                    onInput={(value) => query.set(value)}
+                    onBackspace={() => query.set(query().slice(0, -1))}
+                    onClear={() => query.set('')}
+                    onSubmit={submit}
+                  />
+                </If>
               </Section>
               <Section title="选择与调整">
                 <Select
@@ -705,7 +742,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   >
                     <IconButton
                       label="关闭面板"
-                      icon="x"
+                      icon={X}
                       testID="gallery-tooltip-trigger"
                       onPress={() => result.set('面板已关闭')}
                     />
@@ -787,8 +824,16 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   testID="gallery-chips"
                 />
                 <SettingsSection title="偏好示例">
-                  <SettingsRow label="自动连播" description="本集结束后继续播放下一集">
+                  <SettingsRow
+                    label="自动连播"
+                    description="本集结束后继续播放下一集"
+                    testID="gallery-settings-save-row"
+                    error={settingsSaveError() ? '设置未能保存，请重试' : undefined}
+                    onRetry={() => settingsSaveError.set(false)}
+                    retryLabel="重试保存"
+                  >
                     <Switch
+                      testID="gallery-settings-toggle"
                       label="内容区自动连播"
                       labelHidden
                       checked={enabled()}
@@ -818,7 +863,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     </View>
                     <CinemaButton
                       label="关闭播放"
-                      icon="x"
+                      icon={X}
                       iconOnly
                       quiet
                       onPress={() => result.set('关闭播放')}
@@ -847,23 +892,20 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     <View class="flex-row items-center" style={{ gap: unit(16) }}>
                       <CinemaButton
                         label={playing() ? '暂停' : '播放'}
-                        icon={playing() ? 'pause' : 'play'}
+                        icon={playing() ? Pause : Play}
                         iconOnly
                         onPress={() => playing.set(!playing())}
                         testID="gallery-play"
                       />
                       <CinemaButton
                         label="下一集"
-                        icon="skip-forward"
+                        icon={SkipForward}
                         iconOnly
                         disabled={episode() >= 18}
                         onPress={() => episode.set(Math.min(18, episode() + 1))}
                       />
                       <View class="flex-row items-center" style={{ gap: unit(20) }}>
-                        <Icon
-                          icon={volume() === 0 ? 'volume-x' : 'volume-2'}
-                          tone={'cinema-foreground'}
-                        />
+                        <Icon icon={volume() === 0 ? VolumeX : Volume2} tone="cinema-foreground" />
                         <View style={{ width: unit(120) }}>
                           <CinemaSlider
                             label="音量"
@@ -897,7 +939,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                       />
                       <CinemaButton
                         label="全屏"
-                        icon="maximize"
+                        icon={Maximize}
                         iconOnly
                         onPress={() => result.set('切换全屏')}
                       />
@@ -932,7 +974,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                     class="flex-row items-center"
                     style={{ gap: unit(16), marginTop: unit(12) }}
                   >
-                    <Button label="下一集" icon="skip-forward" disabled onPress={() => {}} />
+                    <Button label="下一集" icon={SkipForward} disabled onPress={() => {}} />
                     <UiText role="meta">已是最后一集</UiText>
                   </View>
                 </View>
@@ -1089,5 +1131,24 @@ export function ComponentGallery(props: ComponentGalleryProps) {
         />
       </View>
     </>
+  );
+}
+
+/** Development evidence only: values come from the running host, never from a target label. */
+function HostMetrics() {
+  const measured = signal({ width: 0, height: 0 });
+  return (
+    <View style={{ gap: 8 }}>
+      <UiText
+        role="meta"
+        testID="gallery-host-metrics"
+      >{`window ${windowSize().width}×${windowSize().height} · pixels/point ${pixelRatio()} · text ${fontScale()} · insets ${safeArea().top}/${safeArea().right}/${safeArea().bottom}/${safeArea().left} · layout ${measured().width}×${measured().height} · reduced ${reduceMotion()}`}</UiText>
+      <View
+        onLayout={({ bounds }) => measured.set(bounds.size)}
+        style={{ width: 120, minHeight: 36 }}
+      >
+        <Button label="度量按钮" onPress={() => {}} />
+      </View>
+    </View>
   );
 }

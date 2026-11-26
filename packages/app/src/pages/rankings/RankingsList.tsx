@@ -1,4 +1,5 @@
-import { List, View, cleanup, effect, type JSX, type ListRef, type ViewRef } from 'nsh';
+import { List, View, cleanup, effect, signal, type JSX, type ListRef, type ViewRef } from 'nsh';
+import { collectionTargetVisible } from '../../collection-visibility';
 import {
   CardControls,
   RankingCard,
@@ -10,6 +11,7 @@ import {
 import type { Drama, RankItem } from '@hongguo/core-client';
 import { rankingIdentity, type RankingsController } from '../../rankings';
 import { RANKING_ROW_SAFE } from './layout';
+import { tvColumns } from '../../shell/tv-layout';
 
 export interface RankingsListProps {
   rankings: RankingsController;
@@ -24,10 +26,14 @@ export interface RankingsListProps {
   focusGuard: () => () => boolean;
 }
 
-/** Approved one-column desktop / two-column TV rows, retaining kind:id source anchors. */
+/** Ranked rows / poster grid share kind:id source anchors and continuation ownership. */
 export function RankingsList(props: RankingsListProps) {
+  const width = signal(0);
   const items = () => props.rankings.data()?.items ?? [];
-  const columns = () => (props.target === 'tv' ? 2 : 1);
+  const columns = () =>
+    props.target === 'tv' ? tvColumns('ranking', width() - RANKING_ROW_SAFE * 2) : 1;
+  const cardWidth = () =>
+    Math.max(1, (width() - RANKING_ROW_SAFE * 2 - 16 * (columns() - 1)) / columns());
   const refs = new Map<string, ViewRef>();
   let list: ListRef | undefined;
   let anchor: { id: string; offset: number } | undefined;
@@ -38,8 +44,7 @@ export function RankingsList(props: RankingsListProps) {
     | undefined;
   let disposed = false;
   let measurement = 0;
-  const collection = props.rankings.key();
-  const owns = () => !disposed && props.active && props.rankings.key() === collection;
+  const owns = () => !disposed && props.active;
   const restoreScroll = (source?: string) => {
     if (!owns()) return;
     const index = items().findIndex((item) => rankingIdentity(item) === (source ?? anchor?.id));
@@ -78,9 +83,13 @@ export function RankingsList(props: RankingsListProps) {
         if (
           !card ||
           !viewport ||
-          card.pagePosition.y < viewport.pagePosition.y + inset ||
-          card.pagePosition.y + card.bounds.size.height >
-            viewport.pagePosition.y + viewport.bounds.size.height - inset
+          !collectionTargetVisible(
+            card.pagePosition.y,
+            card.bounds.size.height,
+            viewport.pagePosition.y,
+            viewport.bounds.size.height,
+            inset,
+          )
         ) {
           if (!intent.checked) {
             intent.checked = true;
@@ -121,8 +130,14 @@ export function RankingsList(props: RankingsListProps) {
   });
   const source = (item: RankItem) => {
     const id = rankingIdentity(item);
+    const collection = props.rankings.key();
     return () => {
-      if (!owns() || !items().some((candidate) => rankingIdentity(candidate) === id)) return;
+      if (
+        !owns() ||
+        props.rankings.key() !== collection ||
+        !items().some((candidate) => rankingIdentity(candidate) === id)
+      )
+        return;
       cardIntent = { id, owns: props.focusGuard(), restorePosition: true, checked: false };
       restoreCard();
     };
@@ -147,7 +162,8 @@ export function RankingsList(props: RankingsListProps) {
       testID="ranking-results"
       class="flex-1"
       style={{ width: '100%' }}
-      onLayout={() => {
+      onLayout={({ bounds }) => {
+        if (bounds.size.width > 0) width.set(bounds.size.width);
         if (cardIntent) restoreCard();
       }}
       onScroll={() => {
@@ -165,7 +181,7 @@ export function RankingsList(props: RankingsListProps) {
       }))}
       keyExtractor={(row) => row.id}
       footer={props.footer}
-      estimatedItemSize={props.target === 'tv' ? 152 : 196}
+      estimatedItemSize={props.target === 'tv' ? cardWidth() * 1.35 + 76 : 196}
       contentStyle={{ gap: props.target === 'tv' ? 4 : 0 }}
     >
       {(row) => (
@@ -182,6 +198,7 @@ export function RankingsList(props: RankingsListProps) {
             label="榜单条目"
             class={props.target === 'tv' ? 'w-full items-stretch gap-4' : 'w-full gap-6'}
             onNavigate={props.onNavigate}
+            gap={props.target === 'tv' ? 16 : undefined}
           >
             <Each of={Array.from({ length: columns() }, (_, index) => index)}>
               {(slot) => (
@@ -199,6 +216,8 @@ export function RankingsList(props: RankingsListProps) {
                       });
                       return (
                         <RankingCard
+                          presentation={props.target === 'tv' ? 'poster' : 'row'}
+                          width={props.target === 'tv' ? Math.min(132, cardWidth()) : cardWidth()}
                           kind={item().entry.kind}
                           title={title(item())}
                           cover={cover(item())}

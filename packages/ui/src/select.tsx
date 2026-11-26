@@ -1,3 +1,5 @@
+import { Check } from 'nsh-icon-lucide';
+import { registerModalPopup } from './modal-dismiss';
 import { Text, View, signal, effect, token, type ViewProps, type ViewRef } from 'nsh';
 import { Select as BaseSelect, type SelectEntry } from 'nsh/base';
 import { controlMetrics, radius, space, weight, type ControlSize } from './foundation';
@@ -5,7 +7,6 @@ import { Button } from './button';
 import { Icon } from './icon';
 import { textLineHeightRatio } from './typography';
 import { type ChoiceOption } from './choice';
-import { Check } from 'nsh-icon-lucide';
 
 /**
  * The candidate row every Select popup shares. The row centres its content and sets the type
@@ -71,6 +72,7 @@ const MENU_MIN_WIDTH = 180;
 export function Select(props: SelectProps) {
   const size = () => controlMetrics(props.size);
   const open = signal(false);
+  registerModalPopup(open, () => open.set(false));
   effect(() => {
     if (props.disabled && open()) open.set(false);
   });

@@ -1,12 +1,12 @@
+import { ChevronRight } from 'nsh-icon-lucide';
 import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
-import { Cover } from './content';
+import { Cover, PosterCard } from './content';
 import { Avatar, UiText } from './display';
 import { controlMetrics, space, border, focusRingClass } from './foundation';
 import { Icon } from './icon';
 import { motionTokens } from './motion';
 import { textLineHeight, textSize, textWeight } from './typography';
-import { ChevronRight } from 'nsh-icon-lucide';
 
 /** One caller-owned ranking entry; the component never derives a position or fetches content. */
 export interface RankingCardProps {
@@ -31,6 +31,8 @@ export interface RankingCardProps {
   actionPlacement?: 'trailing' | 'inline' | 'none';
   /** Row geometry only: the compact recipe suits dense surfaces and smaller viewports. */
   density?: 'regular' | 'compact';
+  presentation?: 'row' | 'poster';
+  width?: number;
   /** Stable identity for input adapters and acceptance selectors. */
   testID: string;
   /** Exposes the whole-row input target for source-focus restoration. */
@@ -71,121 +73,149 @@ export function RankingCard(props: RankingCardProps) {
     </View>
   );
   return (
-    <CardRoot
-      ref={(ref) => props.buttonRef(ref)}
-      testID={props.testID}
-      accessibilityLabel={`${rank() === undefined ? '' : `第${rank()}名，`}${props.title}，${props.actionLabel}`}
-      accessibilityDescription={
-        [props.subtitle, props.metadata].filter(Boolean).join('，') || undefined
-      }
-      selected={props.selected}
-      onFocus={props.onFocus}
-      onPress={props.onPress}
-      class={`flex-row items-center border-t-transparent border-b-border ${focusRingClass(4)} ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
-      style={{
-        minHeight: MIN_ROW_HEIGHT[props.density ?? 'regular'],
-        paddingVertical: row().padding,
-        gap: row().gap,
-        borderTopWidth: 0,
-        borderRightWidth: 0,
-        borderBottomWidth: border,
-        borderLeftWidth: 0,
-        transitionProperty: 'colors',
-        transitionDuration: reduceMotion() ? 0 : motionTokens.fast,
-      }}
-    >
-      {/* The lane exists only when the source supplied a real position: an empty lane would read as
-          a missing datum and would push the poster off the row's leading edge. */}
-      <If when={rank() !== undefined}>
-        <View
-          accessibilityElementsHidden
-          class="shrink-0 items-center"
-          style={{ minWidth: row().lane }}
-        >
-          <Text
-            class="tabular-nums"
-            style={{
-              fontSize: textSize('section'),
-              lineHeight: textLineHeight('section'),
-              fontWeight: textWeight('numeric'),
-              color: token(
-                props.selected
-                  ? 'accent-foreground'
-                  : // The podium is the glanceable spine of a ranking board. `primary` at 22px/400
-                    // measures 2.73:1 on white, under the 3:1 large-text bar; `primary-strong`
-                    // keeps the same accent read at 3.3:1.
-                    (rank() ?? 0) <= 3
-                    ? 'primary-strong'
-                    : 'muted-foreground',
-              ),
-            }}
-          >
-            {String(rank())}
-          </Text>
-        </View>
-      </If>
-      <View accessibilityElementsHidden class="shrink-0" style={{ width: row().cover }}>
-        <If
-          when={props.kind === 'actor'}
-          else={
-            <View
-              style={{
-                height: row().height,
-                borderRadius: row().radius,
-                overflow: 'hidden',
-              }}
-            >
-              <Cover src={props.cover} title={props.title} height={row().height} class="w-full" />
-            </View>
+    <If
+      when={props.presentation === 'poster'}
+      else={
+        <CardRoot
+          ref={(ref) => props.buttonRef(ref)}
+          testID={props.testID}
+          accessibilityLabel={`${rank() === undefined ? '' : `第${rank()}名，`}${props.title}，${props.actionLabel}`}
+          accessibilityDescription={
+            [props.subtitle, props.metadata].filter(Boolean).join('，') || undefined
           }
-        >
-          {/* The avatar stays in the poster lane so actor and drama rows share one copy spine. */}
-          <View class="items-center justify-center" style={{ height: row().height }}>
-            <Avatar src={props.cover} name={props.title} size="lg" accessibilityLabel="" />
-          </View>
-        </If>
-      </View>
-      <View class="flex-1" style={{ gap: space('xs') }}>
-        <View
+          selected={props.selected}
+          onFocus={props.onFocus}
+          onPress={props.onPress}
+          class={`flex-row items-center border-t-transparent border-b-border ${focusRingClass(4)} ${props.selected ? 'bg-accent' : 'bg-transparent hover:bg-muted active:bg-border'}`}
           style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            alignItems: 'baseline',
-            columnGap: space('sm'),
-            rowGap: space('xxs'),
+            minHeight: MIN_ROW_HEIGHT[props.density ?? 'regular'],
+            paddingVertical: row().padding,
+            gap: row().gap,
+            borderTopWidth: 0,
+            borderRightWidth: 0,
+            borderBottomWidth: border,
+            borderLeftWidth: 0,
+            transitionProperty: 'colors',
+            transitionDuration: reduceMotion() ? 0 : motionTokens.fast,
           }}
         >
-          <Text
-            style={{
-              flexShrink: 1,
-              fontSize: textSize('title'),
-              lineHeight: textLineHeight('title'),
-              fontWeight: textWeight('title'),
-              color: token(props.selected ? 'accent-foreground' : 'foreground'),
-              numberOfLines: 2,
-            }}
-          >
-            {props.title}
-          </Text>
-          <If when={props.metadata}>
-            <UiText role="meta" tone={subtitleTone()} lines={1}>
-              {props.metadata}
-            </UiText>
+          {/* The lane exists only when the source supplied a real position: an empty lane would read as
+          a missing datum and would push the poster off the row's leading edge. */}
+          <If when={rank() !== undefined}>
+            <View
+              accessibilityElementsHidden
+              class="shrink-0 items-center"
+              style={{ minWidth: row().lane }}
+            >
+              <Text
+                class="tabular-nums"
+                style={{
+                  fontSize: textSize('section'),
+                  lineHeight: textLineHeight('section'),
+                  fontWeight: textWeight('numeric'),
+                  color: token(
+                    props.selected
+                      ? 'accent-foreground'
+                      : // The podium is the glanceable spine of a ranking board. `primary` at 22px/400
+                        // measures 2.73:1 on white, under the 3:1 large-text bar; `primary-strong`
+                        // keeps the same accent read at 3.3:1.
+                        (rank() ?? 0) <= 3
+                        ? 'primary-strong'
+                        : 'muted-foreground',
+                  ),
+                }}
+              >
+                {String(rank())}
+              </Text>
+            </View>
           </If>
-        </View>
-        <If when={props.subtitle}>
-          <UiText role="meta" tone={subtitleTone()} lines={2}>
-            {props.subtitle}
-          </UiText>
-        </If>
-        <If when={inline()}>
-          <View class="flex-row items-center" style={{ paddingTop: space('xxs') }}>
-            {action()}
+          <View accessibilityElementsHidden class="shrink-0" style={{ width: row().cover }}>
+            <If
+              when={props.kind === 'actor'}
+              else={
+                <View
+                  style={{
+                    height: row().height,
+                    borderRadius: row().radius,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Cover
+                    src={props.cover}
+                    title={props.title}
+                    height={row().height}
+                    class="w-full"
+                  />
+                </View>
+              }
+            >
+              {/* The avatar stays in the poster lane so actor and drama rows share one copy spine. */}
+              <View class="items-center justify-center" style={{ height: row().height }}>
+                <Avatar src={props.cover} name={props.title} size="lg" accessibilityLabel="" />
+              </View>
+            </If>
           </View>
-        </If>
-      </View>
-      <If when={!inline() && props.actionPlacement !== 'none'}>{action()}</If>
-    </CardRoot>
+          <View class="flex-1" style={{ gap: space('xs') }}>
+            <View
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'baseline',
+                columnGap: space('sm'),
+                rowGap: space('xxs'),
+              }}
+            >
+              <Text
+                style={{
+                  flexShrink: 1,
+                  fontSize: textSize('title'),
+                  lineHeight: textLineHeight('title'),
+                  fontWeight: textWeight('title'),
+                  color: token(props.selected ? 'accent-foreground' : 'foreground'),
+                  numberOfLines: 2,
+                }}
+              >
+                {props.title}
+              </Text>
+              <If when={props.metadata}>
+                <UiText role="meta" tone={subtitleTone()} lines={1}>
+                  {props.metadata}
+                </UiText>
+              </If>
+            </View>
+            <If when={props.subtitle}>
+              <UiText role="meta" tone={subtitleTone()} lines={2}>
+                {props.subtitle}
+              </UiText>
+            </If>
+            <If when={inline()}>
+              <View class="flex-row items-center" style={{ paddingTop: space('xxs') }}>
+                {action()}
+              </View>
+            </If>
+          </View>
+          <If when={!inline() && props.actionPlacement !== 'none'}>{action()}</If>
+        </CardRoot>
+      }
+    >
+      <PosterCard
+        density="compact"
+        title={props.title}
+        cover={props.cover}
+        fit="contain"
+        width={props.width}
+        caption={
+          [rank() === undefined ? '' : `第 ${rank()} 名`, props.metadata]
+            .filter(Boolean)
+            .join(' · ') || undefined
+        }
+        selected={props.selected}
+        testID={props.testID}
+        buttonRef={props.buttonRef}
+        onFocus={props.onFocus}
+        onPress={props.onPress}
+      />
+    </If>
   );
 }

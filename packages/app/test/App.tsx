@@ -7,6 +7,7 @@ import { registerCategoryTests } from './category';
 import { CoreError, libraryDrama } from '@hongguo/core-client';
 import { historyProgress, playbackTime } from '../src/format';
 import { errorMessage } from '../src/error-messages';
+import { openHistory, openAccount } from './navigation';
 
 const drama = {
   series_id: '123',
@@ -103,7 +104,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       reducedMotion: true,
       network: { '*': network, 'POST *': network },
     });
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-123');
     await app.press('id:history-manage');
     for (const source of ['history-remove-123', 'history-clear']) {
@@ -174,7 +175,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       reducedMotion: true,
       network: { '*': stats, 'POST *': stats, 'DELETE *': stats },
     });
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-page');
     await app.press('id:history-statistics');
     await app.waitFor('id:watch-statistics-panel');
@@ -368,7 +369,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       await app.waitFor('id:drama-123');
       await app.type('id:search-input', '再查');
       await app.waitFor('id:search-suggestions');
-      await app.press('id:nav-history');
+      await openHistory(app, target);
       expect(app.shows('id:search-suggestions')).toBe(false);
     },
   );
@@ -611,6 +612,8 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     };
     const app = await open(entry, {
       platform: 'macos',
+      width: target === 'tv' ? 1920 : 1180,
+      height: target === 'tv' ? 1080 : 780,
       clock: {},
       reducedMotion: true,
       network: { '*': discoveryRequest, 'POST *': discoveryRequest },
@@ -646,7 +649,11 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     ).toBe(0);
   });
   test('empty public discovery retains manual search and recent-search controls', async () => {
-    const app = await open(entry, { network: { '*': fixture } });
+    const app = await open(entry, {
+      width: target === 'tv' ? 1920 : 1180,
+      height: target === 'tv' ? 1080 : 780,
+      network: { '*': fixture },
+    });
     await app.press('id:nav-search');
     await app.waitFor('暂时没有推荐内容');
     expect(app.shows('id:drama-123')).toBe(false);
@@ -941,7 +948,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
         },
       },
     });
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-20000');
     await app.scroll('id:history-list', 18000);
     await app.waitFor('id:history-20059');
@@ -950,7 +957,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.back();
     await app.waitFor('id:history-20059');
     await app.press('id:nav-home');
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-20059');
     expect(app.count('id:history-20059')).toBe(1);
     expect(app.requests().filter((request) => request.method === 'POST').length).toBe(0);
@@ -991,7 +998,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
       },
     });
     await app.waitFor(target === 'tv' ? '选集与详情' : '重生之后 · 第 3 集 · 本集已看完');
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('较早的故事 · 第 1 集 · 00:09');
     const texts = app.texts();
     expect(texts.indexOf('重生之后') >= 0).toBe(true);
@@ -1065,7 +1072,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     await app.waitFor('搜索失败：服务暂时不可用，请稍后重试');
     expect(app.shows('id:drama-123')).toBe(true);
     failLibrary = true;
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('记录加载失败：服务暂时不可用，请稍后重试');
     expect(app.shows('重生之后 · 第 2 集 · 00:15')).toBe(true);
     expect(app.shows('看过的短剧会保存在这里。')).toBe(false);
@@ -1108,14 +1115,14 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
         },
       },
     });
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.press('id:history-123');
     await app.waitFor('继续第 59 集');
     expect(app.shows('id:episode-1058')).toBe(true);
     expect(app.enabled('第 60 集 · 未开放')).toBe(false);
     await app.press('id:episode-range-trigger');
-    await app.press(target === 'tv' ? '1–12 集' : '1–24 集');
+    await app.press('1–24 集');
     expect(app.shows('id:episode-1000')).toBe(true);
     expect(app.shows('id:episode-1024')).toBe(false);
     await app.press('继续第 59 集');
@@ -1129,7 +1136,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     expect(app.shows('id:episode-1000')).toBe(true);
     await app.back();
     unavailable = true;
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('重生之后 · 第 59 集 · 00:15');
     await app.press('id:history-123');
     await app.waitFor('原观看集已不可用，可选择其他已开放集数从头观看。');
@@ -1480,8 +1487,14 @@ export function registerApplicationTests(
         },
       },
     });
-    await app.waitFor('测试账号');
-    await app.press('id:nav-history');
+    if (target === 'tv') {
+      await openAccount(app, target);
+      await app.waitFor('测试账号');
+      await openHistory(app, target);
+    } else {
+      await app.waitFor('测试账号');
+      await openHistory(app, target);
+    }
     await app.waitFor('重生之后 · 第 2 集 · 00:15');
     await app.press('id:history-123');
     await app.waitFor('继续第 2 集');

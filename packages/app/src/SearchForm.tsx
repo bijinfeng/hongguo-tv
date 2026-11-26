@@ -5,15 +5,22 @@ import {
   effect,
   cleanup,
   keymap,
+  fontScale,
   token,
   type InputRef,
   type ViewRef,
 } from 'nsh';
-import { Button, SearchInput, SearchPicker, SearchSuggestionRow } from '@hongguo/ui';
+import {
+  Button,
+  RemoteKeyboard,
+  SearchInput,
+  SearchPicker,
+  SearchSuggestionRow,
+} from '@hongguo/ui';
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
 import type { Store } from './store';
-import { Search } from 'nsh-icon-lucide';
+import { Play, Search, User } from 'nsh-icon-lucide';
 
 export function SearchForm(props: { store: Store }) {
   const suggestions = props.store.suggestions;
@@ -259,10 +266,10 @@ export function SearchForm(props: { store: Store }) {
                   meta={item().meta}
                   icon={
                     suggestionAction(item()) === 'actor'
-                      ? 'user'
+                      ? User
                       : suggestionAction(item()) === 'drama'
-                        ? 'play'
-                        : 'search'
+                        ? Play
+                        : Search
                   }
                   testID={`suggestion-${identity}`}
                   rowRef={(ref) => rows.set(identity, ref)}
@@ -276,5 +283,21 @@ export function SearchForm(props: { store: Store }) {
         </SearchPicker>
       </If>
     </View>
+  );
+}
+
+/** The editor and keyboard share the existing draft; only SearchForm submits it. */
+export function SearchKeyboard(props: { store: Store }) {
+  return (
+    <RemoteKeyboard
+      testID="search-keyboard"
+      columns={fontScale() >= 1.75 ? 5 : 6}
+      value={props.store.draft()}
+      onInput={(value) => props.store.draft.set(value)}
+      onBackspace={() =>
+        props.store.draft.set(Array.from(props.store.draft()).slice(0, -1).join(''))
+      }
+      onClear={() => props.store.draft.set('')}
+    />
   );
 }

@@ -1,3 +1,12 @@
+import { ChevronDown, LoaderCircle, Lock, Play } from 'nsh-icon-lucide';
+import {
+  ModalDismissScope,
+  bindModalEscape,
+  createModalDismiss,
+  registerModalPopup,
+} from './modal-dismiss';
+import { RemoteFocusScope } from './remote-focus-scope';
+import { safeFrameInsets } from './safe-frame';
 import {
   Canvas,
   Image,
@@ -21,7 +30,6 @@ import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { textSize, textWeight } from './typography';
-import { ChevronDown, Lock, Play } from 'nsh-icon-lucide';
 
 const CinemaEnabled = context<() => boolean>(() => true);
 
@@ -80,7 +88,7 @@ export function CinemaButton(props: {
     >
       <If when={props.icon && !props.dropdown}>
         <Icon
-          icon={props.pending ? 'loader-circle' : props.icon!}
+          icon={props.pending ? LoaderCircle : props.icon!}
           tone={blocked() ? 'cinema-muted' : 'cinema-foreground'}
         />
       </If>
@@ -195,6 +203,7 @@ export function CinemaSelect(props: {
   onOpenChange?: (open: boolean) => void;
 }) {
   const open = signal(false);
+  registerModalPopup(open, () => open.set(false));
   const enabled = CinemaEnabled();
   effect(() => {
     if ((props.disabled || !enabled()) && open()) open.set(false);
@@ -338,8 +347,9 @@ export function CinemaControls(props: {
         <View
           style={{
             paddingTop: space('sm'),
-            paddingBottom: space('sm'),
-            paddingHorizontal: space('md'),
+            paddingBottom: Math.max(space('sm'), safeFrameInsets().bottom),
+            paddingLeft: Math.max(space('md'), safeFrameInsets().left),
+            paddingRight: Math.max(space('md'), safeFrameInsets().right),
             gap: space('xxs'),
           }}
         >
@@ -390,29 +400,39 @@ export function EpisodePanel(props: {
   label: string;
   children?: JSX.Element;
 }) {
+  const dismissal = createModalDismiss(() => props.onClose());
+  bindModalEscape(() => props.open, dismissal.cancel);
   return (
-    <Sheet
-      open={props.open}
-      side="right"
-      onOpenChange={({ open }) => {
-        if (!open) props.onClose();
-      }}
-      popupClass={props.cinema ? 'bg-cinema' : 'bg-popover'}
-      popupStyle={{ width: Math.min(440, windowSize().width) }}
-      backdropClass="bg-cinema/40"
-    >
-      <View
-        role="dialog"
-        accessibilityLabel={props.label}
-        class="flex-1"
-        style={{
-          padding: space('xl'),
-          gap: space('lg'),
+    <ModalDismissScope.Provider value={dismissal}>
+      <Sheet
+        open={props.open}
+        closeOnEscape={false}
+        onCancel={dismissal.cancel}
+        side="right"
+        onOpenChange={({ open }) => {
+          if (!open) props.onClose();
         }}
+        popupClass={props.cinema ? 'bg-cinema' : 'bg-popover'}
+        popupStyle={{ width: Math.min(440, windowSize().width) }}
+        backdropClass="bg-cinema/40"
       >
-        {props.children}
-      </View>
-    </Sheet>
+        <RemoteFocusScope cinema={props.cinema} />
+        <View
+          role="dialog"
+          accessibilityLabel={props.label}
+          class="flex-1"
+          style={{
+            paddingTop: Math.max(space('xl'), safeFrameInsets().top),
+            paddingBottom: Math.max(space('xl'), safeFrameInsets().bottom),
+            paddingLeft: Math.max(space('xl'), safeFrameInsets().left),
+            paddingRight: Math.max(space('xl'), safeFrameInsets().right),
+            gap: space('lg'),
+          }}
+        >
+          {props.children}
+        </View>
+      </Sheet>
+    </ModalDismissScope.Provider>
   );
 }
 

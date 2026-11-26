@@ -1,8 +1,8 @@
+import { ChevronLeft, ChevronRight } from 'nsh-icon-lucide';
 import { Text, View, reduceMotion, token } from 'nsh';
 import { Pagination as BasePagination, type PaginationItemState } from 'nsh/base';
 import { Icon } from './icon';
 import { border, controlMetrics, weight, type ControlSize, focusRingClass } from './foundation';
-import { ChevronLeft, ChevronRight } from 'nsh-icon-lucide';
 
 /** Hongguo's themed page navigation; paging behavior and semantics stay in `nsh/base`. */
 export interface PaginationProps {

@@ -67,6 +67,36 @@ final class NativeBusinessAcceptance {
         for (int i = 0; i < node.getChildCount(); i++) { AccessibilityNodeInfo found = firstResult(node.getChild(i)); if (found != null) return found; }
         return null;
     }
+    private AccessibilityNodeInfo findId(AccessibilityNodeInfo node, String id) {
+        if (node == null || !node.isVisibleToUser()) return null;
+        if (id.equals(node.getViewIdResourceName())) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo found = findId(node.getChild(i), id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+    private void clickId(String id) {
+        AccessibilityNodeInfo node = findId(root(), id);
+        if (node == null || !node.isEnabled() || !node.isClickable()
+                || !node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+                || !node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) throw new AssertionError("click " + id);
+        SystemClock.sleep(300);
+    }
+    private void confirmId(String id) {
+        AccessibilityNodeInfo node = findId(root(), id);
+        if (node == null || !node.isEnabled() || !node.isClickable()
+                || !node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) throw new AssertionError("focus " + id);
+        long until = SystemClock.uptimeMillis() + 5000;
+        while (true) {
+            AccessibilityNodeInfo focused = findId(root(), id);
+            if (focused != null && focused.isFocused()) break;
+            if (SystemClock.uptimeMillis() > until) throw new AssertionError("actual focus " + id);
+            SystemClock.sleep(50);
+        }
+        runner.waitForIdleSync();
+        confirm();
+    }
     private boolean has(String label) { return find(root(), label) != null; }
     private boolean enabled(String label) {
         AccessibilityNodeInfo node = find(root(), label);
@@ -99,6 +129,30 @@ final class NativeBusinessAcceptance {
         if (view instanceof EditText) return (EditText) view;
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { EditText found = input(((ViewGroup) view).getChildAt(i)); if (found != null) return found; }
         return null;
+    }
+    private View nativeView(View view, String id) {
+        if (!view.isShown()) return null;
+        // Search children first so anonymous ancestors need no accessibility subtree construction.
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+            View found = nativeView(((ViewGroup) view).getChildAt(i), id);
+            if (found != null) return found;
+        }
+        return id.equals(view.createAccessibilityNodeInfo().getViewIdResourceName()) ? view : null;
+    }
+    private int scrollY(String id) {
+        int[] offset = {Integer.MIN_VALUE};
+        runner.runOnMainSync(() -> {
+            View view = nativeView(activity.getWindow().getDecorView(), id);
+            if (view != null) offset[0] = subtreeScrollY(view);
+        });
+        if (offset[0] == Integer.MIN_VALUE) throw new AssertionError("native scroll view " + id);
+        return offset[0];
+    }
+    private int subtreeScrollY(View view) {
+        int offset = view.getScrollY();
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+            offset += subtreeScrollY(((ViewGroup) view).getChildAt(i));
+        return offset;
     }
     private void capture(String name) throws Exception {
         File directory = runner.getTargetContext().getExternalFilesDir(null);
@@ -170,17 +224,18 @@ final class NativeBusinessAcceptance {
         SystemClock.sleep(500);
         key(KeyEvent.KEYCODE_DPAD_DOWN);
         check("native input commits Chinese query", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && "重生".contentEquals(edit.getText()); });
-        click("搜索");
+        clickId("search-submit");
         check("native core returns real catalog results", () -> firstResult(root()) != null);
         capture("search");
         String title = firstResult(root()).getContentDescription().toString();
+        key(KeyEvent.KEYCODE_DPAD_RIGHT);
         key(KeyEvent.KEYCODE_DPAD_DOWN);
         for (int i = 0; i < 8 && !focused(title); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
         check("remote focuses first real result", () -> focused(title));
         confirm();
-        check("real detail exposes first available episode", () -> has("第 1 集"));
+        check("real detail exposes its watch action", () -> enabled("开始观看"));
         capture("detail");
-        click("第 1 集");
+        click("开始观看");
         awaitClock(title, 1, 1); key(KeyEvent.KEYCODE_MEDIA_PAUSE);
         check("actual first episode media clock advances", () -> has(title + " · 第 1 集") && position() >= 1 && has("播放"));
         int paused = position(); SystemClock.sleep(1500);
@@ -208,6 +263,7 @@ final class NativeBusinessAcceptance {
         key(KeyEvent.KEYCODE_BACK);
         check("return restores real source focus", () -> focused(title));
         click("我的");
+        click("观看记录");
         check("native history includes committed second episode", () -> has(title + " · 第 2 集 · " + saved + " 秒"));
         capture("history");
         JSONObject state = new JSONObject(); state.put("title", title); state.put("episode", 2); state.put("position", saved);
@@ -217,6 +273,7 @@ final class NativeBusinessAcceptance {
     private void resume() throws Exception {
         JSONObject state = new JSONObject(new String(Files.readAllBytes(stateFile().toPath()), StandardCharsets.UTF_8));
         String title = state.getString("title"); int saved = state.getInt("position");
+        click("我的");
         check("restart retains native continuation", () -> has(title) && has("选集与详情"));
         capture("home"); click("选集与详情");
         check("restart detail retains same episode", () -> has("继续第 2 集"));
@@ -231,15 +288,57 @@ final class NativeBusinessAcceptance {
         verify("resumed real media continues advancing", position() >= before + 2);
         capture("paused"); leavePlayer();
     }
+    private void settings() throws Exception {
+        int homeOffset = scrollY("home-scroll");
+        if ("settings-accessibility".equals(phase)) clickId("nav-settings");
+        else confirmId("nav-settings");
+        check("native settings content opens", () -> has("界面主题"));
+        confirmId("settings-panel-appearance");
+        check("settings sidebar receives focus", () -> focused("外观"));
+        for (int i = 0; i < 15 && !focused("应用推荐"); i++) key(KeyEvent.KEYCODE_DPAD_DOWN);
+        check("remote reaches the final settings category", () -> focused("应用推荐"));
+        confirm();
+        check("recommendations stays honestly unavailable", () -> has("暂时没有应用推荐"));
+        capture("recommendations");
+        key(KeyEvent.KEYCODE_DPAD_UP);
+        check("remote returns to support", () -> focused("支持与打赏"));
+        confirm();
+        check("support stays honestly unavailable", () -> has("暂未开放支持与打赏渠道"));
+        capture("support");
+        key(KeyEvent.KEYCODE_DPAD_UP);
+        check("remote reaches about", () -> focused("关于"));
+        confirm();
+        check("real build metadata is readable", () -> has("构建版本"));
+        capture("about-top");
+        key(KeyEvent.KEYCODE_DPAD_RIGHT);
+        check("remote enters the read-only information region", () -> focused("关于内容"));
+        verify("information region is not an action", !enabled("关于内容"));
+        confirm();
+        check("confirm leaves the reading region unchanged", () -> focused("关于内容") && findId(root(), "settings-page") != null);
+        for (int i = 0; i < 5 && !has("MIT"); i++) key(KeyEvent.KEYCODE_DPAD_DOWN);
+        check("remote scroll reveals the license value", () -> has("MIT"));
+        capture("about-end");
+        key(KeyEvent.KEYCODE_DPAD_LEFT);
+        check("reading region exits back to its category", () -> focused("关于"));
+        key(KeyEvent.KEYCODE_BACK);
+        check("settings Back restores its header source", () -> focused("设置") && has("精选"));
+        int returnedOffset = scrollY("home-scroll");
+        verify("settings handoff preserves the home reading position (" + homeOffset + " -> " + returnedOffset + ")", returnedOffset == homeOffset);
+        capture("return");
+    }
+
     void run() {
         Bundle result = new Bundle();
         try {
-            if (!"watch".equals(phase) && !"resume".equals(phase)) throw new IllegalArgumentException("phase watch|resume required");
+            if (!"watch".equals(phase) && !"resume".equals(phase) && !"settings".equals(phase)
+                    && !"settings-accessibility".equals(phase)) throw new IllegalArgumentException("phase watch|resume|settings|settings-accessibility required");
             Intent launch = runner.getTargetContext().getPackageManager().getLeanbackLaunchIntentForPackage(runner.getTargetContext().getPackageName());
             if (launch == null) throw new AssertionError("missing TV launcher");
             activity = runner.startActivitySync(new Intent(launch).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             check("native production home opens", () -> has("精选") && has("找剧"));
-            if ("watch".equals(phase)) watch(launch); else resume();
+            if ("watch".equals(phase)) watch(launch);
+            else if ("resume".equals(phase)) resume();
+            else settings();
             result.putString("stream", "TV native business " + phase + ": " + checks + " checks passed\n");
             runner.finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {

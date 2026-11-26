@@ -47,6 +47,7 @@ export type FocusSource = (receive: (id: string | undefined) => void) => () => v
 
 export type Section =
   | 'home'
+  | 'mine'
   | 'discover'
   | 'search'
   | 'calendar'
@@ -74,17 +75,20 @@ export function createStore(
   // The host owns the reporter, so turning the switch on asks it first and keeps its refusal.
   const settings = createSettings({ applyDiagnosticsConsent: setDiagnosticsConsent });
   const section = signal<Section>('home');
+  const exitConfirmation = signal(false);
   const libraryKind = signal<'history' | 'favorites'>('history');
   const activePage = (name: Section) =>
     nav.routes().at(-1)?.name === 'browse' && section() === name;
   const playing = () => nav.routes().at(-1)?.name === 'player';
   const sources = new Map<number, () => void>();
+  // Root personal pages share a route depth; detail-card sources must not replace Mine's origin.
+  let personalReturn: (() => void) | undefined;
   /** The TV update dialog is app-root state: it can open over any page, including from home. */
   const updateDialogOpen = signal(false);
   let updateDialogRestore: (() => void) | undefined;
   // One automatic prompt per session; the user decides about the same candidate afterwards.
   let updateAutoPrompted = false;
-  const primary = new Map<Section, ViewRef>();
+  const primary = new Map<Section | 'settings', ViewRef>();
   let frame = 0;
   let focusIntent = 0;
   let pendingPrimary: { name: Section; intent: number; epoch?: string } | undefined;
@@ -387,7 +391,11 @@ export function createStore(
       .filter((entry) => entry.last_played_at)
       .slice()
       .sort((a, b) => b.last_played_at! - a.last_played_at!);
-  const navigate = (next: Section) => {
+  const navigate = (next: Section, returnToMine?: () => void) => {
+    personalReturn =
+      target === 'tv' && ['history', 'following', 'reservations', 'notifications'].includes(next)
+        ? returnToMine
+        : undefined;
     suggestions.dismiss();
     batch(() => {
       if (nav.routes().length > 1) nav.popToRoot();
@@ -453,10 +461,11 @@ export function createStore(
     nav,
     settings,
     section,
+    exitConfirmation,
     libraryKind,
-    openLibrary(kind: 'history' | 'favorites') {
+    openLibrary(kind: 'history' | 'favorites', returnToMine?: () => void) {
       libraryKind.set(kind);
-      navigate('history');
+      navigate('history', returnToMine);
     },
     activePage,
     playing,
@@ -467,10 +476,23 @@ export function createStore(
       if (handleCalendarBack()) return;
       if (playing() && playerBack) playerBack();
       else if (nav.routes().length > 1) nav.pop();
-      else if (section() === 'search' && searchSource === 'discover') {
-        navigate('discover');
+      else if (section() === 'search' && (searchSource === 'discover' || target === 'tv')) {
+        navigate(searchSource);
         if (searchReturn) sources.set(1, searchReturn);
         restoreFocus();
+      } else if (target === 'tv' && section() === 'calendar') {
+        navigate('discover');
+        restoreFocus();
+      } else if (
+        target === 'tv' &&
+        ['history', 'following', 'reservations', 'notifications'].includes(section())
+      ) {
+        const source = personalReturn;
+        navigate('mine');
+        if (source) sources.set(1, source);
+        restoreFocus();
+      } else if (target === 'tv' && section() === 'home') {
+        exitConfirmation.set(true);
       } else {
         navigate('home');
         restoreFocus();
@@ -482,6 +504,17 @@ export function createStore(
         nav.routes(),
         section(),
         section() === 'search' && searchSource === 'discover',
+        target,
+        target === 'tv'
+          ? section() === 'search'
+            ? searchSource
+            : section() === 'calendar'
+              ? 'discover'
+              : ['history', 'following', 'reservations', 'notifications'].includes(section())
+                ? 'mine'
+                : 'home'
+          : undefined,
+        libraryKind(),
       );
     },
     registerPlayerCheckpoint(handler: () => void) {
@@ -586,7 +619,7 @@ export function createStore(
     focusPrimary() {
       primary.get(section())?.focus();
     },
-    primaryRef(name: Section, ref: ViewRef) {
+    primaryRef(name: Section | 'settings', ref: ViewRef) {
       primary.set(name, ref);
     },
     primaryReady(name: Section) {
@@ -651,7 +684,7 @@ export function createStore(
       nav.push({ name: 'account' });
     },
     settingsPage(restore?: () => void) {
-      if (restore) sources.set(nav.routes().length, restore);
+      sources.set(nav.routes().length, restore ?? (() => primary.get('settings')?.focus()));
       nav.push({ name: 'settings' });
     },
     draft,

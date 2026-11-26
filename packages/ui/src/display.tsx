@@ -1,3 +1,4 @@
+import { Check, CircleAlert, LoaderCircle } from 'nsh-icon-lucide';
 import {
   Text,
   View,
@@ -12,9 +13,8 @@ import {
 } from 'nsh';
 import { Avatar as BaseAvatar, Progress as BaseProgress } from 'nsh/base';
 import { Button } from './button';
-import { border, controlMetrics, radius, space } from './foundation';
+import { border, controlMetrics, radius, space, weight } from './foundation';
 import { Icon } from './icon';
-import { CircleAlert, LoaderCircle } from 'nsh-icon-lucide';
 
 const BADGE_MIN_HEIGHT = 28;
 const BADGE_PADDING_X = 10;
@@ -44,6 +44,8 @@ export interface UiTextProps {
   /** Overrides the role's default heading level; a draft that names another element h1 uses it. */
   accessibilityLevel?: number;
   testID?: string;
+  /** Optional emphasis for labels whose semantic role stays body-sized. */
+  weight?: 'regular' | 'strong';
 }
 
 const textTone = (tone?: TextTone, role?: TextRole) =>
@@ -85,7 +87,12 @@ export function UiText(props: UiTextProps) {
           fontSize: textSize(props.role),
           lineHeight: textLineHeight(props.role),
           letterSpacing: textLetterSpacing(props.role),
-          fontWeight: textWeight(props.role),
+          fontWeight:
+            props.weight === 'strong'
+              ? weight.strong()
+              : props.weight === 'regular'
+                ? weight.regular()
+                : textWeight(props.role),
           numberOfLines: props.lines ?? 0,
           textAlign: props.align ?? 'start',
           color: token(textTone(props.tone, props.role)),
@@ -295,7 +302,7 @@ export function InlineStatus(props: InlineStatusProps) {
         else={
           <If when={props.status === 'success' || props.status === 'error'}>
             <Icon
-              icon={props.status === 'error' ? 'circle-alert' : 'check'}
+              icon={props.status === 'error' ? CircleAlert : Check}
               tone={props.status === 'error' ? 'destructive' : 'foreground'}
             />
           </If>

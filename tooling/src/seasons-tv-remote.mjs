@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { seasonsFixture } from './seasons-fixture.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
 import { executable, nshVersion, output, root, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { prepareTvBranding, tvHostEnvironment } from './tv-host.mjs';
 
 /** Server evidence is required in addition to the real adapter's native assertions. */
 export function verifySeasonRequests(fixture, suite) {
@@ -118,7 +118,7 @@ async function main() {
       flags.has(args[index])
     )
       throw new Error(
-        'Expected prepare|run [--suite all|details|mismatch|player-browse] [--profile all|light|dark|large-text]',
+        'Expected prepare|run [--suite all|details|mismatch|player-browse] [--profile all|light|dark|large-text|extra-large-text]',
       );
     flags.set(args[index], args[index + 1]);
   }
@@ -126,7 +126,7 @@ async function main() {
   const selectedProfile = flags.get('--profile') ?? 'all';
   if (
     !['all', ...suiteNames].includes(selectedSuite) ||
-    !['all', 'light', 'dark', 'large-text'].includes(selectedProfile)
+    !['all', 'light', 'dark', 'large-text', 'extra-large-text'].includes(selectedProfile)
   )
     throw new Error('Unknown seasons suite or profile');
   if (!['prepare', 'run'].includes(mode))
@@ -142,6 +142,10 @@ async function main() {
     new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-'),
   );
   const productionHost = resolve(root, 'apps/tv/android');
+  const sentryDependency = /implementation\s+['"](io\.sentry:sentry-android:[^'"]+)['"]/.exec(
+    await readFile(resolve(productionHost, 'app/build.gradle'), 'utf8'),
+  )?.[1];
+  assert(sentryDependency, 'Production host must declare its diagnostics dependency');
   const embedded = resolve(root, 'apps/tv/.nsh/android-host');
   const toolchain = JSON.parse(await readFile(resolve(root, 'tooling/tv-toolchain.json'), 'utf8'));
   if (toolchain.nsh.version !== nshVersion)
@@ -185,6 +189,7 @@ android {
   versionName '0.0.0-acceptance'
   testInstrumentationRunner 'dev.hongguo.tv.SeasonsAcceptance'
   buildConfigField 'String', 'UPDATE_CERTIFICATE_SHA256', ${quote(JSON.stringify(release.tv.signingCertificateSha256))}
+  buildConfigField 'String', 'SENTRY_DSN', '""'
   ndk { abiFilters 'arm64-v8a' }
  }
  sourceSets.main {
@@ -198,7 +203,10 @@ android {
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
  packaging { jniLibs { useLegacyPackaging = false } }
 }
-dependencies { implementation files(${quote(resolve(embedded, 'nsh-classes.jar'))}) }
+dependencies {
+ implementation files(${quote(resolve(embedded, 'nsh-classes.jar'))})
+ implementation ${quote(sentryDependency)}
+}
 `,
   );
   const manifest = await readFile(
@@ -207,14 +215,19 @@ dependencies { implementation files(${quote(resolve(embedded, 'nsh-classes.jar')
   );
   await writeFile(
     resolve(app, 'AndroidManifest.xml'),
-    manifest.replace('android:label="红果"', 'android:label="Seasons TV Acceptance"'),
+    manifest.replace('android:label="@string/app_name"', 'android:label="Seasons TV Acceptance"'),
   );
-  const theme = JSON.parse(await readFile(resolve(root, 'packages/ui/theme.json'), 'utf8'));
+  await prepareTvBranding(
+    JSON.parse(await readFile(resolve(root, 'apps/tv/nsh.json'), 'utf8')),
+    resolve(root, 'apps/tv'),
+    project,
+  );
+  const theme = JSON.parse(await readFile(resolve(root, 'packages/ui/theme.tv.json'), 'utf8'));
   for (const [appearance, directory] of [
     ['light', 'values'],
     ['dark', 'values-night'],
   ]) {
-    const colors = ['background', 'primary', 'primary-foreground', 'ring']
+    const colors = ['background', 'primary', 'primary-foreground', 'ring', 'cinema-focus']
       .map(
         (token) =>
           `<color name="tv_${token.replaceAll('-', '_')}">${theme.cssVars[appearance][token]}</color>`,
@@ -311,7 +324,9 @@ dependencies { implementation files(${quote(resolve(embedded, 'nsh-classes.jar')
             id: appId,
             version: '0.0.0',
             build: 1,
-            theme: '../../../../../packages/ui/theme.json',
+            dependencies: JSON.parse(await readFile(resolve(root, 'apps/tv/nsh.json'), 'utf8'))
+              .dependencies,
+            theme: '../../../../../packages/ui/theme.tv.json',
             appearance: 'system',
             capabilities: { network: { hosts: ['127.0.0.1'] }, statusBar: true },
           },
@@ -359,7 +374,7 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
             'packages/ui/src/season-choice.tsx',
             'packages/ui/src/card-controls.tsx',
             'packages/ui/src/foundation.ts',
-            'packages/ui/theme.json',
+            'packages/ui/theme.tv.json',
             'tooling/src/seasons-fixture.mjs',
             'tooling/src/seasons-tv-remote.mjs',
             'tooling/fixtures/seasons-tv/SeasonsAcceptance.java',
@@ -419,6 +434,7 @@ mount(() => <App target="tv" logoMark={logoMark} subscribeFocus={subscribeFocus}
         { name: 'light', night: 'no', font: '1.0' },
         { name: 'dark', night: 'yes', font: '1.0' },
         { name: 'large-text', night: 'yes', font: '1.3' },
+        { name: 'extra-large-text', night: 'yes', font: '2.0' },
       ];
       for (const profile of profiles.filter(
         (entry) => selectedProfile === 'all' || entry.name === selectedProfile,

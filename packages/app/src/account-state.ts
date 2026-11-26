@@ -154,7 +154,7 @@ export function createAccountState(options: AccountStateOptions) {
     if (!owns(owned) || state.busy) return;
     controller = new AbortController();
     const abort = controller;
-    update({ busy: true, error: '' });
+    update({ busy: true, error: '', errorField: undefined });
     try {
       const account = await options.command(command, abort.signal);
       if (owns(owned) && !abort.signal.aborted) accept(account, owned);
