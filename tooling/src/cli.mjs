@@ -359,7 +359,7 @@ try {
       });
       const outputs = Object.entries(selection).map(([name, needed]) => `${name}=${needed}`);
       // `entry` cannot branch on `matrix` in a job-level `if`, so its matrix is decided here.
-      const matrix = entryMatrix(selection);
+      const matrix = entryMatrix(selection, { event: process.env.GITHUB_EVENT_NAME });
       outputs.push(`entry=${JSON.stringify({ include: matrix })}`);
       if (process.env.GITHUB_OUTPUT)
         await appendFile(process.env.GITHUB_OUTPUT, `${outputs.join('\n')}\n`);
