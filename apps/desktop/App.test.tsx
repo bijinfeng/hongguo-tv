@@ -18,6 +18,9 @@ registerBrowsingTests('desktop', './HttpFixture.tsx');
 
 registerNativeStartupTests();
 
+import { registerTitleBarTests } from '@hongguo/app/testing';
+registerTitleBarTests();
+
 import { registerUpdateTests } from '@hongguo/app/testing';
 registerUpdateTests();
 

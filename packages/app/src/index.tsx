@@ -75,6 +75,7 @@ export function App(props: {
 }
 
 export { NativeApp } from './NativeApp';
+export { TitleBar, controlInset, TITLE_BAR_HEIGHT } from './shell/TitleBar';
 
 export type { UpdateAdapter, AppUpdate, InstallState } from './updates';
 export {

@@ -391,12 +391,14 @@ small,
 .app-body {
   min-width: 0;
 }
+/* The product window draws a 48-high title bar and hides the system one; the prototype has no
+   window, so it keeps the same row height and the spacing steps the app uses. */
 .topbar {
-  height: 86px;
-  padding: 0 clamp(24px, 3.5vw, 64px);
+  height: 48px;
+  padding: 0 clamp(32px, 3.2vw, 48px);
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
 }
 .page-crumb {
   font-size: 14px;
