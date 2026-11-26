@@ -25,13 +25,14 @@ function run(scriptText, { results, selection }) {
   const env = { ...process.env, SELECTION: JSON.stringify(selection) };
   for (const [name, result] of Object.entries(results))
     env[`${name.toUpperCase()}_RESULT`] = result;
-  for (const name of ['scope', 'rust', 'workspace', 'entry', 'security'])
+  for (const name of ['scope', 'checks', 'rust', 'workspace', 'entry', 'security'])
     env[`${name.toUpperCase()}_RESULT`] ??= 'skipped';
   return spawnSync('python3', ['-c', scriptText], { env, encoding: 'utf8' });
 }
 
 const passed = {
   scope: 'success',
+  checks: 'success',
   rust: 'success',
   workspace: 'success',
   entry: 'success',
@@ -85,6 +86,9 @@ test('a failed gate fails the run', async () => {
     { ...passed, entry: 'failure' },
     { ...passed, workspace: 'failure' },
     { ...passed, security: 'failure' },
+    // `checks` runs on every event, even a documentation-only one, so a failure there must
+    // fail the run rather than be read as an applicability skip.
+    { ...passed, checks: 'failure' },
   ]) {
     assert.notEqual(
       run(gate, { results: failed, selection: full }).status,
@@ -131,4 +135,35 @@ test('an entry matrix is built only from the selected targets', async () => {
     { target: 'web', os: 'macos-15' },
     { target: 'tv', os: 'macos-15' },
   ]);
+});
+
+test('a pull request drops the Windows host and a merge keeps every host', async () => {
+  const { entryMatrix } = await import('../src/ci-paths.mjs');
+  const all = { web: true, desktop: true, tv: true };
+  // The merge covering the dropped host is the whole reason narrowing a PR is safe: if this
+  // ever stops returning Windows, a desktop compatibility break would reach master unseen.
+  assert.deepEqual(
+    entryMatrix(all, { event: 'push' }).filter((row) => row.target === 'desktop'),
+    [
+      { target: 'desktop', os: 'macos-15' },
+      { target: 'desktop', os: 'windows-2025' },
+      { target: 'desktop', os: 'ubuntu-24.04' },
+    ],
+  );
+  assert.deepEqual(
+    entryMatrix(all, { event: 'pull_request' }).filter((row) => row.target === 'desktop'),
+    [
+      { target: 'desktop', os: 'macos-15' },
+      { target: 'desktop', os: 'ubuntu-24.04' },
+    ],
+  );
+  // Narrowing drops Windows only: every selected target and its other host still run.
+  assert.deepEqual(
+    entryMatrix(all, { event: 'pull_request' })
+      .map((row) => `${row.target}/${row.os}`)
+      .sort(),
+    ['desktop/macos-15', 'desktop/ubuntu-24.04', 'tv/macos-15', 'web/macos-15'],
+  );
+  // A dispatching caller that names no event keeps the full matrix rather than guessing.
+  assert.deepEqual(entryMatrix(all).filter((row) => row.target === 'desktop').length, 3);
 });

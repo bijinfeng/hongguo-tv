@@ -58,14 +58,30 @@ const ENTRY_HOSTS = {
   tv: ['macos-15'],
 };
 
+// A pull request keeps the Linux host, which is where the workspace gates already run, and
+// drops Windows: its cold desktop suite is 8m44s of Rust plus a 7m30s runner build, most of
+// a pull request's wall clock for a compatibility row a review is not reading. Windows still
+// gates every merge, on the `push` run for the merged commit.
+const PULL_REQUEST_HOSTS = new Set(['macos-15', 'ubuntu-24.04']);
+
 /**
  * The `entry` job's matrix for a selection. A job-level `if` cannot read `matrix`, so the
  * scope computes the matrix instead and the job expands whatever it is given.
+ *
+ * `event` names the trigger: on a pull request the matrix narrows to `PULL_REQUEST_HOSTS`,
+ * and every other event keeps `ENTRY_HOSTS`. Narrowing here rather than dropping the rows
+ * entirely keeps the `required` gate honest: it still demands every job this matrix names,
+ * so a narrowed PR run cannot silently skip a host that the merge will not cover either.
  */
-export function entryMatrix(selection) {
+export function entryMatrix(selection, { event } = {}) {
+  const pullRequest = event === 'pull_request';
   return Object.entries(ENTRY_HOSTS)
     .filter(([target]) => selection[target])
-    .flatMap(([target, hosts]) => hosts.map((os) => ({ target, os })));
+    .flatMap(([target, hosts]) =>
+      hosts
+        .filter((os) => !pullRequest || PULL_REQUEST_HOSTS.has(os))
+        .map((os) => ({ target, os })),
+    );
 }
 
 async function git(args, cwd) {
