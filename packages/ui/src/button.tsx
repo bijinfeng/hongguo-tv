@@ -11,9 +11,10 @@ import {
 import { CardRoot } from './card-controls';
 import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
-import { Icon, type IconName } from './icon';
+import { Icon } from './icon';
 import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
 import { textLineHeightRatio } from './typography';
+import { ChevronDown, LoaderCircle } from 'nsh-icon-lucide';
 
 /** Limited visual hierarchy. Navigation remains a compatibility variant. */
 export type ButtonVariant = 'default' | 'primary' | 'quiet' | 'destructive' | 'navigation';
@@ -33,7 +34,7 @@ export interface ButtonProps {
   currentSurface?: 'muted' | 'contrast';
   expanded?: boolean;
   accessibilityDescription?: string;
-  icon?: IconName;
+  icon?: string;
   iconOnly?: boolean;
   /** Trailing chevron affordance for a trigger that opens a list, menu or popover. */
   dropdown?: boolean;
@@ -190,8 +191,8 @@ export function Button(props: ButtonProps) {
             }}
           >
             <Icon
-              name={props.pending && props.iconOnly ? 'loader-circle' : props.icon!}
-              color={token(tone())}
+              icon={props.pending && props.iconOnly ? LoaderCircle : props.icon!}
+              tone={tone()}
               size={sizeName()}
             />
           </View>
@@ -219,8 +220,8 @@ export function Button(props: ButtonProps) {
             style={{ transform: [{ rotate: popupOpen() ? 180 : 0 }] }}
           >
             <Icon
-              name={props.icon ?? 'down'}
-              color={token(popupOpen() ? 'accent-foreground' : 'muted-foreground')}
+              icon={props.icon ?? ChevronDown}
+              tone={popupOpen() ? 'accent-foreground' : 'muted-foreground'}
               size={sizeName()}
             />
           </View>
@@ -232,7 +233,7 @@ export function Button(props: ButtonProps) {
 
 /** A square action with a required readable label. */
 export function IconButton(
-  props: Omit<ButtonProps, 'iconOnly' | 'displayLabel' | 'icon'> & { icon: IconName },
+  props: Omit<ButtonProps, 'iconOnly' | 'displayLabel' | 'icon'> & { icon: string },
 ) {
   return <Button {...props} iconOnly />;
 }

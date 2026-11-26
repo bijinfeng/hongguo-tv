@@ -50,9 +50,12 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 
 NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)和[组件交接](docs/design/component-design.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
 
-- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。生产资源、语义名称映射与 NSH 适配统一归 `packages/ui`，设计原型复用同一来源；业务页面和各端入口不复制图标路径。
-- 首次接入时固定官方包精确版本及锁文件，或记录所纳入官方资源的版本、来源和校验信息，并保留对应许可证。只打包实际使用的图标，不依赖运行时 CDN；版本升级时同步设计稿、资源和映射。
-- 采用静态 SVG 资源或构建期提取；不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。NSH 适配以锁定版本生成的 `.nsh/types/` 为准；必要转换必须可重复生成，禁止手工修改生成的几何数据。
+- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。NSH 侧经 `nsh-icon` 的 `<Icon>` 绘制，图标集为 `nsh-icon-lucide`；调用方从图标集导入常量再交给 `packages/ui` 的 `Icon`（`<Icon icon={Search} />` 或 `icon={Search}`），`packages/ui` 只适配尺寸与颜色。业务页面和各端入口不复制图标路径。
+- 三端 `nsh.json` 声明 `nsh-icon`／`nsh-icon-lucide`（`^0.2.2`），解析结果由各端 `nsh.lock` 锁定并随应用提交；`nsh add` 同时写入应用 crate 的 Cargo 依赖。只打包实际使用的图标，不依赖运行时 CDN；升级时用 `nsh upgrade` 更新锁文件，并同步浏览器原型的同版本资源和校验。
+- 不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。不在 `packages/ui` 维护名称到图形的清单，也不按计算出的名称取图标：NSH 由导入静态裁剪，字符串查表会让整个图标集进包。图标常量直接出现在 JSX 与数据行里，打包内容因此等于实际引用。颜色经 `tone` 映射到 `text-*` 类字面量，由文字色继承。
+- 浏览器原型资源位于 `packages/ui/assets/lucide/`（Lucide 1.43.0、ISC 许可证、逐图 SHA256）；`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移，禁止手工修改几何数据。
+- 迁移时核对每个语义名称、主题颜色、尺寸、状态及可访问名称，执行对应 NSH check **和** build，并在实际宿主观察。新增依赖执行 `pnpm security`；依赖或资源落地前，本规则仅表示已确定的约束，不表示已完成迁移或验收。
+- 浏览器原型资源位于 `packages/ui/assets/lucide/`（Lucide 1.43.0、ISC 许可证、逐图 SHA256）；`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移，禁止手工修改几何数据。
 - 迁移时核对每个语义名称、主题颜色、尺寸、状态及可访问名称，执行对应 NSH check **和** build，并在实际宿主观察。新增依赖执行 `pnpm security`；依赖或资源落地前，本规则仅表示已确定的约束，不表示已完成迁移或验收。
 
 ### 基础组件工程边界

@@ -4,6 +4,7 @@ import type { Store } from '../store';
 import { AccountButton } from './AccountButton';
 import { Navigation } from './Navigation';
 import type { ImageAsset } from 'nsh';
+import { Search, Settings } from 'nsh-icon-lucide';
 
 /** TV header geometry in points: the draft lane halved, with the approved pill-draft gaps. */
 const geometry = { header: 66, inline: 44, gap: 36 };
@@ -49,7 +50,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
       <View class="flex-row items-center" style={{ gap: 10 }}>
         <Button
           testID="nav-search"
-          icon="search"
+          icon={Search}
           label="搜索短剧"
           displayLabel="搜索"
           buttonRef={(ref) => props.store.primaryRef('search', ref)}
@@ -57,7 +58,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
         />
         <IconButton
           testID="nav-settings"
-          icon="settings"
+          icon={Settings}
           label="设置"
           onPress={() => props.store.settingsPage()}
         />

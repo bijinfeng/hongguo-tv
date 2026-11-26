@@ -10,6 +10,8 @@ license.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
+nsh-icon-lucide = "0.2.2"
+nsh-icon = "0.2.2"
 hongguo-updater.workspace = true
 serde_json.workspace = true
 nsh-base.workspace = true

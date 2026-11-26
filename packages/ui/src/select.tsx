@@ -5,6 +5,7 @@ import { Button } from './button';
 import { Icon } from './icon';
 import { textLineHeightRatio } from './typography';
 import { type ChoiceOption } from './choice';
+import { Check } from 'nsh-icon-lucide';
 
 /**
  * The candidate row every Select popup shares. The row centres its content and sets the type
@@ -27,7 +28,7 @@ export function SelectItemLabel(props: { entry: SelectEntry; size?: ControlSize 
     <View class="w-full flex-row items-center justify-between" style={{ gap: space('xs') }}>
       <Text style={{ flexShrink: 1, numberOfLines: 1 }}>{props.entry.title}</Text>
       <View class="opacity-0 group-selected:opacity-100">
-        <Icon name="check" size={props.size} color={token('accent-foreground')} />
+        <Icon icon={Check} size={props.size} tone="accent-foreground" />
       </View>
     </View>
   );

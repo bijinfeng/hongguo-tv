@@ -3,6 +3,7 @@ import { CardRoot } from './card-controls';
 import { Icon } from './icon';
 import { border, controlMetrics, weight, type ControlSize } from './foundation';
 import { textLineHeightRatio } from './typography';
+import { ArrowLeft } from 'nsh-icon-lucide';
 
 /** The surface the crumb sits on: an ordinary page, or the player's dark band. */
 export type BackButtonTone = 'page' | 'cinema';
@@ -63,7 +64,7 @@ export function BackButton(props: BackButtonProps) {
         ...props.style,
       }}
     >
-      <Icon name="arrow-left" color={token(tone())} size={props.size ?? 'sm'} />
+      <Icon icon={ArrowLeft} tone={tone()} size={props.size ?? 'sm'} />
       <Text
         style={{
           fontSize: size().fontSize,
