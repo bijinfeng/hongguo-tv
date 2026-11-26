@@ -1,3 +1,4 @@
+import { ChevronRight } from 'nsh-icon-lucide';
 import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { Cover, PosterCard } from './content';
@@ -6,7 +7,6 @@ import { controlMetrics, space, border, focusRingClass } from './foundation';
 import { Icon } from './icon';
 import { motionTokens } from './motion';
 import { textLineHeight, textSize, textWeight } from './typography';
-import { ChevronRight } from 'nsh-icon-lucide';
 
 /** One caller-owned ranking entry; the component never derives a position or fetches content. */
 export interface RankingCardProps {

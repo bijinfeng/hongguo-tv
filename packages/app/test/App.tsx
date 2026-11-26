@@ -568,102 +568,100 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     expect(app.shows('id:discovery-owner')).toBe(false);
   });
 
-  const publicDiscoveryTest = target === 'tv' ? test.skip : test;
-  publicDiscoveryTest(
-    'public discovery retries failures, keeps keyword identities nonplayable and returns to exact cards',
-    async () => {
-      let attempt = 0;
-      const keywords: string[] = [];
-      const discoveryRequest = (request: StubRequest): StubResponse => {
-        const url = new URL(request.url);
-        if (url.pathname === '/api/v1/search/discovery') {
-          expect(url.search).toBe('');
-          expect(request.method).toBe('GET');
-          if (++attempt === 1)
-            return { status: 503, body: { ok: false, error: '合成发现失败' }, delay: 80 };
-          return {
-            ...ok({
-              guesses: [
-                { series_id: '', title: '都市逆袭', query: '都市逆袭', cover: '', intro: '' },
-                { ...drama, title: '都市逆袭' },
-                { ...drama, series_id: '125', title: '都市逆袭' },
-              ],
-              boards: [
-                { id: 'short', items: [drama] },
-                {
-                  id: 'comic',
-                  items: [
-                    { ...drama, content_type: '1004' },
-                    { ...drama, series_id: '124', content_type: '1' },
-                  ],
-                },
-              ],
-            }),
-            delay: attempt >= 4 ? 200 : 0,
-          };
+  test('public discovery retries failures, keeps keyword identities nonplayable and returns to exact cards', async () => {
+    let attempt = 0;
+    const keywords: string[] = [];
+    const discoveryRequest = (request: StubRequest): StubResponse => {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/v1/search/discovery') {
+        expect(url.search).toBe('');
+        expect(request.method).toBe('GET');
+        if (++attempt === 1)
+          return { status: 503, body: { ok: false, error: '合成发现失败' }, delay: 80 };
+        return {
+          ...ok({
+            guesses: [
+              { series_id: '', title: '都市逆袭', query: '都市逆袭', cover: '', intro: '' },
+              { ...drama, title: '都市逆袭' },
+              { ...drama, series_id: '125', title: '都市逆袭' },
+            ],
+            boards: [
+              { id: 'short', items: [drama] },
+              {
+                id: 'comic',
+                items: [
+                  { ...drama, content_type: '1004' },
+                  { ...drama, series_id: '124', content_type: '1' },
+                ],
+              },
+            ],
+          }),
+          delay: attempt >= 4 ? 200 : 0,
+        };
+      }
+      if (url.pathname === '/api/v1/search/history') {
+        if (request.method === 'POST') {
+          const body = JSON.parse(request.body || '{}') as { action?: string; query?: string };
+          if (body.query) keywords.unshift(body.query);
         }
-        if (url.pathname === '/api/v1/search/history') {
-          if (request.method === 'POST') {
-            const body = JSON.parse(request.body || '{}') as { action?: string; query?: string };
-            if (body.query) keywords.unshift(body.query);
-          }
-          return ok({ items: keywords });
-        }
-        if (url.pathname === '/api/v1/search')
-          return ok({ items: [{ ...drama, content_type: '1004' }], has_more: false });
-        return fixture(request);
-      };
-      const app = await open(entry, {
-        platform: 'macos',
-        clock: {},
-        reducedMotion: true,
-        network: { '*': discoveryRequest, 'POST *': discoveryRequest },
-      });
-      await app.press('id:nav-search');
-      await app.waitFor('热门内容未能加载');
-      await app.press('重试');
-      await app.waitFor('id:drama-123');
-      expect(app.count('id:drama-123')).toBe(1);
-      expect(app.count('id:discovery-query-都市逆袭')).toBe(1);
-      expect(app.shows('漫剧 · 3 集')).toBe(true);
-      expect(app.shows('id:drama-')).toBe(false);
-      await app.press('id:discovery-query-都市逆袭');
-      await app.waitUntil(() => app.requests().some((r) => r.url.includes('/search?q=')));
-      expect(app.value('id:search-input')).toBe('都市逆袭');
-      await app.waitFor('id:clear-query');
-      await app.waitFor('id:drama-123');
-      expect(app.shows('漫剧 · 3 集')).toBe(false);
-      await app.press('id:clear-query');
-      await app.waitFor('id:recent-search-都市逆袭');
-      await app.waitFor('id:drama-123');
-      await app.keyboard.press('tab');
-      await app.press('id:drama-123');
-      await app.waitFor('id:episode-range-trigger');
-      await app.back();
-      await app.waitFor('id:drama-123');
-      await app.clock!.runFor(70);
-      await app.keyboard.press('enter');
-      await app.waitFor('id:episode-range-trigger');
-      expect(
-        app.requests().filter((r) => r.method === 'POST' && !r.url.includes('/search/history'))
-          .length,
-      ).toBe(0);
-    },
-  );
-  const emptyPublicDiscoveryTest = target === 'tv' ? test.skip : test;
-  emptyPublicDiscoveryTest(
-    'empty public discovery retains manual search and recent-search controls',
-    async () => {
-      const app = await open(entry, { network: { '*': fixture } });
-      await app.press('id:nav-search');
-      await app.waitFor('暂时没有推荐内容');
-      expect(app.shows('id:drama-123')).toBe(false);
-      await app.type('id:search-input', '手动查询');
-      await app.submit('id:search-input');
-      await app.waitFor('id:drama-123');
-      expect(app.shows('暂时没有推荐内容')).toBe(false);
-    },
-  );
+        return ok({ items: keywords });
+      }
+      if (url.pathname === '/api/v1/search')
+        return ok({ items: [{ ...drama, content_type: '1004' }], has_more: false });
+      return fixture(request);
+    };
+    const app = await open(entry, {
+      platform: 'macos',
+      width: target === 'tv' ? 1920 : 1180,
+      height: target === 'tv' ? 1080 : 780,
+      clock: {},
+      reducedMotion: true,
+      network: { '*': discoveryRequest, 'POST *': discoveryRequest },
+    });
+    await app.press('id:nav-search');
+    await app.waitFor('热门内容未能加载');
+    await app.press('重试');
+    await app.waitFor('id:drama-123');
+    expect(app.count('id:drama-123')).toBe(1);
+    expect(app.count('id:discovery-query-都市逆袭')).toBe(1);
+    expect(app.shows('漫剧 · 3 集')).toBe(true);
+    expect(app.shows('id:drama-')).toBe(false);
+    await app.press('id:discovery-query-都市逆袭');
+    await app.waitUntil(() => app.requests().some((r) => r.url.includes('/search?q=')));
+    expect(app.value('id:search-input')).toBe('都市逆袭');
+    await app.waitFor('id:clear-query');
+    await app.waitFor('id:drama-123');
+    expect(app.shows('漫剧 · 3 集')).toBe(false);
+    await app.press('id:clear-query');
+    await app.waitFor('id:recent-search-都市逆袭');
+    await app.waitFor('id:drama-123');
+    await app.keyboard.press('tab');
+    await app.press('id:drama-123');
+    await app.waitFor('id:episode-range-trigger');
+    await app.back();
+    await app.waitFor('id:drama-123');
+    await app.clock!.runFor(70);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:episode-range-trigger');
+    expect(
+      app.requests().filter((r) => r.method === 'POST' && !r.url.includes('/search/history'))
+        .length,
+    ).toBe(0);
+  });
+  test('empty public discovery retains manual search and recent-search controls', async () => {
+    const app = await open(entry, {
+      width: target === 'tv' ? 1920 : 1180,
+      height: target === 'tv' ? 1080 : 780,
+      network: { '*': fixture },
+    });
+    await app.press('id:nav-search');
+    await app.waitFor('暂时没有推荐内容');
+    expect(app.shows('id:drama-123')).toBe(false);
+    await app.type('id:search-input', '手动查询');
+    await app.submit('id:search-input');
+    await app.waitFor('id:drama-123');
+    expect(app.shows('暂时没有推荐内容')).toBe(false);
+  });
 
   test('recent keyword loads cannot overwrite a committed mutation and failed clear retries its exact intent', async () => {
     const app = await open('./RecentSearchStatePreview.tsx');
@@ -1124,7 +1122,7 @@ export function registerBrowsingTests(target: 'desktop' | 'tv' = 'desktop', entr
     expect(app.shows('id:episode-1058')).toBe(true);
     expect(app.enabled('第 60 集 · 未开放')).toBe(false);
     await app.press('id:episode-range-trigger');
-    await app.press(target === 'tv' ? '1–12 集' : '1–24 集');
+    await app.press('1–24 集');
     expect(app.shows('id:episode-1000')).toBe(true);
     expect(app.shows('id:episode-1024')).toBe(false);
     await app.press('继续第 59 集');

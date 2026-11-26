@@ -1,8 +1,8 @@
+import { ChevronDown, ChevronRight } from 'nsh-icon-lucide';
 import { Select } from 'nsh/base';
-import { View, signal } from 'nsh';
+import { View, signal, windowSize } from 'nsh';
 import {
   Button,
-  CardControls,
   ChoiceList,
   Notice,
   PosterCard,
@@ -15,25 +15,20 @@ import {
   selectItemLineHeight,
 } from '@hongguo/ui';
 import type { Store } from '../../store';
+import { tvColumns, tvInsets } from '../../shell/tv-layout';
+import { PosterCollection } from '../../PosterCollection';
 
 import { POSTER_GAP, posterGrid } from '../../shell/poster-grid';
-import {
-  CalendarDays,
-  ChartNoAxesColumnIncreasing,
-  ChevronDown,
-  ChevronRight,
-  Search,
-} from 'nsh-icon-lucide';
 
-/** The shared poster grid: one column count and card width for home and every browse page. */
 const columnGap = POSTER_GAP;
-
 function columns(store: Store) {
-  return posterGrid(store.target).columns;
+  return store.target === 'tv' ? tvColumns('collection') : posterGrid(store.target).columns;
 }
-
 function cardWidth(store: Store) {
-  return posterGrid(store.target).cardWidth;
+  if (store.target !== 'tv') return posterGrid(store.target).cardWidth;
+  const insets = tvInsets();
+  const available = windowSize().width - insets.left - insets.right;
+  return Math.max(1, Math.floor((available - (columns(store) - 1) * 16) / columns(store)));
 }
 
 /** Filter chips own the query; the shared option row wraps before the grid. */
@@ -126,10 +121,10 @@ function PosterSkeleton(props: { store: Store }) {
       label="正在加载片库"
       testID="home-catalog-pending"
       class="flex-row flex-wrap"
-      style={{ gap: columnGap }}
+      style={{ gap: tv() ? 16 : columnGap }}
     >
       <Each
-        of={Array.from({ length: columns(props.store) * 3 }, (_, index) => index)}
+        of={Array.from({ length: columns(props.store) * (tv() ? 1 : 3) }, (_, index) => index)}
         key={(index: number) => `poster-${index}`}
       >
         {() => (
@@ -199,7 +194,7 @@ export function CatalogSection(props: { store: Store }) {
   const upToDate = () => !blank() && !failed();
   return (
     <View>
-      <View class="flex-row items-center justify-between" style={{ marginBottom: 16 }}>
+      <View class="flex-row items-center justify-between" style={{ marginBottom: tv() ? 4 : 16 }}>
         <UiText role={tv() ? 'section' : 'title'}>今晚，想看什么</UiText>
         <If when={!tv() && counting()}>
           <UiText role="meta">
@@ -223,23 +218,48 @@ export function CatalogSection(props: { store: Store }) {
         <CatalogEmpty store={props.store} />
       </If>
       <If when={upToDate() && items().length > 0}>
-        <View class="flex-row flex-wrap" style={{ gap: columnGap }}>
-          {/* All loaded pages are rendered: the header counts them and 查看更多 appends to them. */}
-          <Each of={items()} key={(drama) => drama.series_id}>
-            {(drama) => (
-              <View style={{ width: cardWidth(props.store) }}>
-                <PosterCard
-                  testID={`home-poster-${drama().series_id}`}
-                  title={drama().title}
-                  cover={drama().cover_fallback || drama().cover}
-                  caption={drama().episode_count ? `全 ${drama().episode_count} 集` : undefined}
-                  width={cardWidth(props.store)}
-                  onPress={() => props.store.open(drama(), () => props.store.restoreFocus())}
-                />
-              </View>
-            )}
-          </Each>
-        </View>
+        <If
+          when={tv()}
+          else={
+            <View class="flex-row flex-wrap" style={{ gap: tv() ? 16 : columnGap }}>
+              {/* All loaded pages are rendered: the header counts them and 查看更多 appends to them. */}
+              <Each of={items()} key={(drama) => drama.series_id}>
+                {(drama) => (
+                  <View style={{ width: cardWidth(props.store) }}>
+                    <PosterCard
+                      density={tv() ? 'compact' : undefined}
+                      testID={`home-poster-${drama().series_id}`}
+                      title={drama().title}
+                      cover={drama().cover_fallback || drama().cover}
+                      caption={drama().episode_count ? `全 ${drama().episode_count} 集` : undefined}
+                      fit={tv() ? 'contain' : undefined}
+                      width={tv() ? Math.min(132, cardWidth(props.store)) : cardWidth(props.store)}
+                      onPress={() => props.store.open(drama(), () => props.store.restoreFocus())}
+                    />
+                  </View>
+                )}
+              </Each>
+            </View>
+          }
+        >
+          <PosterCollection
+            onEmptyFocus={props.store.focusPrimary}
+            target="tv"
+            layout="shelf"
+            active={props.store.activePage('home')}
+            testID="home-catalog-shelf"
+            itemTestIDPrefix="home-poster"
+            items={items()}
+            collection={`home:${catalog.key()}`}
+            label="精选短剧"
+            selected=""
+            caption={(drama) => (drama.episode_count ? `全 ${drama.episode_count} 集` : undefined)}
+            onNavigate={props.store.noteFocusIntent}
+            focusGuard={props.store.focusGuard}
+            onSource={props.store.rememberSource}
+            onOpen={(drama, restore) => props.store.open(drama, restore)}
+          />
+        </If>
       </If>
       {/* The cause comes first, then the action that retries the same cursor. */}
       <If when={!!catalog.error() && !!data() && !catalog.stale()}>
@@ -247,7 +267,7 @@ export function CatalogSection(props: { store: Store }) {
           <Notice error message={catalog.error()} testID="home-catalog-more-error" />
         </View>
       </If>
-      <If when={data()?.has_more && !catalog.stale()}>
+      <If when={!tv() && data()?.has_more && !catalog.stale()}>
         <View class="items-end" style={{ marginTop: 16 }}>
           <Button
             label={catalog.error() ? '重试加载更多' : '查看更多'}
@@ -261,41 +281,18 @@ export function CatalogSection(props: { store: Store }) {
           />
         </View>
       </If>
-      {/* TV has no sidebar, so the home page carries these entries there. */}
       <If when={tv()}>
-        <View style={{ marginTop: 24 }}>
-          <CardControls label="更多发现" onNavigate={props.store.noteFocusIntent} gap={10}>
-            <Button
-              label="排行榜"
-              icon={ChartNoAxesColumnIncreasing}
-              variant="quiet"
-              testID="home-rankings"
-              onPress={() => {
-                props.store.navigate('rankings');
-                props.store.restoreFocus();
-              }}
-            />
-            <Button
-              label="上新日历"
-              icon={CalendarDays}
-              variant="quiet"
-              testID="home-calendar"
-              onPress={() => {
-                props.store.navigate('calendar');
-                props.store.restoreFocus();
-              }}
-            />
-            <Button
-              label="查看全部"
-              icon={Search}
-              variant="quiet"
-              testID="home-catalog-all"
-              onPress={() => {
-                props.store.navigate('discover');
-                props.store.restoreFocus();
-              }}
-            />
-          </CardControls>
+        <View class="items-end" style={{ marginTop: 24 }}>
+          <Button
+            label="查看全部"
+            icon={ChevronRight}
+            variant="quiet"
+            testID="home-catalog-all"
+            onPress={() => {
+              props.store.navigate('discover');
+              props.store.restoreFocus();
+            }}
+          />
         </View>
       </If>
     </View>

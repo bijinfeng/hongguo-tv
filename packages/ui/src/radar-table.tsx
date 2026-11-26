@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'nsh-icon-lucide';
 import {
   List,
   Scroll,
@@ -13,7 +14,6 @@ import { Button, IconButton } from './button';
 import { CardControls } from './card-controls';
 import { UiText } from './display';
 import { controlMetrics, space } from './foundation';
-import { ChevronLeft, ChevronRight } from 'nsh-icon-lucide';
 
 export type RadarTableColumn = { key: string; title: string; numeric?: boolean };
 export type RadarTableRow = { id: string; title: string; cells: Record<string, string> };

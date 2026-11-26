@@ -1,3 +1,4 @@
+import { Check, Minus } from 'nsh-icon-lucide';
 import { Text, token, type ViewRef } from 'nsh';
 import { Checkbox as BaseCheckbox } from 'nsh/base';
 import {
@@ -10,7 +11,6 @@ import {
   focusRingClass,
 } from './foundation';
 import { Icon } from './icon';
-import { Check, Minus } from 'nsh-icon-lucide';
 
 /** Controlled boolean selection; NSH handles mixed state, activation and disabled behavior. */
 export interface CheckboxProps {

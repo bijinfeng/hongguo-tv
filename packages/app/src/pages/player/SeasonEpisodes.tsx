@@ -1,3 +1,4 @@
+import { Lock } from 'nsh-icon-lucide';
 import { Scroll, Text, View, effect, signal, untracked } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import { Button, CinemaEpisodeButton, CinemaSelect, EpisodeRange, Notice } from '@hongguo/ui';
@@ -145,7 +146,7 @@ export function Episodes(props: {
                           ? String(episode().index)
                           : String(episode().index).padStart(2, '0')
                       }
-                      icon={episode().locked ? 'lock' : undefined}
+                      icon={episode().locked ? Lock : undefined}
                       disabled={episode().locked}
                       selected={episode().video_id === props.current?.video_id}
                       onPress={() => props.onSelect(episode())}

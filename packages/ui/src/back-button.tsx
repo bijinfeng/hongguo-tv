@@ -1,9 +1,9 @@
+import { ArrowLeft } from 'nsh-icon-lucide';
 import { Text, reduceMotion, token, type ViewProps, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { Icon } from './icon';
 import { border, controlMetrics, weight, focusRingClass, type ControlSize } from './foundation';
 import { textLineHeightRatio } from './typography';
-import { ArrowLeft } from 'nsh-icon-lucide';
 
 /** The surface the crumb sits on: an ordinary page, or the player's dark band. */
 export type BackButtonTone = 'page' | 'cinema';

@@ -1,3 +1,4 @@
+import { Search, Settings } from 'nsh-icon-lucide';
 import { View, type ImageAsset } from 'nsh';
 import { Button, IconButton, Logo } from '@hongguo/ui';
 import type { Store } from '../store';
@@ -17,7 +18,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
       <View class="flex-row items-center" style={{ gap: 8, marginLeft: 'auto' }}>
         <Button
           testID="nav-search"
-          icon="search"
+          icon={Search}
           label="搜索短剧"
           displayLabel="搜索"
           buttonRef={(ref) => props.store.primaryRef('search', ref)}
@@ -25,7 +26,7 @@ export function TvHeader(props: { store: Store; logoMark: ImageAsset }) {
         />
         <IconButton
           testID="nav-settings"
-          icon="settings"
+          icon={Settings}
           label="设置"
           buttonRef={(ref) => props.store.primaryRef('settings', ref)}
           onPress={() => props.store.settingsPage()}

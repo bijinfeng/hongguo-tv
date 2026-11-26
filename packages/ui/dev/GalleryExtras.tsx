@@ -1,3 +1,4 @@
+import { List, Play, Search, User } from 'nsh-icon-lucide';
 import { View, signal, type InputRef, type JSX } from 'nsh';
 import {
   UiText,
@@ -83,7 +84,7 @@ export function GallerySearchRecipe() {
           <SearchSuggestionRow
             label="春山不负"
             meta="短剧 · 演示条目"
-            icon="search"
+            icon={Search}
             testID="gallery-suggestion-drama"
             rowRef={() => {}}
             onFocus={() => {}}
@@ -93,7 +94,7 @@ export function GallerySearchRecipe() {
           <SearchSuggestionRow
             label="示例演员"
             meta="演员 · 演示条目"
-            icon="user"
+            icon={User}
             testID="gallery-suggestion-actor"
             rowRef={() => {}}
             onFocus={() => {}}
@@ -362,12 +363,12 @@ export function GalleryBusinessRecipes() {
             <Button
               label="开始观看"
               variant="primary"
-              icon="play"
+              icon={Play}
               onPress={() => current.set('开始观看春山不负')}
             />
             <CinemaButton
               label="选集与详情"
-              icon="list"
+              icon={List}
               onPress={() => current.set('查看春山不负详情')}
               testID="gallery-feature-details"
             />

@@ -1,3 +1,4 @@
+import { ChevronDown, LoaderCircle, Lock, Play } from 'nsh-icon-lucide';
 import {
   ModalDismissScope,
   bindModalEscape,
@@ -29,7 +30,6 @@ import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { textSize, textWeight } from './typography';
-import { ChevronDown, Lock, Play } from 'nsh-icon-lucide';
 
 const CinemaEnabled = context<() => boolean>(() => true);
 
@@ -88,7 +88,7 @@ export function CinemaButton(props: {
     >
       <If when={props.icon && !props.dropdown}>
         <Icon
-          icon={props.pending ? 'loader-circle' : props.icon!}
+          icon={props.pending ? LoaderCircle : props.icon!}
           tone={blocked() ? 'cinema-muted' : 'cinema-foreground'}
         />
       </If>

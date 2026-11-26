@@ -1,3 +1,4 @@
+import { Check } from 'nsh-icon-lucide';
 import { Text, View, token } from 'nsh';
 import { Radio, RadioGroup } from 'nsh/base';
 import {
@@ -10,7 +11,6 @@ import {
 } from './foundation';
 import { Icon } from './icon';
 import { type ChoiceOption } from './choice';
-import { Check } from 'nsh-icon-lucide';
 
 /** One controlled value represented by visible, stable options. */
 export interface ChoiceGroupProps {

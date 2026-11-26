@@ -20,7 +20,7 @@ import {
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
 import type { Store } from './store';
-import { Search } from 'nsh-icon-lucide';
+import { Play, Search, User } from 'nsh-icon-lucide';
 
 export function SearchForm(props: { store: Store }) {
   const suggestions = props.store.suggestions;
@@ -266,10 +266,10 @@ export function SearchForm(props: { store: Store }) {
                   meta={item().meta}
                   icon={
                     suggestionAction(item()) === 'actor'
-                      ? 'user'
+                      ? User
                       : suggestionAction(item()) === 'drama'
-                        ? 'play'
-                        : 'search'
+                        ? Play
+                        : Search
                   }
                   testID={`suggestion-${identity}`}
                   rowRef={(ref) => rows.set(identity, ref)}

@@ -1,3 +1,4 @@
+import { ArrowUpRight, Play } from 'nsh-icon-lucide';
 import { Image, Text, View, token, windowSize, fontScale } from 'nsh';
 import { Button, CardControls, Cover, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
@@ -262,7 +263,7 @@ export function HomeHero(props: { store: Store }) {
               <Button
                 variant="primary"
                 size={tv() ? 'lg' : undefined}
-                icon="play"
+                icon={Play}
                 label={watchLabel()}
                 testID="home-hero-watch"
                 onPress={() => props.store.watch(drama(), () => props.store.restoreFocus())}
@@ -270,7 +271,7 @@ export function HomeHero(props: { store: Store }) {
               <Button
                 variant="quiet"
                 label="查看详情"
-                icon="arrow-up-right"
+                icon={ArrowUpRight}
                 testID="home-hero-detail"
                 onPress={() => props.store.open(drama(), () => props.store.restoreFocus())}
               />

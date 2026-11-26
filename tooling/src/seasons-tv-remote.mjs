@@ -324,6 +324,8 @@ dependencies {
             id: appId,
             version: '0.0.0',
             build: 1,
+            dependencies: JSON.parse(await readFile(resolve(root, 'apps/tv/nsh.json'), 'utf8'))
+              .dependencies,
             theme: '../../../../../packages/ui/theme.tv.json',
             appearance: 'system',
             capabilities: { network: { hosts: ['127.0.0.1'] }, statusBar: true },

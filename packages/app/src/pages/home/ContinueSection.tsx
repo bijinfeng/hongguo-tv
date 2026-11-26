@@ -1,3 +1,4 @@
+import { ChevronRight, Search } from 'nsh-icon-lucide';
 import { Image, View, windowSize, signal, type JSX } from 'nsh';
 import {
   Button,
@@ -97,7 +98,7 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
             size="sm"
             variant="quiet"
             label="选集与详情"
-            icon="forward"
+            icon={ChevronRight}
             onPress={openDetail}
           />
         </View>
@@ -125,7 +126,7 @@ function ContinueEmpty(props: { store: Store }) {
         class="shrink-0 items-center justify-center rounded-full bg-accent"
         style={{ width: tv() ? 32 : 44, height: tv() ? 32 : 44 }}
       >
-        <Icon name="search" />
+        <Icon icon={Search} />
       </View>
       <View class="min-w-0 flex-1" style={{ gap: tv() ? 2 : 4 }}>
         <UiText role="title">还没有观看记录</UiText>
@@ -135,7 +136,7 @@ function ContinueEmpty(props: { store: Store }) {
       </View>
       <Button
         label="去找剧"
-        icon="search"
+        icon={Search}
         variant="primary"
         size={tv() ? 'md' : 'sm'}
         testID="home-continue-discover"
@@ -237,7 +238,7 @@ export function ContinueSection(props: { store: Store; showAll?: boolean }) {
         <If when={props.showAll !== false}>
           <Button
             label="全部记录"
-            icon="forward"
+            icon={ChevronRight}
             variant="quiet"
             compact
             onPress={() => {

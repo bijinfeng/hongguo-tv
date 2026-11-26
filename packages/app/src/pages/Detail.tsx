@@ -1,3 +1,4 @@
+import { Bookmark, Lock, Play } from 'nsh-icon-lucide';
 import { Scroll, Text, View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -197,7 +198,7 @@ export function Detail(props: {
                     }}
                     label={startLabel()}
                     primary
-                    icon="play"
+                    icon={Play}
                     disabled={!startEpisode()}
                     onPress={() => {
                       const episode = startEpisode();
@@ -244,7 +245,7 @@ export function Detail(props: {
                   testID="detail-start"
                   primary
                   size="lg"
-                  icon="play"
+                  icon={Play}
                   label={startLabel()}
                   disabled={!startEpisode()}
                   buttonRef={(ref) => {
@@ -398,7 +399,7 @@ export function Detail(props: {
                           : String(episode().index).padStart(2, '0')
                       }
                       episode
-                      icon={episode().locked ? 'lock' : undefined}
+                      icon={episode().locked ? Lock : undefined}
                       disabled={episode().locked}
                       selected={episode().video_id === resume()?.video_id}
                       onPress={() => play(episode(), ref)}
@@ -446,7 +447,7 @@ function FavoriteButton(props: {
         <Button
           testID="detail-favorite"
           label={props.favorite.selected() ? '已收藏' : '收藏'}
-          icon="bookmark"
+          icon={Bookmark}
           selected={props.favorite.selected()}
           pending={props.favorite.pending()}
           disabled={props.favorite.disabled()}
@@ -457,7 +458,7 @@ function FavoriteButton(props: {
       <CinemaButton
         testID="detail-favorite"
         label={props.favorite.selected() ? '已收藏' : '收藏'}
-        icon="bookmark"
+        icon={Bookmark}
         selected={props.favorite.selected()}
         pending={props.favorite.pending()}
         disabled={props.favorite.disabled()}

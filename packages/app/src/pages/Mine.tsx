@@ -1,3 +1,4 @@
+import { Bell, BellRing, CalendarDays, Heart, History } from 'nsh-icon-lucide';
 import { Scroll, View, type ViewRef } from 'nsh';
 import { Avatar, Button, CardControls, Notice } from '@hongguo/ui';
 import type { Store } from '../store';
@@ -57,35 +58,35 @@ export function Mine(props: { store: Store }) {
             testID="mine-history"
             buttonRef={(ref) => (history = ref)}
             label="观看记录"
-            icon="history"
+            icon={History}
             onPress={() => props.store.openLibrary('history', () => history?.focus())}
           />
           <Button
             testID="mine-favorites"
             buttonRef={(ref) => (favorites = ref)}
             label="收藏"
-            icon="heart"
+            icon={Heart}
             onPress={() => props.store.openLibrary('favorites', () => favorites?.focus())}
           />
           <Button
             testID="mine-following"
             buttonRef={(ref) => (following = ref)}
             label="追更"
-            icon="bell"
+            icon={Bell}
             onPress={() => props.store.navigate('following', () => following?.focus())}
           />
           <Button
             testID="mine-reservations"
             buttonRef={(ref) => (reservations = ref)}
             label="预约"
-            icon="calendar-days"
+            icon={CalendarDays}
             onPress={() => props.store.navigate('reservations', () => reservations?.focus())}
           />
           <Button
             testID="mine-notifications"
             buttonRef={(ref) => (notifications = ref)}
             label="更新提醒"
-            icon="bell-ring"
+            icon={BellRing}
             variant="quiet"
             onPress={() => props.store.navigate('notifications', () => notifications?.focus())}
           />

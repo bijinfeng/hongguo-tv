@@ -1,17 +1,9 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import {
-  Button,
-  CardControls,
-  FilterChoices,
-  Notice,
-  SkeletonBlock,
-  SkeletonRegion,
-  UiText,
-} from '@hongguo/ui';
+import { Button, FilterChoices, Notice, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
 import { PosterPage } from './PosterPage';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
-import { CalendarDays, ChartNoAxesColumnIncreasing, ChevronRight } from 'nsh-icon-lucide';
+import { CalendarDays, ChevronRight } from 'nsh-icon-lucide';
 
 const dimensions: { key: CategoryDimension; label: string }[] = [
   { key: 'genre', label: '类型' },
@@ -36,6 +28,15 @@ export function Discover(props: { store: Store }) {
       <View class="flex-row items-center justify-between">
         {/* One destination, one name: the rail, the crumb and this heading all say 找剧. */}
         <UiText role="page">找剧</UiText>
+        <If when={props.store.target === 'tv'}>
+          <Button
+            testID="discover-calendar"
+            label="新剧"
+            icon={CalendarDays}
+            variant="quiet"
+            onPress={() => props.store.navigate('calendar')}
+          />
+        </If>
       </View>
       <View class={props.store.target === 'tv' ? 'flex-row gap-4' : 'gap-3'}>
         <Each of={dimensions} key={(dimension) => dimension.key}>
@@ -147,36 +148,12 @@ export function Discover(props: { store: Store }) {
           />
         </View>
       </If>
-      <If when={props.store.target === 'tv'}>
-        <CardControls label="更多找剧方式" onNavigate={props.store.noteFocusIntent}>
-          {/* The home rail carries the same entries as quiet; one semantic, one variant. */}
-          <Button
-            label="排行榜"
-            icon={ChartNoAxesColumnIncreasing}
-            variant="quiet"
-            testID="discover-rankings"
-            onPress={() => {
-              props.store.navigate('rankings');
-              props.store.restoreFocus();
-            }}
-          />
-          <Button
-            label="上新日历"
-            icon={CalendarDays}
-            variant="quiet"
-            testID="discover-calendar"
-            onPress={() => {
-              props.store.navigate('calendar');
-              props.store.restoreFocus();
-            }}
-          />
-        </CardControls>
-      </If>
     </View>
   );
   return (
     <PosterPage
       target={props.store.target}
+      onEmptyFocus={props.store.focusPrimary}
       active={props.store.activePage('discover')}
       testID="category-results"
       collection={category.key()}

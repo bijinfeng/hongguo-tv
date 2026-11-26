@@ -1,3 +1,4 @@
+import { Check, ChevronDown, X } from 'nsh-icon-lucide';
 import { ModalDismissScope, bindModalEscape, createModalDismiss } from './modal-dismiss';
 import { RemoteFocusScope } from './remote-focus-scope';
 import {
@@ -40,7 +41,6 @@ import { Button } from './button';
 import { border, controlMetrics, radius, space, weight, focusRingClass } from './foundation';
 import { Icon } from './icon';
 import { textSize, textWeight } from './typography';
-import { Check, ChevronDown } from 'nsh-icon-lucide';
 
 /** Popups stop short of the window edges and of a two-line hint. */
 const TOOLTIP_MAX_WIDTH = 320;
@@ -179,7 +179,7 @@ export function Dialog(props: DialogProps) {
           <If when={props.closeButton}>
             <Button
               label="关闭"
-              icon="close"
+              icon={X}
               iconOnly
               variant="quiet"
               onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
@@ -365,7 +365,7 @@ export function SidePanel(props: SidePanelProps) {
           </Text>
           <Button
             label="关闭"
-            icon="close"
+            icon={X}
             iconOnly
             variant="quiet"
             onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
@@ -645,7 +645,7 @@ export function Toast(props: ToastProps) {
       <If when={props.onDismiss}>
         <Button
           label="关闭提示"
-          icon="close"
+          icon={X}
           iconOnly
           variant="quiet"
           onPress={() => props.onDismiss?.()}

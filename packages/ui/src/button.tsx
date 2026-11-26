@@ -1,3 +1,4 @@
+import { ChevronDown, LoaderCircle } from 'nsh-icon-lucide';
 import {
   Text,
   View,
@@ -13,11 +14,16 @@ import { FocusedRemovalRoot } from './focused-removal-root';
 import { SelectFocus } from './select-focus';
 import { Icon } from './icon';
 import { border, controlMetrics, space, weight, type ControlSize } from './foundation';
-import { textLineHeightRatio } from './typography';
-import { ChevronDown, LoaderCircle } from 'nsh-icon-lucide';
+import { textLineHeightRatio, textSize } from './typography';
 
 /** Limited visual hierarchy. Navigation remains a compatibility variant. */
-export type ButtonVariant = 'default' | 'primary' | 'quiet' | 'destructive' | 'navigation';
+export type ButtonVariant =
+  | 'default'
+  | 'primary'
+  | 'quiet'
+  | 'destructive'
+  | 'navigation'
+  | 'navigation-bar';
 /** A named action. The caller owns its pending/selected values and effects. */
 export interface ButtonProps {
   label: string;
@@ -75,6 +81,7 @@ export function Button(props: ButtonProps) {
   const sizeName = () => props.size ?? (props.compact ? 'sm' : 'md');
   const size = () => controlMetrics(sizeName());
   const variant = () => props.variant ?? (props.primary ? 'primary' : 'default');
+  const labelSize = () => (variant() === 'navigation-bar' ? textSize('section') : size().fontSize);
   const blocked = () => !!props.disabled || !!props.pending;
   // A popup trigger keeps its chevron on the trailing edge; a plain icon stays leading.
   const dropdown = () => !!props.dropdown || props.selectOpen !== undefined;
@@ -97,6 +104,7 @@ export function Button(props: ButtonProps) {
       // Navigation reads as a rail: the current destination carries the foreground, every other
       // entry stays one tier down, as the draft's nav item does.
       case 'navigation':
+      case 'navigation-bar':
         return props.current ? 'foreground' : 'muted-foreground';
       default:
         return 'foreground';
@@ -124,6 +132,7 @@ export function Button(props: ButtonProps) {
           : 'bg-primary border-primary hover:bg-primary/90 active:bg-primary/80';
       case 'quiet':
       case 'navigation':
+      case 'navigation-bar':
         return 'bg-transparent border-transparent hover:bg-muted active:bg-border';
       default:
         return 'bg-card border-input hover:bg-muted active:bg-border';
@@ -134,7 +143,9 @@ export function Button(props: ButtonProps) {
       ? props.episode === 'player'
         ? episodeHeights.player
         : episodeHeights.detail
-      : size().height;
+      : variant() === 'navigation-bar'
+        ? controlMetrics('lg').height
+        : size().height;
   const strongLabel = () => !!props.selected || !!props.current || variant() === 'primary';
   return (
     <Root
@@ -159,11 +170,12 @@ export function Button(props: ButtonProps) {
       onFocus={props.onFocus}
       onBlur={props.onBlur}
       disabled={blocked()}
+      focusable={!blocked()}
       selected={props.selected}
       current={props.current}
       expanded={props.expanded}
       accessibilityDescription={props.accessibilityDescription}
-      class={`flex-row items-center ${dropdown() ? 'justify-between' : props.align === 'start' ? 'justify-start' : 'justify-center'} border ${platform.os === 'android' && variant() === 'primary' ? '' : 'focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4'} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
+      class={`flex-row items-center ${dropdown() ? 'justify-between' : props.align === 'start' ? 'justify-start' : 'justify-center'} border ${platform.os === 'android' ? 'focus-visible:outline-0' : 'focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4'} ${reduceMotion() || blocked() || props.selected ? '' : 'transition-colors duration-100'} ${appearance()} ${props.class ?? ''}`}
     >
       <SelectFocus
         open={props.selectOpen}
@@ -200,10 +212,10 @@ export function Button(props: ButtonProps) {
         <If when={!props.iconOnly && (props.artwork ? !!props.displayLabel : true)}>
           <Text
             style={{
-              fontSize: size().fontSize,
+              fontSize: labelSize(),
               // The type scale's 1.5 ratio, so a label sits on the control's centre line: with
               // `normal` metrics the text box lands one point high inside a fixed-height control.
-              lineHeight: Math.round(size().fontSize * textLineHeightRatio('body')),
+              lineHeight: Math.round(labelSize() * textLineHeightRatio('body')),
               fontWeight: strongLabel() ? weight.strong() : weight.regular(),
               color: token(tone()),
               flexShrink: dropdown() || props.labelLines ? 1 : undefined,
