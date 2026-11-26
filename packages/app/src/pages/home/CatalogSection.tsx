@@ -10,6 +10,7 @@ import {
   SkeletonBlock,
   SkeletonRegion,
   UiText,
+  space,
   radius,
   selectItemClass,
   selectItemLineHeight,
@@ -39,8 +40,8 @@ function CatalogFilters(props: { store: Store }) {
   const sortTitle = () =>
     sortChoices().find((choice) => choice.value === catalog.selection().sort)?.title ?? '综合';
   return (
-    <View style={{ marginBottom: 22 }}>
-      <View class="flex-row min-w-0 flex-wrap items-start" style={{ gap: 7 }}>
+    <View style={{ marginBottom: space('lg') }}>
+      <View class="flex-row min-w-0 flex-wrap items-start" style={{ gap: space('xs') }}>
         <View class="min-w-0 flex-1">
           <ChoiceList
             label="题材"
@@ -83,8 +84,8 @@ function CatalogFilters(props: { store: Store }) {
             minHeight: 36,
             fontSize: 14,
             lineHeight: selectItemLineHeight(14),
-            paddingHorizontal: 12,
-            paddingVertical: 8,
+            paddingHorizontal: space('sm'),
+            paddingVertical: space('xs'),
             borderRadius: radius('lg'),
           }}
           renderItem={(entry) => <SelectItemLabel entry={entry} />}
@@ -100,9 +101,9 @@ function FilterSkeleton() {
     <View
       accessibilityElementsHidden
       class="flex-row min-w-0 flex-wrap items-center justify-between"
-      style={{ gap: 8, marginBottom: 22, paddingVertical: 6 }}
+      style={{ gap: space('xs'), marginBottom: space('lg'), paddingVertical: space('xxs') }}
     >
-      <View class="flex-row min-w-0 flex-wrap items-center" style={{ gap: 8 }}>
+      <View class="flex-row min-w-0 flex-wrap items-center" style={{ gap: space('xs') }}>
         <Each of={[52, 64, 56, 60]}>
           {(width) => <SkeletonBlock width={width()} height={32} radius={8} />}
         </Each>
@@ -130,7 +131,7 @@ function PosterSkeleton(props: { store: Store }) {
         {() => (
           <View accessibilityElementsHidden style={{ width: width(), gap: tv() ? 7 : 12 }}>
             <SkeletonBlock width={width()} height={width() * 1.35} radius={tv() ? 6 : 12} />
-            <View style={{ gap: 4 }}>
+            <View style={{ gap: space('xxs') }}>
               <View class="justify-center" style={{ height: tv() ? 18 : 27 }}>
                 <SkeletonBlock width="72%" height={tv() ? 9 : 14} radius={4} />
               </View>
@@ -164,7 +165,10 @@ function CatalogEmpty(props: { store: Store }) {
   const catalog = props.store.homeCatalog;
   const tv = () => props.store.target === 'tv';
   return (
-    <View class="items-start" style={{ gap: 12, paddingVertical: tv() ? 12 : 24 }}>
+    <View
+      class="items-start"
+      style={{ gap: space('sm'), paddingVertical: tv() ? space('sm') : space('lg') }}
+    >
       <UiText role="title">暂时没有找到这部剧</UiText>
       <UiText role="meta" lines={2}>
         {catalog.selection().category_dim_theme || catalog.selection().genre
@@ -263,12 +267,12 @@ export function CatalogSection(props: { store: Store }) {
       </If>
       {/* The cause comes first, then the action that retries the same cursor. */}
       <If when={!!catalog.error() && !!data() && !catalog.stale()}>
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: space('md') }}>
           <Notice error message={catalog.error()} testID="home-catalog-more-error" />
         </View>
       </If>
       <If when={!tv() && data()?.has_more && !catalog.stale()}>
-        <View class="items-end" style={{ marginTop: 16 }}>
+        <View class="items-end" style={{ marginTop: space('md') }}>
           <Button
             label={catalog.error() ? '重试加载更多' : '查看更多'}
             displayLabel={catalog.loading() ? '正在加载…' : undefined}
@@ -282,7 +286,7 @@ export function CatalogSection(props: { store: Store }) {
         </View>
       </If>
       <If when={tv()}>
-        <View class="items-end" style={{ marginTop: 24 }}>
+        <View class="items-end" style={{ marginTop: space('lg') }}>
           <Button
             label="查看全部"
             icon={ChevronRight}

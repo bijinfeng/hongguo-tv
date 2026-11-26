@@ -1,6 +1,15 @@
 import { ArrowUpRight, Play } from 'nsh-icon-lucide';
 import { Image, Text, View, token, windowSize, fontScale } from 'nsh';
-import { Button, CardControls, Cover, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  Cover,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  radius,
+  space,
+} from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from '../../store';
 
@@ -112,8 +121,9 @@ function HeroSkeleton(props: { tv: boolean }) {
     <SkeletonRegion
       label="正在加载精选内容"
       testID="home-hero-pending"
-      class={props.tv ? '' : 'overflow-hidden rounded-(--radius) bg-card flex-row'}
+      class={props.tv ? '' : 'overflow-hidden bg-card flex-row'}
       style={{
+        borderRadius: props.tv ? undefined : radius('lg'),
         minHeight: props.tv ? 128 : size().minHeight,
         marginBottom: props.tv ? 12 : 0,
         flexDirection: 'row',
@@ -125,17 +135,23 @@ function HeroSkeleton(props: { tv: boolean }) {
         class="justify-center"
         style={
           props.tv
-            ? { flex: 1, paddingBottom: 4 }
-            : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: size().padLeft, gap: 12 }
+            ? { flex: 1, paddingBottom: space('xxs') }
+            : {
+                flex: 5,
+                paddingTop: 36,
+                paddingBottom: 36,
+                paddingLeft: size().padLeft,
+                gap: space('sm'),
+              }
         }
       >
         <If
           when={!props.tv}
           else={
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: space('sm') }}>
               <SkeletonBlock width="70%" height={39 * fontScale()} radius={4} />
               <SkeletonBlock width={100} height={18 * fontScale()} radius={4} />
-              <View class="flex-row" style={{ gap: 12 }}>
+              <View class="flex-row" style={{ gap: space('sm') }}>
                 <SkeletonBlock width={132} height={40 * fontScale()} radius={6} />
                 <SkeletonBlock width={104} height={36 * fontScale()} radius={6} />
               </View>
@@ -145,7 +161,7 @@ function HeroSkeleton(props: { tv: boolean }) {
           <SkeletonBlock width={108} height={12} radius={6} />
           <SkeletonBlock width="62%" height={44} radius={6} />
           <SkeletonBlock width="82%" height={12} radius={4} />
-          <View class="flex-row" style={{ gap: 12 }}>
+          <View class="flex-row" style={{ gap: space('sm') }}>
             <SkeletonBlock width={140} height={44} radius={8} />
             <SkeletonBlock width={104} height={44} radius={8} />
           </View>
@@ -203,7 +219,7 @@ export function HomeHero(props: { store: Store }) {
   const introWidth = () => (tv() ? undefined : 392);
   const copyStyle = () => {
     return tv()
-      ? { flex: 1, paddingBottom: 4 }
+      ? { flex: 1, paddingBottom: space('xxs') }
       : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: desktopHero().padLeft };
   };
   return (
@@ -219,8 +235,12 @@ export function HomeHero(props: { store: Store }) {
         <View
           // The TV draft's hero is not a card: copy floats on the page background and the art
           // bleeds past the column, so a band surface here only gave the flush copy an edge.
-          class={tv() ? '' : 'overflow-hidden rounded-(--radius) bg-card'}
+          class={tv() ? '' : 'overflow-hidden bg-card'}
           style={{
+            // `lg` rather than `--radius`: a 355-high band reads as a hard cut at 6 and reads as a
+            // button at 12. It shares its radius with the poster cards' parent scale, not the
+            // overlay scale.
+            borderRadius: tv() ? undefined : radius('lg'),
             position: 'relative',
             flexDirection: 'row',
             gap: tv() ? 24 : 0,
@@ -232,7 +252,7 @@ export function HomeHero(props: { store: Store }) {
         >
           <View class="justify-center" style={{ ...copyStyle(), position: 'relative', zIndex: 1 }}>
             <If when={!tv()}>
-              <View style={{ marginBottom: 9 }}>
+              <View style={{ marginBottom: space('xs') }}>
                 <UiText role="meta">{meta()}</UiText>
               </View>
             </If>
@@ -243,7 +263,7 @@ export function HomeHero(props: { store: Store }) {
               </UiText>
             </View>
             <If when={tv() && meta()}>
-              <View style={{ marginBottom: 8 }}>
+              <View style={{ marginBottom: space('xs') }}>
                 <UiText role="meta">{meta()}</UiText>
               </View>
             </If>
