@@ -1,7 +1,7 @@
 # typed-search-interaction Specification
 
 ## Purpose
-Let viewers use shared typed suggestions to reach dramas, actor works or ordinary search while preserving editable input, current content and exact return context across Web, desktop and Android TV.
+Let viewers use shared typed suggestions to reach dramas, actor works or ordinary search while preserving editable input, current content and exact return context across desktop and Android TV.
 
 ## Requirements
 

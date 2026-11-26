@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: 红果 NSH
-description: 内容优先、清晰克制的多端观看界面；桌面／Web 与 Android TV 共用一套语义 token、一个组件包。
+description: 内容优先、清晰克制的多端观看界面；桌面与 Android TV 共用一套语义 token、一个组件包。
 ---
 
 # Design System: 红果 NSH
@@ -10,21 +10,21 @@ description: 内容优先、清晰克制的多端观看界面；桌面／Web 与
 
 视觉方向为“红果官网式观看空间”：深色与白色内容区都以封面、剧名、明确操作和连续观看建立层级；黑／白表面、炭灰层级和红果橙主动作由语义 token 表达，系统字体、平面表面与稳定几何保持跨端一致。减少装饰、重复副标题和工程说明。
 
-适用 Web、桌面与 Android TV。Web／桌面共用键鼠布局，TV 适配遥控与观看距离；明确使用 `desktop`／`tv` 端型，不以 Android OS 推断。产品不增加手机或窄窗布局。
+适用桌面与 Android TV。桌面用键鼠布局，TV 适配遥控与观看距离；无头浏览器验收宿主渲染桌面端型，不是独立产品。明确使用 `desktop`／`tv` 端型，不以 Android OS 推断。产品不增加手机或窄窗布局。
 
 基础组件只接收 `size`，不读端型；`sm`／`md`／`lg` 只描述几何，TV 的确认编辑、行焦点、影院控制层等行为用显式 props。端型到主题、尺寸和行为的映射只在 app 根发生。
 
 ### 来源与维护
 
-| 内容                 | 唯一职责与入口                                                                                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 产品范围与真实能力   | [PRODUCT.md](PRODUCT.md)；固定上游只作行为证据，不因原型样例新增能力                                                                                              |
-| 公共视觉与交互规则   | 本文件；任务相关的原型、组件交接补充组合细节，不能覆盖公共规则                                                                                                    |
-| 运行时主题           | [theme.json](packages/ui/theme.json)（桌面／Web）与 [theme.tv.json](packages/ui/theme.tv.json)（TV），由本文件经 `pnpm design:codegen` 生成；组件不写裸色、裸数值 |
-| Token 名称、值与用法 | 本文件各节的 YAML 块；YAML 是唯一编辑源，运行时以生成的两份 theme 为准                                                                                            |
-| 普通控件档位／文字   | [foundation.ts](packages/ui/src/foundation.ts)、[typography.ts](packages/ui/src/typography.ts)、[display.tsx](packages/ui/src/display.tsx)                        |
-| 实际公共 API         | [UI 包规范](packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                          |
-| 已验证行为与限制     | [VALIDATION.md](VALIDATION.md)、[组件实施验收](docs/design/component-implementation.md)                                                                           |
+| 内容                 | 唯一职责与入口                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 产品范围与真实能力   | [PRODUCT.md](PRODUCT.md)；固定上游只作行为证据，不因原型样例新增能力                                                                                         |
+| 公共视觉与交互规则   | 本文件；任务相关的原型、组件交接补充组合细节，不能覆盖公共规则                                                                                               |
+| 运行时主题           | [theme.json](packages/ui/theme.json)（桌面）与 [theme.tv.json](packages/ui/theme.tv.json)（TV），由本文件经 `pnpm design:codegen` 生成；组件不写裸色、裸数值 |
+| Token 名称、值与用法 | 本文件各节的 YAML 块；YAML 是唯一编辑源，运行时以生成的两份 theme 为准                                                                                       |
+| 普通控件档位／文字   | [foundation.ts](packages/ui/src/foundation.ts)、[typography.ts](packages/ui/src/typography.ts)、[display.tsx](packages/ui/src/display.tsx)                   |
+| 实际公共 API         | [UI 包规范](packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                     |
+| 已验证行为与限制     | [VALIDATION.md](VALIDATION.md)、[组件实施验收](docs/design/component-implementation.md)                                                                      |
 
 规则有明确所有者，示例使用真实 API，修复在共享源生效。规范与实现不一致时先明确差异，不把实现偶然值或旧快照默认为新规则。机器可读值只保留在 YAML 块。
 
@@ -128,7 +128,7 @@ colors:
 
 使用宿主系统 UI 字体。文字、图标、间距和目标尺寸由同一档位协调，不为单个页面复制字号。TV 使用 `theme.tv.json` 给出的 dp 值，与桌面同量级。
 
-| `UiText` 角色 | Web／桌面    | TV           | 字重 | 行高 | 用途                          |
+| `UiText` 角色 | 桌面         | TV           | 字重 | 行高 | 用途                          |
 | ------------- | ------------ | ------------ | ---- | ---- | ----------------------------- |
 | display       | 44           | 44           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
 | page          | 32           | 28           | 600  | 1.3  | 页面标题                      |
@@ -235,7 +235,7 @@ typography:
 
 ### 页面与密度
 
-Web／桌面保持侧栏、搜索与主内容工作区；TV 保持顶部导航和内容区。正式桌面检查 1180×780 与 1440×1000，不设计窄窗替代导航。弹层和控件仍需适应所在容器，不能用“不支持窄窗”掩盖容器内部溢出。
+桌面保持侧栏、搜索与主内容工作区；TV 保持顶部导航和内容区。正式桌面检查 1180×780 与 1440×1000，不设计窄窗替代导航。弹层和控件仍需适应所在容器，不能用“不支持窄窗”掩盖容器内部溢出。
 
 | 组合       | 沿用的布局约束                                                                                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -361,7 +361,7 @@ rounded:
 
 ### 组件架构与尺寸契约
 
-`packages/ui/src` 不出现端型判断；基础组件只通过 `size` 取得几何。数值来自 app 级主题：桌面与 Web 用 `theme.json`，TV 用 `theme.tv.json`，组件只读 `--space-*`、`--radius-*`、`--text-*`、`--control-*` 这些 token。
+`packages/ui/src` 不出现端型判断；基础组件只通过 `size` 取得几何。数值来自 app 级主题：桌面（含验收宿主）用 `theme.json`，TV 用 `theme.tv.json`，组件只读 `--space-*`、`--radius-*`、`--text-*`、`--control-*` 这些 token。
 
 | 档位 | 高度 | 字号 | 水平／垂直内距 | gap | 圆角 | 图标 |
 | ---- | ---- | ---- | -------------- | --- | ---- | ---- |
@@ -629,6 +629,6 @@ components:
 - token 名称和值以本文件 YAML 与表格为准；改 YAML 后跑 `pnpm design:codegen` 生成两份 theme 与 `tokens.generated.ts`，组件里不写裸 hex、`dark:` 补丁或第二套字号。
 - 以真实数据组织找剧、详情和安静观看；保留输入、卡片身份、列表位置、实际播放进度和精确来源焦点。
 - 变更同步规则、主题／组件源、浏览器样板和原生验收页。可操作样板见[组件板](design/prototype/visual-redesign-real/components/index.html)，组合细节见[设计交接](docs/design/component-design.md)。
-- UI 修改执行三端 check **和** build、现有组件行为回归与相关真实宿主观察；根门禁按工程规范执行。依赖变化另跑 security，缺工具不能静默跳过。
+- UI 修改执行各入口 check **和** build、现有组件行为回归与相关真实宿主观察；根门禁按工程规范执行。依赖变化另跑 security，缺工具不能静默跳过。
 - 视觉检查覆盖浅深主题、字级、边界、对齐、长文、状态叠加、焦点裁切、字号放大和减少动态效果。保存实际源码／宿主／尺寸与证据，未验项明确记录。
 - 不将浏览器、headless、macOS TV 密度、Android 模拟器和物理电视相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。

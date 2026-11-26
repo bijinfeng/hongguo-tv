@@ -8,7 +8,7 @@ if (process.argv.length > 2)
   throw new Error('Expected calendar-web-terminal.mjs without arguments');
 const cli = executable('nsh');
 assert.equal(output(cli, ['--version']).split(/\s+/)[1], nshVersion, 'Expected pinned NSH');
-const application = resolve(root, 'apps/web');
+const application = resolve(root, 'apps/harness');
 const artifacts = resolve(root, 'artifacts/calendar-ui/web/http-terminal');
 await mkdir(resolve(application, '.nsh'), { recursive: true });
 await mkdir(artifacts, { recursive: true });

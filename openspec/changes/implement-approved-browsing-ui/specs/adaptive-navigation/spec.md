@@ -8,7 +8,7 @@ Provide navigation that fits desktop browsing and television remote input while 
 
 ### Requirement: Navigation follows the selected product target
 
-The application SHALL provide a sidebar and search workspace for Web/desktop and independently composed top navigation, content regions and a search page for TV. Target selection MUST be explicit and MUST NOT classify every Android environment as a TV.
+The application SHALL provide a sidebar and search workspace for desktop and independently composed top navigation, content regions and a search page for TV. Target selection MUST be explicit and MUST NOT classify every Android environment as a TV.
 
 #### Scenario: Desktop and TV use their intended composition
 

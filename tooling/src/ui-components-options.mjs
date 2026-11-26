@@ -1,13 +1,14 @@
 export const uiCommands = ['check', 'test', 'host-desktop', 'host-tv', 'preview'];
-export const uiTargets = ['desktop', 'web', 'tv'];
-/** One preview session per product, so a repeat replaces the window instead of adding another. */
-export const previewPorts = { desktop: 8799, web: 8798, tv: 8797 };
+export const uiTargets = ['desktop', 'harness', 'tv'];
+/** One preview session per project, so a repeat replaces the window instead of adding another. */
+export const previewPorts = { desktop: 8799, harness: 8798, tv: 8797 };
 /**
  * The two graphical hosts, one command each so a run opens one window. Each takes its density
- * from a manifest theme, not a prop: `web` carries `theme.json` (desktop density) and `tv` carries
- * `theme.tv.json`. `apps/desktop` is unused here because its manifest builds the Rust native app.
+ * from a manifest theme, not a prop: `harness` carries `theme.json` (desktop density) and `tv`
+ * carries `theme.tv.json`. `apps/desktop` is unused here because its manifest builds the Rust
+ * native app.
  */
-export const hostProducts = { 'host-desktop': 'web', 'host-tv': 'tv' };
+export const hostProducts = { 'host-desktop': 'harness', 'host-tv': 'tv' };
 
 export function uiComponentsOptions(argv) {
   const [command, ...rest] = argv;
@@ -20,7 +21,7 @@ export function uiComponentsOptions(argv) {
     const value = rest[index + 1];
     if (value === undefined) throw new Error(`Expected a value after ${flag}`);
     if (flag === '--target' && !host) {
-      if (!uiTargets.includes(value)) throw new Error('Expected --target desktop|web|tv');
+      if (!uiTargets.includes(value)) throw new Error(`Expected --target ${uiTargets.join('|')}`);
       options.target = value;
       options.explicit = true;
     } else if (flag === '--display' && (command === 'preview' || host)) {

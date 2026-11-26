@@ -6,7 +6,7 @@
 
 ## 两端使用
 
-只有一个 package、一份公共 API。端型主题由各 app 的 `nsh.json` 选择：桌面／Web 用 `theme.json`，TV 用 `theme.tv.json`，两者由 DESIGN.md 经 `pnpm design:codegen` 生成；组件只读主题里的 `--space-*`／`--radius-*`／`--text-*`／`--control-*`，不读端型，不复制 DesktopButton／TvButton。`desktop` 与 `tv` 是产品端型，不是操作系统；Web 采用桌面样式。
+只有一个 package、一份公共 API。端型主题由各 app 的 `nsh.json` 选择：桌面用 `theme.json`，TV 用 `theme.tv.json`，两者由 DESIGN.md 经 `pnpm design:codegen` 生成；组件只读主题里的 `--space-*`／`--radius-*`／`--text-*`／`--control-*`，不读端型，不复制 DesktopButton／TvButton。`desktop` 与 `tv` 是产品端型，不是操作系统；无头验收宿主 `apps/harness` 采用桌面样式。
 
 ```tsx
 import { View, signal } from 'nsh';
@@ -80,7 +80,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 
 桌面与 TV 共用“日标签／大日期／月份”三层，不拆组件。桌面最小 86×96、内距 12；TV 最小 164×132、内距 16，数值由主题 token 决定。默认中性表面、选中 accent 前景配对、焦点独立外轮廓，hover／pressed 不位移；减少动态效果时取消颜色过渡。日期条的横滚、完整日期名称、选中值、今天／星期和离页恢复由 app 组合管理；放入 `CardControls` 后方向键移动焦点、Enter／Space 激活，方向移动不自动提交。
 
-独立验收例为 `dev/CalendarChoices.tsx`，经 `@hongguo/ui/preview/date-choice` 暴露，三端显式入口为 `apps/*/DateChoicePreview.tsx`，产品不导入 testing。对应 `DateChoicePreview.test.tsx` 覆盖外部拒绝／接受选择、合法闰日与非法日期、键盘焦点和一次激活，以及浅深色选中文字配对。该测试独立于 `ui:test` 的 Gallery 测试入口，使用 `cd apps/desktop && nsh test DateChoicePreview.test.tsx`（另对 web／tv 执行）运行；类型与预览构建分别执行 `nsh check` 和 `nsh build DateChoicePreview.tsx`。
+独立验收例为 `dev/CalendarChoices.tsx`，经 `@hongguo/ui/preview/date-choice` 暴露，各入口为 `apps/{desktop,tv,harness}/DateChoicePreview.tsx`，产品不导入 testing。对应 `DateChoicePreview.test.tsx` 覆盖外部拒绝／接受选择、合法闰日与非法日期、键盘焦点和一次激活，以及浅深色选中文字配对。该测试独立于 `ui:test` 的 Gallery 测试入口，使用 `cd apps/desktop && nsh test DateChoicePreview.test.tsx`（另对 tv／harness 执行）运行；类型与预览构建分别执行 `nsh check` 和 `nsh build DateChoicePreview.tsx`。
 
 ### RankingCard
 
@@ -90,7 +90,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 
 `buttonRef`、`testID` 和 `onFocus` 只提供通用输入与定位接口；kind:id、虚拟行安全区、滚动锚点、受控选择、来源恢复和较新输入意图保护归 app。不要在页面重画榜位、头像或动作，也不要把整行拆成多个可聚焦目标。
 
-独立样例为 `dev/RankingRows.tsx`，经 `@hongguo/ui/preview/ranking-card` 暴露；行为测试经 `@hongguo/ui/testing/ranking-card` 暴露。三端显式入口为 `apps/*/RankingCardPreview.tsx` 和相邻 `.test.tsx`，与产品路由分离。样例覆盖外部接受／拒绝选择、同原始 ID 的演员／剧目、名次缺失与非法值、长标题及同一目标的端型切换。
+独立样例为 `dev/RankingRows.tsx`，经 `@hongguo/ui/preview/ranking-card` 暴露；行为测试经 `@hongguo/ui/testing/ranking-card` 暴露。各入口为 `apps/{desktop,tv,harness}/RankingCardPreview.tsx` 和相邻 `.test.tsx`，与产品路由分离。样例覆盖外部接受／拒绝选择、同原始 ID 的演员／剧目、名次缺失与非法值、长标题及同一目标的端型切换。
 
 ### SeasonChoice
 
@@ -98,7 +98,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 
 桌面与 TV 使用同一组件和 `CardControls` 方向寻焦语义：左右移动焦点，确认才报告选择，外部 owner 决定是否接受。标题与状态使用独立字级；状态可换行并自然增高；单一无障碍名称组合两者，内部文本不重复成为朗读目标。选中 accent 前景配对，焦点独立外环，按压不移动布局；颜色变化使用 fast token，减少动态效果时关闭过渡。TV 尺寸读取 `controlMetrics` 与主题 token，不建立另一个 package。
 
-app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标签与横滚安全区，`createSeasons` 负责浏览选择及严格相邻后继，`createSeasonDetail` 负责身份与类型绑定的详情缓存。预告与不可播仍可浏览摘要，但不能读可播选集、准备媒体或写观看历史。独立组件样例为 `dev/SeasonChoices.tsx` 与三端 `SeasonChoicePreview.tsx`；组合样例为三端 `SeasonComponentsPreview.tsx`，测试经相邻 `.test.tsx` 运行，不进入产品路由。
+app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标签与横滚安全区，`createSeasons` 负责浏览选择及严格相邻后继，`createSeasonDetail` 负责身份与类型绑定的详情缓存。预告与不可播仍可浏览摘要，但不能读可播选集、准备媒体或写观看历史。独立组件样例为 `dev/SeasonChoices.tsx` 与各入口的 `SeasonChoicePreview.tsx`；组合样例为各入口的 `SeasonComponentsPreview.tsx`，测试经相邻 `.test.tsx` 运行，不进入产品路由。
 
 ### Pagination
 
@@ -145,7 +145,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ## 资源与演进
 
-安装图标和 Web favicon 共用 [品牌资源](assets/brand/README.md)，由三端 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
+安装图标共用 [品牌资源](assets/brand/README.md)，由各 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
 主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
 
@@ -153,10 +153,10 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ## 验证
 
-- `pnpm ui:check`：三端对组件验收入口执行 NSH check **和** build。
-- `pnpm ui:test`：三端入口的真实引擎行为测试。
+- `pnpm ui:check`：对全部组件验收入口（desktop、tv、harness）执行 NSH check **和** build。
+- `pnpm ui:test`：各入口的真实引擎行为测试。
 - `pnpm ui:host`：macOS 可见宿主中的深浅主题与两端密度验收，证据写入 ignored artifacts；它不代表 Android TV。
-- `pnpm ui:preview --target desktop`：显式组件预览；可选 web／tv。每个端固定一个端口，重复启动替换上一次预览窗口而不是再开一个；`--display 2`、`--window-size 1440x960` 原样传给 `nsh run`。
+- `pnpm ui:preview --target desktop`：显式组件预览；可选 harness／tv。每个端固定一个端口，重复启动替换上一次预览窗口而不是再开一个；`--display 2`、`--window-size 1440x960` 原样传给 `nsh run`。
 - 完整工程仍运行 `pnpm verify`；依赖变化运行 `pnpm security`。缺工具必须失败。
 
 还原度检查比较原设计与宿主中的颜色、字级、几何、对齐、状态、图标及动效；完整度检查逐项映射公共导出、样例、状态和行为证据。编译通过或 headless 通过均不能替代视觉与真机。待验收项如读屏、系统大字、真实遥控、输入法、物理电视必须明确记录。
@@ -195,6 +195,6 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 标题复用 `Button` 的可选 `labelLines={2}`，在父容器宽度内两行省略，完整 `label` 仍是无障碍名称；TV 整行动作以 `artwork` 承载行内容，`label` 仍是完整标题。普通按钮不传此属性时保持原布局。返回在可行范围居中显示目标行，保留相邻上下文和焦点安全区；横向列按钮、表头原生滚动条与正文横向滚轮共用列偏移。
 
-独立样例 `dev/RadarTables.tsx` 经 `@hongguo/ui/preview/radar-table` 导出；测试经 `@hongguo/ui/testing/radar-table` 导出。三端显式入口为 `apps/*/RadarTablePreview.tsx` 及相邻 `.test.tsx`，不进入产品路由或 Gallery。样例提供 32 条合成数据、外部接受／拒绝、相邻大 ID、完整长标题、缺失／零／负数／极值、读取中、空表、列集切换、横向按钮与可重复的后段行恢复；不发请求、不写历史或媒体状态。样例不增加动效，沿用基础按钮状态和表格原有滚动行为。
+独立样例 `dev/RadarTables.tsx` 经 `@hongguo/ui/preview/radar-table` 导出；测试经 `@hongguo/ui/testing/radar-table` 导出。各入口为 `apps/{desktop,tv,harness}/RadarTablePreview.tsx` 及相邻 `.test.tsx`，不进入产品路由或 Gallery。样例提供 32 条合成数据、外部接受／拒绝、相邻大 ID、完整长标题、缺失／零／负数／极值、读取中、空表、列集切换、横向按钮与可重复的后段行恢复；不发请求、不写历史或媒体状态。样例不增加动效，沿用基础按钮状态和表格原有滚动行为。
 
 运行每端的 `nsh check`、`nsh build RadarTablePreview.tsx` 与 `nsh test RadarTablePreview.test.tsx`。测试覆盖受控动作、精确 ID／来源、列集及空表切换，以及 inactive／过期 owner 的恢复围栏；真实宿主的表格对齐、长标题、横滚、浅深主题、大字号与遥控仍须单独观察。文件存在不表示还原度或宿主验收已通过。

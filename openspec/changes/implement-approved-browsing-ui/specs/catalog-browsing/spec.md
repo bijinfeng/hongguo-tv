@@ -29,7 +29,7 @@ The application SHALL submit nonempty trimmed queries to the configured catalog 
 
 ### Requirement: Catalog presentation fits its input target
 
-The application SHALL present search results as an adaptive poster collection for Web/desktop and a remote-operable content collection for TV. Long collections MUST preserve item identity, visible position and valid focus while scrolling or recycling. Each drama SHALL remain identifiable if its image fails to load.
+The application SHALL present search results as an adaptive poster collection for desktop and a remote-operable content collection for TV. Long collections MUST preserve item identity, visible position and valid focus while scrolling or recycling. Each drama SHALL remain identifiable if its image fails to load.
 
 #### Scenario: A focused result is recycled off screen
 

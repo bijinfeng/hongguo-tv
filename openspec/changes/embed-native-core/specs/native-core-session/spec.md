@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Native installations let users discover, watch and resume available anonymous content without running a separate backend on their computer. Their application-owned data and media resources retain the same behavior and recovery boundaries as the shared web application.
+Native installations let users discover, watch and resume available anonymous content without running a separate backend on their computer. Their application-owned data and media resources retain the same behavior and recovery boundaries as the shared application in the acceptance harness.
 
 ## ADDED Requirements
 

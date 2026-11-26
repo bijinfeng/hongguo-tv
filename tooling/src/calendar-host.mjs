@@ -25,7 +25,7 @@ if (
 )
   throw new Error('Expected --product desktop|tv');
 const product = rest[1] ?? 'desktop';
-const application = resolve(root, 'apps/web');
+const application = resolve(root, 'apps/harness');
 const artifacts = resolve(root, `artifacts/calendar-ui/${host}/${product}`);
 await mkdir(resolve(application, '.nsh'), { recursive: true });
 await mkdir(artifacts, { recursive: true });

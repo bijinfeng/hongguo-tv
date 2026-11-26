@@ -34,15 +34,20 @@ async function temp(fn) {
 }
 
 test('target selection rejects unsupported targets and malformed options', () => {
-  assert.deepEqual(parseArgs(['check', '--target', 'web']), { command: 'check', target: 'web' });
+  assert.deepEqual(parseArgs(['check', '--target', 'harness']), {
+    command: 'check',
+    target: 'harness',
+  });
   for (const args of [
     ['dev', '--target'],
     ['dev', '--target', '../app'],
     ['check', '--fix'],
+    ['check', '--target', 'web'],
   ])
     assert.throws(() => parseArgs(args));
   assert.equal(nativeTarget('desktop', 'darwin'), 'macos');
   assert.equal(nativeTarget('desktop', 'win32'), 'windows');
+  assert.equal(nativeTarget('harness'), 'web');
   assert.equal(nativeTarget('tv'), 'android');
   assert.throws(() => nativeTarget('desktop', 'freebsd'));
 });
@@ -74,14 +79,14 @@ test('runtime setup preserves existing configuration and never touches data', ()
   temp(async (dir) => {
     await mkdir(resolve(dir, '.local/data'), { recursive: true });
     await writeFile(resolve(dir, '.local/data/sentinel'), 'preserve');
-    await runtimeConfig('web', 'http://127.0.0.1:18000', dir);
-    await runtimeConfig('web', undefined, dir);
+    await runtimeConfig('harness', 'http://127.0.0.1:18000', dir);
+    await runtimeConfig('harness', undefined, dir);
     assert.equal(
-      JSON.parse(await readFile(resolve(dir, 'apps/web/runtime.generated.json'))).coreOrigin,
+      JSON.parse(await readFile(resolve(dir, 'apps/harness/runtime.generated.json'))).coreOrigin,
       'http://127.0.0.1:18000',
     );
-    await assert.rejects(runtimeConfig('web', 'file:///private/data', dir));
-    await assert.rejects(runtimeConfig('web', 'http://localhost:123/path', dir));
+    await assert.rejects(runtimeConfig('harness', 'file:///private/data', dir));
+    await assert.rejects(runtimeConfig('harness', 'http://localhost:123/path', dir));
     await assert.rejects(runtimeConfig('../other', undefined, dir));
     assert.equal(await readFile(resolve(dir, '.local/data/sentinel'), 'utf8'), 'preserve');
   }));
@@ -90,7 +95,7 @@ test('native modes exclude computer addresses and previews require an explicit s
   temp(async (dir) => {
     assert.equal(runtimeMode('desktop', {}), 'native');
     assert.equal(runtimeMode('tv', {}), 'native');
-    assert.equal(runtimeMode('web', {}), 'http-preview');
+    assert.equal(runtimeMode('harness', {}), 'http-preview');
     assert.equal(runtimeMode('tv', { HONGGUO_RUNTIME_MODE: 't0' }), 't0');
     assert.equal(
       runtimeMode('tv', { HONGGUO_CORE_ORIGIN: 'http://127.0.0.1:18000' }),
@@ -98,7 +103,7 @@ test('native modes exclude computer addresses and previews require an explicit s
     );
     for (const [target, env] of [
       ['tv', { HONGGUO_RUNTIME_MODE: 'unknown' }],
-      ['web', { HONGGUO_RUNTIME_MODE: 'native' }],
+      ['harness', { HONGGUO_RUNTIME_MODE: 'native' }],
       ['desktop', { HONGGUO_RUNTIME_MODE: 't0' }],
       ['tv', { HONGGUO_RUNTIME_MODE: 'native', HONGGUO_CORE_ORIGIN: 'http://127.0.0.1:18000' }],
     ])

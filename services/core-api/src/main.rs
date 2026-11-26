@@ -1,4 +1,7 @@
-//! Development API. Binds loopback only; never accesses legacy user data.
+//! Development and acceptance API. Binds loopback only; never accesses legacy user data.
+//!
+//! Serves the shared HTTP contract to the harness and to native `http-preview` runs, which are
+//! the only callers: it is not a shipped server and no product entry depends on it.
 use hongguo_core::{
     account::AccountService, catalog::CatalogClient, library::LibraryStore,
     playback::PlaybackService, radar::RadarService,

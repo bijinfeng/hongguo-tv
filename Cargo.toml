@@ -6,7 +6,7 @@ members = [
   "crates/http-api",
   "crates/native-bridge",
   "crates/updater",
-  "services/web-api",
+  "services/core-api",
 ]
 exclude = ["fuzz"]
 resolver = "3"

@@ -24,13 +24,13 @@ const artifacts = resolve(
   new Date().toISOString().replace(/[:.]/g, '-'),
 );
 await mkdir(artifacts, { recursive: true });
-const runtime = resolve(root, 'apps/web/runtime.generated.json');
+const runtime = resolve(root, 'apps/harness/runtime.generated.json');
 const previous = await readFile(runtime);
-await cargo(['build', '--locked', '-p', 'hongguo-web-api']);
+await cargo(['build', '--locked', '-p', 'hongguo-core-api']);
 const target = process.env.CARGO_TARGET_DIR ?? 'target';
 const binary = resolve(
   isAbsolute(target) ? target : resolve(root, target),
-  'debug/hongguo-web-api',
+  'debug/hongguo-core-api',
 );
 const api = child(binary, ['--data-dir', resolve(artifacts, 'data')], {
   stdio: ['ignore', 'pipe', 'inherit'],
@@ -38,13 +38,13 @@ const api = child(binary, ['--data-dir', resolve(artifacts, 'data')], {
 const evidence = {
   startedAt: new Date().toISOString(),
   source: 'current anonymous upstream through production Rust API',
-  entry: 'apps/web/App.tsx',
+  entry: 'apps/harness/App.tsx',
   host: 'macos',
   syntheticResponses: false,
   passed: false,
   sourceHead: output('git', ['rev-parse', 'HEAD']),
   entrySha256: createHash('sha256')
-    .update(await readFile(resolve(root, 'apps/web/App.tsx')))
+    .update(await readFile(resolve(root, 'apps/harness/App.tsx')))
     .digest('hex'),
 };
 let host;
@@ -86,8 +86,8 @@ try {
     candidates: candidates.map(({ series_id, title }) => ({ series_id, title })),
     actorActionsAccepted: false,
   });
-  await runtimeConfig('web', origin);
-  const file = resolve(root, 'apps/web/.nsh/LiveDiscovery.test.tsx');
+  await runtimeConfig('harness', origin);
+  const file = resolve(root, 'apps/harness/.nsh/LiveDiscovery.test.tsx');
   await writeFile(
     file,
     `import {expect,open,test} from 'nsh/test';
@@ -188,7 +188,7 @@ for(const colorScheme of ['light','dark'] as const) test('real anonymous search 
     executable('nsh'),
     ['test', '.nsh/LiveDiscovery.test.tsx', '--target', 'macos', '--foreground'],
     {
-      cwd: resolve(root, 'apps/web'),
+      cwd: resolve(root, 'apps/harness'),
       env: rustEnvironment(),
       stdio: ['ignore', 'pipe', 'pipe'],
     },

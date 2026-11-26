@@ -21,7 +21,7 @@ if (
 )
   throw new Error('Expected only --foreground and/or --filter text');
 
-const application = resolve(root, 'apps/web');
+const application = resolve(root, 'apps/harness');
 const artifacts = resolve(
   root,
   `artifacts/seasons-ui/${host}/desktop/${new Date().toISOString().replaceAll(':', '-')}`,

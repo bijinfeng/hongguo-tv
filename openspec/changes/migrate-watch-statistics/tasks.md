@@ -18,5 +18,5 @@
 ## 4. Review and delivery
 
 - [x] 4.1 Complete functional and UI source review, fix confirmed issues, run targeted checks and frozen full `pnpm verify`; retain any real-data or host gaps.
-- [ ] 4.2 Use the formal Web/Desktop/TV entries with real playback to observe accumulation, restart recovery and reset without deleting history; retain de-identified evidence and leave unsupported hosts unchecked.
+- [ ] 4.2 Use the formal harness/Desktop/TV entries with real playback to observe accumulation, restart recovery and reset without deleting history; retain de-identified evidence and leave unsupported hosts unchecked.
 - [x] 4.3 Update feature ledger, VALIDATION and history evidence, run hooks, stage only this batch and create a focused local commit without pushing.

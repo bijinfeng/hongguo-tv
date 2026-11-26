@@ -7,16 +7,17 @@ const target = process.argv[2];
 if (!['web', 'macos', 'android'].includes(target))
   throw new Error('Expected web|macos|android; the settings screen needs a graphical host.');
 const fixture = await browsingFixture();
-const runtime = resolve(root, 'apps/web/runtime.generated.json');
+const runtime = resolve(root, 'apps/harness/runtime.generated.json');
 const previous = await readFile(runtime);
 const artifacts = resolve(root, 'artifacts/design/settings', target);
-const appDir = target === 'macos' ? 'apps/desktop' : target === 'android' ? 'apps/tv' : 'apps/web';
+const appDir =
+  target === 'macos' ? 'apps/desktop' : target === 'android' ? 'apps/tv' : 'apps/harness';
 const file = resolve(root, appDir, '.nsh/SettingsHost.test.tsx');
 /** The device owns its own size on Android; the desktop hosts take an explicit window. */
 const size = target === 'android' ? '' : `width: 1440, height: 1000, `;
 try {
   await mkdir(artifacts, { recursive: true });
-  if (target === 'web') await runtimeConfig('web', fixture.origin);
+  if (target === 'web') await runtimeConfig('harness', fixture.origin);
   await writeFile(
     file,
     `import { open, test } from 'nsh/test';

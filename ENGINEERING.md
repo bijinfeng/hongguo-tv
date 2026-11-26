@@ -22,19 +22,19 @@ pnpm 提供统一入口，各语言工具保留自身职责。开发机和 CI �
 
 `setup` 只下载所选目标需要的工具，并校验官方发布的摘要。项目私有工具放到 `.local/tools/`；Rust 编译器由 rustup 管理。不替换用户默认编译器、不改 shell 配置、不自动接受 SDK 许可。普通依赖安装不隐式执行全量原生下载。
 
-`doctor` 按 `web/desktop/tv/ci` profile 报告缺失项、实际版本、目标 triple、SDK 路径及修复命令；支持机器可读 JSON 和失败退出码。目标缺失必须标为失败或明确未支持，不能静默跳过后汇总为成功。
+`doctor` 按 `desktop/tv/ci` profile 报告缺失项、实际版本、目标 triple、SDK 路径及修复命令；支持机器可读 JSON 和失败退出码。目标缺失必须标为失败或明确未支持，不能静默跳过后汇总为成功。
 
 ## 2. TypeScript、NSH 与 Node
 
-| 职责                          | 工具                           | 检查要求                                             |
-| ----------------------------- | ------------------------------ | ---------------------------------------------------- |
-| JS/TS 静态规则                | Oxlint                         | 首方代码无新增警告；根配置按运行环境 overrides       |
-| JS/TS/JSON/YAML/Markdown 格式 | Oxfmt                          | 仅读检查与显式写入分开；格式化不能顺带更改运行语义   |
-| NSH 类型                      | `nsh check`                    | 三个入口分别使用自身生成类型，包含共享包源码及测试   |
-| NSH 编译语义                  | `nsh build`                    | 与类型检查同时必需；未知类名、无效导出等警告必须处理 |
-| UI/共享业务测试               | `nsh test`                     | 三端入口装配、模拟网络、状态/生命周期回归            |
-| Node 工程测试                 | `node --test`                  | 开发进程编排、配置隔离、目标解析、版本检查、失败清理 |
-| 边界检查                      | Oxlint 导入限制 + 少量结构断言 | 防止 Node/原生模块进入错误运行环境，禁止反向依赖     |
+| 职责                          | 工具                           | 检查要求                                                         |
+| ----------------------------- | ------------------------------ | ---------------------------------------------------------------- |
+| JS/TS 静态规则                | Oxlint                         | 首方代码无新增警告；根配置按运行环境 overrides                   |
+| JS/TS/JSON/YAML/Markdown 格式 | Oxfmt                          | 仅读检查与显式写入分开；格式化不能顺带更改运行语义               |
+| NSH 类型                      | `nsh check`                    | 两个产品入口与验收宿主分别使用自身生成类型，包含共享包源码及测试 |
+| NSH 编译语义                  | `nsh build`                    | 与类型检查同时必需；未知类名、无效导出等警告必须处理             |
+| UI/共享业务测试               | `nsh test`                     | 各入口装配、模拟网络、状态/生命周期回归                          |
+| Node 工程测试                 | `node --test`                  | 开发进程编排、配置隔离、目标解析、版本检查、失败清理             |
+| 边界检查                      | Oxlint 导入限制 + 少量结构断言 | 防止 Node/原生模块进入错误运行环境，禁止反向依赖                 |
 
 NSH overrides 使用其实际 globals，包括 `If/Each`；不启用 React hooks、React runtime 或 DOM 规则。Node 工程脚本继续使用标准 ESM `.mjs`，避免仅为编排脚本增加转译器。
 
@@ -59,13 +59,13 @@ NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)
 
 - `packages/ui/src/index.tsx` 仅导出；内部直接导入组件所属模块，禁止循环回引自身入口。`./preview` 与 `./testing` 仅用于显式开发入口。
 - 一个package共用API／值／状态，端型主题由 app 的 `nsh.json` 选择（`theme.json`／`theme.tv.json`，由 DESIGN.md 生成），尺寸集中于 foundation 并读主题 token；组件不读端型，TV 行为由调用方传显式 props；只有真实输入／宿主边界适配，不复制业务控制器，不拆 desktop-ui／tv-ui。
-- `pnpm ui:check` 同时检查并构建三端验收入口；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host:desktop`／`ui:host:tv` 在macOS分别观察桌面临时密度与TV密度，一条命令只开一个后台窗口、不抢键盘；`pnpm ui:preview` 才激活前台，每个端复用固定端口，重复启动替换上一次预览，不再叠加窗口。它不代表Android TV或遥控／输入法验收。
+- `pnpm ui:check` 同时检查并构建全部验收入口（desktop、tv 与 harness）；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host:desktop`／`ui:host:tv` 在macOS分别观察桌面临时密度与TV密度，一条命令只开一个后台窗口、不抢键盘；`pnpm ui:preview` 才激活前台，每个端复用固定端口，重复启动替换上一次预览，不再叠加窗口。它不代表Android TV或遥控／输入法验收。
 - `pnpm visual:tv` 是常规视觉验收入口：TV 页面与组件板一次出齐，默认无头 Chrome 零窗口，`--android` 在固定模拟器上验证 Android 自身绘制。截图不等于逐帧动效、读屏、遥控或真实数据验收；`ui:host:*` 只在需要观察 AppKit 窗口时使用。
 - 产品设计稿与浏览器组件板使用 `design/prototype/visual-redesign-real/shared/` 资源；新增原型先扩共用组件，不在页面复刻视觉。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
 
 ## 3. Rust
 
-Rust 检查覆盖 core、HTTP 层、Web 服务、native bridge 及实际宿主成员，不用一个空 crate 通过检查来声称核心和原生工程完备。
+Rust 检查覆盖 core、HTTP 层、core-api 服务、native bridge 及实际宿主成员，不用一个空 crate 通过检查来声称核心和原生工程完备。
 
 | 职责            | 工具/策略                                              | 执行位置                                          |
 | --------------- | ------------------------------------------------------ | ------------------------------------------------- |
@@ -98,13 +98,13 @@ NSH mixed 原生类型需要编译并 describe crate 才能生成。bootstrap/CI
 | 账号与会话        | 扫码状态机、恢复/过期/取消，多账号上下文不共享凭据或缓存      |
 | 存储              | 原子写入、失败不发布状态、并发进度排序、崩溃恢复与迁移/备份   |
 | HTTP/原生 adapter | 相同用例和错误码；取消/超时/销毁不因调用方式而漂移            |
-| Web 服务          | 会话隔离、慢客户端、限流、媒体流回压、服务关闭与恢复          |
+| core-api 服务     | 会话隔离、慢客户端、限流、媒体流回压、服务关闭与恢复          |
 
 nextest 的超时、隔离和平台配置提交到仓库。Tokio 异步测试覆盖任务取消与关闭顺序；可用受控时钟避免依赖真实等待。proptest 用于适合的解析/序列化性质，cargo-fuzz 针对不可信协议和媒体解析；复杂共享状态确有需要时再加入 Loom 模型检查。
 
 Rust 不能以“没有数据竞争”替代所有并发验证：进度覆盖、重复关闭、回调与销毁竞态、事务次序仍需要集成场景。Miri/sanitizer 只覆盖适用模块，不能当成原 `-race` 的一对一替换。
 
-Web API 与媒体测试默认使用本地 fixture server，不连接真实上游、不使用真实账号、不产生账号副作用。真实内容验证单独执行并记录边界。退役旧工程后，在没有 Go 的干净环境完成完整检查与打包，防止脚本或测试偷偷保留旧运行依赖。
+core-api 与媒体测试默认使用本地 fixture server，不连接真实上游、不使用真实账号、不产生账号副作用。真实内容验证单独执行并记录边界。退役旧工程后，在没有 Go 的干净环境完成完整检查与打包，防止脚本或测试偷偷保留旧运行依赖。
 
 ## 5. Android 与平台依赖
 
@@ -134,7 +134,7 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 | `pnpm install --frozen-lockfile`                | 只安装锁定的 JS/工程依赖；CI 不改 lockfile                        |
 | `pnpm setup:workspace --target <target>`        | 准备目标工具、校验 fixtures 来源、生成类型/配置；可重复且保留数据 |
 | `pnpm doctor:workspace --target <...> [--json]` | 精确检查目标环境与支持状态                                        |
-| `pnpm dev:web` / `dev:desktop` / `dev:tv`       | 启动指定产品，隔离运行配置、清理本次子进程                        |
+| `pnpm dev:desktop` / `dev:tv`                   | 启动指定产品，隔离运行配置、清理本次子进程                        |
 | `pnpm fmt` / `fmt:check`                        | 调用 Oxfmt、rustfmt、Android 格式工具；写入与只读分离             |
 | `pnpm lint`                                     | 按 profile 调用 Oxlint、Clippy、Android Lint；不自动修复          |
 | `pnpm check`                                    | 契约/包边界、各入口 NSH 类型、目标 Rust 编译检查                  |
@@ -150,7 +150,7 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 
 `verify` 不默认要求其他操作系统的 SDK。CI 汇聚所有支持目标的结果，才构成全产品门禁。pnpm workspace 的拓扑排序只管理 JS 包图；Rust 编译、契约导出与 NSH 类型生成的先后依赖由小型编排脚本显式处理。
 
-`check`、`build`、`test` 中的各端 NSH 调用按端并行：三端各有独立的 fixtures、端口、临时存储与 `.nsh` 产物，不存在共享状态。每端的输出在结束时整段打印，失败仍带完整日志并让阶段以非零退出；任一端失败不影响其余端跑完，最终汇总报出失败项。Rust 侧只跑一次 Clippy 驱动类型检查，不再先跑一遍 `cargo check` 重复编译同一批产物。单端可用 `--target` 只跑该端。改动门禁编排后须实测一次全量 `pnpm verify` 确认总时长与并行前的用例数一致。
+`check`、`build`、`test` 中的各端 NSH 调用按端并行：每个工程（desktop、tv、harness）各有独立的 fixtures、端口、临时存储与 `.nsh` 产物，不存在共享状态。每端的输出在结束时整段打印，失败仍带完整日志并让阶段以非零退出；任一端失败不影响其余端跑完，最终汇总报出失败项。Rust 侧只跑一次 Clippy 驱动类型检查，不再先跑一遍 `cargo check` 重复编译同一批产物。单端可用 `--target` 只跑该端。改动门禁编排后须实测一次全量 `pnpm verify` 确认总时长与并行前的用例数一致。
 
 ## 7. Git 与协作
 
@@ -185,7 +185,6 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 | `scope`           | 固定 Linux runner   | 按改动路径判定哪些 job 适用；无法判定时回退完整矩阵                          |
 | `checks`          | 固定 Linux runner   | frozen install、格式、Oxlint、契约生成检查、包边界、提交/PR 标题、工具测试   |
 | `rust-core`       | Linux               | 根锁检查、core/http-api 的 Clippy/nextest/doctest/覆盖率、测试向量与并发场景 |
-| `web`             | Linux + 浏览器      | NSH check/build/headless、静态产物、Web API 集成与浏览器冒烟                 |
 | `desktop-macos`   | macOS               | mixed 原生构建、Rust/NSH 测试、进程内核心生命周期、无开发服务安装包冒烟      |
 | `desktop-windows` | Windows             | MSVC 构建、同类生命周期/安装冒烟、路径/退出兼容；仅合并后的 push 运行        |
 | `desktop-linux`   | 固定 Linux/GTK 基线 | 原生构建、同类冒烟、动态库依赖验证                                           |
@@ -197,7 +196,7 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 
 共享包、契约、锁文件、工具链、CI 配置或核心变更触发完整适用矩阵。纯端侧改动可缩减到该端与公共检查；Rust crate 图不能只用 pnpm 的 changed filter 推导影响。默认全跑，矩阵稳定后再优化路径过滤。
 
-路径过滤由 `tooling/src/ci-paths.mjs` 实现，`pnpm ci:jobs` 输出 `rust`／`web`／`desktop`／`tv` 四个 job 是否适用。规则只允许「可证明受限」的裁剪：`docs/`、`design/`、`openspec/`、`upstream/` 与根级声明文档不触发构建；`apps/<target>/` 只触发该端；`apps/{desktop,tv}/native/` 属于 Rust 工作区成员，触发 Rust 矩阵。其余位置（packages、contracts、crates、services、tooling、根配置与锁文件）一律返回完整矩阵，Git 范围不可用时同样回退完整矩阵——判错只会多跑，不会少跑。
+路径过滤由 `tooling/src/ci-paths.mjs` 实现，`pnpm ci:jobs` 输出 `rust`／`desktop`／`tv` 三个 job 是否适用。规则只允许「可证明受限」的裁剪：`docs/`、`design/`、`openspec/`、`upstream/` 与根级声明文档不触发构建；`apps/harness/` 不触发目标 job（`workspace` 仍 check/build 它）；`apps/{desktop,tv}/` 只触发该端；`apps/{desktop,tv}/native/` 属于 Rust 工作区成员，触发 Rust 矩阵。其余位置（packages、contracts、crates、services、tooling、根配置与锁文件）一律返回完整矩阵，Git 范围不可用时同样回退完整矩阵——判错只会多跑，不会少跑。
 
 `required` 同时校验两个方向：需要跑的 job 必须 `success`，被判定不适用的 job 必须是 `skipped`；某 job 实际跑了但 `scope` 判定不需要也算失败。这样裁剪逻辑本身出错时会在汇聚 job 暴露，而不是悄悄放行。对应回归在 `tooling/test/ci-paths.test.mjs` 与 `tooling/test/ci-gate.test.mjs`。
 
@@ -259,7 +258,7 @@ flowchart LR
   Draft --> Publish[受保护环境发布]
 ```
 
-桌面/TV 完整产物链接匹配的 Rust 核心，Web 使用携带同一核心的 Rust 服务端。用户不需要 Node、Rust 编译器、NSH CLI 或本地开发服务。干净构建与发行环境不安装 Go；Web 浏览器资源与服务器镜像分别打包并标记兼容协议。
+桌面/TV 完整产物链接匹配的 Rust 核心。用户不需要 Node、Rust 编译器、NSH CLI 或本地开发服务。干净构建与发行环境不安装 Go；验收宿主与 `services/core-api` 只在本机运行，不构成发行物。
 
 macOS 使用 Developer ID 签名/公证，Windows 使用 Authenticode，Android 使用受保护 keystore；Linux 发布校验摘要及适用的签名。NSH 更新清单签名、平台代码签名、供应链来源证明分别验证，互不替代。
 
@@ -267,7 +266,7 @@ macOS 使用 Developer ID 签名/公证，Windows 使用 Authenticode，Android 
 
 纯产物在锁文件与固定环境下验证可重复内容；时间戳/平台签名等引入非确定部分应单独记录，不能未经比对宣称 bit-for-bit reproducible。归档源码映射、Rust 符号和 Android 符号，以支持对应版本排错。
 
-Web 按不可变镜像摘要灰度/回滚。桌面更新原子切换，失败保留上一可用版本；升级核心前验证数据兼容。数据库/记录格式变更带迁移版本、备份恢复与前后版本兼容测试，不将降级二进制等同数据可降级。Android 数据迁移向前兼容，分发与回滚能力按实际渠道验证。
+桌面更新原子切换，失败保留上一可用版本；升级核心前验证数据兼容。数据库/记录格式变更带迁移版本、备份恢复与前后版本兼容测试，不将降级二进制等同数据可降级。Android 数据迁移向前兼容，分发与回滚能力按实际渠道验证。
 
 签名与发布仅在受保护环境使用短期凭据/受控密钥。开发与 PR 不自动部署或发布；发行条件未满足时保留可检查的草稿及产物，不把 unsigned 开发包标成正式发行。
 

@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { executable, nsh, nativeTarget, root, run, rustEnvironment } from './process.mjs';
+import { executable, nsh, nativeTarget, root, run, rustEnvironment, targets } from './process.mjs';
 import {
   hostArgs,
   hostProducts,
@@ -14,9 +14,9 @@ const { command, target, explicit, display, windowSize, port } = uiComponentsOpt
 const entry = 'BaseComponentsPreview.tsx';
 const host = command in hostProducts;
 if (command === 'check') {
-  for (const product of explicit ? [target] : ['web', 'desktop', 'tv']) {
-    await nsh('check', product);
-    await nsh('build', product, [entry]);
+  for (const project of explicit ? [target] : targets) {
+    await nsh('check', project);
+    await nsh('build', project, [entry]);
   }
 } else if (command === 'preview') {
   // The fixed port keeps one session per product: a repeat replaces its dev session and window.

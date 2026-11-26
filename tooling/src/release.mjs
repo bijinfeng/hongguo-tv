@@ -7,7 +7,9 @@ import { output, root } from './process.mjs';
 const versionFile = resolve(root, 'product-version.json');
 const packageFile = resolve(root, 'package.json');
 const appManifests = [
-  resolve(root, 'apps/web/nsh.json'),
+  // The harness is not shipped, but its manifest is kept on the same version so a local run
+  // never reports a version that no product build has.
+  resolve(root, 'apps/harness/nsh.json'),
   resolve(root, 'apps/desktop/nsh.json'),
   resolve(root, 'apps/tv/nsh.json'),
 ];

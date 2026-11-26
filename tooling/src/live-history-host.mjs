@@ -36,13 +36,13 @@ const artifacts = resolve(
   new Date().toISOString().replace(/[:.]/g, '-'),
 );
 await mkdir(artifacts, { recursive: true });
-const runtime = resolve(root, 'apps/web/runtime.generated.json');
+const runtime = resolve(root, 'apps/harness/runtime.generated.json');
 const previous = await readFile(runtime);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const term = '重生';
 const evidence = {
   startedAt: new Date().toISOString(),
-  entry: 'apps/web/App.tsx',
+  entry: 'apps/harness/App.tsx',
   host: target,
   network: 'live',
   term,
@@ -196,7 +196,7 @@ async function runHost(file, colorScheme, deadline) {
         : ['--browser', resolve(root, 'tooling/src/live-browser-wrapper.mjs')]),
     ],
     {
-      cwd: resolve(root, 'apps/web'),
+      cwd: resolve(root, 'apps/harness'),
       env: rustEnvironment({
         ...process.env,
         HONGGUO_LIVE_HANDSHAKE: handshake,
@@ -298,13 +298,13 @@ try {
   evidence.nshVersion = output(executable('nsh'), ['--version']);
   if (evidence.nshVersion.split(/\s+/)[1] !== nshVersion)
     throw new Error(`Expected NSH ${nshVersion}: ${evidence.nshVersion}`);
-  build = child(executable('cargo'), ['build', '--locked', '-p', 'hongguo-web-api']);
+  build = child(executable('cargo'), ['build', '--locked', '-p', 'hongguo-core-api']);
   await build.done;
   ensureActive();
   const cargoTarget = process.env.CARGO_TARGET_DIR ?? 'target';
   const binary = resolve(
     isAbsolute(cargoTarget) ? cargoTarget : resolve(root, cargoTarget),
-    'debug/hongguo-web-api',
+    'debug/hongguo-core-api',
   );
   evidence.apiBinarySha256 = hash(await readFile(binary));
   let allowedOrigin;
@@ -448,7 +448,7 @@ try {
   evidence.candidates = candidates;
   if ((await get(origin, '/api/v1/library', 'library-before')).entries.length)
     throw new Error('Independent live history database was not empty');
-  await runtimeConfig('web', origin);
+  await runtimeConfig('harness', origin);
   evidence.runtimeMainSha256 = hash(await readFile(runtime));
   evidence.uncovered = [
     target === 'macos'
@@ -572,7 +572,7 @@ test(${JSON.stringify(identity)},async()=>{
  }
 },${Math.max(1, deadline - Date.now())});
 `;
-    await writeFile(resolve(root, 'apps/web/.nsh', file), generated);
+    await writeFile(resolve(root, 'apps/harness/.nsh', file), generated);
     await writeFile(resolve(artifacts, file), generated);
     evidence.generatedStages.push({ file, colorScheme, sha256: hash(generated), deadline });
     await runHost(file, colorScheme, deadline);
@@ -709,7 +709,7 @@ test(${JSON.stringify(identity)},async()=>{
     }
     await stop(api);
     origin = await start();
-    await runtimeConfig('web', origin);
+    await runtimeConfig('harness', origin);
     evidence['runtimePopulatedReopenSha256-' + colorScheme] = hash(await readFile(runtime));
     const restartedPopulated = await library('restarted-populated-' + colorScheme, [first, second]);
     if (JSON.stringify(restartedPopulated) !== JSON.stringify(populated))
@@ -861,7 +861,7 @@ test(${JSON.stringify(identity)},async()=>{
     if (!searches.items.includes(term)) throw new Error('Real search term was not retained');
     await stop(api);
     origin = await start();
-    await runtimeConfig('web', origin);
+    await runtimeConfig('harness', origin);
     evidence['runtimeReopenSha256-' + colorScheme] = hash(await readFile(runtime));
     await library('restarted-empty-' + colorScheme, []);
     const retained = await get(

@@ -102,12 +102,12 @@ export async function nativeDev(target, mode, base = root) {
 }
 export async function dev(target, mode) {
   if (mode !== 'http-preview') return nativeDev(target, mode);
-  await cargo(['build', '--locked', '-p', 'hongguo-web-api']);
+  await cargo(['build', '--locked', '-p', 'hongguo-core-api']);
   const port = await freePort();
   const binary = resolve(
     root,
     'target/debug',
-    process.platform === 'win32' ? 'hongguo-web-api.exe' : 'hongguo-web-api',
+    process.platform === 'win32' ? 'hongguo-core-api.exe' : 'hongguo-core-api',
   );
   const api = child(
     binary,

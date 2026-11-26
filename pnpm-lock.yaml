@@ -39,7 +39,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
 
-  apps/tv:
+  apps/harness:
     dependencies:
       '@hongguo/app':
         specifier: workspace:*
@@ -51,7 +51,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
 
-  apps/web:
+  apps/tv:
     dependencies:
       '@hongguo/app':
         specifier: workspace:*

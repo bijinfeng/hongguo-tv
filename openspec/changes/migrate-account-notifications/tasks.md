@@ -24,5 +24,5 @@
 
 - [x] 4.1 Run Rust, HTTP/native parity, core-client, and three-target NSH check/build/test; run strict OpenSpec and codegen checks.
 - [x] 4.2 Perform independent functional and UI review against the spec, fixing findings before commit.
-- [ ] 4.3 Run formal Web/Desktop/TV real-account acceptance for a real follow or reservation transition, mark-one/all read, restart, and owner isolation; record failures separately and do not substitute fixtures.
+- [ ] 4.3 Run formal harness/Desktop/TV real-account acceptance for a real follow or reservation transition, mark-one/all read, restart, and owner isolation; record failures separately and do not substitute fixtures.
 - [x] 4.4 Update feature ledger and current validation evidence, make a focused local commit preserving unrelated dirty prototype/docs files, and leave real acceptance gaps explicit.

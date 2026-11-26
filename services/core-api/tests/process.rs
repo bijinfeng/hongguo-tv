@@ -26,7 +26,7 @@ fn invalid_configuration_never_starts_a_listener() {
         vec!["--data-dir", ""],
         vec![],
     ] {
-        let result = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+        let result = Command::new(env!("CARGO_BIN_EXE_hongguo-core-api"))
             .args(args)
             .output()
             .unwrap();
@@ -39,7 +39,7 @@ fn invalid_configuration_never_starts_a_listener() {
 fn media_storage_initialization_failure_never_reports_ready() {
     let temp = Temp::new();
     std::fs::write(temp.0.join("media"), b"unrelated existing file").unwrap();
-    let result = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+    let result = Command::new(env!("CARGO_BIN_EXE_hongguo-core-api"))
         .arg("--data-dir")
         .arg(&temp.0)
         .output()
@@ -55,7 +55,7 @@ fn media_storage_initialization_failure_never_reports_ready() {
 #[test]
 fn binary_serves_real_loopback_requests_and_exits() {
     let temp = Temp::new();
-    let child = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+    let child = Command::new(env!("CARGO_BIN_EXE_hongguo-core-api"))
         .args(["--port", "0", "--data-dir"])
         .arg(&temp.0)
         .stdout(Stdio::piped())
@@ -164,7 +164,7 @@ impl Drop for Temp {
     }
 }
 fn start(temp: &Temp) -> (Server, String) {
-    let child = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+    let child = Command::new(env!("CARGO_BIN_EXE_hongguo-core-api"))
         .arg("--data-dir")
         .arg(&temp.0)
         .stdout(Stdio::piped())
@@ -219,7 +219,7 @@ fn storage_failure_never_publishes_ready_or_overwrites_corrupt_data() {
     let temp = Temp::new();
     let path = temp.0.join("guest.sqlite3");
     std::fs::write(&path, b"private corrupt database").unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+    let output = Command::new(env!("CARGO_BIN_EXE_hongguo-core-api"))
         .arg("--data-dir")
         .arg(&temp.0)
         .output()
@@ -235,7 +235,7 @@ fn corrupt_radar_cache_never_publishes_ready_or_overwrites_original_data() {
     let temp = Temp::new();
     let path = temp.0.join("radar-v1.json");
     std::fs::write(&path, b"private corrupt radar cache").unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_hongguo-web-api"))
+    let output = Command::new(env!("CARGO_BIN_EXE_hongguo-core-api"))
         .arg("--data-dir")
         .arg(&temp.0)
         .output()

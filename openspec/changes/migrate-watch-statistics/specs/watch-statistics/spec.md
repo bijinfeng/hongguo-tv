@@ -117,5 +117,5 @@
 
 #### Scenario: Real playback evidence
 
-- **WHEN** 正式 Web、Desktop 或 Android TV 入口使用真实媒体完成播放、暂停／缓冲、切换、重启和显式重置
+- **WHEN** 正式 harness、Desktop 或 Android TV 入口使用真实媒体完成播放、暂停／缓冲、切换、重启和显式重置
 - **THEN** 只把实际观察到的累计、恢复、账号隔离和历史不受影响记录为功能证据；headless、合成媒体和协议 fixture 仅作为边界回归，不能替代真实验收

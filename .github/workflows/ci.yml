@@ -32,7 +32,6 @@ jobs:
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.select.outputs.rust }}
-      web: ${{ steps.select.outputs.web }}
       desktop: ${{ steps.select.outputs.desktop }}
       tv: ${{ steps.select.outputs.tv }}
       entry: ${{ steps.select.outputs.entry }}
@@ -157,8 +156,9 @@ jobs:
     # One runner per target: they each compile Rust and start an NSH engine, so sharing a
     # 3-4 core runner made them contend — serial was 1245s and three-in-one was worse.
     # Desktop behavior additionally gates on the Windows and Linux hosts (the ENGINEERING
-    # matrix's desktop-windows / desktop-linux rows); web and tv keep the macOS host their
-    # development flows run on.
+    # matrix's desktop-windows / desktop-linux rows); tv keeps the macOS host its development
+    # flows run on. The harness is not in this matrix: it ships nothing, and `workspace` already
+    # type-checks and builds it, so a browser-only suite does not deserve a runner of its own.
     name: ${{ matrix.target }} (${{ matrix.os }})
     needs: [scope, checks]
     # Each target's suite runs only when the change can reach that app; `scope` builds this
@@ -255,7 +255,7 @@ jobs:
           # runner in it and then skip saving this one over the same key — every run cold
           # again, silently. The generation has to move with the contents.
           shared-key: entry-v2-${{ matrix.target }}-${{ matrix.os }}
-          cache-directories: ${{ matrix.target != 'web' && format('{0}/apps/{1}/target', github.workspace, matrix.target) || '' }}
+          cache-directories: ${{ format('{0}/apps/{1}/target', github.workspace, matrix.target) }}
           # Only the master run writes, for the same reason as the rust job above: this cache
           # is the large one (the runner alone compresses to ~250 MB per app), so a generation
           # per pull request would evict itself before the next run could restore it.
@@ -269,10 +269,8 @@ jobs:
         working-directory: apps/${{ matrix.target }}
         run: nsh test
       # The cache entry above saves `apps/<app>/target`; a build that lands anywhere else would
-      # make every run cold while all of this still passed. `web` has no Rust crate and never
-      # produces a runner, so it is skipped by the same test.
+      # make every run cold while all of this still passed.
       - name: Assert the runner landed in the cached directory
-        if: ${{ matrix.target != 'web' }}
         working-directory: apps/${{ matrix.target }}
         run: |
           set -euo pipefail

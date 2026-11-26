@@ -1,6 +1,6 @@
 # 红果 · NSH
 
-NSH TSX + Rust 的 Web、桌面和 Android TV 客户端，采用 pnpm／Cargo 工作区。三端共享业务与基础组件，按键鼠和遥控器适配界面；Desktop／TV 默认使用包内 Rust，Web 使用 Rust HTTP 服务。
+NSH TSX + Rust 的桌面和 Android TV 客户端，采用 pnpm／Cargo 工作区。两端共享业务与基础组件，按键鼠和遥控器适配界面，默认使用包内 Rust。官方产品已有 Web 端，本仓库不重复实现：`apps/harness` 只是无头浏览器验收宿主，不是产品入口。
 
 完整 MVP 尚未完成。当前实现见[功能台账](docs/feature-ledger.md)，真实验收、开放失败和平台限制见[VALIDATION.md](VALIDATION.md)，下一批见[实施路线](docs/implementation-roadmap.md)。
 
@@ -17,9 +17,9 @@ pnpm doctor:workspace
 ```
 
 ```sh
-pnpm dev:web          # Rust API + Web
 pnpm dev:desktop      # 包内 Rust
 pnpm dev:tv           # 包内 Rust；需要 Android TV 设备环境
+pnpm dev:api          # 宿主验收用的 loopback Rust API
 pnpm check --target desktop
 pnpm build --target desktop
 pnpm verify           # 完整工程门禁；不等于真实功能验收

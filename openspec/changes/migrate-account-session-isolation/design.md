@@ -33,7 +33,7 @@ No sound, drag, gesture or continuous animation is added. Static screenshots pro
 - Upstream Passport signatures and session validity can change: fixed vectors plus real authorized login remain necessary.
 - Local private storage is not encrypted credential storage: platform protection needs actual platform verification.
 - A timed-out account command may already have committed: reconcile the atomic state endpoint before resuming writes.
-- Public Web remains local-development only until multiuser session isolation is delivered.
+- Public Web deployment is out of scope after `remove-web-product`; the HTTP transport now only serves the acceptance harness and native `http-preview`, both loopback-only. Owner/epoch isolation stays required, because those callers still share one core instance and a wrong owner must never read or write another account's records.
 
 ## Migration Plan
 

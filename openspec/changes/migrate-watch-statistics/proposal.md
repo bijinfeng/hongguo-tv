@@ -24,4 +24,4 @@
 
 ## Impact
 
-涉及 `crates/core`、`crates/http-api`、`crates/native-bridge`、contracts／core-client、`packages/app` 播放与历史页面及三端入口测试。使用现有 SQLite／NSH／Tokio 和传输，不新增依赖，不修改 `upstream/hongguo/`，不把统计并入观看历史或账号云同步。
+涉及 `crates/core`、`crates/http-api`、`crates/native-bridge`、contracts／core-client、`packages/app` 播放与历史页面及各入口测试。使用现有 SQLite／NSH／Tokio 和传输，不新增依赖，不修改 `upstream/hongguo/`，不把统计并入观看历史或账号云同步。
