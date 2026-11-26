@@ -43,12 +43,12 @@
 - 修订前：`02-rankings-before.png`（五轴）、`04-detail-before.png`（固定季与下载）、`05-download-before.png`（离线队列）、`07-settings-before.png`（假缓存值）。
 - 修订后：`11-radar-final.png`（真实结构）、`12-calendar-after.png`（日历）、`13-account-verification-after.png`（手动验证）、`14-tv-player-final.png`（安静观看）、`15-settings-after.png`（真实设置与 1×）、`16-upcoming-season-final.png`（待上线季）、`17-actor-works-final.png`（键盘联想进入演员作品）、`18-discovery-final.png`／`19-tv-discovery-final.png`（双端筛选优先；TV 为整页截图）。
 
-![修订后的 TV 安静观看原型](../../artifacts/design-reality-audit/14-tv-player-final.png)
+![修订后的 TV 安静观看原型](../../../../artifacts/design-reality-audit/14-tv-player-final.png)
 
-![移除五轴后的榜单快照原型](../../artifacts/design-reality-audit/11-radar-final.png)
+![移除五轴后的榜单快照原型](../../../../artifacts/design-reality-audit/11-radar-final.png)
 
 ## 验证与后续实施约束
 
 原型 24 项交互回归通过；三份 JavaScript 语法、所改原型与文档格式、diff 检查通过。浏览器复核了搜索联想→演员作品→关闭恢复输入焦点、待上线季无播放动作、桌面／TV 安静观看、榜单快照与设置 1× 默认值。未运行生产 check/build/verify，不声称真实服务、媒体解码、账号写入、系统更新或安装包通过。
 
-后续实施必须以 [页面地图](ui-map.md)、[功能台账](../feature-ledger.md) 和本审查为边界。旧研究／验收中的社交和离线演示仅保留为历史，不恢复为任务；有上游依据但尚未迁移的真实能力继续保留，按数据和宿主条件接入。当前不提交、不推送，也不恢复产品实现。
+后续实施必须以 [页面地图](../../../design/ui-map.md)、[功能台账](../../../../docs/feature-ledger.md) 和本审查为边界。旧研究／验收中的社交和离线演示仅保留为历史，不恢复为任务；有上游依据但尚未迁移的真实能力继续保留，按数据和宿主条件接入。当前不提交、不推送，也不恢复产品实现。

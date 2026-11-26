@@ -9,6 +9,7 @@
 - 首次 `pnpm install --frozen-lockfile --ignore-scripts`、`pnpm setup`、`pnpm setup:tools`；工具诊断 `pnpm doctor`，完整验证 `pnpm verify`，依赖变化 `pnpm security`。工具缺失必须失败，不能静默跳过。
 - NSH 版本唯一来源 `.nsh-version`；API 以各端 `.nsh/types/` 为准，由 `pnpm check` 生成；必须同时 check 和 build。不能加入 React/Vite/npm UI 依赖。
 - 共享业务只在 packages/app，控件/主题/动效只在 packages/ui；apps/* 为薄入口。组件只运行一次，信号和 props 在绑定中读取。
+- 视觉真相只有 DESIGN.md 的契约与产品代码两处，不建并行 HTML/CSS 稿；界面只看真实入口（`ui:preview`、`ui:host:*`、`dev --target`、`visual:tv`）。改界面按 DESIGN.md「改界面的做法」的顺序来；token 拥有的尺寸由 `packages/app/test/layout-contract.tsx` 在真实应用上断言。
 - 应用界面图标统一使用固定版本的 Lucide 官方 SVG；设计稿与 NSH 共用来源和名称映射，生产仅通过 packages/ui 的 Icon 使用。禁止手写或手改图标 SVG/path、混用其他图标库；品牌标识与系统原生控件自带图标除外。资源、适配与迁移状态见 DESIGN.md「统一图标」和 ENGINEERING.md。
 - packages/app → ui/core-client → contracts；Rust http-api → core。持久状态目标归 Rust，页面状态归 TSX；第一阶段尚未完成持久状态迁移。
 - 修改 Rust DTO 后 `pnpm codegen`，提交 OpenAPI 和 generated.ts，再 `pnpm codegen:check`。兼容 DTO 尚未生成，不能宣称所有旧接口已类型对齐。

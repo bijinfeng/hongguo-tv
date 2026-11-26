@@ -10,7 +10,7 @@
 
 | 问题                     | 当前依据                                                                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| 做什么、哪些不做         | PRODUCT.md、[固定上游](../upstream.lock.json)、[页面地图](design/ui-map.md)、[真实性审查](design/reality-audit.md)            |
+| 做什么、哪些不做         | PRODUCT.md、[固定上游](../upstream.lock.json)、[页面地图](design/ui-map.md)                                                    |
 | 架构、工程、界面约束     | [ARCHITECTURE.md](../ARCHITECTURE.md)、[ENGINEERING.md](../ENGINEERING.md)、[DESIGN.md](../DESIGN.md)                         |
 | 当前实现、各端缺口       | [功能台账](feature-ledger.md)；任务数不代表功能完成率                                                                         |
 | 本批具体需求、设计和待办 | 对应的 [OpenSpec 活跃变更](../openspec/changes/)；只读相关变更，不遍历全部历史                                                |

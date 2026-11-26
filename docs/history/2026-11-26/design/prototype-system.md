@@ -4,7 +4,7 @@
 
 产品原型与基础组件板现已使用同一套公共组件资源；后续原型必须遵守 [原型组件共源约束](prototype-components.md)。
 
-当前可评审方案位于 `design/prototype/visual-redesign-real/`。完整页面地图见 [ui-map.md](ui-map.md)，任务与动效契约见 [redesign-brief.md](redesign-brief.md)，参考图片及源码证据见 [ui-reference-products.md](ui-reference-products.md)。
+当前可评审方案位于 `design/prototype/visual-redesign-real/`（该浏览器稿已于 2026-11-26 删除）。完整页面地图见 [ui-map.md](../../../design/ui-map.md)，任务与动效契约见 [redesign-brief.md](../../../design/redesign-brief.md)，参考图片及源码证据见 [ui-reference-products.md](../../../design/ui-reference-products.md)。
 
 本轮是应用内页面的代码原型，采用 Operate 工作流；此前确认的“效果图优先”针对宣传／展示页。本轮没有生成待复刻的全页效果图，不以项目全局 `buildPath: comp` 宣称存在已批准的效果图或已关闭的复刻阶段。
 
@@ -38,11 +38,11 @@
 | 筛选展开、删除与失败恢复              | 同步显示结果，保留当前任务与可继续操作的焦点；不增加滚动动画 | 相同         |
 | 进度拖动、键盘定位                    | 持续预览；确认与取消分别处理，不补间数值                     | 相同         |
 
-以上为浏览器原型的打磨范围，正式 NSH 还原及真实宿主验收分别记录。修改前评分、优先问题、具体修复与最终证据见[综合评估及打磨记录](../history/2026-11-15/design/prototype-comprehensive-review.md)。
+以上为浏览器原型的打磨范围，正式 NSH 还原及真实宿主验收分别记录。修改前评分、优先问题、具体修复与最终证据见[综合评估及打磨记录](../../2026-11-15/design/prototype-comprehensive-review.md)。
 
 沿用根目录 DESIGN.md 的视觉身份；本轮已把红果橙主题同步到 `packages/ui/theme.json` 并还原到共享控件。原型的 CSS 不是生产主题的第二编辑源，组件板 `components/assets/theme.css` 由 `packages/ui/theme.json` 生成；移植到 NSH 时仍由 `packages/ui/theme.json`、共享 UI 控件与动效管理视觉值。
 
-图标遵循根目录 [统一图标](../../DESIGN.md#统一图标)：设计原型与产品统一采用固定版本的 Lucide 官方资源和名称映射，不再手写路径。当前两套浏览器设计已迁移到 `shared/icons.js` 的官方生成资源与公共映射，不再保留页面手绘图标。
+图标遵循根目录 [统一图标](../../../../DESIGN.md#统一图标)：设计原型与产品统一采用固定版本的 Lucide 官方资源和名称映射，不再手写路径。当前两套浏览器设计已迁移到 `shared/icons.js` 的官方生成资源与公共映射，不再保留页面手绘图标。
 
 | 原型角色        | 浅色      | 深色      |
 | --------------- | --------- | --------- |
@@ -80,7 +80,7 @@ TV 本轮动效清单：筛选改变、进度初始化及阅读位置恢复沿�
 - 桌面全屏保留播放器宿主及画面节点，播控动作只更新内部状态；画面占满播控以外的高度，保留等比显示。播控内提供选集与退出全屏入口。弹层焦点按当前面板查找，避免落到背景右栏的同名输入框。
 - 不提供评论、剧评、回复、点赞或弹幕交互。找剧排序只作用于筛选后的列表，重复选择保持顺序，热度、最新和收藏分别使用独立演示字段，不改变首页或榜单。
 
-本次未新增动效：全屏切换由浏览器负责，播控状态原位更新，选集沿用既有面板及减少动态效果约定。全屏修复仅完成部分宿主观察，剩余验证按用户要求停止，详见 [desktop-review-fixes.md](desktop-review-fixes.md)。
+本次未新增动效：全屏切换由浏览器负责，播控状态原位更新，选集沿用既有面板及减少动态效果约定。全屏修复仅完成部分宿主观察，剩余验证按用户要求停止，详见 [desktop-review-fixes.md](../../../design/desktop-review-fixes.md)。
 
 ## 原型状态与工程
 
@@ -102,8 +102,8 @@ python3 -m http.server 4178 --directory design/prototype
 
 页面地图覆盖完整目标功能，允许审阅流程和关键状态；这不表示原客户端的每条接口、后台时序、同步隔离、任务执行已实现。支持／应用入口保留明确的未配置状态，不编造支付信息和应用来源。
 
-浏览器已检查桌面及 1920×1080 TV 的主要页面和关键交互。历史原型曾检查 390px 窄窗口，但该形态已退出产品范围，相关截图不作为当前设计、实现或验收依据。截图、检查结果及一次检测器报告保存在 `.impeccable/review/`，结论见 [redesign-review.md](redesign-review.md)。原型未修改生产 NSH／Rust，也没有运行生产 `pnpm verify` 或宣称其通过。
+浏览器已检查桌面及 1920×1080 TV 的主要页面和关键交互。历史原型曾检查 390px 窄窗口，但该形态已退出产品范围，相关截图不作为当前设计、实现或验收依据。截图、检查结果及一次检测器报告保存在 `.impeccable/review/`，结论见 [redesign-review.md](../../../design/redesign-review.md)。原型未修改生产 NSH／Rust，也没有运行生产 `pnpm verify` 或宣称其通过。
 
-此前桌面细节打磨在 1280×900、1440×1000、1920×1080 浏览器视口核对，记录见 [desktop-polish-review.md](desktop-polish-review.md)。用户随后要求独立评审并修复 TV 原型；本轮行为回归与视觉未验收项见 [tv-review-fixes.md](tv-review-fixes.md)，不沿用旧截图宣称新布局已通过。
+此前桌面细节打磨在 1280×900、1440×1000、1920×1080 浏览器视口核对，记录见 [desktop-polish-review.md](../../../design/desktop-polish-review.md)。用户随后要求独立评审并修复 TV 原型；本轮行为回归与视觉未验收项见 [tv-review-fixes.md](../../../design/tv-review-fixes.md)，不沿用旧截图宣称新布局已通过。
 
 真实 TV 遥控器与输入法、观看距离、系统字体缩放、辅助技术、媒体解码、后台恢复、独立安装包和系统首页频道尚待真实 NSH 宿主验收。浏览器截图和方向键模拟不能替代这些证据。

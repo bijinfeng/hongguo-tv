@@ -91,7 +91,7 @@ right = titleBar().right + 12
 
 1. 先加 `nsh.json` 的 `titleBar`，此时界面会出现“系统标题栏消失 + 原 86 顶栏仍在”的中间态，仅本地开发分支存在。
 2. 落 `TitleBar` / `Topbar` / `DesktopShell` / `Sidebar`，同时改 `player/layout.ts` 常量，保证一次提交内 chrome 高度自洽。
-3. 同步 `DESIGN.md` 的 Layout 行与 `design/prototype/visual-redesign-real/desktop.html`。
+3. 同步 `DESIGN.md` 的 Layout 行。（原第 3 步还同步 `design/prototype/visual-redesign-real/desktop.html`；该浏览器稿已于 2026-11-26 删除，视觉真相只保留 `DESIGN.md` 与产品代码。）
 4. 回滚：还原 `nsh.json` 的 `titleBar` 键即回到系统标题栏；组件改动可独立保留（`TitleBar` 在系统标题栏下高度为 0，内容行退化为普通顶栏）。
 
 ## Open Questions

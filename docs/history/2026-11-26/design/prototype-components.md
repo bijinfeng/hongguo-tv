@@ -44,7 +44,7 @@ button('继续观看', { variant: 'primary', glyph: 'play', action: 'resume', va
 | 对话框 / 侧面板          | 480 / 440px | 800 / 640px |
 | 焦点线宽 / 偏移          | 2 / 4px     | 3 / 4px     |
 
-上表与当前实现一致；档位为 sm 32／md 40／lg 60，以 [DESIGN](../../DESIGN.md) 为准。
+上表与当前实现一致；档位为 sm 32／md 40／lg 60，以 [DESIGN](../../../../DESIGN.md) 为准。
 
 ## 覆盖与验收
 

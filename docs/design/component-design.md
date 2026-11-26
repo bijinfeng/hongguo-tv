@@ -2,40 +2,38 @@
 
 当前视觉、交互与状态契约以[DESIGN](../../DESIGN.md)为准；实际公共API以[UI包用法](../../packages/ui/README.md)及生成NSH类型为准。此页只维护设计板入口和必要组合交接，不复制颜色、控件状态及逐轮实施记录。
 
-## 打开设计稿
+## 打开组件板
 
-运行 `python3 -m http.server 4178 --directory design/prototype`。当前设计稿位于 `design/prototype/visual-redesign-real/`，组件板与桌面／TV稿同属这一版。
+组件板就是生产组件本身，没有另一份浏览器稿。每个入口一条命令，都读当前 `packages/ui`：
 
-- [公共基础](http://127.0.0.1:4178/visual-redesign-real/components/index.html?platform=common)
-- [桌面](http://127.0.0.1:4178/visual-redesign-real/components/index.html?platform=desktop)
-- [TV](http://127.0.0.1:4178/visual-redesign-real/components/index.html?platform=tv)
+| 想看的                       | 命令                        | 说明                                                       |
+| ---------------------------- | --------------------------- | ---------------------------------------------------------- |
+| 浏览器里改、热重载           | `pnpm ui:preview`           | 前台激活，固定端口，重复启动替换上一次预览                 |
+| AppKit／GTK 窗口里看桌面密度 | `pnpm ui:host:desktop`      | 后台窗口，不抢键盘；密度取 `theme.json`                    |
+| AppKit／GTK 窗口里看 TV 密度 | `pnpm ui:host:tv`           | 后台窗口；密度取 `theme.tv.json`                           |
+| 全部页面与组件板的锁定矩阵   | `pnpm visual:tv --web`      | 960×540，浅深×字级，产出截图与 manifest                    |
+| 真实应用                     | `pnpm dev --target desktop`／`dev:tv` | 产品完整壳，数据走真实 core                       |
 
-每端为基础、按钮与选择、输入与表单、导航、弹层、内容、观看、反馈八组；布局配方及业务组合置于对应组，不按新名称无限扩组。评审标签不进入产品，账号／视频／进度样例不代表真实能力。
+八组为：基础、按钮与选择、输入与表单、导航、弹层、内容、观看、反馈。布局配方及业务组合置于对应组，不按新名称无限扩组。评审标签不进入产品，账号／视频／进度样例不代表真实能力。
 
-## 设计规范与桌面／TV稿对齐
+用 `pnpm ui:test` 验公共控件行为。它跑在 headless 引擎上，读真实组件的 `layout()` 与 `viewStyle()`，不是截图比对。
 
-根目录 [DESIGN.md](../../DESIGN.md) 是设计规范的唯一来源。新的桌面稿和 TV 稿只提供端型构图、真实目录和尺寸参考；基础组件稿必须从同一组语义 token 和状态规则派生，不在页面 CSS 里另造按钮、输入框或选集边界。
+## 组件与页面各管什么
 
-控件尺寸、边界、焦点与状态只维护在 [DESIGN](../../DESIGN.md)；实际变体与用法见 [UI 包](../../packages/ui/README.md)。TV 使用独立主题，不能从历史稿的像素值推断当前原生尺寸。
+一份受控值／事件／状态契约，一个 package；桌面／TV 只在尺度、输入和宿主承载边界适配。控件尺寸、边界、焦点与状态只维护在 [DESIGN](../../DESIGN.md)，实际变体与用法见 [UI 包](../../packages/ui/README.md)。TV 使用独立主题，不从任何历史像素值推断当前原生尺寸。
 
-桌面稿中的搜索栏、描边操作、选集网格和 TV 稿中的主舞台、导航、选集面板都要回到 `design/prototype/visual-redesign-real/shared/controls.css` 与 `packages/ui/src` 的对应组件。组件稿只消费由 `packages/ui/theme.json` 生成的 `components/assets/theme.css`；两处状态规则必须同时修改，不在页面另补颜色。
+页面只排布局：它决定「哪几屏、什么次序、一块内容占多少视觉重量」，不决定控件的颜色、圆角、焦点描边或高度。页面要一个新尺寸，改的是主题 token 与 [DESIGN 的控件档位](../../DESIGN.md)，不是在页面里写一个更合适的数。
 
-## 公共设计与平台适配
+## 从设计到 NSH
 
-一份受控值／事件／状态契约，一个package；桌面／TV只在尺度、输入和宿主承载边界适配。端型尺寸、输入高度／单边界、Select候选确认、Tabs激活、TV编辑及slider预览／取消，以DESIGN对应章节为准，不建立两套业务交互。
-
-Dialog、SidePanel、日期／选季、榜位及快照表的公开契约和几何直接查 UI 包对应章节；系统大字与可达性以实际宿主证据为准。
-
-## 从设计到NSH
-
-浏览器工厂与事件处理保持一份，HTML弹层／空间寻焦只服务原型，不进入NSH。nsh/base承接语义与基础交互，UI层承接有限样式／输入适配，app拥有请求、媒体、导航和持久化意图。禁止用绝对定位View重造通用弹层。
+`nsh/base` 承接语义与基础交互，UI 层承接有限样式／输入适配，app 拥有请求、媒体、导航和持久化意图。禁止用绝对定位 View 重造通用弹层。
 
 NSH 版本以 `.nsh-version` 为准，底层 API 以各端 `.nsh/types/` 为准。项目控件包装契约见 UI 包，不能直接传给 base；保留现有 SelectFocus 与来源移除交接，不为视觉一致删掉已验证适配。
 
-新增组件前查[当前覆盖](component-implementation.md)和[候选准入](component-roadmap.md)，先确认真实用途／状态／焦点路径及NSH承接。原型更新先改公共资源，NSH只使用公共UI，不能为未确认业务补造协议或成功状态。
+新增组件前查[当前覆盖](component-implementation.md)和[候选准入](component-roadmap.md)，先确认真实用途／状态／焦点路径及 NSH 承接。NSH 只使用公共 UI，不能为未确认业务补造协议或成功状态。
 
 ## 验证与追溯
 
-浏览器渲染／交互、NSH check和build、真实宿主、Android TV遥控／IME、系统大字／读屏及真实媒体分别验收。924×873评审视口暴露的搜索双边框／58与60高度问题是历史修复依据，不是新的窄窗产品规格。
+浏览器渲染／交互、NSH check 和 build、真实宿主、Android TV 遥控／IME、系统大字／读屏及真实媒体分别验收：前者不等于后者。token 拥有的尺寸由 [layout-contract 测试](../../packages/app/test/layout-contract.tsx)在真实应用上断言，构图与绘制仍靠宿主观察。924×873 评审视口暴露的搜索双边框／58 对 60 高度问题是历史修复依据，不是新的窄窗产品规格。
 
 已实现家族、设计还原与剩余限制统一见[覆盖矩阵](component-implementation.md)；原始组合、用户反馈及历次设计观察保存在[历史交接](../history/2026-11-15/design/component-design.md)。后续不在本页追加运行计数和日期日志。

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { root } from './process.mjs';
 
-const directory = 'design/prototype/visual-redesign-real/assets/component-covers';
+const directory = 'tooling/fixtures/covers';
 
 /** Fixture covers in the draft's order; optional images fall back to a sibling that exists. */
 export async function coverImages(names = ['home', 'night', 'return', 'spring']) {

@@ -5,6 +5,7 @@ export { registerPlaybackTests } from './playback';
 export { registerWatchStatisticsTests } from './watch-statistics';
 export { registerNativeStartupTests } from './native-startup';
 export { registerTitleBarTests } from './title-bar';
+export { registerLayoutContractTests } from './layout-contract';
 
 export { registerUpdateTests } from './updates';
 export { registerCalendarTests } from './calendar';

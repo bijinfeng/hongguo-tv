@@ -52,7 +52,7 @@ TV 入口将 Provider 的值改为 `tv`，页面仍消费相同 API。props 和�
 - `./preview` 和 `./testing` 是显式开发入口，分别装配画廊与测试；三个 `BaseComponentsPreview.tsx` 是薄入口，不加入产品导航。画廊数据不访问账号、网络、媒体或设备设置。
 - 主题唯一源为 [theme.json](../../../../packages/ui/theme.json)，普通尺度归 [foundation.ts](../../../../packages/ui/src/foundation.ts)。页面不开放任意颜色、圆角、内距或字体覆盖。静态 `Surface` 与显式 `ContentArrival` 分离，避免数据更新反复触发入场。
 - 官方 `lucide-static@0.468.0` 的 40 个 SVG、ISC 许可证与逐图 SHA256 位于 [assets/lucide](../../../../packages/ui/assets/lucide/provenance.json)。生成器验证源文件并同步 NSH 几何、组件板图标和产品原型图标；不是手工重画 path，也没有引入 React／DOM 图标运行时。
-- 产品原型与浏览器组件板共用 `design/prototype/shared` 的控件、内容和反馈样式。HTML 与 NSH 保留各自渲染适配，共享视觉契约与图标来源；不把浏览器 DOM/CSS 引入 NSH。后续原型规范见 [原型基础组件共源](../../../design/prototype-components.md)。
+- 产品原型与浏览器组件板共用 `design/prototype/shared` 的控件、内容和反馈样式。HTML 与 NSH 保留各自渲染适配，共享视觉契约与图标来源；不把浏览器 DOM/CSS 引入 NSH。后续原型规范见 [原型基础组件共源](../../2026-11-26/design/prototype-components.md)。
 - `CardControls`、`SelectFocus`、`FocusedRemovalRoot` 的现有来源停靠、macOS 选择器及移除交接继续保留。为修正外观而删除这些适配，会造成实际键盘回归。
 
 ## 八组覆盖矩阵

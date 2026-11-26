@@ -228,7 +228,7 @@ function QueryControls(props: {
 
 ## 依据
 
-- [项目架构](../../../../ARCHITECTURE.md)、[工程规范](../../../../ENGINEERING.md)、[设计规范](../../../../DESIGN.md)、[真实性审查](../../../design/reality-audit.md)。
+- [项目架构](../../../../ARCHITECTURE.md)、[工程规范](../../../../ENGINEERING.md)、[设计规范](../../../../DESIGN.md)、[真实性审查](../../2026-11-26/design/reality-audit.md)。
 - 当前基础：[UI 入口](../../../../packages/ui/src/index.tsx)、[主题](../../../../packages/ui/theme.json)、[播放器控件](../../../../packages/ui/src/player.tsx)、[搜索建议](../../../../packages/ui/src/search-picker.tsx)、[筛选](../../../../packages/ui/src/filter-choices.tsx)、[焦点组](../../../../packages/ui/src/card-controls.tsx)、[Select 适配](../../../../packages/ui/src/select-focus.tsx)、[动效](../../../../packages/ui/src/motion.ts)。
 - 锁定 API：[NSH 0.5.0 base 类型](../../../../apps/desktop/.nsh/types/nsh/base.d.ts)、[基础类型](../../../../apps/desktop/.nsh/types/nsh/types.d.ts)；生成文件只读，不能作为发布文档资源依赖。
 - 项目随附 NSH Design Guides／Coding Guides：三层职责、应用 UI 层、有限尺寸、语义控件、受控值、焦点与减少动态效果；实施仍以各端生成类型核对实际 API。

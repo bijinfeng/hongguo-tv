@@ -71,8 +71,7 @@ export async function browsingFixture({
     }
     if (url.pathname.startsWith('/cover/')) {
       const image = ['home', 'night', 'return', 'spring'][Number(url.pathname.at(-1))];
-      const cover = (name) =>
-        resolve(root, `design/prototype/visual-redesign-real/assets/component-covers/${name}.jpg`);
+      const cover = (name) => resolve(root, `tooling/fixtures/covers/${name}.jpg`);
       res.setHeader('Content-Type', 'image/jpeg');
       // A missing optional cover falls back to a sibling so one absent asset never fails a read.
       res.end(await readFile(cover(image)).catch(() => readFile(cover('night'))));

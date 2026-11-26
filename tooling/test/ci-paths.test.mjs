@@ -36,7 +36,7 @@ test('documentation is the only class that skips every build job', () => {
   for (const path of [
     'docs/playback-v5.md',
     'docs/history/2026-11-20/gate-and-release.md',
-    'design/prototype/visual-redesign-real/shared/icons.js',
+    'docs/design/tv-redesign.md',
     'openspec/specs/playback/spec.md',
     'upstream/hongguo/core/cmd/hongguotv/minireel.go',
     'README.md',

@@ -51,9 +51,9 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)和[组件交接](docs/design/component-design.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
 
 - 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。NSH 侧经 `nsh-icon` 的 `<Icon>` 绘制，图标集为 `nsh-icon-lucide`；调用方从图标集导入常量再交给 `packages/ui` 的 `Icon`（`<Icon icon={Search} />` 或 `icon={Search}`），`packages/ui` 只适配尺寸与颜色。业务页面和各端入口不复制图标路径。
-- 三端 `nsh.json` 声明 `nsh-icon`／`nsh-icon-lucide`（`^0.2.2`），解析结果由各端 `nsh.lock` 锁定并随应用提交；`nsh add` 同时写入应用 crate 的 Cargo 依赖。只打包实际使用的图标，不依赖运行时 CDN；升级时用 `nsh upgrade` 更新锁文件，并同步浏览器原型的同版本资源和校验。
+- 三端 `nsh.json` 声明 `nsh-icon`／`nsh-icon-lucide`（`^0.2.2`），解析结果由各端 `nsh.lock` 锁定并随应用提交；`nsh add` 同时写入应用 crate 的 Cargo 依赖。只打包实际使用的图标，不依赖运行时 CDN；升级时用 `nsh upgrade` 更新锁文件，并跑 `pnpm ui:icons:check` 确认随源提交的官方 SVG 与记录哈希一致。
 - 不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。不在 `packages/ui` 维护名称到图形的清单，也不按计算出的名称取图标：NSH 由导入静态裁剪，字符串查表会让整个图标集进包。图标常量直接出现在 JSX 与数据行里，打包内容因此等于实际引用。颜色经 `tone` 映射到 `text-*` 类字面量，由文字色继承。
-- 浏览器原型资源位于 `packages/ui/assets/lucide/`（Lucide 1.43.0、ISC 许可证、逐图 SHA256）；`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移，禁止手工修改几何数据。
+- Lucide 官方 SVG 源位于 `packages/ui/assets/lucide/`（Lucide 1.43.0、ISC 许可证、逐图 SHA256）；`pnpm ui:icons` 与 `pnpm ui:icons:check` 都只做校验：逐图重算 SHA 与来源清单比对，禁止手工修改几何数据。
 - 迁移时核对每个语义名称、主题颜色、尺寸、状态及可访问名称，执行对应 NSH check **和** build，并在实际宿主观察。新增依赖执行 `pnpm security`；依赖或资源落地前，本规则仅表示已确定的约束，不表示已完成迁移或验收。
 
 ### 基础组件工程边界
@@ -62,7 +62,7 @@ NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)
 - 一个package共用API／值／状态，端型主题由 app 的 `nsh.json` 选择（`theme.json`／`theme.tv.json`，由 DESIGN.md 生成），尺寸集中于 foundation 并读主题 token；组件不读端型，TV 行为由调用方传显式 props；只有真实输入／宿主边界适配，不复制业务控制器，不拆 desktop-ui／tv-ui。
 - `pnpm ui:check` 同时检查并构建全部验收入口（desktop、tv 与 harness）；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host:desktop`／`ui:host:tv` 在macOS分别观察桌面临时密度与TV密度，一条命令只开一个后台窗口、不抢键盘；`pnpm ui:preview` 才激活前台，每个端复用固定端口，重复启动替换上一次预览，不再叠加窗口。它不代表Android TV或遥控／输入法验收。
 - `pnpm visual:tv` 是常规视觉验收入口：TV 页面与组件板一次出齐，默认无头 Chrome 零窗口，`--android` 在固定模拟器上验证 Android 自身绘制。截图不等于逐帧动效、读屏、遥控或真实数据验收；`ui:host:*` 只在需要观察 AppKit 窗口时使用。
-- 产品设计稿与浏览器组件板使用 `design/prototype/visual-redesign-real/shared/` 资源；新增原型先扩共用组件，不在页面复刻视觉。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
+- 不维护与产品并行的 HTML/CSS 设计稿：视觉真相只在本文件的契约与产品代码里（见 [DESIGN：没有第二份渲染](DESIGN.md)）。要看或改界面就走真实入口——`ui:host:*`、`ui:preview`、`visual:tv`、`dev --target`。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
 
 ## 3. Rust
 

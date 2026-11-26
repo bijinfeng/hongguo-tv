@@ -20,6 +20,8 @@
 - [x] 3.1 Update the `DESIGN.md` Layout table row for the desktop shell so the recorded side rail, bar height and search width match the implementation, and verify the documented values against `TitleBar.tsx` and `Sidebar.tsx`.
 - [x] 3.2 Update `design/prototype/visual-redesign-real/desktop.html` and its `assets/theater.css` `.topbar` geometry to the new bar so the prototype still matches the product shell; verify by opening the prototype at 1180×780 and 1440×1000.
 
+  Superseded 2026-11-26: the browser prototype was removed. It kept its own variable table, so the same token names resolved to different values and every sync task like this one had to be repeated by hand. The visual contract is now `DESIGN.md` plus the product code, with token-owned geometry asserted by `packages/app/test/layout-contract.tsx` against the real app. This task's record stands as what was done at the time; there is no prototype left to sync.
+
 ## 4. Verification
 
 - [x] 4.1 Run `pnpm check` and `pnpm build` for the desktop and web targets and verify both pass, keeping any failure output rather than skipping a target.

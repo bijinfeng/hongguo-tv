@@ -29,6 +29,6 @@ NSH 0.7 已提供 `window.titleBar: { style: "hidden", height }` 与 `TitleBar` 
 
 ## Impact
 
-涉及 `apps/desktop/nsh.json`、`packages/app/src/shell/`（新增 `TitleBar.tsx`，改写 `Topbar.tsx`、`DesktopShell.tsx`、`Sidebar.tsx`）、`packages/app/src/pages/player/layout.ts`、`DESIGN.md` 的 Layout 行与 `design/prototype/visual-redesign-real/desktop.html` 对应结构。
+涉及 `apps/desktop/nsh.json`、`packages/app/src/shell/`（新增 `TitleBar.tsx`，改写 `Topbar.tsx`、`DesktopShell.tsx`、`Sidebar.tsx`）、`packages/app/src/pages/player/layout.ts`、`DESIGN.md` 的 Layout 行。原文还列了 `design/prototype/visual-redesign-real/desktop.html`；该浏览器稿已于 2026-11-26 删除，理由见 DESIGN.md「没有第二份渲染」。
 
 不触碰 `packages/ui` 公共组件契约（除既有 `Icon` 图标名），不改描边、颜色、控件尺寸档位，不修改 TV shell（Android 无桌面窗口），不修改 `upstream/hongguo/`。三端真机观察是验收门槛：macOS 与 Windows 未在真机跑过前，状态保持“已实现待真实验收”。
