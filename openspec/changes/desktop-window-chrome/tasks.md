@@ -3,7 +3,9 @@
 ## 1. Window configuration
 
 - [x] 1.1 Add `window.titleBar: { style: "hidden", height: 48 }` to `apps/desktop/nsh.json` and verify `pnpm check` still passes for the desktop target with the generated `.nsh/types` unchanged.
-- [ ] 1.2 Confirm the first rendered frame has no system title bar by running the desktop dev host and observing window creation, recording the host and platform observed.
+- [x] 1.2 Confirm the first rendered frame has no system title bar by running the desktop dev host and observing window creation, recording the host and platform observed.
+
+  Confirmed on Ubuntu GNOME (Wayland) with `GDK_BACKEND=x11`, Yaru, `button-layout=:minimize,maximize,close`. The window reports no `_NET_FRAME_EXTENTS` from the window manager and `_GTK_FRAME_EXTENTS = 12,12,12,12` from GTK, and its 1180×780 content measures 1204×804: 12 points of CSD shadow on each edge and no strip above the content, so the frame the app drew is the top of the window. The system title bar never appears, and the frame is kept, so Linux keeps its CSD corners and shadow.
 
 ## 2. Shell composition
 
