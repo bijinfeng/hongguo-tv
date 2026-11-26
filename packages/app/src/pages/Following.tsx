@@ -1,5 +1,5 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText } from '@hongguo/ui';
+import { Button, CardControls, ContentArrival, Cover, Notice, UiText, space } from '@hongguo/ui';
 import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
@@ -291,7 +291,7 @@ export function Following(props: { store: Store }) {
             keyExtractor={(item) => item.series_id}
             estimatedItemSize={(props.store.target === 'tv' ? 114 : 180) * fontScale()}
             class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
-            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
+            contentStyle={{ padding: space('xs'), gap: space('sm') }}
             onLayout={() => {
               if (waiting) reveal();
             }}

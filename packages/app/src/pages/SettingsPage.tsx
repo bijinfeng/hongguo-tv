@@ -68,7 +68,7 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
             testID="settings-navigation"
             class="min-h-0"
             style={{ width: 176 }}
-            contentStyle={{ padding: 6 }}
+            contentStyle={{ padding: space('xxs') }}
           >
             <CardControls
               label="设置分类"

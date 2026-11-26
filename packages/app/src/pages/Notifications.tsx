@@ -8,6 +8,7 @@ import {
   SkeletonBlock,
   SkeletonRegion,
   UiText,
+  space,
 } from '@hongguo/ui';
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -211,21 +212,21 @@ export function Notifications(props: { store: Store }) {
           label="正在读取更新提醒"
           testID="notifications-pending"
           class="flex-col"
-          style={{ gap: 12 }}
+          style={{ gap: space('sm') }}
         >
           <Each of={[0, 1, 2]}>
             {() => (
               <View
                 accessibilityElementsHidden
                 class="flex-row items-center"
-                style={{ gap: 12, paddingVertical: 12 }}
+                style={{ gap: space('sm'), paddingVertical: space('sm') }}
               >
                 <SkeletonBlock
                   width={props.store.target === 'tv' ? 36 : 64}
                   height={props.store.target === 'tv' ? 48 : 80}
                   radius={6}
                 />
-                <View class="flex-1" style={{ gap: 8 }}>
+                <View class="flex-1" style={{ gap: space('xs') }}>
                   <SkeletonBlock width="45%" height={16} radius={4} />
                   <SkeletonBlock width="30%" height={12} radius={4} />
                 </View>
@@ -267,7 +268,7 @@ export function Notifications(props: { store: Store }) {
             keyExtractor={(item: NotificationItem) => item.id}
             estimatedItemSize={(props.store.target === 'tv' ? 84 : 132) * fontScale()}
             class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
-            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
+            contentStyle={{ padding: space('xs'), gap: space('sm') }}
             onLayout={scheduleRestore}
           >
             {(item) => {

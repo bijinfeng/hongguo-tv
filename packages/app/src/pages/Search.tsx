@@ -1,5 +1,14 @@
 import { Text, View, Scroll, fontScale, type ViewRef } from 'nsh';
-import { BackButton, Button, Controls, Notice, UiText } from '@hongguo/ui';
+import {
+  BackButton,
+  Button,
+  Controls,
+  Notice,
+  UiText,
+  space,
+  textLineHeight,
+  textSize,
+} from '@hongguo/ui';
 import { PosterCollection } from '../PosterCollection';
 import { type Store } from '../store';
 import { SearchForm, SearchKeyboard } from '../SearchForm';
@@ -63,7 +72,7 @@ export function Search(props: { store: Store }) {
       class="flex-1 min-h-0"
       style={
         tv
-          ? { gap: 16 }
+          ? { gap: space('md') }
           : { ...desktopContentFrame({ top: 24 }), gap: props.store.query() ? 28 : 16 }
       }
     >
@@ -76,12 +85,15 @@ export function Search(props: { store: Store }) {
       </If>
       <View class={tv ? 'flex-1 min-h-0 flex-row' : 'flex-1 min-h-0'} style={{ gap: tv ? 24 : 16 }}>
         <If when={tv}>
-          <View class="min-h-0" style={{ width: fontScale() >= 1.25 ? 332 : 292, gap: 16 }}>
+          <View
+            class="min-h-0"
+            style={{ width: fontScale() >= 1.25 ? 332 : 292, gap: space('md') }}
+          >
             <SearchForm store={props.store} />
             <Scroll
               class="flex-1 min-h-0"
               testID="search-editor-scroll"
-              contentStyle={{ gap: 24, padding: 6 }}
+              contentStyle={{ gap: space('lg'), padding: space('xxs') }}
             >
               <SearchKeyboard store={props.store} />
               <SearchHistory store={props.store} />
@@ -89,7 +101,10 @@ export function Search(props: { store: Store }) {
           </View>
         </If>
         <View class="flex-1 min-w-0 min-h-0" style={{ gap: tv ? 12 : 16 }}>
-          <View class="flex-row flex-wrap items-center justify-between" style={{ gap: 8 }}>
+          <View
+            class="flex-row flex-wrap items-center justify-between"
+            style={{ gap: space('xs') }}
+          >
             <UiText role="page">{tv ? '搜索' : '找剧'}</UiText>
             <If when={props.store.query()}>
               <Button
@@ -177,8 +192,8 @@ export function Search(props: { store: Store }) {
               }
             >
               <Text
-                class="text-base text-muted-foreground"
-                style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
+                class="text-muted-foreground"
+                style={{ fontSize: textSize('meta'), lineHeight: textLineHeight('meta') }}
               >
                 暂时没有推荐内容
               </Text>

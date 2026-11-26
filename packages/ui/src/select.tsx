@@ -23,6 +23,23 @@ export function selectItemLineHeight(fontSize: number) {
   return Math.round(fontSize * textLineHeightRatio('body'));
 }
 
+/**
+ * The row geometry of one candidate, from the same metrics a `Button` takes. Callers that drive
+ * `Select` directly (a page-owned popup) use this instead of restating height and font size, which
+ * is how `CatalogSection` ended up 4 points taller than the shared `Select`.
+ */
+export function selectItemStyle(size: ReturnType<typeof controlMetrics>) {
+  return {
+    minHeight: size.height,
+    fontSize: size.fontSize,
+    fontWeight: weight.regular(),
+    lineHeight: selectItemLineHeight(size.fontSize),
+    borderRadius: radius('lg'),
+    paddingHorizontal: space('sm'),
+    paddingVertical: space('xxs'),
+  };
+}
+
 /** A candidate's content: its title, and the check mark on the chosen row alone. */
 export function SelectItemLabel(props: { entry: SelectEntry; size?: ControlSize }) {
   return (
@@ -123,15 +140,7 @@ export function Select(props: SelectProps) {
         borderRadius: radius('xl'),
       }}
       itemClass={selectItemClass()}
-      itemStyle={{
-        minHeight: size().height,
-        fontSize: size().fontSize,
-        fontWeight: weight.regular(),
-        lineHeight: selectItemLineHeight(size().fontSize),
-        borderRadius: radius('lg'),
-        paddingHorizontal: space('sm'),
-        paddingVertical: space('xxs'),
-      }}
+      itemStyle={selectItemStyle(size())}
       empty={
         <Text
           style={{

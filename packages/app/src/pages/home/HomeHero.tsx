@@ -50,7 +50,7 @@ function Poster(props: {
         height: props.width * 1.5,
         marginLeft: -props.width / 2 + props.shift,
         marginTop: -(props.width * 1.5) / 2 + props.offsetY,
-        borderRadius: 3,
+        borderRadius: radius('sm'),
         opacity: props.opacity,
         rotate: props.rotate,
         boxShadow: props.shadow,

@@ -53,9 +53,11 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 一个值同时出现在两处，就还没定下来。先合并到唯一所有者，再动。
 
-**3. 用真实入口看结果。** 分工固定：**开发与设计阶段用 web 端**（`apps/harness` + fixture，`pnpm dev --target harness`），**验收时才用真实端**（`pnpm dev --target desktop|tv`、`ui:host:tv`／`ui:host:desktop`）。
+**3. 用真实入口看结果。** 分工固定：**开发与设计阶段用 web 端**，**验收时才用真实端**（`pnpm dev --target desktop|tv`、`ui:host:tv`／`ui:host:desktop`）。
 
-这样分工是因为真实端常不具备开发条件——桌面 native 数据受 NSH `lifecycle()` 缺陷影响、`ui:host:desktop` 要 macOS 宿主——把迭代绑在真实端会让视觉判断几乎停滞。harness 跑的是同一份产品代码，几何与 token 完全一致，足以支撑设计与开发；它不证明宿主行为，所以验收仍须回到真实端。
+这样分工是因为真实端常不具备开发条件——桌面 native 数据受 NSH `lifecycle()` 缺陷影响、`ui:host:desktop` 要 macOS 宿主、`apps/tv` 的 Rust crate 根本不能编到 wasm（tokio 的 mio 没有 wasm 目标）——把迭代绑在真实端会让视觉判断几乎停滞。harness 跑的是同一份产品代码，几何与 token 完全一致，足以支撑设计与开发；它不证明宿主行为，所以验收仍须回到真实端。
+
+两端在 harness 上的入口：`apps/harness/App.tsx`（桌面端型）与 `apps/harness/TvApp.tsx`（TV 端型）。**TV 入口必须同时切两样**——`target="tv"` 决定 `TvShell` 与遥控交互模型，`setTheme(theme.tv.json)` 决定 TV 密度；只设其中一样得到的不是会发货的界面（manifest 只能携带一个主题，所以 TV 主题由 `setTheme` 在首帧前换上）。截图用 `nsh test <file> --target web`，需要系统装有 `clang` 与 `llvm-ar`。
 
 不要凭代码推断渲染结果：token 写 40px，实际渲染可能是 43px，差额来自文字行高与边界。
 
@@ -410,9 +412,13 @@ spacing:
 
 数值只有两处来源：`space(name)` 读档位，或组件自己的布局常量。页面里不写 `gap: 12`、`padding: 20`——即使数值恰好等于某档，也要写成 `space('sm')`。理由和字号一样：档位在两端会换值，数字不会。
 
-实测现状（2026-11-26 复核）：`packages/app` 有 84 处直接写在 `style` 里的间距，另有 6 处裸 `fontSize` 和 3 处裸 `borderRadius`。首页三个文件（`CatalogSection`、`ContinueSection`、`HomeHero`）已收敛完，是这一批里最集中的 32 处；其余分布在 20 多个页面。非档位值包括 20、36、22、10、15、34、76、54，它们是长期手工微调的沉积，不是有意设计，也是「两端越长越不像」的主要来源——同一个间距在页面里写死，就不随主题换端而变。
+实测现状（2026-11-27 复核）：`packages/app` 剩 9 处直接写在 `style` 里的间距，裸 `fontSize` 与 Tailwind 字号类已归零，裸 `borderRadius` 仅余 `RadarTable` 的 0（表格行必须直角）。
 
-收敛方向：就近归入档位（20→24 或 16，36→32 或 40，76/54→组合或组件常量），不给它们新增 token。剩余部分按页面分批，每批都能单独跑 `pnpm test` 与宿主观察；本节记录的数量是当前基线，只减不增。
+那 9 处全部是**组件布局常量**，不是遗留违规：`Sidebar` 的 `geometry`、`RankingsHero` 按窗口高度分的 16／24／36、`HomeHero` 与 `desktopHero()` 配套的 36，以及三处 `padding: 0`。规范允许这类值，因为它们描述的是某个组件自己的几何，而不是页面随手挑的间距。
+
+收敛完成的记录：2026-11-26 的基线是 84 处，分三批降到 9。过程中修掉两类真问题——三处 `target === 'tv' ? { fontSize: 12 }` 的分支改走 `textSize('meta')`（原来桌面 14、TV 硬压到 12，而 `meta` 角色两端本来就是 14／12）；`CatalogSection` 手写的 `minHeight: 36` + `fontSize: 14` 比共享 `Select` 高 4 点，改成调用 `selectItemStyle(controlMetrics('sm'))`，并把该配方从 `Select` 内部提取成导出函数，两处不再各写一份。
+
+`textSize` 此前没有从 `@hongguo/ui` 导出，页面要按角色取字号时无路可走，只能写裸数字——这也是上面那些分支的成因之一，现已导出。
 
 TV 的 `spacing-tv` 目前与共享档位同值（4/8/12/16/24/32/40/48），保留该覆盖组是为了让 TV 以后能独立调节而不改桌面；在它真的分叉之前，不要假设两端间距不同。
 

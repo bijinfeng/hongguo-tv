@@ -398,15 +398,15 @@ export function Rankings(props: RankingsProps) {
       style={
         props.target === 'tv'
           ? // SafeFrame owns the TV content insets.
-            { paddingTop: 12, gap: 12 }
+            { paddingTop: space('sm'), gap: space('sm') }
           : {
               width: '100%',
               // The column includes its own side inset, so the hero, the toolbar and the list
               // resolve to one width instead of the list being inset twice.
               paddingHorizontal: rankingBandInset(),
-              paddingTop: 24,
-              paddingBottom: 40,
-              gap: 20,
+              paddingTop: space('lg'),
+              paddingBottom: space('2xl'),
+              gap: space('lg'),
             }
       }
     >

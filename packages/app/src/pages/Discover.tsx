@@ -1,5 +1,15 @@
 import { Text, View, platform, type ViewRef } from 'nsh';
-import { Button, FilterChoices, Notice, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
+import {
+  Button,
+  FilterChoices,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  space,
+  textLineHeight,
+  textSize,
+} from '@hongguo/ui';
 import { PosterPage } from './PosterPage';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
@@ -63,7 +73,11 @@ export function Discover(props: { store: Store }) {
           <Text
             class="text-muted-foreground"
             android={{ accessibilityLiveRegion: 'polite' }}
-            style={{ fontSize: 14, alignSelf: 'center' }}
+            style={{
+              fontSize: textSize('meta'),
+              lineHeight: textLineHeight('meta'),
+              alignSelf: 'center',
+            }}
           >
             {category.error() ? '筛选未生效，仍是上一次的结果' : '正在套用新筛选…'}
           </Text>
@@ -75,14 +89,14 @@ export function Discover(props: { store: Store }) {
           label="正在找剧"
           testID="category-pending"
           class="flex-row flex-wrap"
-          style={{ gap: 12 }}
+          style={{ gap: space('sm') }}
         >
           <Each of={[0, 1, 2, 3, 4, 5, 6, 7]}>
             {() => (
               <View
                 accessibilityElementsHidden
                 class="flex-1"
-                style={{ minWidth: 150, maxWidth: '23%', gap: 10 }}
+                style={{ minWidth: 150, maxWidth: '23%', gap: space('sm') }}
               >
                 <SkeletonBlock width="100%" height={200} radius={10} />
                 <SkeletonBlock width="70%" height={14} radius={4} />
@@ -119,7 +133,7 @@ export function Discover(props: { store: Store }) {
     </View>
   );
   const footer = () => (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: space('sm') }}>
       {/* Paging belongs to the page that owns the cursor: while a new filter is pending or has
           failed, this button would merge old-filter cards into the new answer. The trailing edge
           matches the home catalog's 查看更多: one load-more pattern on every page. */}
@@ -163,8 +177,8 @@ export function Discover(props: { store: Store }) {
       onNavigate={props.store.noteFocusIntent}
       onSource={props.store.categorySource}
       focusGuard={props.store.focusGuard}
-      frame={{ top: 24, gap: 28 }}
-      tvFrame={{ top: 16, gap: 14 }}
+      frame={{ top: space('lg'), gap: space('xl') }}
+      tvFrame={{ top: space('md'), gap: space('md') }}
       caption={(drama) => (drama.episode_count ? `${drama.episode_count} 集` : undefined)}
       onOpen={(drama, restore) => {
         category.selected.set(drama.series_id);

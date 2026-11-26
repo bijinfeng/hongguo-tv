@@ -9,6 +9,7 @@ import {
   Icon,
   Notice,
   Progress,
+  radius,
   SkeletonBlock,
   space,
   SkeletonRegion,
@@ -56,7 +57,7 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
         objectPosition: 'top',
         width,
         height: width * 0.625,
-        borderRadius: 8,
+        borderRadius: radius('lg'),
       }}
     />
   );

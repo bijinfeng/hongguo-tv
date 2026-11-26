@@ -7,13 +7,13 @@ import {
   Notice,
   PosterCard,
   SelectItemLabel,
+  selectItemStyle,
   SkeletonBlock,
   SkeletonRegion,
   UiText,
+  controlMetrics,
   space,
-  radius,
   selectItemClass,
-  selectItemLineHeight,
 } from '@hongguo/ui';
 import type { Store } from '../../store';
 import { tvColumns, tvInsets } from '../../shell/tv-layout';
@@ -80,14 +80,7 @@ function CatalogFilters(props: { store: Store }) {
           popupClass="bg-popover border border-border rounded-(--radius) p-2"
           popupStyle={{ minWidth: 180 }}
           itemClass={selectItemClass()}
-          itemStyle={{
-            minHeight: 36,
-            fontSize: 14,
-            lineHeight: selectItemLineHeight(14),
-            paddingHorizontal: space('sm'),
-            paddingVertical: space('xs'),
-            borderRadius: radius('lg'),
-          }}
+          itemStyle={selectItemStyle(controlMetrics('sm'))}
           renderItem={(entry) => <SelectItemLabel entry={entry} />}
         />
       </View>

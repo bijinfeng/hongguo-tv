@@ -1,5 +1,5 @@
 import { Scroll, View, signal, cleanup, effect, lifecycle, type ViewRef } from 'nsh';
-import { BackButton, Notice, UiText } from '@hongguo/ui';
+import { BackButton, Notice, UiText, space } from '@hongguo/ui';
 import type { Store } from '../store';
 import { errorMessage } from '../error-messages';
 import { createAccountState, type AccountUiState } from '../account-state';
@@ -86,7 +86,7 @@ export function Account(props: {
       >
         <View
           class={props.tv ? 'gap-4' : 'gap-6 p-5 md:p-8'}
-          style={props.tv ? { paddingBottom: 32 } : undefined}
+          style={props.tv ? { paddingBottom: space('xl') } : undefined}
         >
           <BackButton
             testID="account-back"
@@ -98,8 +98,8 @@ export function Account(props: {
             class="flex-wrap"
             style={
               props.tv
-                ? { flexDirection: 'column', gap: 12 }
-                : { flexDirection: 'row', gap: 18, alignItems: 'stretch' }
+                ? { flexDirection: 'column', gap: space('sm') }
+                : { flexDirection: 'row', gap: space('lg'), alignItems: 'stretch' }
             }
           >
             <View

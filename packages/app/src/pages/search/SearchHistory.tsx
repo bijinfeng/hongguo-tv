@@ -1,14 +1,23 @@
 import { Text, View, signal } from 'nsh';
-import { Button, ConfirmDialog, Controls, Notice, UiText } from '@hongguo/ui';
+import {
+  Button,
+  ConfirmDialog,
+  Controls,
+  Notice,
+  UiText,
+  space,
+  textLineHeight,
+  textSize,
+} from '@hongguo/ui';
 import type { Store } from '../../store';
 
 /** Recent terms retain their existing persistence owner and explicit clear scope. */
 export function SearchHistory(props: { store: Store }) {
   const confirmClear = signal(false);
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: space('sm') }}>
       <If when={!props.store.query()}>
-        <View class="gap-4" style={props.store.target === 'tv' ? { gap: 10 } : undefined}>
+        <View class="gap-4" style={{ gap: space('sm') }}>
           <View class="flex-row items-center justify-between">
             <UiText role="section">最近搜索</UiText>
             <If when={props.store.recent.items().length}>
@@ -47,8 +56,8 @@ export function SearchHistory(props: { store: Store }) {
           </If>
           <If when={props.store.recent.ready() && !props.store.recent.items().length}>
             <Text
-              class="text-base text-muted-foreground"
-              style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
+              class="text-muted-foreground"
+              style={{ fontSize: textSize('meta'), lineHeight: textLineHeight('meta') }}
             >
               暂无搜索记录
             </Text>
