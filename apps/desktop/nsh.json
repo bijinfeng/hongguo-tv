@@ -16,5 +16,9 @@
   "updater": {
     "github": "bijinfeng/hongguo-tv",
     "publicKey": "8Jh3DGUqKclFPZZM13LTAW92DuZZVFotKx9z60lad88="
+  },
+  "dependencies": {
+    "nsh-icon": "^0.2.2",
+    "nsh-icon-lucide": "^0.2.2"
   }
 }

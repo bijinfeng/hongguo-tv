@@ -23,6 +23,7 @@ import {
 import { Button } from './button';
 import { Icon } from './icon';
 import { Field } from './field';
+import { Search } from 'nsh-icon-lucide';
 
 /** A controlled text field. Input changes belong to the caller, including during composition. */
 export interface TextInputProps {
@@ -153,7 +154,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
     >
       <If when={props.search}>
         <View style={{ paddingLeft: size().paddingHorizontal }}>
-          <Icon name="search" />
+          <Icon icon={Search} />
         </View>
       </If>
       <If when={!confirm() || editing() || !!props.readonly}>

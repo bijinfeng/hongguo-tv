@@ -1,11 +1,20 @@
 import { View } from 'nsh';
-import { Button, CardControls, type IconName } from '@hongguo/ui';
+import { Button, CardControls } from '@hongguo/ui';
 import type { Section, Store } from '../store';
+import {
+  Bell,
+  BellRing,
+  CalendarDays,
+  ChartNoAxesColumnIncreasing,
+  History,
+  House,
+  Search,
+} from 'nsh-icon-lucide';
 
 type NavItem = {
   name: Section;
   label: string;
-  icon?: IconName;
+  icon?: string;
   testID: string;
   selected: (store: Store) => boolean;
 };
@@ -15,28 +24,28 @@ const desktopRail: NavItem[] = [
   {
     name: 'home',
     label: '发现',
-    icon: 'home',
+    icon: House,
     testID: 'nav-home',
     selected: (store) => store.activePage('home'),
   },
   {
     name: 'discover',
     label: '找剧',
-    icon: 'search',
+    icon: Search,
     testID: 'nav-discover',
     selected: (store) => store.activePage('discover') || store.activePage('search'),
   },
   {
     name: 'rankings',
     label: '排行榜',
-    icon: 'chart-no-axes-column-increasing',
+    icon: ChartNoAxesColumnIncreasing,
     testID: 'nav-rank',
     selected: (store) => store.activePage('rankings'),
   },
   {
     name: 'calendar',
     label: '上新日历',
-    icon: 'calendar-days',
+    icon: CalendarDays,
     testID: 'nav-calendar',
     selected: (store) => store.activePage('calendar'),
   },
@@ -46,21 +55,21 @@ const desktopLibrary: NavItem[] = [
   {
     name: 'history',
     label: '观看记录',
-    icon: 'history',
+    icon: History,
     testID: 'nav-history',
     selected: (store) => store.activePage('history'),
   },
   {
     name: 'following',
     label: '追更',
-    icon: 'bell',
+    icon: Bell,
     testID: 'nav-following',
     selected: (store) => store.activePage('following'),
   },
   {
     name: 'notifications',
     label: '更新提醒',
-    icon: 'bell-ring',
+    icon: BellRing,
     testID: 'nav-notifications',
     selected: (store) => store.activePage('notifications'),
   },

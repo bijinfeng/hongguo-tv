@@ -1,5 +1,6 @@
-import { token, View, type JSX, type ViewRef } from 'nsh';
+import { View, type JSX, type ViewRef } from 'nsh';
 import { Avatar, Button, Icon, Surface, UiText, controlMetrics, space } from '@hongguo/ui';
+import { User } from 'nsh-icon-lucide';
 
 /**
  * The guest's identity mark: the same circle an avatar occupies, holding an outline instead of
@@ -12,7 +13,7 @@ function GuestMark() {
       class="rounded-full bg-muted items-center justify-center shrink-0"
       style={{ width: side(), height: side() }}
     >
-      <Icon name="user" color={token('muted-foreground')} />
+      <Icon icon={User} tone="muted-foreground" />
     </View>
   );
 }

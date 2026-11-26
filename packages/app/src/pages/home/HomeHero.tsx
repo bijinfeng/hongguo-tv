@@ -2,6 +2,7 @@ import { Image, Text, View, token, windowSize } from 'nsh';
 import { Button, CardControls, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from '../../store';
+import { ArrowUpRight, Play } from 'nsh-icon-lucide';
 
 /**
  * Hero geometry from the desktop draft (`assets/theater.css`): 5fr/7fr at 355px,
@@ -306,7 +307,7 @@ export function HomeHero(props: { store: Store }) {
             <CardControls label="精选" onNavigate={props.store.noteFocusIntent} gap={tv() ? 9 : 12}>
               <Button
                 variant="primary"
-                icon="play"
+                icon={Play}
                 label={watchLabel()}
                 testID="home-hero-watch"
                 onPress={() => props.store.watch(drama(), () => props.store.restoreFocus())}
@@ -314,7 +315,7 @@ export function HomeHero(props: { store: Store }) {
               <Button
                 variant="quiet"
                 label="查看详情"
-                icon="arrow-up-right"
+                icon={ArrowUpRight}
                 testID="home-hero-detail"
                 onPress={() => props.store.open(drama(), () => props.store.restoreFocus())}
               />

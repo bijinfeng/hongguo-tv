@@ -32,5 +32,9 @@
       "diagnostics.report",
       "diagnostics.consent"
     ]
+  },
+  "dependencies": {
+    "nsh-icon": "^0.2.2",
+    "nsh-icon-lucide": "^0.2.2"
   }
 }

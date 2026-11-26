@@ -20,6 +20,7 @@ import { CardRoot } from './card-controls';
 import { CinemaButton } from './player';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { Progress } from './display';
+import { ChevronRight } from 'nsh-icon-lucide';
 
 /** Continue cards keep a fixed thumbnail lane and a generous inset around the copy. */
 const CONTINUE_CARD_MIN_HEIGHT = 170;
@@ -386,7 +387,7 @@ export function ResultCard(props: {
         <Text class="text-muted-foreground" style={{ fontSize: textSize('body') }}>
           查看详情
         </Text>
-        <Icon name="forward" color={token('muted-foreground')} size="sm" />
+        <Icon icon={ChevronRight} tone="muted-foreground" size="sm" />
       </View>
     </CardRoot>
   );

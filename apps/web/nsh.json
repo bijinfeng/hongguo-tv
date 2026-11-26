@@ -5,5 +5,9 @@
   "version": "0.1.5",
   "build": 6,
   "theme": "../../packages/ui/theme.json",
-  "appearance": "system"
+  "appearance": "system",
+  "dependencies": {
+    "nsh-icon": "^0.2.2",
+    "nsh-icon-lucide": "^0.2.2"
+  }
 }

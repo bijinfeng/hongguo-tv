@@ -1,4 +1,4 @@
-import { Scroll, Text, View, signal, token, type JSX, type ViewRef, type ScrollRef } from 'nsh';
+import { Scroll, Text, View, signal, type JSX, type ViewRef, type ScrollRef } from 'nsh';
 import {
   UiText,
   Surface,
@@ -65,6 +65,7 @@ import {
   GalleryTransferRecipe,
   GalleryCinemaRecipe,
 } from './GalleryExtras';
+import { Search } from 'nsh-icon-lucide';
 
 export const gallerySheets = [
   { id: 'foundation', label: '基础规范' },
@@ -244,7 +245,7 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                   <Badge label="加载失败" tone="error" icon="circle-alert" />
                   <Avatar name="游客" />
                   <Avatar name="林" size="lg" />
-                  <Icon name="search" />
+                  <Icon icon={Search} />
                   <Spinner label="加载中" />
                 </View>
               </Section>
@@ -860,8 +861,8 @@ export function ComponentGallery(props: ComponentGalleryProps) {
                       />
                       <View class="flex-row items-center" style={{ gap: unit(20) }}>
                         <Icon
-                          name={volume() === 0 ? 'volume-x' : 'volume-2'}
-                          color={token('cinema-foreground')}
+                          icon={volume() === 0 ? 'volume-x' : 'volume-2'}
+                          tone={'cinema-foreground'}
                         />
                         <View style={{ width: unit(120) }}>
                           <CinemaSlider
