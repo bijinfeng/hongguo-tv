@@ -2,7 +2,6 @@ import { View, cleanup, effect, lifecycle, signal, type ViewRef } from 'nsh';
 import { Button, CinemaButton, Notice, UiText } from '@hongguo/ui';
 import type { ReservationTarget } from '@hongguo/core-client';
 import type { Store } from './store';
-import { CalendarDays } from 'nsh-icon-lucide';
 
 /** Minimal shared account capability used by calendar, details and the reservation page. */
 export type ReservationStore = Pick<
@@ -112,7 +111,7 @@ export function ReservationAction(props: {
         <Button
           testID={props.testID}
           label={label()}
-          icon={CalendarDays}
+          icon="calendar-days"
           selected={observed()}
           pending={pending()}
           buttonRef={setActionRef}
@@ -124,7 +123,7 @@ export function ReservationAction(props: {
       <CinemaButton
         testID={props.testID}
         label={label()}
-        icon={CalendarDays}
+        icon="calendar-days"
         selected={observed()}
         pending={pending()}
         buttonRef={setActionRef}

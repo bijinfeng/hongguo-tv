@@ -1,3 +1,4 @@
+import { registerModalPopup } from './modal-dismiss';
 import { Text, View, signal, effect, token, type ViewProps, type ViewRef } from 'nsh';
 import { Select as BaseSelect, type SelectEntry } from 'nsh/base';
 import { controlMetrics, radius, space, weight, type ControlSize } from './foundation';
@@ -5,7 +6,6 @@ import { Button } from './button';
 import { Icon } from './icon';
 import { textLineHeightRatio } from './typography';
 import { type ChoiceOption } from './choice';
-import { Check } from 'nsh-icon-lucide';
 
 /**
  * The candidate row every Select popup shares. The row centres its content and sets the type
@@ -28,7 +28,7 @@ export function SelectItemLabel(props: { entry: SelectEntry; size?: ControlSize 
     <View class="w-full flex-row items-center justify-between" style={{ gap: space('xs') }}>
       <Text style={{ flexShrink: 1, numberOfLines: 1 }}>{props.entry.title}</Text>
       <View class="opacity-0 group-selected:opacity-100">
-        <Icon icon={Check} size={props.size} tone="accent-foreground" />
+        <Icon name="check" size={props.size} color={token('accent-foreground')} />
       </View>
     </View>
   );
@@ -71,6 +71,7 @@ const MENU_MIN_WIDTH = 180;
 export function Select(props: SelectProps) {
   const size = () => controlMetrics(props.size);
   const open = signal(false);
+  registerModalPopup(open, () => open.set(false));
   effect(() => {
     if (props.disabled && open()) open.set(false);
   });

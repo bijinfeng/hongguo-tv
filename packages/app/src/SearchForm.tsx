@@ -5,15 +5,21 @@ import {
   effect,
   cleanup,
   keymap,
+  fontScale,
   token,
   type InputRef,
   type ViewRef,
 } from 'nsh';
-import { Button, SearchInput, SearchPicker, SearchSuggestionRow } from '@hongguo/ui';
+import {
+  Button,
+  RemoteKeyboard,
+  SearchInput,
+  SearchPicker,
+  SearchSuggestionRow,
+} from '@hongguo/ui';
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
 import type { Store } from './store';
-import { Search } from 'nsh-icon-lucide';
 
 export function SearchForm(props: { store: Store }) {
   const suggestions = props.store.suggestions;
@@ -168,7 +174,7 @@ export function SearchForm(props: { store: Store }) {
             testID="nav-search"
             buttonRef={(ref) => props.store.primaryRef('search', ref)}
             label="搜索记录"
-            icon={Search}
+            icon="search"
             iconOnly
             compact
             variant="quiet"
@@ -235,7 +241,7 @@ export function SearchForm(props: { store: Store }) {
             <Text class="px-3 py-2 text-sm text-muted-foreground">建议未能加载</Text>
             <SearchSuggestionRow
               label="重试"
-              icon={Search}
+              icon="search"
               testID="suggestions-retry"
               rowRef={(ref) => rows.set('retry', ref)}
               onFocus={ownFocus}
@@ -276,5 +282,21 @@ export function SearchForm(props: { store: Store }) {
         </SearchPicker>
       </If>
     </View>
+  );
+}
+
+/** The editor and keyboard share the existing draft; only SearchForm submits it. */
+export function SearchKeyboard(props: { store: Store }) {
+  return (
+    <RemoteKeyboard
+      testID="search-keyboard"
+      columns={fontScale() >= 1.75 ? 5 : 6}
+      value={props.store.draft()}
+      onInput={(value) => props.store.draft.set(value)}
+      onBackspace={() =>
+        props.store.draft.set(Array.from(props.store.draft()).slice(0, -1).join(''))
+      }
+      onClear={() => props.store.draft.set('')}
+    />
   );
 }

@@ -14,6 +14,7 @@ import { Notifications } from '../pages/Notifications';
 import { Account } from '../pages/Account';
 import { SettingsPage } from '../pages/SettingsPage';
 import { Home } from '../pages/Home';
+import { Mine } from '../pages/Mine';
 import { Calendar } from '../pages/Calendar';
 import { Rankings } from '../pages/Rankings';
 
@@ -28,6 +29,15 @@ function Browse(props: { store: Store }) {
       >
         <Home store={props.store} />
       </View>
+      <If when={props.store.target === 'tv'}>
+        <View
+          class={props.store.section() === 'mine' ? 'flex-1 min-h-0' : 'hidden'}
+          accessibilityElementsHidden={props.store.section() !== 'mine'}
+          disabled={props.store.section() !== 'mine'}
+        >
+          <Mine store={props.store} />
+        </View>
+      </If>
       <View
         class={props.store.section() === 'search' ? 'flex-1' : 'hidden'}
         accessibilityElementsHidden={props.store.section() !== 'search'}
@@ -122,16 +132,9 @@ export function Pages(props: { store: Store; updates?: Updates }) {
         <NavPage
           class="flex-1 min-h-0 bg-background"
           headerVisible={false}
-          popOnBack={
-            route.name !== 'player' &&
-            !(route.name === 'browse' && props.store.target === 'desktop')
-          }
+          popOnBack={route.name !== 'player' && route.name !== 'browse'}
           onBackPress={() => {
-            if (
-              route.name === 'player' ||
-              (route.name === 'browse' && props.store.target === 'desktop')
-            )
-              props.store.back();
+            if (route.name === 'player' || route.name === 'browse') props.store.back();
           }}
           animation={props.store.target === 'tv' || reduceMotion() ? 'none' : 'default'}
         >

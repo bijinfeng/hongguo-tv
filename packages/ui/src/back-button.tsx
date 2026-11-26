@@ -1,9 +1,8 @@
 import { Text, reduceMotion, token, type ViewProps, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
 import { Icon } from './icon';
-import { border, controlMetrics, weight, type ControlSize } from './foundation';
+import { border, controlMetrics, weight, focusRingClass, type ControlSize } from './foundation';
 import { textLineHeightRatio } from './typography';
-import { ArrowLeft } from 'nsh-icon-lucide';
 
 /** The surface the crumb sits on: an ordinary page, or the player's dark band. */
 export type BackButtonTone = 'page' | 'cinema';
@@ -49,7 +48,7 @@ export function BackButton(props: BackButtonProps) {
       onPress={() => {
         if (!props.disabled) props.onPress();
       }}
-      class={`flex-row items-center border border-transparent focus-visible:outline-2 focus-visible:outline-offset-4 ${cinema() ? 'focus-visible:outline-cinema-focus' : 'focus-visible:outline-ring'} ${props.disabled ? '' : wash()} ${props.disabled || reduceMotion() ? '' : 'transition-colors duration-100'} ${props.class ?? ''}`}
+      class={`flex-row items-center border border-transparent ${focusRingClass(4, cinema() ? 'cinema-focus' : 'ring')} ${props.disabled ? '' : wash()} ${props.disabled || reduceMotion() ? '' : 'transition-colors duration-100'} ${props.class ?? ''}`}
       style={{
         // A column page must not stretch the crumb's hover wash; a centered row overrides this.
         alignSelf: 'flex-start',
@@ -64,7 +63,7 @@ export function BackButton(props: BackButtonProps) {
         ...props.style,
       }}
     >
-      <Icon icon={ArrowLeft} tone={tone()} size={props.size ?? 'sm'} />
+      <Icon name="arrow-left" color={token(tone())} size={props.size ?? 'sm'} />
       <Text
         style={{
           fontSize: size().fontSize,

@@ -8,6 +8,14 @@ import { tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const suite = process.argv[2] || 'browsing';
+const selectedProfile = process.argv.includes('--profile')
+  ? process.argv[process.argv.indexOf('--profile') + 1]
+  : undefined;
+if (
+  process.argv.includes('--profile') &&
+  !['light', 'dark', 'large-text', 'extra-large-text'].includes(selectedProfile)
+)
+  throw new Error('Expected --profile light|dark|large-text|extra-large-text');
 if (!['browsing', 'player', 'suggestions', 'category'].includes(suite))
   throw new Error('Expected browsing|player|suggestions|category');
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
@@ -25,9 +33,11 @@ const instrument = (args) =>
     let report = '';
     child.stdout.on('data', (chunk) => {
       report += chunk;
+      process.stdout.write(chunk);
     });
     child.stderr.on('data', (chunk) => {
       report += chunk;
+      process.stderr.write(chunk);
     });
     child.once('error', reject);
     child.once('exit', (code) => (code === 0 ? resolve(report) : reject(new Error(report))));
@@ -86,11 +96,14 @@ try {
   device(['reverse', `tcp:${port}`, `tcp:${port}`]);
   reversed = true;
   console.log(`ADB reverse: ${device(['reverse', '--list'])}`);
-  for (const [appearance, night, fontScale] of [
+  const profiles = [
     ['light', 'no', '1.0'],
     ['dark', 'yes', '1.0'],
     ['large-text', 'yes', '1.3'],
-  ]) {
+    ['extra-large-text', 'yes', '2.0'],
+  ].filter(([name]) => !selectedProfile || name === selectedProfile);
+  console.log(`Acceptance profiles: ${profiles.map(([name]) => name).join(', ')}`);
+  for (const [appearance, night, fontScale] of profiles) {
     device(['shell', 'cmd', 'uimode', 'night', night]);
     device(['shell', 'settings', 'put', 'system', 'font_scale', fontScale]);
     device(['shell', 'am', 'force-stop', 'dev.hongguo.tv']);
@@ -108,16 +121,15 @@ try {
       'dev.hongguo.tv.test/dev.hongguo.tv.T0Acceptance',
     ]);
     await writeFile(resolve(artifacts, `${appearance}.txt`), report + '\n');
-    console.log(report);
     if (
       !report.includes(
         suite === 'category'
           ? 'TV category acceptance: 25 checks passed'
           : suite === 'player'
-            ? 'TV player acceptance: 24 checks passed'
+            ? 'TV player acceptance: 27 checks passed'
             : suite === 'suggestions'
               ? 'TV suggestions acceptance: 25 checks passed'
-              : 'TV browsing acceptance: 71 checks passed',
+              : 'TV browsing acceptance: 76 checks passed',
       ) ||
       report.includes('FAIL ')
     ) {

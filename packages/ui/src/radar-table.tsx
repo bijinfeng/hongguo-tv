@@ -13,7 +13,6 @@ import { Button, IconButton } from './button';
 import { CardControls } from './card-controls';
 import { UiText } from './display';
 import { controlMetrics, space } from './foundation';
-import { ChevronLeft, ChevronRight } from 'nsh-icon-lucide';
 
 export type RadarTableColumn = { key: string; title: string; numeric?: boolean };
 export type RadarTableRow = { id: string; title: string; cells: Record<string, string> };
@@ -478,7 +477,7 @@ export function RadarTable(props: RadarTableProps) {
             <IconButton
               testID="radar-columns-prev"
               label="显示前面的列"
-              icon={ChevronLeft}
+              icon="back"
               variant="quiet"
               size="sm"
               onPress={() => {
@@ -489,7 +488,7 @@ export function RadarTable(props: RadarTableProps) {
             <IconButton
               testID="radar-columns-next"
               label="显示后面的列"
-              icon={ChevronRight}
+              icon="forward"
               variant="quiet"
               size="sm"
               onPress={() => {

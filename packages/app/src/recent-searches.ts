@@ -91,6 +91,7 @@ export function createRecentSearches(
     loading,
     saving,
     clearing: () => saving() && latest?.action === 'clear',
+    clearError: () => (failed()?.action === 'clear' ? error() : ''),
     error,
     add: (query: string) => change({ action: 'add', query }),
     clear: () => change({ action: 'clear' }),

@@ -12,7 +12,6 @@ import {
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PageScroll } from '../shell/PageScroll';
-import { RefreshCw } from 'nsh-icon-lucide';
 
 export function notificationLabel(item: NotificationItem): string {
   return item.kind === 'reservation_online' ? '预约已上线' : '追更有更新';
@@ -164,7 +163,7 @@ export function Notifications(props: { store: Store }) {
         </View>
         <Button
           label="刷新"
-          icon={RefreshCw}
+          icon="refresh-cw"
           testID="notifications-refresh"
           pending={notifications.loading()}
           disabled={!signedIn() || !active() || notifications.mutation()?.state === 'pending'}

@@ -29,7 +29,6 @@ import {
   Notice,
   Controls,
   CinemaButton,
-  CinemaChips,
   CinemaSlider,
   CinemaSelect,
   CinemaControls,
@@ -44,16 +43,6 @@ import { SeasonEpisodes } from './player/SeasonEpisodes';
 import { PlayerActions } from './player/PlayerActions';
 import { PlayerEpisodeRail } from './player/PlayerEpisodeRail';
 import { fullScreenPictureHeight, pictureHeight } from './player/layout';
-import {
-  ChevronLeft,
-  ChevronRight,
-  List,
-  Maximize,
-  Play,
-  Settings,
-  SkipForward,
-  X,
-} from 'nsh-icon-lucide';
 
 type Media = Awaited<ReturnType<typeof play>>;
 type Representation = { info: Media; revision: number };
@@ -811,7 +800,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                           <CinemaButton
                             testID="player-error-back"
                             label={props.store.backLabel()}
-                            icon={ChevronLeft}
+                            icon="back"
                             onPress={leave}
                           />
                         </Controls>
@@ -831,7 +820,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                             onPress={() => void nextSeason(true)}
                           />
                         </If>
-                        <CinemaButton label="重新播放" icon={Play} onPress={toggle} />
+                        <CinemaButton label="重新播放" icon="play" onPress={toggle} />
                       </If>
                     </View>
                   </If>
@@ -900,20 +889,20 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                   <If when={tv}>
                     <CinemaButton
                       label="后退 10 秒"
-                      icon={ChevronLeft}
+                      icon="back"
                       disabled={!enabled()}
                       onPress={() => seek(position() - 10)}
                     />
                     <CinemaButton
                       label="前进 10 秒"
-                      icon={ChevronRight}
+                      icon="forward"
                       disabled={!enabled()}
                       onPress={() => seek(position() + 10)}
                     />
                   </If>
                   <CinemaButton
                     label="下一集"
-                    icon={SkipForward}
+                    icon="next"
                     iconOnly={!tv}
                     disabled={!next()}
                     onPress={nextEpisode}
@@ -978,7 +967,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                     <CinemaButton
                       testID="player-episode-panel"
                       label="选集"
-                      icon={List}
+                      icon="list"
                       buttonRef={(ref) => {
                         panelRef = ref;
                       }}
@@ -991,7 +980,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                   <If when={tv}>
                     <CinemaButton
                       label="更多"
-                      icon={Settings}
+                      icon="settings"
                       buttonRef={(ref) => {
                         moreRef = ref;
                       }}
@@ -1004,7 +993,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                     <CinemaButton
                       testID="player-fullscreen"
                       label={fullScreen() ? '退出全屏' : '全屏'}
-                      icon={Maximize}
+                      icon="fullscreen"
                       iconOnly
                       buttonRef={(ref) => {
                         fullScreenRef = ref;
@@ -1056,7 +1045,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       <EpisodePanel open={panel()} onClose={closePanel} cinema label="选集">
         <View class="flex-row items-center justify-between">
           <CinemaText variant="title">选集</CinemaText>
-          <CinemaButton label="关闭选集" icon={X} iconOnly onPress={closePanel} />
+          <CinemaButton label="关闭选集" icon="close" iconOnly onPress={closePanel} />
         </View>
         <SeasonEpisodes
           cinema
@@ -1074,12 +1063,11 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       <EpisodePanel open={more()} onClose={closeMore} cinema label="播放设置">
         <View class="flex-row items-center justify-between">
           <CinemaText variant="title">播放设置</CinemaText>
-          <CinemaButton label="关闭播放设置" icon={X} iconOnly onPress={closeMore} />
+          <CinemaButton label="关闭播放设置" icon="close" iconOnly onPress={closeMore} />
         </View>
         <CinemaSettingRow label="倍速">
-          <CinemaChips
+          <CinemaSelect
             label="播放速度"
-            testID="player-rate"
             value={rate()}
             items={PLAYBACK_RATES.map((value) => ({
               value,
@@ -1090,9 +1078,8 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           />
         </CinemaSettingRow>
         <CinemaSettingRow label="清晰度">
-          <CinemaChips
+          <CinemaSelect
             label="清晰度"
-            testID="player-quality"
             value={quality()}
             items={[
               { value: '', title: '自动' },

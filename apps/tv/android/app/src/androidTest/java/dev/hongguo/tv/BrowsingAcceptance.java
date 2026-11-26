@@ -55,10 +55,13 @@ final class BrowsingAcceptance {
         return false;
     }
     private AccessibilityNodeInfo findId(AccessibilityNodeInfo node, String id) {
-        if (node == null || !node.isVisibleToUser()) return null;
+        return findId(node, id, true);
+    }
+    private AccessibilityNodeInfo findId(AccessibilityNodeInfo node, String id, boolean visibleOnly) {
+        if (node == null || visibleOnly && !node.isVisibleToUser()) return null;
         if (id.equals(node.getViewIdResourceName())) return node;
         for (int i = 0; i < node.getChildCount(); i++) {
-            AccessibilityNodeInfo found = findId(node.getChild(i), id);
+            AccessibilityNodeInfo found = findId(node.getChild(i), id, visibleOnly);
             if (found != null) return found;
         }
         return null;
@@ -74,12 +77,108 @@ final class BrowsingAcceptance {
     }
     private void key(int code) { runner.sendKeyDownUpSync(code); SystemClock.sleep(220); }
     private void confirm() { key(KeyEvent.KEYCODE_DPAD_CENTER); }
-    private void focusAndConfirm(String id) {
-        AccessibilityNodeInfo node = findId(root(), id);
+    private void checkClearFailure() {
+        long until = SystemClock.uptimeMillis() + 15000;
+        while (!has("搜索记录未清空：服务暂时不可用，请稍后重试")) {
+            if (SystemClock.uptimeMillis() > until) throw new AssertionError("clear failure stays in its dialog");
+            SystemClock.sleep(100);
+        }
+    }
+    private boolean scroll(AccessibilityNodeInfo node, int action) {
+        if (node == null) return false;
+        if (node.isScrollable() && node.performAction(action)) return true;
+        for (int i = 0; i < node.getChildCount(); i++) if (scroll(node.getChild(i), action)) return true;
+        return false;
+    }
+    private AccessibilityNodeInfo visibleTarget(String region, String id) {
+        return visibleTarget(root(), region, id);
+    }
+    private AccessibilityNodeInfo visibleTarget(AccessibilityNodeInfo window, String region, String id) {
+        AccessibilityNodeInfo viewport = region == null ? window : findId(window, region);
+        AccessibilityNodeInfo node = findId(window, id);
+        if (viewport == null || node == null) return null;
+        android.graphics.Rect area = new android.graphics.Rect();
+        android.graphics.Rect frame = new android.graphics.Rect();
+        android.graphics.Rect bounds = new android.graphics.Rect();
+        viewport.getBoundsInScreen(area); window.getBoundsInScreen(frame); node.getBoundsInScreen(bounds);
+        return area.intersect(frame) && area.contains(bounds.centerX(), bounds.centerY()) ? node : null;
+    }
+    private String firstVisibleAction(AccessibilityNodeInfo node, android.graphics.Rect area) {
+        if (node == null) return "";
+        android.graphics.Rect bounds = new android.graphics.Rect(); node.getBoundsInScreen(bounds);
+        if (node.isVisibleToUser() && node.isClickable() && area.contains(bounds.centerX(), bounds.centerY())) {
+            String id = node.getViewIdResourceName();
+            return (id == null ? String.valueOf(node.getContentDescription()) : id) + bounds.toShortString();
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            String found = firstVisibleAction(node.getChild(i), area);
+            if (!found.isEmpty()) return found;
+        }
+        return "";
+    }
+    private String viewportPosition(AccessibilityNodeInfo window, String region) {
+        AccessibilityNodeInfo viewport = region == null ? window : findId(window, region);
+        if (viewport == null) return "";
+        android.graphics.Rect area = new android.graphics.Rect(); viewport.getBoundsInScreen(area);
+        return firstVisibleAction(viewport, area);
+    }
+    private AccessibilityNodeInfo revealMounted(AccessibilityNodeInfo window, String region, String id) {
+        AccessibilityNodeInfo mounted = findId(window, id, false);
+        if (mounted == null || !mounted.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId())) return null;
+        long until = SystemClock.uptimeMillis() + 1500;
+        AccessibilityNodeInfo node;
+        do {
+            SystemClock.sleep(50);
+            node = visibleTarget(region, id);
+        } while (node == null && SystemClock.uptimeMillis() < until);
+        return node;
+    }
+    private void focusIn(String region, String id) {
+        key(KeyEvent.KEYCODE_DPAD_DOWN); // New directional intent cancels queued restoration before selecting a stop.
+        AccessibilityNodeInfo window = root();
+        AccessibilityNodeInfo node = visibleTarget(window, region, id);
+        if (node == null) node = revealMounted(window, region, id);
+        if (node == null && region != null) {
+            for (int attempt = 0; attempt < 40; attempt++) {
+                if (!scroll(findId(root(), region), AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) break;
+                SystemClock.sleep(80);
+            }
+            window = root();
+            node = visibleTarget(window, region, id);
+        }
+        String position = viewportPosition(window, region);
+        long stalledUntil = SystemClock.uptimeMillis() + 5000;
+        // Larger text needs more pages; bound traversal and fail if the viewport stops progressing.
+        for (int page = 0; node == null && page < 64 && SystemClock.uptimeMillis() < stalledUntil; page++) {
+            // A mounted offscreen cell can be revealed, but must not be focused until it is visible.
+            node = revealMounted(window, region, id);
+            if (node != null) break;
+            scroll(region == null ? window : findId(window, region), AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+            SystemClock.sleep(180);
+            window = root();
+            node = visibleTarget(window, region, id);
+            String nextPosition = viewportPosition(window, region);
+            if (!nextPosition.equals(position)) {
+                position = nextPosition;
+                stalledUntil = SystemClock.uptimeMillis() + 5000;
+            }
+        }
+        if (node != null) node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId());
+        SystemClock.sleep(200);
+        node = visibleTarget(region, id);
         if (node == null || (!node.isFocused() && !node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)))
-            throw new AssertionError("focus " + id);
+            throw new AssertionError("focus " + id + " in " + region + " at " + position);
         SystemClock.sleep(200);
         if (!focusedId(id)) throw new AssertionError("keyboard focus " + id);
+    }
+    private void revealLabelIn(String region, String label) {
+        for (int page = 0; page < 16 && !has(label); page++) {
+            if (!scroll(findId(root(), region), AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)) break;
+            SystemClock.sleep(150);
+        }
+    }
+    private void focusAndConfirm(String id) {
+        focusIn(null, id);
         confirm();
     }
     private void click(String label) {
@@ -107,10 +206,14 @@ final class BrowsingAcceptance {
     }
     private void dump(View view, StringBuilder text, String indent) {
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        int[] origin = new int[2]; view.getLocationOnScreen(origin);
+        android.graphics.Rect frame = new android.graphics.Rect(origin[0], origin[1], origin[0] + view.getWidth(), origin[1] + view.getHeight());
         text.append(indent).append(view.getClass().getSimpleName())
             .append(" shown=").append(view.isShown()).append(" enabled=").append(view.isEnabled())
             .append(" alpha=").append(view.getAlpha()).append(" important=").append(view.getImportantForAccessibility())
             .append(" focused=").append(view.isFocused()).append(" id=").append(node.getViewIdResourceName())
+            .append(" frame=").append(frame.toShortString()).append(" scrollY=").append(view.getScrollY())
+            .append(" canScrollDown=").append(view.canScrollVertically(1)).append(" axVisible=").append(node.isVisibleToUser())
             .append(" label=").append(node.getContentDescription()).append(" text=").append(node.getText()).append('\n');
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
             dump(((ViewGroup) view).getChildAt(i), text, indent + "  ");
@@ -205,7 +308,9 @@ final class BrowsingAcceptance {
             Intent launch = runner.getTargetContext().getPackageManager().getLeanbackLaunchIntentForPackage(runner.getTargetContext().getPackageName());
             if (launch == null) throw new AssertionError("missing TV launcher");
             activity = runner.startActivitySync(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
-            check("real library continuation", () -> has("选集与详情") && has("重生之后"));
+            focusIn("home-scroll", "home-continue-123");
+            check("fixture continuation preserves its saved identity", () -> focusedId("home-continue-123")
+                    && identified("重生之后 · 第 59 集 · 00:15", "home-continue-123"));
             screenshot("home");
             if (!typedOnly) {
             click("搜索短剧");
@@ -230,42 +335,57 @@ final class BrowsingAcceptance {
             });
             key(KeyEvent.KEYCODE_DPAD_DOWN);
             check("plain down exits editing", () -> !(activity.getCurrentFocus() instanceof EditText));
-            // Empty discovery exits to the adjacent Search button; populated discovery exits to a chip below.
-            key(has("暂无搜索记录") ? KeyEvent.KEYCODE_DPAD_LEFT : KeyEvent.KEYCODE_DPAD_UP);
-            check("remote returns from discovery to query input", () -> activity.getCurrentFocus() instanceof EditText);
+            key(KeyEvent.KEYCODE_DPAD_UP);
+            check("remote returns from keyboard to query input", () -> activity.getCurrentFocus() instanceof EditText);
             key(KeyEvent.KEYCODE_ENTER);
             check("real HTTP search results", () -> has("重生之后"));
             screenshot("search");
-            key(KeyEvent.KEYCODE_DPAD_DOWN);
-            for (int i = 0; i < 6 && !focused("重生之后"); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
+            focusIn("results", "drama-123");
             check("content focus distinct from navigation", () -> focused("重生之后"));
-            confirm();
-            check("detail restores saved late segment", () -> has("继续第 59 集") && has("第 59 集") && !has("第 1 集"));
+            AccessibilityNodeInfo cover = find(findId(root(), "drama-123"), "重生之后封面");
+            if (cover == null) throw new AssertionError("poster cover exists for pointer activation");
+            android.graphics.Rect coverBounds = new android.graphics.Rect();
+            cover.getBoundsInScreen(coverBounds);
+            long touchStart = SystemClock.uptimeMillis();
+            runner.runOnMainSync(() -> {
+                long now = SystemClock.uptimeMillis();
+                android.view.MotionEvent down = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, coverBounds.centerX(), coverBounds.centerY(), 0);
+                android.view.MotionEvent up = android.view.MotionEvent.obtain(now, now + 10, android.view.MotionEvent.ACTION_UP, coverBounds.centerX(), coverBounds.centerY(), 0);
+                activity.dispatchTouchEvent(down); activity.dispatchTouchEvent(up);
+                down.recycle(); up.recycle();
+            });
+            check("poster artwork activates its owning card without blocking input", () -> has("继续第 59 集") && SystemClock.uptimeMillis() - touchStart < 2000);
+            focusIn("detail-scroll", "episode-1058");
+            check("detail restores saved late segment", () -> has("第 59 集") && !has("第 1 集"));
             screenshot("detail");
-            click("继续第 59 集");
+            focusIn("detail-scroll", "detail-start");
+            confirm();
             check("unimplemented playback is an honest error", () -> has("当前服务暂不支持播放，请稍后重试。"));
             key(KeyEvent.KEYCODE_BACK);
-            check("first back hides playback controls", () -> has("显示播放控制") && !has("下一集"));
-            key(KeyEvent.KEYCODE_BACK);
-            check("system back returns to detail", () -> has("第 59 集"));
+            check("failed playback Back returns directly to detail", () -> has("继续第 59 集") && findId(root(), "detail-scroll") != null);
+            focusIn("detail-scroll", "episode-1058");
+            check("failed playback return retains the saved late segment", () -> has("第 59 集") && !has("第 1 集"));
+            check("failure exit leaves no playback action behind", () -> !has("显示播放控制") && !has("当前服务暂不支持播放，请稍后重试。"));
             key(KeyEvent.KEYCODE_BACK);
             check("back restores search source focus", () -> focused("重生之后") && has("加载更多"));
-            for (int i = 0; i < 14; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
-            check("remote scrolls recycled horizontal results", () -> !focused("重生之后") && has("重生之后 15"));
+            focusIn("results", "drama-137");
+            check("native grid reveals recycled later results", () -> focused("重生之后 15"));
             confirm();
             check("recycled item keeps its own identity", () -> has("开始观看") && !has("继续第 59 集"));
             key(KeyEvent.KEYCODE_BACK);
-            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            focusIn(null, "search-more");
             check("remote reaches continuation", () -> focused("加载更多"));
             confirm();
             check("continuation pending is visible", () -> has("正在加载…"));
-            check("failed continuation retains retry focus", () -> has("加载失败：合成分页失败") && focused("重试") && has("重生之后 15"));
+            check("failed continuation retains retry focus", () -> has("加载失败：服务暂时不可用，请稍后重试") && focused("重试") && findId(root(), "results") != null);
             screenshot("pagination-error");
+            focusIn("results", "drama-137");
+            check("failed continuation keeps the exact loaded identity", () -> focused("重生之后 15") && identified("重生之后 15", "drama-137"));
+            focusIn(null, "search-more");
             confirm();
             check("remote retries the same continuation", () -> has("正在加载…"));
-            check("continuation recovers", () -> has("加载更多") && !has("加载失败：合成分页失败"));
-            key(KeyEvent.KEYCODE_DPAD_UP);
-            for (int i = 0; i < 55 && !focused("重生之后 64"); i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            check("continuation recovers", () -> has("加载更多") && !has("加载失败：服务暂时不可用，请稍后重试"));
+            focusIn("results", "drama-186");
             check("remote reaches appended identity", () -> focused("重生之后 64") && identified("重生之后 64", "drama-186"));
             screenshot("pagination-append");
             confirm();
@@ -273,39 +393,48 @@ final class BrowsingAcceptance {
             key(KeyEvent.KEYCODE_BACK);
             check("appended return restores source", () -> focused("重生之后 64"));
             screenshot("pagination-return");
-            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            focusIn(null, "search-more");
             check("remote reaches terminal continuation", () -> focused("加载更多"));
             confirm();
             check("terminal continuation removes footer without moving the shelf", () -> !has("加载更多") && !has("正在加载…") && has("重生之后 64"));
-            check("terminal removal restores selected source focus", () -> focused("重生之后 64"));
-            key(KeyEvent.KEYCODE_DPAD_RIGHT);
-            check("remote advances into final appended page", () -> focused("重生之后 65"));
-            key(KeyEvent.KEYCODE_DPAD_LEFT);
-            check("remote returns to the selected source", () -> focused("重生之后 64"));
+            check("terminal removal returns to the retained query editor", () -> activity.getCurrentFocus() instanceof EditText
+                    && "story重生".contentEquals(((EditText) activity.getCurrentFocus()).getText()));
+            focusIn("results", "drama-187");
+            check("final appended grid page remains reachable", () -> focused("重生之后 65"));
+            focusIn("results", "drama-186");
+            check("selected grid source remains reachable", () -> focused("重生之后 64"));
             screenshot("pagination-terminal");
             click("清除搜索");
+            focusIn("search-editor-scroll", "recent-search-story重生");
             check("clear query returns to saved keywords", () -> has("最近搜索") && has("story重生"));
             screenshot("recent-populated");
-            key(KeyEvent.KEYCODE_DPAD_DOWN);
-            for (int i = 0; i < 12 && !focused("story重生"); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
-            // A sparse recent row can lie left of the input's centre; return up from the shelf.
-            for (int i = 0; i < 3 && !focused("story重生"); i++) key(KeyEvent.KEYCODE_DPAD_UP);
             check("remote reaches saved keyword", () -> focused("story重生"));
             confirm();
             check("remote keyword executes a real search", () -> has("重生之后") && has("加载更多"));
             click("清除搜索");
-            check("keyword remains after query clearing", () -> has("story重生") && has("清空记录"));
-            click("清空记录");
-            check("failed clear retains committed keyword", () -> has("搜索记录未清空：合成清空失败") && has("story重生") && has("重试清空"));
+            focusIn("search-editor-scroll", "recent-search-story重生");
+            check("keyword remains after query clearing", () -> has("story重生") && has("清空搜索记录"));
+            click("清空搜索记录");
+            focusAndConfirm("clear-recent-confirm-confirm");
+            checkClearFailure();
+            key(KeyEvent.KEYCODE_BACK);
+            hideKeyboard();
+            SystemClock.sleep(300);
+            revealLabelIn("search-editor-scroll", "搜索记录未清空：服务暂时不可用，请稍后重试");
+            check("failed clear keeps its error visible", () -> has("搜索记录未清空：服务暂时不可用，请稍后重试"));
+            focusIn("search-editor-scroll", "recent-search-story重生");
+            check("failed clear retains committed keyword", () -> has("story重生"));
+            revealLabelIn("search-editor-scroll", "重试清空");
+            check("failed clear keeps its retry reachable", () -> has("重试清空"));
             screenshot("recent-error");
             click("重试清空");
+            revealLabelIn("search-editor-scroll", "暂无搜索记录");
             check("explicit retry clears keywords", () -> has("暂无搜索记录") && !has("story重生"));
             screenshot("recent-empty");
             check("anonymous discovery retains approved story shelf", () -> has("试试这些故事") && has("山海归来") && has("重生之后 41"));
             hideKeyboard();
             screenshot("discovery");
-            for (int i = 0; i < 6 && !focused("重生之后 41"); i++) key(KeyEvent.KEYCODE_DPAD_DOWN);
-            for (int i = 0; i < 6 && !focused("重生之后 41"); i++) key(KeyEvent.KEYCODE_DPAD_LEFT);
+            focusIn("results", "drama-163");
             check("remote focuses first discovery source", () -> focused("重生之后 41"));
             confirm();
             check("discovery exact card opens detail", () -> has("重生之后 41") && has("开始观看"));
@@ -315,20 +444,20 @@ final class BrowsingAcceptance {
             check("returned source yields to new remote focus", () -> focused("重生之后 42"));
             SystemClock.sleep(500);
             check("late discovery does not steal moved focus", () -> focused("重生之后 42"));
-            key(KeyEvent.KEYCODE_DPAD_LEFT);
-            for (int i = 0; i < 11; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            focusIn("results", "drama-174");
             check("remote reaches last discovery identity", () -> focused("重生之后 52") && identified("重生之后 52", "drama-174"));
             confirm();
             check("last discovery identity opens its detail", () -> has("重生之后 52") && has("开始观看"));
             key(KeyEvent.KEYCODE_BACK);
             check("last discovery return restores source", () -> focused("重生之后 52"));
             screenshot("discovery-return");
-            click("山海归来");
+            focusAndConfirm("discovery-query-山海归来");
             check("discovery keyword executes ordinary search", () -> has("重生之后") && has("加载更多"));
             check("discovery keyword preserves input identity", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.getText().toString().equals("山海归来"); });
             screenshot("discovery-keyword");
             click("我的");
-            check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 15 秒"));
+            focusAndConfirm("mine-history");
+            check("history uses the same continuation", () -> has("重生之后 · 第 59 集 · 00:15"));
             screenshot("history");
             }
             click("搜索短剧");
@@ -364,15 +493,15 @@ final class BrowsingAcceptance {
             check("actor first work uses exact saved identity", () -> has("继续第 59 集") && has("重生之后"));
             key(KeyEvent.KEYCODE_BACK);
             check("actor detail returns exact first work focus", () -> focused("重生之后") && has("林初"));
-            for (int i = 0; i < 14; i++) key(KeyEvent.KEYCODE_DPAD_RIGHT);
-            check("actor shelf recycles to exact later work", () -> focused("重生之后 15") && identified("重生之后 15", "drama-137"));
+            focusIn("actor-results", "drama-137");
+            check("actor grid recycles to exact later work", () -> focused("重生之后 15") && identified("重生之后 15", "drama-137"));
             confirm();
             check("later actor work opens own detail", () -> has("重生之后 15") && has("开始观看") && !has("继续第 59 集"));
             key(KeyEvent.KEYCODE_BACK);
             check("actor return preserves later source focus", () -> focused("重生之后 15"));
-            key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            key(KeyEvent.KEYCODE_DPAD_LEFT);
             SystemClock.sleep(500);
-            check("newer remote movement wins actor return", () -> focused("重生之后 16"));
+            check("newer remote movement wins actor return", () -> focused("重生之后 14"));
             screenshot("actor-return");
             key(KeyEvent.KEYCODE_BACK);
             check("actor back restores source suggestion", () -> focusedId("suggestion-actor:9007199254740993") && has("演员"));
@@ -382,9 +511,10 @@ final class BrowsingAcceptance {
             check("drama back restores exact suggestion", () -> focusedId("suggestion-drama:123") && has("演员"));
             key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
             check("keyword suggestion submits visible name", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.getText().toString().equals("山海归来") && has("加载更多"); });
+            key(KeyEvent.KEYCODE_DPAD_UP);
             runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.requestFocus(); edit.setText("林"); });
             check("typed suggestions reopen after ordinary search", () -> has("林初"));
-            key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
+            hideKeyboard(); focusAndConfirm("suggestion-query:" + "词".repeat(81));
             check("long keyword stays whole editable and invalid", () -> { EditText edit = input(activity.getWindow().getDecorView()); return edit != null && edit.hasFocus() && edit.getText().length() == 81 && has("搜索内容过长，请缩短后重试。") && !has("演员"); });
             hideKeyboard(); screenshot("typed-validation");
             runner.runOnMainSync(() -> { EditText edit = input(activity.getWindow().getDecorView()); edit.setText("缩短"); });
@@ -405,10 +535,17 @@ final class BrowsingAcceptance {
             check("pointer return starts with actor suggestion", () -> has("林初"));
             hideKeyboard(); key(KeyEvent.KEYCODE_DPAD_DOWN); confirm();
             check("pointer return starts on actor works", () -> has("用故事连接每一种生活。"));
+            runner.runOnMainSync(activity::onBackPressed);
+            long homeDeadline = SystemClock.uptimeMillis() + 15000;
+            AccessibilityNodeInfo homeEntry = find(root(), "精选");
+            while (homeEntry == null && SystemClock.uptimeMillis() < homeDeadline) {
+                SystemClock.sleep(10);
+                homeEntry = find(root(), "精选");
+            }
+            if (homeEntry == null) throw new AssertionError("root header returns before pointer navigation");
             android.graphics.Rect home = new android.graphics.Rect();
-            find(root(), "精选").getBoundsInScreen(home);
+            homeEntry.getBoundsInScreen(home);
             runner.runOnMainSync(() -> {
-                activity.onBackPressed();
                 long now = SystemClock.uptimeMillis();
                 android.view.MotionEvent down = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, home.centerX(), home.centerY(), 0);
                 android.view.MotionEvent up = android.view.MotionEvent.obtain(now, now + 10, android.view.MotionEvent.ACTION_UP, home.centerX(), home.centerY(), 0);
@@ -416,7 +553,7 @@ final class BrowsingAcceptance {
                 down.recycle(); up.recycle();
             });
             SystemClock.sleep(600);
-            check("newer pointer navigation wins pending actor return", () -> has("选集与详情") && !has("用故事连接每一种生活。") && !has("演员"));
+            check("newer pointer navigation wins pending actor return", () -> findId(root(), "browse-section-home") != null && !has("用故事连接每一种生活。") && !has("演员"));
             result.putString("stream", (typedOnly ? "TV suggestions acceptance: " : "TV browsing acceptance: ") + checks + " checks passed\n");
             runner.finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {

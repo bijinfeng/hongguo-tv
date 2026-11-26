@@ -1,4 +1,6 @@
 import { expect, open, test, type OpenOptions } from 'nsh/test';
+import desktopTheme from '../theme.json';
+import tvTheme from '../theme.tv.json';
 
 export interface ComponentTestOptions {
   artifacts?: string;
@@ -19,6 +21,9 @@ export interface ComponentTestOptions {
 
 /** Public package acceptance, against the same interactive gallery used in the native host. */
 export function registerComponentTests(entry: string, options: ComponentTestOptions = {}) {
+  const themeTokens = options.target === 'tv' ? tvTheme : desktopTheme;
+  const colorToken = (scheme: 'light' | 'dark', name: keyof typeof desktopTheme.cssVars.light) =>
+    `${themeTokens.cssVars[scheme][name]}ff`;
   const settings = (colorScheme: 'light' | 'dark' = 'light'): OpenOptions => ({
     platform: options.host === 'android' ? 'android' : 'macos',
     width: options.target === 'tv' ? 1920 : 1440,
@@ -51,6 +56,21 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
     await app.waitFor('text:题材：古装');
     if (options.target === 'tv') await app.press('id:gallery-query-activate');
     expect(app.value('id:gallery-query')).toBe('春山');
+    app.dispose();
+  });
+  test('TV remote keyboard edits, clears and submits the controlled query', async () => {
+    if (options.target !== 'tv') return;
+    const app = await open(entry, settings());
+    await app.press('id:gallery-sheet-forms');
+    await app.press('id:gallery-remote-keyboard-Q');
+    await app.press('id:gallery-remote-keyboard-1');
+    expect(app.shows('text:Q1')).toBe(true);
+    await app.press('id:gallery-remote-keyboard-backspace');
+    expect(app.shows('text:Q')).toBe(true);
+    await app.press('id:gallery-remote-keyboard-clear');
+    await app.press('id:gallery-remote-keyboard-Q');
+    await app.press('id:gallery-remote-keyboard-submit');
+    await app.waitFor('text:搜索：Q');
     app.dispose();
   });
   test('slider separates preview, confirmation and TV cancellation with source restoration', async () => {
@@ -161,7 +181,7 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
       await app.press('id:gallery-sheet-controls');
       const color = (label = '已选择观看') =>
         app.spanStyle(`id:gallery-primary-selected >> text:${label}`).color;
-      const selectedColor = theme === 'light' ? '#a34b00ff' : '#ffb36dff';
+      const selectedColor = colorToken(theme, 'accent-foreground');
       expect(color()).toBe(selectedColor);
       if (options.host !== 'android') {
         await app.hover('id:gallery-primary-selected');
@@ -170,11 +190,11 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
       if (options.host && options.artifacts)
         await app.screenshot(`${options.artifacts}/primary-selected-${theme}.png`);
       await app.press('id:gallery-primary-selected');
-      expect(color('选择观看')).toBe('#111111ff');
+      expect(color('选择观看')).toBe(colorToken(theme, 'primary-foreground'));
       await app.press('id:gallery-primary-selected');
       await app.press('id:gallery-toggle-pending');
       expect(app.enabled('id:gallery-primary-selected')).toBe(false);
-      expect(color('处理中…')).toBe(theme === 'light' ? '#686868ff' : '#a0a0a0ff');
+      expect(color('处理中…')).toBe(colorToken(theme, 'muted-foreground'));
       await expect(app.press('id:gallery-primary-selected')).rejects.toMatchObject({
         code: 'ERR_NSH_TEST_DISABLED',
       });
@@ -205,7 +225,7 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
   test('selection groups retain their selected value through disabled state and recovery', async () => {
     for (const theme of ['light', 'dark'] as const) {
       const app = await open(entry, settings(theme));
-      const muted = theme === 'light' ? '#686868ff' : '#a0a0a0ff';
+      const muted = colorToken(theme, 'muted-foreground');
       for (const [sheet, group] of [
         ['forms', 'choice'],
         ['navigation', 'tabs'],
@@ -226,7 +246,9 @@ export function registerComponentTests(entry: string, options: ComponentTestOpti
         expect(app.spanStyle(`id:gallery-${group}-city >> text:都市`).fontWeight).toBe(600);
       }
       await app.press('id:gallery-sheet-feedback');
-      expect(app.spanStyle('text:12.0 MB / 32.0 MB').fontSize).toBe(16);
+      expect(app.spanStyle('text:12.0 MB / 32.0 MB').fontSize).toBe(
+        Number.parseFloat(themeTokens.cssVars.theme['text-numeric']),
+      );
       app.dispose();
     }
   });

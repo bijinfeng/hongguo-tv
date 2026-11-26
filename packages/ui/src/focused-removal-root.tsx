@@ -7,6 +7,7 @@ export function FocusedRemovalRoot(props: {
   class?: string;
   testID?: string;
   disabled?: boolean;
+  focusable?: boolean;
   selected?: boolean;
   /** Marks the current destination for screen readers (ARIA `aria-current="page"`). */
   current?: boolean;
@@ -19,6 +20,7 @@ export function FocusedRemovalRoot(props: {
   onBlur?: () => void;
   children?: JSX.Element;
 }) {
+  const interactive = () => (props.focusable ?? !!props.onPress) && !props.disabled;
   let focused = false;
   cleanup(() => {
     const retained = focused;
@@ -27,11 +29,22 @@ export function FocusedRemovalRoot(props: {
   });
   return (
     <View
-      ref={(ref) => props.ref?.(ref)}
+      ref={(ref) =>
+        props.ref?.({
+          focus: () => {
+            if (interactive()) ref.focus();
+          },
+          blur: () => ref.blur(),
+          clearSelection: () => ref.clearSelection(),
+          measure: () => ref.measure(),
+          reveal: (options) => ref.reveal(options),
+          animateLayout: (transition) => ref.animateLayout(transition),
+        })
+      }
       style={props.style}
       class={props.class}
       testID={props.testID}
-      role="button"
+      role={props.onPress ? 'button' : undefined}
       accessibilityLabel={props.accessibilityLabel ?? undefined}
       accessibilityHint={props.accessibilityDescription}
       accessibilityState={{
@@ -41,7 +54,14 @@ export function FocusedRemovalRoot(props: {
         expanded: props.expanded,
       }}
       disabled={props.disabled}
-      onPress={props.onPress}
+      focusable={interactive()}
+      onPress={
+        props.onPress
+          ? () => {
+              if (interactive()) props.onPress?.();
+            }
+          : undefined
+      }
       onFocus={() => {
         focused = true;
         props.onFocus?.();

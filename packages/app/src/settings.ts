@@ -310,7 +310,7 @@ export function createSettings(options: SettingsOptions = {}): Settings {
         return;
       }
       error.set('');
-      persist();
+      persist(failedKey());
     },
     flush() {
       return writes;

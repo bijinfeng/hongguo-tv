@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.EditText;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.InputMethodManager;
@@ -20,7 +21,18 @@ import java.util.List;
 /** Remote navigation over public Android accessibility actions, without NSH internals. */
 @android.annotation.SuppressLint("ViewConstructor") // Created only by MainActivity, never XML.
 final class TvRemote extends View {
-    private final NshView root;
+    private final View root;
+    private final NshView bridge;
+    private final AccessibilityManager accessibility;
+    private final AccessibilityManager.TouchExplorationStateChangeListener screenReader = enabled -> invalidate();
+    private boolean disposed;
+    private boolean cinema;
+    private final java.util.Set<View> keyTargets = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+    private final android.view.ViewTreeObserver.OnGlobalLayoutListener layoutListener;
+    private final android.view.ViewTreeObserver.OnScrollChangedListener scrollListener;
+    private final android.view.ViewTreeObserver.OnGlobalFocusChangeListener focusListener;
+    private final android.view.ViewTreeObserver.OnPreDrawListener drawListener;
+    private final android.view.ViewTreeObserver.OnWindowFocusChangeListener windowFocusListener;
     private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect drawingBounds = new Rect();
     private final int[] drawingOrigin = new int[2];
@@ -34,6 +46,7 @@ final class TvRemote extends View {
     private View currentFocusScope;
     private final List<SavedFocus> coveredFocus = new ArrayList<>();
     private final List<SavedFocus> recentFocus = new ArrayList<>();
+    private SavedFocus activatedSource;
     private static final class SavedFocus {
         final View view;
         final String identity;
@@ -43,6 +56,7 @@ final class TvRemote extends View {
         final View scope;
         final boolean temporary;
         final boolean pageLocal;
+        boolean confirmed;
         SavedFocus(View view, String identity, int depth, View pageRoot, long intent, View scope, boolean temporary, boolean pageLocal) {
             this.view = view; this.identity = identity; this.depth = depth; this.pageRoot = pageRoot; this.intent = intent;
             this.scope = scope;
@@ -71,9 +85,16 @@ final class TvRemote extends View {
     private View enteringFocusEntry;
     private long enteringFocusEntryIntent;
 
-    TvRemote(Context context, NshView root) {
+    TvRemote(Context context, NshView bridge) {
+        this(context, bridge, bridge);
+    }
+
+    TvRemote(Context context, NshView bridge, View root) {
         super(context);
         this.root = root;
+        this.bridge = bridge;
+        accessibility = (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
+        accessibility.addTouchExplorationStateChangeListener(screenReader);
         float scale = getResources().getDisplayMetrics().widthPixels / 1920f;
         radius = getResources().getDimension(R.dimen.tv_radius) * scale
                 / getResources().getDisplayMetrics().density;
@@ -82,9 +103,27 @@ final class TvRemote extends View {
         ring.setStyle(Paint.Style.STROKE);
         ring.setStrokeWidth(4 * scale);
         ring.setColor(context.getColor(R.color.tv_ring));
-        root.getViewTreeObserver().addOnGlobalLayoutListener(this::restore);
-        root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+        layoutListener = this::restore;
+        root.getViewTreeObserver().addOnGlobalLayoutListener(layoutListener);
+        scrollListener = () -> {
+            if (!disposed) {
+                targets();
+                invalidate();
+            }
+        };
+        root.getViewTreeObserver().addOnScrollChangedListener(scrollListener);
+        focusListener = (oldFocus, newFocus) -> {
             if (!selecting) {
+                // Android can focus old content after its source detaches, before the new page is observed.
+                if (current != null && !current.isShown()) {
+                    if (activatedSource == null) {
+                        activatedSource = new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot,
+                                focusIntent, currentFocusScope, false, currentPageLocal);
+                        activatedSource.confirmed = true;
+                    }
+                    // Pre-draw sees the completed mutation; intermediate focus must not scroll old content.
+                    return;
+                }
                 List<View> targets = targets();
                 if (enteringFocusEntry != null && enteringFocusEntryIntent == focusIntent) {
                     restore();
@@ -93,8 +132,9 @@ final class TvRemote extends View {
                 if (targets.contains(newFocus)) select(newFocus, targets);
                 else if (current != null && !targets.contains(current)) restore();
             }
-        });
-        root.getViewTreeObserver().addOnPreDrawListener(() -> {
+        };
+        root.getViewTreeObserver().addOnGlobalFocusChangeListener(focusListener);
+        drawListener = () -> {
             if ((root.isFocused() && !(current instanceof EditText)) || enteringSection || enteringPageRoot != null || enteringFocusEntry != null || restoringPage || waitingForTemporarySource() || current == null || !current.isAttachedToWindow() || !current.isShown()
                     || !current.createAccessibilityNodeInfo().isEnabled()
                     || android.os.SystemClock.uptimeMillis() < focusPlaybackUntil) restore();
@@ -104,7 +144,43 @@ final class TvRemote extends View {
                 invalidate();
             }
             return true;
+        };
+        root.getViewTreeObserver().addOnPreDrawListener(drawListener);
+        windowFocusListener = focused -> invalidate();
+        root.getViewTreeObserver().addOnWindowFocusChangeListener(windowFocusListener);
+    }
+
+    void bindWindowKeys() {
+        if (disposed) return;
+        List<View> views = targets();
+        View focused = root.findFocus();
+        if (focused != null) views.add(focused);
+        views.add(root);
+        keyTargets.removeIf(view -> {
+            if (views.contains(view)) return false;
+            view.setOnKeyListener(null);
+            return true;
         });
+        for (View view : views) {
+            if (keyTargets.add(view)) view.setOnKeyListener((source, key, event) -> dispatch(event));
+        }
+    }
+
+    void setCinema(boolean value) { cinema = value; invalidate(); }
+
+    void dispose() {
+        disposed = true;
+        accessibility.removeTouchExplorationStateChangeListener(screenReader);
+        android.view.ViewTreeObserver observer = root.getViewTreeObserver();
+        if (observer.isAlive()) {
+            observer.removeOnGlobalLayoutListener(layoutListener);
+            observer.removeOnScrollChangedListener(scrollListener);
+            observer.removeOnGlobalFocusChangeListener(focusListener);
+            observer.removeOnPreDrawListener(drawListener);
+            observer.removeOnWindowFocusChangeListener(windowFocusListener);
+        }
+        for (View view : keyTargets) view.setOnKeyListener(null);
+        keyTargets.clear();
     }
 
     private List<View> targets() {
@@ -128,6 +204,12 @@ final class TvRemote extends View {
         }
         if (observedPageDepth >= 0) {
             if (observedPageDepth > pageDepth) {
+                if (activatedSource != null && activatedSource.depth == pageDepth
+                        && activatedSource.intent == focusIntent) {
+                    coveredFocus.add(activatedSource);
+                    if (coveredFocus.size() > 32) coveredFocus.remove(0);
+                    activatedSource = null;
+                }
                 enteringPageRoot = observedPageRoot;
                 enteringPageIntent = focusIntent;
             }
@@ -149,6 +231,12 @@ final class TvRemote extends View {
                 if (modal != null) return modal;
             }
         }
+        // Skip anonymous layout containers when locating dialogs; building their
+        // accessibility children can block input on a long date rail. Select lists may be unnamed.
+        CharSequence description = view.getContentDescription();
+        if (!list && (description == null || description.length() == 0)
+                && !(view instanceof android.widget.ListView)
+                && !(view instanceof android.widget.Spinner)) return null;
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
         if (node == null) return null;
         String role = String.valueOf(node.getExtras().getCharSequence("AccessibilityNodeInfo.roleDescription"));
@@ -164,9 +252,11 @@ final class TvRemote extends View {
     private boolean expandedSelect(View view) {
         if (!view.isShown() || !view.isEnabled() || view.getAlpha() == 0
                 || view.getImportantForAccessibility() == IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) return false;
-        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
-        if (node != null && "android.widget.Spinner".equals(String.valueOf(node.getClassName()))
-                && node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE)) return true;
+        if (view.isClickable()) {
+            AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+            if (node != null && "android.widget.Spinner".equals(String.valueOf(node.getClassName()))
+                    && node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE)) return true;
+        }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++)
@@ -195,7 +285,7 @@ final class TvRemote extends View {
         // The latest visible entry receives its first actionable child; it is not a modal scope.
         if (id != null && id.startsWith("focus-entry-")) observedFocusEntry = view;
         boolean actionable = node != null && node.isEnabled()
-                && (node.isClickable() || adjustable(node) || view instanceof EditText);
+                && (namedAction(node) || adjustable(node) || view instanceof EditText);
         boolean scrollRegion = namedReadingRegion(view, node);
         if (view instanceof EditText) {
             EditText input = (EditText) view;
@@ -219,6 +309,15 @@ final class TvRemote extends View {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), targets);
         }
+    }
+
+    /** Pointer-only backdrops have click handlers but are not remote commands. */
+    private boolean namedAction(AccessibilityNodeInfo node) {
+        if (!node.isClickable()) return false;
+        CharSequence name = node.getContentDescription();
+        CharSequence text = node.getText();
+        return (name != null && !name.toString().trim().isEmpty()) || (text != null && !text.toString().trim().isEmpty())
+                || "android.widget.Button".equals(String.valueOf(node.getClassName()));
     }
 
     private void select(View view, List<View> targets) {
@@ -246,7 +345,7 @@ final class TvRemote extends View {
                 if (!(view instanceof EditText))
                     ((InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
                             .hideSoftInputFromWindow(view.getWindowToken(), 0);
-                root.send("focus-identity", focusIdentity(view));
+                bridge.send("focus-identity", focusIdentity(view));
                 selecting = false;
                 AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
                 Log.i("TVFocus", String.valueOf(node.getText()) + " " + node.getContentDescription());
@@ -266,6 +365,7 @@ final class TvRemote extends View {
     }
 
     private void restore() {
+        if (disposed || !root.hasWindowFocus()) return;
         if (selecting) return;
         List<View> targets = targets();
         if (enteringPageIntent != focusIntent || enteringPageRoot != pageRoot) enteringPageRoot = null;
@@ -343,6 +443,15 @@ final class TvRemote extends View {
         View source = null;
         SavedFocus waitingSource = null;
         if (restoringPage) {
+            for (int i = coveredFocus.size() - 1; i >= 0; i--) {
+                SavedFocus saved = coveredFocus.get(i);
+                if (saved.confirmed && saved.pageRoot == pageRoot && saved.depth == pageDepth) {
+                    waitingSource = saved;
+                    break;
+                }
+            }
+        }
+        if (restoringPage && waitingSource == null) {
             for (int i = coveredFocus.size() - 1; i >= 0; i--) {
                 SavedFocus saved = coveredFocus.get(i);
                 if (saved.pageRoot == pageRoot && saved.depth == pageDepth && saved.identity != null && saved.identity.startsWith("id:")) {
@@ -451,6 +560,11 @@ final class TvRemote extends View {
     boolean dispatchInputExit(KeyEvent event) {
         View focused = root.findFocus();
         int key = event.getKeyCode();
+        if (root != bridge && key == KeyEvent.KEYCODE_ESCAPE && !(root.findFocus() instanceof EditText)) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0)
+                bridge.handleBack();
+            return true;
+        }
         return focused instanceof EditText
                 && (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN)
                 && BaseInputConnection.getComposingSpanStart(((EditText) focused).getText()) < 0
@@ -458,6 +572,7 @@ final class TvRemote extends View {
     }
 
     boolean dispatch(KeyEvent event) {
+        if (disposed) return false;
         if (event.getAction() == KeyEvent.ACTION_DOWN) noteFocusIntent();
         int key = event.getKeyCode();
         // Caret and composing text remain the IME's. Only plain vertical navigation exits editing.
@@ -487,7 +602,7 @@ final class TvRemote extends View {
                 if ((mediaCommand.equals("pause") || mediaCommand.equals("toggle"))
                         && scope(root, false) == null && !expandedSelect(root))
                     focusPlaybackUntil = android.os.SystemClock.uptimeMillis() + 1000;
-                root.send("player-command", mediaCommand);
+                bridge.send("player-command", mediaCommand);
             }
             return true;
         }
@@ -506,13 +621,17 @@ final class TvRemote extends View {
             if (event.getRepeatCount() == 0 || key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 if (command.equals("confirm") || command.equals("reveal"))
                     focusPlaybackUntil = android.os.SystemClock.uptimeMillis() + 1000;
-                root.send("player-command", command);
+                bridge.send("player-command", command);
             }
             return true;
         }
         List<View> targets = targets();
         cancelPageRestoration(); // This collection may be the first to observe the return.
-        if (targets.isEmpty()) return false;
+        if (targets.isEmpty()) {
+            Log.w("TVFocus", "No actions in scope " + (currentScope == null ? "root" : currentScope.getClass().getName()
+                    + " " + currentScope.createAccessibilityNodeInfo()));
+            return false;
+        }
         if (focusSelection) restore();
         focusSelection = false; // A user's movement takes precedence over late-mounted selected rows.
         if (!targets.contains(current)) select(targets.get(0), targets);
@@ -527,10 +646,16 @@ final class TvRemote extends View {
             if (event.getRepeatCount() == 0) {
                 if (current instanceof EditText) {
                     current.requestFocus();
-                    ((android.view.inputmethod.InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
-                            .showSoftInput(current, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-                } else if (!namedReadingRegion(current, currentNode))
+                    if (((EditText) current).getKeyListener() != null)
+                        ((android.view.inputmethod.InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
+                                .showSoftInput(current, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                } else if (!namedReadingRegion(current, currentNode)) {
+                    // Capture the confirmed source before Android auto-focuses a view during removal.
+                    activatedSource = new SavedFocus(current, currentIdentity, currentPageDepth, currentPageRoot,
+                            focusIntent, currentFocusScope, false, currentPageLocal);
+                    activatedSource.confirmed = true;
                     current.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null);
+                }
             }
             return true;
         }
@@ -551,13 +676,15 @@ final class TvRemote extends View {
     }
 
     void noteFocusIntent() {
+        activatedSource = null;
         focusIntent++;
+        // Observe replacements before cancelling their automatic handoff for this newer intent.
         targets();
         // A user's newer key/pointer intent cancels a still-pending replacement handoff.
         enteringFocusEntry = null;
         enteringSection = false;
         cancelPageRestoration();
-        root.send("focus-intent", "");
+        bridge.send("focus-intent", "");
     }
 
     private String playerStage(View view) {
@@ -627,6 +754,7 @@ final class TvRemote extends View {
     private View nearestOutsideRegion(List<View> targets, Rect from, int key) {
         View best = null;
         double score = Double.POSITIVE_INFINITY;
+        SavedFocus source = recentFocus.isEmpty() ? null : recentFocus.get(recentFocus.size() - 1);
         boolean horizontal = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT;
         for (View target : targets) {
             if (target == current || within(target, current)) continue;
@@ -639,7 +767,10 @@ final class TvRemote extends View {
             int minor = horizontal ? Math.max(0, Math.max(to.top - from.bottom, from.top - to.bottom))
                     : Math.max(0, Math.max(to.left - from.right, from.left - to.right));
             double distance = major * (double) major + 13 * minor * (double) minor;
-            if (distance < score) { best = target; score = distance; }
+            // A full-height reading pane can be equally near every sidebar item; keep its entry source.
+            boolean returning = source != null && target == source.view
+                    && java.util.Objects.equals(source.identity, identity(target));
+            if (distance < score || distance == score && returning) { best = target; score = distance; }
         }
         return best;
     }
@@ -720,13 +851,26 @@ final class TvRemote extends View {
     }
 
     @Override protected void onDraw(Canvas canvas) {
-        if (current == null || !current.isAttachedToWindow() || !current.isShown()) return;
+        // A screen reader owns the system accessibility indicator while touch exploration is active.
+        if (accessibility.isTouchExplorationEnabled()) return;
+        if (!root.hasWindowFocus() || current == null || !current.isAttachedToWindow() || !current.isShown()) return;
         Rect rect = drawingBounds;
         current.getGlobalVisibleRect(rect);
         getLocationOnScreen(drawingOrigin);
         rect.offset(-drawingOrigin[0], -drawingOrigin[1]);
-        float inset = ring.getStrokeWidth() / 2;
-        canvas.drawRoundRect(rect.left + inset, rect.top + inset, rect.right - inset, rect.bottom - inset,
+        // This adapter consumes DPAD, so native focus alone does not set NSH's focus-visible mode.
+        // Shared controls leave the TV indicator to this one owner. Reading stops stay quieter.
+        boolean cinemaSurface = cinema;
+        for (View parent = current; !cinemaSurface && parent != null;) {
+            AccessibilityNodeInfo node = parent.createAccessibilityNodeInfo();
+            cinemaSurface = node != null && "player".equals(node.getViewIdResourceName());
+            android.view.ViewParent next = parent.getParent();
+            parent = next instanceof View ? (View) next : null;
+        }
+        ring.setColor(getContext().getColor(cinemaSurface ? R.color.tv_cinema_focus : R.color.tv_ring));
+        ring.setAlpha(namedReadingRegion(current, current.createAccessibilityNodeInfo()) ? 96 : 255);
+        float offset = ring.getStrokeWidth() * 1.5f;
+        canvas.drawRoundRect(rect.left - offset, rect.top - offset, rect.right + offset, rect.bottom + offset,
                 radius, radius, ring);
     }
 }

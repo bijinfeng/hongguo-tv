@@ -1,3 +1,5 @@
+import { ModalDismissScope, bindModalEscape, createModalDismiss } from './modal-dismiss';
+import { RemoteFocusScope } from './remote-focus-scope';
 import {
   Overlay,
   Scroll,
@@ -36,9 +38,8 @@ import {
 } from 'nsh/base';
 import { Button } from './button';
 import { border, controlMetrics, radius, space, weight, focusRingClass } from './foundation';
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 import { textSize, textWeight } from './typography';
-import { Check, ChevronDown } from 'nsh-icon-lucide';
 
 /** Popups stop short of the window edges and of a two-line hint. */
 const TOOLTIP_MAX_WIDTH = 320;
@@ -122,83 +123,89 @@ export function Dialog(props: DialogProps) {
     () => props.open,
     () => props.returnFocus?.(),
   );
+  const dismissal = createModalDismiss(() => props.onOpenChange({ open: false, reason: 'cancel' }));
+  bindModalEscape(() => props.open, dismissal.cancel);
   return (
-    <BaseDialog
-      open={props.open}
-      testID={props.testID}
-      role={props.role ?? 'dialog'}
-      accessibilityLabel={props.title}
-      accessibilityDescription={props.description}
-      animation={reduceMotion() ? 'none' : 'fade'}
-      closeOnEscape
-      closeOnBackdropPress
-      closeOnSwipe={false}
-      onOpenChange={props.onOpenChange}
-      onOpen={() => {
-        props.initialFocus?.();
-        props.onOpen?.();
-      }}
-      onClose={() => {
-        props.onClose?.();
-        props.returnFocus?.();
-      }}
-      // A dark page scrim cannot darken a black background, so the dialog carries its own edge:
-      // a hairline makes the modal boundary read in both themes.
-      class="m-auto bg-popover border border-input"
-      backdropClass="bg-cinema/40"
-      style={{
-        borderWidth: border,
-        width: Math.max(
-          0,
-          Math.min(props.size === 'lg' ? 800 : 480, windowSize().width - space('3xl')),
-        ),
-        maxHeight: Math.max(0, windowSize().height - 64),
-        padding: space('xl'),
-        gap: space('lg'),
-        borderRadius: controlMetrics().radius,
-      }}
-    >
-      <View class="flex-row items-center justify-between" style={{ gap: space('md') }}>
-        <Text
-          role="header"
-          class="flex-1 text-popover-foreground"
-          style={{
-            fontSize: textSize('section'),
-            fontWeight: textWeight('section'),
-          }}
-        >
-          {props.title}
-        </Text>
-        <If when={props.closeButton}>
-          <Button
-            label="关闭"
-            icon="close"
-            iconOnly
-            variant="quiet"
-            onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
-          />
-        </If>
-      </View>
-      <If when={props.description}>
-        <Text
-          class="text-muted-foreground"
-          style={{ fontSize: textSize('body'), fontWeight: textWeight('body') }}
-        >
-          {props.description}
-        </Text>
-      </If>
-      <Scroll
-        class="min-h-0 shrink"
-        style={{
-          margin: -focusInset(),
-          maxHeight: Math.max(0, windowSize().height - 240 + focusInset() * 2),
+    <ModalDismissScope.Provider value={dismissal}>
+      <BaseDialog
+        open={props.open}
+        testID={props.testID}
+        role={props.role ?? 'dialog'}
+        accessibilityLabel={props.title}
+        accessibilityDescription={props.description}
+        animation={reduceMotion() ? 'none' : 'fade'}
+        closeOnEscape={false}
+        onCancel={dismissal.cancel}
+        closeOnBackdropPress
+        closeOnSwipe={false}
+        onOpenChange={props.onOpenChange}
+        onOpen={() => {
+          props.initialFocus?.();
+          props.onOpen?.();
         }}
-        contentStyle={{ padding: focusInset(), gap: space('md') }}
+        onClose={() => {
+          props.onClose?.();
+          props.returnFocus?.();
+        }}
+        // A dark page scrim cannot darken a black background, so the dialog carries its own edge:
+        // a hairline makes the modal boundary read in both themes.
+        class="m-auto bg-popover border border-input"
+        backdropClass="bg-cinema/40"
+        style={{
+          borderWidth: border,
+          width: Math.max(
+            0,
+            Math.min(props.size === 'lg' ? 800 : 480, windowSize().width - space('3xl')),
+          ),
+          maxHeight: Math.max(0, windowSize().height - 64),
+          padding: space('xl'),
+          gap: space('lg'),
+          borderRadius: controlMetrics().radius,
+        }}
       >
-        {props.children}
-      </Scroll>
-      <If when={props.footer}>{props.footer}</If>
-    </BaseDialog>
+        <RemoteFocusScope />
+        <View class="flex-row items-center justify-between" style={{ gap: space('md') }}>
+          <Text
+            role="header"
+            class="flex-1 text-popover-foreground"
+            style={{
+              fontSize: textSize('section'),
+              fontWeight: textWeight('section'),
+            }}
+          >
+            {props.title}
+          </Text>
+          <If when={props.closeButton}>
+            <Button
+              label="关闭"
+              icon="close"
+              iconOnly
+              variant="quiet"
+              onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
+            />
+          </If>
+        </View>
+        <If when={props.description}>
+          <Text
+            class="text-muted-foreground"
+            style={{ fontSize: textSize('body'), fontWeight: textWeight('body') }}
+          >
+            {props.description}
+          </Text>
+        </If>
+        <Scroll
+          class="min-h-0 shrink"
+          style={{
+            margin: -focusInset(),
+            maxHeight: Math.max(0, windowSize().height - 240 + focusInset() * 2),
+          }}
+          contentStyle={{ padding: focusInset(), gap: space('md') }}
+        >
+          {props.children}
+        </Scroll>
+        <If when={props.footer}>{props.footer}</If>
+      </BaseDialog>
+    </ModalDismissScope.Provider>
   );
 }
 
@@ -314,55 +321,61 @@ export function SidePanel(props: SidePanelProps) {
     () => props.open,
     () => props.returnFocus?.(),
   );
+  const dismissal = createModalDismiss(() => props.onOpenChange({ open: false, reason: 'cancel' }));
+  bindModalEscape(() => props.open, dismissal.cancel);
   return (
-    <BaseSheet
-      open={props.open}
-      side="right"
-      testID={props.testID}
-      closeOnEscape
-      closeOnBackdropPress
-      closeOnSwipe={false}
-      popupClass="bg-popover"
-      popupStyle={{
-        width: Math.min(440, windowSize().width),
-        padding: space('xl'),
-        gap: space('lg'),
-      }}
-      backdropClass="bg-cinema/40"
-      onOpenChange={props.onOpenChange}
-      onOpen={() => {
-        props.initialFocus?.();
-        props.onOpen?.();
-      }}
-      onClose={() => {
-        props.onClose?.();
-        props.returnFocus?.();
-      }}
-    >
-      <View class="flex-row items-center justify-between" style={{ gap: space('md') }}>
-        <Text
-          role="header"
-          class="flex-1 text-popover-foreground"
-          style={{
-            fontSize: textSize('section'),
-            fontWeight: textWeight('section'),
-          }}
-        >
-          {props.title}
-        </Text>
-        <Button
-          label="关闭"
-          icon="close"
-          iconOnly
-          variant="quiet"
-          onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
-        />
-      </View>
-      <Scroll class="flex-1 min-h-0" contentStyle={{ gap: space('md'), padding: space('xs') }}>
-        {props.children}
-      </Scroll>
-      <If when={props.footer}>{props.footer}</If>
-    </BaseSheet>
+    <ModalDismissScope.Provider value={dismissal}>
+      <BaseSheet
+        open={props.open}
+        side="right"
+        testID={props.testID}
+        closeOnEscape={false}
+        onCancel={dismissal.cancel}
+        closeOnBackdropPress
+        closeOnSwipe={false}
+        popupClass="bg-popover"
+        popupStyle={{
+          width: Math.min(440, windowSize().width),
+          padding: space('xl'),
+          gap: space('lg'),
+        }}
+        backdropClass="bg-cinema/40"
+        onOpenChange={props.onOpenChange}
+        onOpen={() => {
+          props.initialFocus?.();
+          props.onOpen?.();
+        }}
+        onClose={() => {
+          props.onClose?.();
+          props.returnFocus?.();
+        }}
+      >
+        <RemoteFocusScope />
+        <View class="flex-row items-center justify-between" style={{ gap: space('md') }}>
+          <Text
+            role="header"
+            class="flex-1 text-popover-foreground"
+            style={{
+              fontSize: textSize('section'),
+              fontWeight: textWeight('section'),
+            }}
+          >
+            {props.title}
+          </Text>
+          <Button
+            label="关闭"
+            icon="close"
+            iconOnly
+            variant="quiet"
+            onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
+          />
+        </View>
+        <Scroll class="flex-1 min-h-0" contentStyle={{ gap: space('md'), padding: space('xs') }}>
+          {props.children}
+        </Scroll>
+        <If when={props.footer}>{props.footer}</If>
+      </BaseSheet>
+    </ModalDismissScope.Provider>
   );
 }
 
@@ -373,7 +386,7 @@ export interface MenuCommand {
   /** The visible command. */
   label: string;
   /** Optional official Lucide semantic icon. */
-  icon?: string;
+  icon?: IconName;
   /** Disabled commands remain visible and are skipped by keyboard navigation. */
   disabled?: boolean;
   /** Defined only for checkable commands. */
@@ -468,12 +481,12 @@ export function Menu(props: MenuProps) {
               }}
               indicator={
                 <View class="opacity-0 group-checked:opacity-100">
-                  <Icon icon={Check} />
+                  <Icon name="check" />
                 </View>
               }
             >
               <If when={command().icon}>
-                <Icon icon={command().icon!} />
+                <Icon name={command().icon!} />
               </If>
               <Text
                 class={`${command().destructive ? 'text-destructive' : 'text-popover-foreground'} group-disabled:text-muted-foreground`}
@@ -820,7 +833,7 @@ export function Accordion(props: AccordionProps) {
                 <View
                   class={`group-aria-expanded:rotate-180 ${reduceMotion() ? '' : 'transition-transform duration-100'}`}
                 >
-                  <Icon icon={ChevronDown} />
+                  <Icon name="down" />
                 </View>
               </AccordionTrigger>
             </AccordionHeader>

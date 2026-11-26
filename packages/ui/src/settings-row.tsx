@@ -1,8 +1,9 @@
 const SETTINGS_VALUE_MIN_WIDTH = 200;
 
-import { Text, token, View, type JSX } from 'nsh';
+import { Text, token, View, signal, fontScale, type JSX } from 'nsh';
 import { controlMetrics, radius, space } from './foundation';
 import { UiText } from './display';
+import { Button } from './button';
 import { textLineHeight, textSize, textWeight } from './typography';
 
 /**
@@ -14,6 +15,9 @@ export interface SettingsRowProps {
   description?: string;
   value?: string;
   error?: string;
+  /** Recovery belongs to the setting's owner; a missing callback leaves the row read-only here. */
+  onRetry?: () => void;
+  retryLabel?: string;
   /** `card` gives the row its own surface; `divided` keeps the shared list form. */
   variant?: 'divided' | 'card';
   children?: JSX.Element;
@@ -26,6 +30,8 @@ export interface SettingsRowProps {
  * the end side. `card` isolates one row when it is not part of a list.
  */
 export function SettingsRow(props: SettingsRowProps) {
+  const width = signal(0);
+  const stacked = () => width() > 0 && width() < 368 * fontScale();
   const card = () => props.variant === 'card';
   const label = () => ({
     fontSize: textSize('body'),
@@ -41,6 +47,9 @@ export function SettingsRow(props: SettingsRowProps) {
   });
   return (
     <View
+      onLayout={({ bounds }) => {
+        if (bounds.size.width > 0) width.set(bounds.size.width);
+      }}
       testID={props.testID}
       style={
         card()
@@ -56,7 +65,7 @@ export function SettingsRow(props: SettingsRowProps) {
     >
       <View
         style={{ minHeight: controlMetrics().height, gap: space('lg') }}
-        class="flex-row items-center justify-between"
+        class={stacked() ? 'flex-col items-stretch' : 'flex-row items-center justify-between'}
       >
         <View class="flex-1" style={{ gap: space('xs') }}>
           <Text style={label()}>{props.label}</Text>
@@ -65,8 +74,8 @@ export function SettingsRow(props: SettingsRowProps) {
           </If>
         </View>
         <View
-          class="flex-row items-center justify-end"
-          style={{ gap: space('sm'), minWidth: SETTINGS_VALUE_MIN_WIDTH }}
+          class={`flex-row flex-wrap items-center ${stacked() ? '' : 'justify-end'}`}
+          style={{ gap: space('sm'), minWidth: stacked() ? undefined : SETTINGS_VALUE_MIN_WIDTH }}
         >
           <If when={props.value}>
             <UiText tone="muted">{props.value}</UiText>
@@ -75,16 +84,28 @@ export function SettingsRow(props: SettingsRowProps) {
         </View>
       </View>
       <If when={props.error}>
-        <Text
-          role="alert"
-          style={{
-            fontSize: textSize('meta'),
-            fontWeight: textWeight('meta'),
-            color: token('destructive'),
-          }}
-        >
-          {props.error}
-        </Text>
+        <View class="flex-row flex-wrap items-center" style={{ gap: space('sm') }}>
+          <Text
+            role="alert"
+            class="flex-1"
+            style={{
+              fontSize: textSize('meta'),
+              fontWeight: textWeight('meta'),
+              color: token('destructive'),
+            }}
+          >
+            {props.error}
+          </Text>
+          <If when={props.onRetry}>
+            <Button
+              label={props.retryLabel ?? '重试'}
+              variant="quiet"
+              size="sm"
+              testID={props.testID ? `${props.testID}-retry` : undefined}
+              onPress={() => props.onRetry?.()}
+            />
+          </If>
+        </View>
       </If>
     </View>
   );

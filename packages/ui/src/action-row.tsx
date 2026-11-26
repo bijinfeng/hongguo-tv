@@ -1,10 +1,9 @@
 import { Text, View, reduceMotion, token, type ViewRef } from 'nsh';
 import { CardRoot } from './card-controls';
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 import { border, controlMetrics, space, focusRingClass } from './foundation';
 import { motionTokens } from './motion';
 import { textLineHeight, textSize, textWeight } from './typography';
-import { ChevronRight } from 'nsh-icon-lucide';
 
 /**
  * One destination or command drawn across the full row: the name on the leading edge, a
@@ -16,7 +15,7 @@ export interface ActionRowProps {
   /** Optional second line under the name; read as the action's description. */
   description?: string;
   /** Trailing glyph; defaults to the forward chevron navigation rows draw. */
-  trailingIcon?: string;
+  trailingIcon?: IconName;
   /** Draws the hairline that separates this row from the one above it. */
   divided?: boolean;
   disabled?: boolean;
@@ -77,7 +76,7 @@ export function ActionRow(props: ActionRowProps) {
           </Text>
         </If>
       </View>
-      <Icon icon={props.trailingIcon ?? ChevronRight} tone="muted-foreground" size="sm" />
+      <Icon name={props.trailingIcon ?? 'forward'} color={token('muted-foreground')} size="sm" />
     </CardRoot>
   );
 }

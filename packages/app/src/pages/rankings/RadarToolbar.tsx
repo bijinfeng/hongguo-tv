@@ -12,7 +12,6 @@ import {
 } from '@hongguo/ui';
 import type { RadarKind } from '@hongguo/core-client';
 import type { RadarCategory, RadarController, RadarMetric, RadarView } from '../../radar';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'nsh-icon-lucide';
 
 /** The radar control band: source meta, refresh, view tabs, filters and column controls. */
 export function RadarToolbar(props: {
@@ -40,7 +39,7 @@ export function RadarToolbar(props: {
           </View>
           <Button
             testID="radar-refresh"
-            icon={RefreshCw}
+            icon="refresh-cw"
             label="刷新"
             size="sm"
             pending={props.radar.loading()}
@@ -86,7 +85,7 @@ export function RadarToolbar(props: {
         </View>
         <Button
           testID="radar-refresh"
-          icon={RefreshCw}
+          icon="refresh-cw"
           label="刷新"
           size="sm"
           pending={props.radar.loading()}
@@ -125,7 +124,7 @@ export function RadarToolbar(props: {
             <IconButton
               testID="radar-columns-prev"
               label="显示前面的列"
-              icon={ChevronLeft}
+              icon="back"
               variant="quiet"
               size="sm"
               onPress={() => {
@@ -136,7 +135,7 @@ export function RadarToolbar(props: {
             <IconButton
               testID="radar-columns-next"
               label="显示后面的列"
-              icon={ChevronRight}
+              icon="forward"
               variant="quiet"
               size="sm"
               onPress={() => {

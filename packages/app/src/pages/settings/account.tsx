@@ -1,7 +1,6 @@
 import { Button, SettingsRow, SettingsSection } from '@hongguo/ui';
 import type { ViewRef } from 'nsh';
 import type { Store } from '../../store';
-import { User } from 'nsh-icon-lucide';
 
 /** Account entry only; account state itself stays owned by the store and account page. */
 export function SettingsAccount(props: { store: Store }) {
@@ -25,7 +24,7 @@ export function SettingsAccount(props: { store: Store }) {
         <Button
           variant="quiet"
           compact
-          icon={User}
+          icon="user"
           label="查看账号"
           buttonRef={(ref) => {
             accountRef = ref;

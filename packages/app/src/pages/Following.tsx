@@ -4,7 +4,6 @@ import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
 import { PageScroll } from '../shell/PageScroll';
-import { RefreshCw } from 'nsh-icon-lucide';
 
 /** These labels are remote observations, never local playback checkpoints or inferred schedules. */
 export function followCaption(item: FollowItem): string {
@@ -227,7 +226,7 @@ export function Following(props: { store: Store }) {
         <Button
           label="刷新"
           testID="following-refresh"
-          icon={RefreshCw}
+          icon="refresh-cw"
           pending={follow.loading()}
           disabled={!signedIn() || !active() || follow.mutation()?.state === 'pending'}
           buttonRef={(ref) => {

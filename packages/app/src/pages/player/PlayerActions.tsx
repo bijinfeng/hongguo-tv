@@ -5,7 +5,6 @@ import type { Store } from '../../store';
 import { createDetailFavorite } from '../../detail-favorite';
 import { FollowAction, FollowNotice } from '../../FollowAction';
 import { ReservationAction, ReservationNotice } from '../../ReservationAction';
-import { Bookmark } from 'nsh-icon-lucide';
 
 /**
  * The player's own action line: bookmark, follow and reserve for the drama currently playing.
@@ -30,7 +29,7 @@ export function PlayerActions(props: {
         <CinemaButton
           testID="player-favorite"
           label={favorite.selected() ? '已收藏' : '收藏'}
-          icon={Bookmark}
+          icon="bookmark"
           selected={favorite.selected()}
           pending={favorite.pending()}
           disabled={favorite.disabled()}

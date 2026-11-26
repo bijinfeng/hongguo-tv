@@ -1,5 +1,6 @@
 import { signal, effect, type ViewRef } from 'nsh';
 import { Select } from 'nsh/base';
+import { registerModalPopup } from './modal-dismiss';
 import { Button } from './button';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { LabeledChoiceList } from './choice-list';
@@ -20,6 +21,7 @@ export function FilterChoices(props: {
   onNavigate?: () => void;
 }) {
   const open = signal(false);
+  registerModalPopup(open, () => open.set(false));
   let trigger: ViewRef | undefined;
   effect(() => {
     if (!props.active) open.set(false);

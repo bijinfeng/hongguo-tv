@@ -17,13 +17,6 @@ import {
 import type { Store } from '../../store';
 
 import { POSTER_GAP, posterGrid } from '../../shell/poster-grid';
-import {
-  CalendarDays,
-  ChartNoAxesColumnIncreasing,
-  ChevronDown,
-  ChevronRight,
-  Search,
-} from 'nsh-icon-lucide';
 
 /** The shared poster grid: one column count and card width for home and every browse page. */
 const columnGap = POSTER_GAP;
@@ -73,7 +66,7 @@ function CatalogFilters(props: { store: Store }) {
             <Button
               label="排序方式"
               displayLabel={sortTitle()}
-              icon={ChevronDown}
+              icon="down"
               size="sm"
               variant="quiet"
               selectOpen={sortOpen()}
@@ -255,7 +248,7 @@ export function CatalogSection(props: { store: Store }) {
             pending={catalog.loading()}
             variant="quiet"
             size="sm"
-            icon={ChevronRight}
+            icon="forward"
             testID="home-catalog-more"
             onPress={() => (catalog.error() ? catalog.retry() : catalog.loadMore())}
           />
@@ -267,7 +260,7 @@ export function CatalogSection(props: { store: Store }) {
           <CardControls label="更多发现" onNavigate={props.store.noteFocusIntent} gap={10}>
             <Button
               label="排行榜"
-              icon={ChartNoAxesColumnIncreasing}
+              icon="chart-no-axes-column-increasing"
               variant="quiet"
               testID="home-rankings"
               onPress={() => {
@@ -277,7 +270,7 @@ export function CatalogSection(props: { store: Store }) {
             />
             <Button
               label="上新日历"
-              icon={CalendarDays}
+              icon="calendar-days"
               variant="quiet"
               testID="home-calendar"
               onPress={() => {
@@ -287,7 +280,7 @@ export function CatalogSection(props: { store: Store }) {
             />
             <Button
               label="查看全部"
-              icon={Search}
+              icon="search"
               variant="quiet"
               testID="home-catalog-all"
               onPress={() => {

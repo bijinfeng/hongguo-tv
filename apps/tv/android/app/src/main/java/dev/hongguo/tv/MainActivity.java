@@ -18,6 +18,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         nsh = new NshView(this);
+        nsh.registerComponent("hongguo.tv.remote-scope", context -> new RemoteFocusScope(context, nsh));
         updates = new UpdateInstaller(this, nsh);
         diagnostics = new DiagnosticsReporter(nsh, BuildConfig.SENTRY_DSN);
         // The local line is unconditional; forwarding depends on the user's choice.
@@ -57,6 +58,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        remote.dispose();
         updates.close();
         nsh.destroy();
         super.onDestroy();

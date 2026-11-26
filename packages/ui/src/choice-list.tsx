@@ -35,6 +35,7 @@ export interface ChoiceListProps {
   onOptionFocus?: (ref: ViewRef) => void;
   /** Layout-only additions for the wrapping row. */
   class?: string;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 /**
@@ -54,7 +55,8 @@ export function ChoiceList(props: ChoiceListProps) {
         label={props.label}
         onNavigate={props.onNavigate}
         gap={space('xs')}
-        class={`flex-wrap ${props.class ?? ''}`}
+        vertical={props.orientation === 'vertical'}
+        class={`${props.orientation === 'vertical' ? '' : 'flex-wrap'} ${props.class ?? ''}`}
       >
         {/*
           Slots are keyed by position, not by value: `CardControls` registers its members in mount
@@ -90,7 +92,9 @@ export function ChoiceList(props: ChoiceListProps) {
                   variant="quiet"
                   testID={props.testID ? `${props.testID}-${item().value || 'all'}` : undefined}
                   label={item()?.title ?? ''}
-                  labelLines={1}
+                  labelLines={props.orientation === 'vertical' ? 2 : 1}
+                  align={props.orientation === 'vertical' ? 'start' : undefined}
+                  class={props.orientation === 'vertical' ? 'w-full' : undefined}
                   disabled={item()?.disabled}
                   selected={props.value === item()?.value}
                   onPress={() => {
@@ -115,16 +119,23 @@ export function ChoiceList(props: ChoiceListProps) {
  */
 export function LabeledChoiceList(props: ChoiceListProps & { title: string }) {
   return (
-    <View class="flex-row items-start" style={{ gap: space('md') }}>
+    <View
+      class={props.orientation === 'vertical' ? 'flex-col' : 'flex-row items-start'}
+      style={{ gap: space(props.orientation === 'vertical' ? 'xs' : 'md') }}
+    >
       <View
         class="justify-center"
-        style={{ width: LABEL_GUTTER, height: optionHeight() + RING_RESERVE * 2 }}
+        style={
+          props.orientation === 'vertical'
+            ? undefined
+            : { width: LABEL_GUTTER, height: optionHeight() + RING_RESERVE * 2 }
+        }
       >
         <UiText role="meta" tone="muted" lines={1}>
           {props.title}
         </UiText>
       </View>
-      <View class="flex-1 min-w-0">
+      <View class={props.orientation === 'vertical' ? 'w-full min-w-0' : 'flex-1 min-w-0'}>
         <ChoiceList {...props} />
       </View>
     </View>

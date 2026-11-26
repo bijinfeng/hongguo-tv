@@ -1,7 +1,6 @@
-import type { ViewRef } from 'nsh';
+import { token, type ViewRef } from 'nsh';
 import { Avatar, Button, Icon } from '@hongguo/ui';
 import type { Store } from '../store';
-import { User } from 'nsh-icon-lucide';
 
 /**
  * The account's presence in a top bar: the profile picture once signed in, an outline while
@@ -22,7 +21,7 @@ export function AccountButton(props: {
   const signedIn = () => account()?.logged_in === true;
   const label = () => (signedIn() ? profile()?.name || '账号' : '登录');
   const artwork = () => (
-    <If when={signedIn()} else={<Icon icon={User} tone="muted-foreground" />}>
+    <If when={signedIn()} else={<Icon name="user" color={token('muted-foreground')} />}>
       <Avatar
         src={profile()?.avatar ?? undefined}
         name={profile()?.name || '账号'}

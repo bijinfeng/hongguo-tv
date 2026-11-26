@@ -50,6 +50,7 @@ export function Tabs(props: TabsProps) {
                 }}
               >
                 <UiText
+                  weight={props.value === option().value ? 'strong' : 'regular'}
                   tone={
                     inactive(option())
                       ? 'muted'

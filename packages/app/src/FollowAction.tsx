@@ -2,7 +2,6 @@ import { View, type ViewRef } from 'nsh';
 import { Button, CinemaButton, Notice, UiText } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from './store';
-import { Bell } from 'nsh-icon-lucide';
 
 /** Shared detail action; membership and all network work belong to the store. */
 export function FollowAction(props: {
@@ -47,7 +46,7 @@ export function FollowAction(props: {
           testID="detail-follow"
           label={label()}
           displayLabel={label()}
-          icon={Bell}
+          icon="bell"
           buttonRef={props.buttonRef}
           selected={observed()}
           pending={pending()}
@@ -59,7 +58,7 @@ export function FollowAction(props: {
       <CinemaButton
         testID="detail-follow"
         label={label()}
-        icon={Bell}
+        icon="bell"
         buttonRef={props.buttonRef}
         selected={observed()}
         pending={pending()}

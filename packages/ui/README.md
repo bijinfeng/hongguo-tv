@@ -31,7 +31,7 @@ export function Example() {
 }
 ```
 
-TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档位为 sm 32／md 40／lg 60，TV 为 48；`size` 只描述几何，TV 的确认输入、行焦点、覆盖控制层由调用方传 `activation`／`focusMode`／`variant` 等显式 props。几何全部读主题 token，不把 1920 参考值直接当作 dp。大字号允许按内容增长，不固定裁切高度。
+TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。控件档位由 [DESIGN 的尺寸契约](../../DESIGN.md#组件架构与尺寸契约)统一维护；`size` 只描述几何，TV 的确认输入、行焦点、覆盖控制层由调用方传 `activation`／`focusMode`／`variant` 等显式 props。几何全部读主题 token，不把 1920 参考值直接当作 dp。大字号允许按内容增长，不固定裁切高度。
 
 真实差异集中在输入边界：桌面键鼠；TV 由 app 传 `activation="confirm"`，确认进入输入／滑杆调整、返回保留或取消草稿；必要的 macOS Select 与来源焦点适配保留。不得复制业务状态机。NSH Menu 的承载由真实宿主 idiom 决定，不能伪造锚点行为。
 
@@ -40,7 +40,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 | 模块                                                | 责任                                                                                                                                                                          |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | foundation                                          | `controlMetrics(size)`、`space(name)`、`radius(name)`、`border`；数值来自 app 的主题文件（桌面 `theme.json`／TV `theme.tv.json`），名称与使用规则见 [DESIGN](../../DESIGN.md) |
-| icon / assets/lucide                                | `Icon`：包装 `nsh-icon` 的 `<Icon>`，调用方传 `nsh-icon-lucide` 常量；`tone` 映射文本色类，尺寸取 `size` 档位；`assets/lucide` 供浏览器原型                                   |
+| icon / assets/lucide                                | 官方 Lucide 资源、稳定语义别名、原生渲染                                                                                                                                      |
 | button                                              | Button／IconButton，有限 variant 与 size；`navigation` 变体让当前目的地保持 foreground、其余降一档                                                                            |
 | back-button                                         | 页面级返回：箭头加目的地名，无静止表面，页面／影院两档色调                                                                                                                    |
 | text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                                                                                                                            |
@@ -59,11 +59,15 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 
 动作层级与状态优先级见 [DESIGN.md](../../DESIGN.md#动作层级与状态组合)：Button 的 disabled／pending 外观覆盖 selected，再覆盖 variant；文字与图标跟随同一配对，focus 独立。重复 ContinueCard 使用普通动作，StoryFeature 内的主动作使用 Button primary，辅助动作复用 CinemaButton。无需新增端型组件或页面自定义颜色。
 
-文字角色由内部 `typography.ts` 统一供 UiText 与内容组合消费；`content-title` 是卡片剧名（桌面 18／TV 24），不自动增加标题层级。Cover 的默认 poster、inline、feature 分别负责独立海报、贴边续播与影院取景；页面只提供来源、身份和布局，不复制裁切。Surface 的四种变体、间距关系和图片安全区见根 DESIGN；普通栏目先用留白，四种表面作为同层选择，不层层套卡。影院表面显式搭配影院文字和控件。
+文字角色由内部 `typography.ts` 统一供 UiText 与内容组合消费；`content-title` 是卡片剧名（字级见 DESIGN），不自动增加标题层级。Cover 的默认 poster、inline、feature 分别负责独立海报、贴边续播与影院取景；封面保留可读语义但不拦截指针，由所属卡片承接点击；页面只提供来源、身份和布局，不复制裁切。Surface 的四种变体、间距关系和图片安全区见根 DESIGN；普通栏目先用留白，四种表面作为同层选择，不层层套卡。影院表面显式搭配影院文字和控件。
 
 普通布局用 `View` 的配方，不给每个原语建立改名包装。日期条、账号验证、榜单和媒体状态仍是 app 组合与业务，不因设计样板存在就进入基础包。
 
 字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
+
+### SettingsRow
+
+`error` 在所属行显示失败，`onRetry` 可提供由调用方拥有的恢复动作，`retryLabel` 默认为“重试”。恢复按钮的 testID 为行 testID 加 `-retry`；没有错误时不显示。组件不保存值或调用存储，重试结果、失败字段和原设置意图仍归业务 owner。
 
 ### DateChoice
 
@@ -78,7 +82,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。桌面档�
 />
 ```
 
-桌面与 TV 共用“日标签／大日期／月份”三层，不拆组件。桌面最小 86×96、内距 12；TV 最小 164×132、内距 16，数值由主题 token 决定。默认中性表面、选中 accent 前景配对、焦点独立外轮廓，hover／pressed 不位移；减少动态效果时取消颜色过渡。日期条的横滚、完整日期名称、选中值、今天／星期和离页恢复由 app 组合管理；放入 `CardControls` 后方向键移动焦点、Enter／Space 激活，方向移动不自动提交。
+默认使用“日标签／大日期／月份”三层；`presentation="inline"` 将月日与日标签合为一行，TV 日历用它保留内容视口。完整年月日的可访问名称和受控选择行为相同，不拆组件。尺寸由当前主题的 `controlMetrics` 与 spacing 派生，不在包文档维护第二份数值表。默认中性表面、选中 accent 前景配对、焦点独立外轮廓，hover／pressed 不位移；减少动态效果时取消颜色过渡。日期条的横滚、完整日期名称、选中值、今天／星期和离页恢复由 app 组合管理；放入 `CardControls` 后方向键移动焦点、Enter／Space 激活，方向移动不自动提交。
 
 独立验收例为 `dev/CalendarChoices.tsx`，经 `@hongguo/ui/preview/date-choice` 暴露，三端显式入口为 `apps/*/DateChoicePreview.tsx`，产品不导入 testing。对应 `DateChoicePreview.test.tsx` 覆盖外部拒绝／接受选择、合法闰日与非法日期、键盘焦点和一次激活，以及浅深色选中文字配对。该测试独立于 `ui:test` 的 Gallery 测试入口，使用 `cd apps/desktop && nsh test DateChoicePreview.test.tsx`（另对 web／tv 执行）运行；类型与预览构建分别执行 `nsh check` 和 `nsh build DateChoicePreview.tsx`。
 
@@ -139,17 +143,15 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ### PosterCard 的可用高度
 
-`availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。TV 沿用既有可用高度与字体缩放规则。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。
+`availableHeight` 是调用方扣除列表焦点安全区后的卡片可用高度。桌面在空间充足时保持常规海报比例；有限视口按当前字号的实际标题／元信息高度收缩封面，封面最小 96，不压缩文字。标题和元信息最多两行，完整标题与说明保留在无障碍语义中。紧凑模式由宽度决定封面比例，不因局部视口压扁封面；长行交给所属列表滚动。调用方仍负责滚动区域和外焦点环的安全区，不能把整个窗口高度传入局部列表。
 
-父滚动容器中的自然高度网格只传 `width`，不传 `availableHeight`，两端封面均按宽度 × 1.35 生成高度；文字自然换行。独立有限视口继续传入实际 `availableHeight`，TV 沿用既有限高算法。两种布局复用同一 PosterCard，不增加端型组件或自由外观参数；内容验收页同时使用实际端型宽度。
+父滚动容器中的自然高度网格只传 `width`，不传 `availableHeight`，两端封面均按宽度 × 1.35 生成高度；文字自然换行。独立有限视口继续传入实际 `availableHeight`，TV 使用 `density="compact"`，卡片宽度由 `width` 约束，图片不随文字倍率放大。两种布局复用同一 PosterCard，不增加端型组件或自由外观参数；内容验收页同时使用实际端型宽度。
 
 ## 资源与演进
 
 安装图标和 Web favicon 共用 [品牌资源](assets/brand/README.md)，由三端 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
-主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。
-
-图标经 `nsh-icon-lucide`（Lucide 1.43.0）绘制，三端 `nsh.json` 的 `dependencies` 声明、`nsh.lock` 锁定。调用方从图标集导入常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 不维护名称清单，打包内容等于源码实际导入的常量，未引用的图标不进包。浏览器原型用同版本官方 SVG：ISC 许可证及每图 SHA256 位于 `assets/lucide/`，`pnpm ui:icons` 生成原型图标并校验源，`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形；升级时同步 `nsh upgrade` 的锁文件与原型资源版本。
+主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
 
 浏览器产品设计稿与组件板复用 `design/prototype/visual-redesign-real/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 
@@ -157,7 +159,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 - `pnpm ui:check`：三端对组件验收入口执行 NSH check **和** build。
 - `pnpm ui:test`：三端入口的真实引擎行为测试。
-- `pnpm ui:host`：macOS 可见宿主中的深浅主题与两端密度验收，证据写入 ignored artifacts；它不代表 Android TV。
+- `pnpm ui:host:desktop`／`pnpm ui:host:tv`：macOS 可见宿主中的深浅主题与两端密度验收，证据写入 ignored artifacts；它不代表 Android TV。
 - `pnpm ui:preview --target desktop`：显式组件预览；可选 web／tv。每个端固定一个端口，重复启动替换上一次预览窗口而不是再开一个；`--display 2`、`--window-size 1440x960` 原样传给 `nsh run`。
 - 完整工程仍运行 `pnpm verify`；依赖变化运行 `pnpm security`。缺工具必须失败。
 
@@ -200,3 +202,16 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 独立样例 `dev/RadarTables.tsx` 经 `@hongguo/ui/preview/radar-table` 导出；测试经 `@hongguo/ui/testing/radar-table` 导出。三端显式入口为 `apps/*/RadarTablePreview.tsx` 及相邻 `.test.tsx`，不进入产品路由或 Gallery。样例提供 32 条合成数据、外部接受／拒绝、相邻大 ID、完整长标题、缺失／零／负数／极值、读取中、空表、列集切换、横向按钮与可重复的后段行恢复；不发请求、不写历史或媒体状态。样例不增加动效，沿用基础按钮状态和表格原有滚动行为。
 
 运行每端的 `nsh check`、`nsh build RadarTablePreview.tsx` 与 `nsh test RadarTablePreview.test.tsx`。测试覆盖受控动作、精确 ID／来源、列集及空表切换，以及 inactive／过期 owner 的恢复围栏；真实宿主的表格对齐、长标题、横滚、浅深主题、大字号与遥控仍须单独观察。文件存在不表示还原度或宿主验收已通过。
+
+## TV v4 的有限组合
+
+- `NavigationItem` 的 `presentation="bar"` 使用栏目字级与主导航高度；默认 `rail` 保留桌面表现。`current` 标识目的地，方向移动只改变焦点，确认才执行 `onPress`。
+- `RemoteKeyboard` 受控地接收 `value`，报告字母／数字、退格和清空；`columns` 为 6 或 5，省略 `onSubmit` 时由外部输入表单提供唯一提交入口。它不持有查询、联想或最近搜索。
+- `SafeFrame` 接收实际 insets，作为根内容的唯一内距拥有者。全屏媒体可用 `enabled={false}` 铺满；原生浮层和影院操作层仍从同一上下文读取安全策略，在各自表面应用一次。
+- `Cover.fit="contain"` 保留完整图片，默认取景不变。`PosterCard` 的 `width` 决定封面槽高度，常规模式的 `availableHeight` 为有限列表视口预留文字空间；紧凑模式保持图片比例与独立卡宽。`ContinueCard.density="compact"` 是紧凑续播，`RankingCard.presentation="poster"` 是排名海报；两者旧默认均保留。
+- `ResultCard.onPress` 缺省时是静态内容行，不显示“查看详情”或整行按钮语义；管理模式只聚焦选择、明确的详情入口与删除动作。`ChoiceList.orientation="vertical"` 复用同一稳定选项和焦点契约，供有界侧栏使用。
+- Android TV 每个原生窗口共用 `TvRemote` 作为焦点轮廓拥有者；内部 `RemoteFocusScope` 通过公开 `nativeComponent` 注册弹层窗口，其他宿主为空视图。内层 Select 先处理返回，关闭弹层再恢复原入口；控件不重复画父子焦点环。禁用／等待阻止激活与程序恢复焦点，恢复后重新可达。
+
+业务组合与列数规则见 [TV 技术方案](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)，实际验证范围见 [VALIDATION](../../VALIDATION.md)。画廊中的宿主度量读取真实环境，仅供开发验收，不进入产品界面。
+
+`textLineHeight(role)` 是只读的语义行高度量，供业务集合计算文字槽位与虚拟化估计；它不改变字号、主题或系统缩放，也不是页面绘制覆盖参数。

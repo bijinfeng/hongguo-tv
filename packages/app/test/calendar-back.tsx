@@ -11,7 +11,7 @@ export function registerCalendarBackTests(entry = './CalendarBackStatePreview.ts
     expect(app.shows('text:depth:1')).toBe(true);
     expect(app.shows('text:calls:1 · closed:1')).toBe(true);
     await app.press('返回');
-    await app.waitFor('text:section:home');
+    await app.waitFor('text:section:discover');
     expect(app.shows('text:calls:2 · closed:1')).toBe(true);
     app.dispose();
   });
@@ -56,7 +56,7 @@ export function registerCalendarBackTests(entry = './CalendarBackStatePreview.ts
     await app.press('展开公告');
     await app.press('注销返回处理器');
     await app.press('返回');
-    await app.waitFor('text:section:home');
+    await app.waitFor('text:section:discover');
     expect(app.shows('text:announcement:open')).toBe(true);
     expect(app.shows('text:calls:1 · closed:1')).toBe(true);
     app.dispose();

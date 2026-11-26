@@ -1,6 +1,6 @@
 # 首期功能台账
 
-当前实现台账（2026-11-20）。验收要求见 [ENGINEERING §9](../ENGINEERING.md#9-安全测试与可观测性)，实际通过范围见 [VALIDATION](../VALIDATION.md)。合成回归不计真实功能验收。
+当前实现台账（2026-11-25）。验收要求见 [ENGINEERING §9](../ENGINEERING.md#9-安全测试与可观测性)，实际通过范围见 [VALIDATION](../VALIDATION.md)。合成回归不计真实功能验收。
 
 行为基线：`upstream.lock.json` 固定 `de9712bf358dcbdf8a188e26cba711e3e5354e8a`。上游指针均相对于 `upstream/hongguo/core/cmd/hongguotv/`，只读参考，不执行 Go。批次见[实施路线](implementation-roadmap.md)，设计见[页面地图](design/ui-map.md)。状态只代表新工作区，不继承原型或旧链路的成功。
 
@@ -8,39 +8,40 @@
 
 ## 状态总览
 
-| 功能／页面                     | 批次／端             | 状态              | 证据                                                                                    |
-| ------------------------------ | -------------------- | ----------------- | --------------------------------------------------------------------------------------- |
-| 首页续播                       | A／三端              | 部分验收          | app/testing、[VALIDATION](../VALIDATION.md)                                             |
-| 搜索／结果／追加               | A 首批、D 分页／三端 | 已实现待真实验收  | contracts/fixtures/catalog、app/testing                                                |
-| 联想／热搜／搜索历史           | D／三端              | 已实现待真实验收  | catalog suggestions fixtures、HTTP/native、Host／TV 验收                                |
-| 演员作品                       | D／三端              | 已实现待真实验收  | catalog actor-works fixture、HTTP/native、共享 Host／TV 验收                            |
-| 分类／筛选                     | D／三端              | 已实现待真实验收  | category-state／SourceControls／Host／TV 分类 fixture                                   |
-| 加载／占位（共享 UI 状态）     | —／三端              | 已实现待真实验收  | [批次记录](history/2026-11-17/home-loading-unification.md)、ui:test、宿主 fixture        |
-| 排行榜／榜单雷达               | D／三端              | 已实现待真实验收  | [批次记录](history/2026-11-17/rankings-radar-unified-design.md)、rankings fixtures      |
-| 新剧／上新日历                 | D，预约写入 E／三端  | 已实现待真实验收  | calendar controller／Host／Web 真实 HTTP／TV 输入适配                                   |
-| 详情／选集／演员／相关         | A/D／三端            | 已实现待真实验收  | [详情演员与相关作品批次](history/2026-11-16/detail-actors-related.md)、series-detail fixture |
-| 系列／季／自动下一季           | D／三端              | 已实现待真实验收  | seasons 状态／缓存／控件、HTTP Host／TV 验收                                            |
-| 播放／切集／进度／后台         | B／三端，C 原生      | 部分验收          | app playback/library、PlayerMediaHost、[VALIDATION](../VALIDATION.md) B4b               |
-| 倍速／音量／清晰度／全屏／偏好 | B/F／适用端          | 部分验收          | PlayerMediaHost；Web 官网／暂停／seek／质量证据                                         |
-| 历史／续播／管理／清空         | A 展示、E 管理／三端 | 已实现待真实验收  | `crates/core/tests/library.rs`、app/testing、live-history-host                          |
-| 观看统计                       | E／三端              | 部分验收          | [观看统计批次](history/2026-11-16/account-watch-statistics.md)                           |
-| 收藏                           | E／三端              | 已实现待完整验收  | [真实证据](history/2026-11-15/account-library-sync.md)                                   |
-| 追更                           | E／三端              | 已实现待真实验收  | [追更记录](history/2026-11-15/account-follow.md)、VALIDATION                            |
-| 更新提醒                       | E／三端              | 已实现待真实验收  | [更新提醒批次](history/2026-11-16/account-notifications.md)                              |
-| 预约                           | E／三端              | 已实现待真实验收  | [预约批次](history/2026-11-16/account-reservations.md)                                  |
-| 扫码／手机／验证               | E／三端              | 部分验收          | [真实证据](history/2026-11-15/account-session.md)                                       |
-| 我的账号页面构图               | E／桌面、TV          | 已实现待正式验收  | 四轮视觉复评（PASS 8.17）、三端 NSH 回归；[记录](history/2026-11-20/gate-and-release.md) |
-| 恢复／退出／切号／同步／合并   | E／三端              | 已实现待真实验收  | [会话](history/2026-11-15/account-session.md)、[同步证据](history/2026-11-15/account-library-sync.md) |
-| 设置／外观／播放偏好           | F／三端              | 部分验收          | [设置页批次](history/2026-11-17/settings-page.md)                                        |
-| 诊断／更新／版本／许可         | F/G／适用端          | 部分验收          | 共享更新状态回归 8／8；TV 模拟器弹窗验收 9／9（light/dark/large）；启动自动弹出真机待验 |
-| TV 遥控／媒体键／返回／输入    | A 输入；B 播控／TV   | 部分验收          | T0Acceptance／BrowsingAcceptance／PlayerAcceptance；VALIDATION B4c                      |
-| 原生业务 bridge／独立安装      | C／Desktop/TV        | 部分验收          | [原生收尾审查](history/2026-11-16/native-core-review.md)、native-bridge／mixed tests     |
-| 公网隔离／发行                 | G／Web 与各端        | 部分验收          | [门禁与发布记录](history/2026-11-20/gate-and-release.md)、安全／安装／无 Go 构建         |
-| 刷剧／频道推荐                 | 不提供独立页面／三端 | 不提供            | contracts/fixtures/feed、feed_probe；旧 UI 证据仅作历史                                 |
-| 社交能力                       | 不实施               | 不提供            | 仅保留源码事实与历史验证                                                                |
-| 离线下载／任务管理             | F／能力适用端        | 待核对            | 原行为、文件／离线读取／任务取消待核对                                                  |
-| 支持／打赏／应用推荐           | F／适用端            | 待核对            | 未配置态／外部确认待验                                                                  |
-| TV 系统首页频道／外部卡片      | F／TV                | 待核对            | 真实 TV 系统能力待验                                                                    |
+| 功能／页面                     | 批次／端             | 状态                 | 证据                                                                                                                                                                              |
+| ------------------------------ | -------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TV v4组件化重设计              | TV／共享组件         | 已实现待完整真实验收 | [设计](design/tv-redesign.md)、[实施映射](../openspec/changes/compose-tv-v4-from-shared-components/design.md#实施映射与功能保留)、[当前验收](../VALIDATION.md#tv-v4-组件化重设计) |
+| 首页续播                       | A／三端              | 部分验收             | app/testing、[VALIDATION](../VALIDATION.md)                                                                                                                                       |
+| 搜索／结果／追加               | A 首批、D 分页／三端 | 已实现待真实验收     | contracts/fixtures/catalog、app/testing                                                                                                                                           |
+| 联想／热搜／搜索历史           | D／三端              | 已实现待真实验收     | catalog suggestions fixtures、HTTP/native、Host／TV 验收                                                                                                                          |
+| 演员作品                       | D／三端              | 已实现待真实验收     | catalog actor-works fixture、HTTP/native、共享 Host／TV 验收                                                                                                                      |
+| 分类／筛选                     | D／三端              | 已实现待真实验收     | category-state／SourceControls／Host／TV 分类 fixture                                                                                                                             |
+| 加载／占位（共享 UI 状态）     | —／三端              | 已实现待真实验收     | [批次记录](history/2026-11-17/home-loading-unification.md)、ui:test、宿主 fixture                                                                                                 |
+| 排行榜／榜单雷达               | D／三端              | 已实现待真实验收     | [批次记录](history/2026-11-17/rankings-radar-unified-design.md)、rankings fixtures                                                                                                |
+| 新剧／上新日历                 | D，预约写入 E／三端  | 部分验收             | calendar controller／Host／Web 真实 HTTP／TV 输入适配                                                                                                                             |
+| 详情／选集／演员／相关         | A/D／三端            | 已实现待真实验收     | [详情演员与相关作品批次](history/2026-11-16/detail-actors-related.md)、series-detail fixture                                                                                      |
+| 系列／季／自动下一季           | D／三端              | 已实现待真实验收     | seasons 状态／缓存／控件、HTTP Host／TV 验收                                                                                                                                      |
+| 播放／切集／进度／后台         | B／三端，C 原生      | 部分验收             | app playback/library、PlayerMediaHost、[VALIDATION](../VALIDATION.md) B4b                                                                                                         |
+| 倍速／音量／清晰度／全屏／偏好 | B/F／适用端          | 部分验收             | PlayerMediaHost；Web 官网／暂停／seek／质量证据                                                                                                                                   |
+| 历史／续播／管理／清空         | A 展示、E 管理／三端 | 已实现待真实验收     | `crates/core/tests/library.rs`、app/testing、live-history-host                                                                                                                    |
+| 观看统计                       | E／三端              | 部分验收             | [观看统计批次](history/2026-11-16/account-watch-statistics.md)                                                                                                                    |
+| 收藏                           | E／三端              | 已实现待完整验收     | [真实证据](history/2026-11-15/account-library-sync.md)                                                                                                                            |
+| 追更                           | E／三端              | 已实现待真实验收     | [追更记录](history/2026-11-15/account-follow.md)、VALIDATION                                                                                                                      |
+| 更新提醒                       | E／三端              | 已实现待真实验收     | [更新提醒批次](history/2026-11-16/account-notifications.md)                                                                                                                       |
+| 预约                           | E／三端              | 已实现待真实验收     | [预约批次](history/2026-11-16/account-reservations.md)                                                                                                                            |
+| 扫码／手机／验证               | E／三端              | 部分验收             | [真实证据](history/2026-11-15/account-session.md)                                                                                                                                 |
+| 我的账号页面构图               | E／桌面、TV          | 已实现待正式验收     | 四轮视觉复评（PASS 8.17）、三端 NSH 回归；[记录](history/2026-11-20/gate-and-release.md)                                                                                          |
+| 恢复／退出／切号／同步／合并   | E／三端              | 已实现待真实验收     | [会话](history/2026-11-15/account-session.md)、[同步证据](history/2026-11-15/account-library-sync.md)                                                                             |
+| 设置／外观／播放偏好           | F／三端              | 部分验收             | [设置页批次](history/2026-11-17/settings-page.md)                                                                                                                                 |
+| 诊断／更新／版本／许可         | F/G／适用端          | 部分验收             | 共享更新状态回归 8／8；TV 模拟器弹窗验收 9／9（light/dark/large）；启动自动弹出真机待验                                                                                           |
+| TV 遥控／媒体键／返回／输入    | A 输入；B 播控／TV   | 部分验收             | T0Acceptance／BrowsingAcceptance／PlayerAcceptance；VALIDATION B4c                                                                                                                |
+| 原生业务 bridge／独立安装      | C／Desktop/TV        | 部分验收             | [原生收尾审查](history/2026-11-16/native-core-review.md)、native-bridge／mixed tests                                                                                              |
+| 公网隔离／发行                 | G／Web 与各端        | 部分验收             | [门禁与发布记录](history/2026-11-20/gate-and-release.md)、安全／安装／无 Go 构建                                                                                                  |
+| 刷剧／频道推荐                 | 不提供独立页面／三端 | 不提供               | contracts/fixtures/feed、feed_probe；旧 UI 证据仅作历史                                                                                                                           |
+| 社交能力                       | 不实施               | 不提供               | 仅保留源码事实与历史验证                                                                                                                                                          |
+| 离线下载／任务管理             | F／能力适用端        | 待核对               | 原行为、文件／离线读取／任务取消待核对                                                                                                                                            |
+| 支持／打赏／应用推荐           | F／适用端            | 待核对               | 未配置态／外部确认待验                                                                                                                                                            |
+| TV 系统首页频道／外部卡片      | F／TV                | 待核对               | 真实 TV 系统能力待验                                                                                                                                                              |
 
 ## 当前缺口
 
@@ -50,7 +51,7 @@ A 续播入口已接通；B4b Web 官网播放及重启续播通过，macOS 待�
 
 ### 搜索／结果／追加
 
-D1 分页、同页重试、去重／取消和来源恢复已有合成回归；macOS 末页焦点已修复。官网核心 probe 不代替正式入口分页验收，真实流程待验。
+D1 分页、同页重试、去重／取消和来源恢复已有合成回归；macOS 末页焦点已修复。TV 正式入口已观察真实中文查询、追加分页、故障注入后的重试和第二页精确来源恢复，范围见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)；其他平台与完整分支仍待验，官网核心 probe 不代替正式入口验收。
 
 ### 联想／热搜／搜索历史
 
@@ -62,11 +63,11 @@ D4 core／严格契约／共享作品 UI 已实现待真实验收；82 项虚拟
 
 ### 分类／筛选
 
-D5 core 与定稿三维分类 UI 已接；分页／来源／清除、动态选项与键盘有合成回归；正式入口真实筛选／分页待验收，关键词组合与物理 TV 仍开放。
+D5 core 与定稿三维分类 UI 已接；分页／来源／清除、动态选项与键盘有合成回归；TV 正式入口已有真实筛选与恢复流程证据，见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)；完整真实分页、关键词组合与物理 TV 仍开放。
 
 ### 加载／占位（共享 UI 状态）
 
-首页精选／继续观看／题材筛选／片库网格已统一：未知不渲染空态，刷新保留旧内容，失败原位重试；fixture 浅深色与 TV 首屏 4／4 通过。真实慢网／失败、读屏与正式宿主待验。
+首页精选／继续观看／题材筛选／片库网格已统一：未知不渲染空态，刷新保留旧内容，失败原位重试；fixture 浅深色与 TV 首屏 4／4 通过。TV 正式入口的网络时延注入、失败／重试和真实内容证据见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)；其他平台、完整读屏及全部状态仍待验。
 
 ### 排行榜／榜单雷达
 
@@ -74,11 +75,11 @@ D5 core 与定稿三维分类 UI 已接；分页／来源／清除、动态选�
 
 ### 新剧／上新日历
 
-共享日期／新剧、独立缓存／双游标与公告阅读已接，三端合成数据宿主通过，正式入口真实流程待验收；官网全天遍历、账号预约、旧 API 实际运行／物理 TV 仍开放。
+共享日期／新剧、独立缓存／双游标与公告阅读已接，三端合成数据宿主通过；TV 正式入口已有局部真实验收，见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)。其他平台完整流程、全天遍历、跨 owner／季预约及物理 TV 仍开放。
 
 ### 详情／选集／演员／相关
 
-A 分段／锁定恢复与 D 系列切季已接；actors/related 共享页面已完成源码与视觉审查，Web fixture 4/4、TV 输入适配三档通过；正式匿名入口因 macOS 锁屏未进入搜索，保持已实现待真实验收。剧评按用户指令排除。
+A 分段／锁定恢复与 D 系列切季已接；actors/related 共享页面已完成源码与视觉审查，Web fixture 4/4、TV 输入适配三档通过；TV 正式入口已有真实详情浏览与来源返回证据；演员／系列等完整流程及其他宿主验收继续开放，见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)。剧评按用户指令排除。
 
 ### 系列／季／自动下一季
 
@@ -106,7 +107,7 @@ E1 管理 UI／写屏障已接，当前管理切片 12／13；共享 History 回
 
 ### 收藏
 
-已实现待完整验收：独立收藏、精确 series、本机清空与远端取消分离；正常 Desktop 已验添加／重开／同步／取消往返，其他平台和完整视觉仍待验。点赞按用户决定排除。
+已实现待完整验收：独立收藏、精确 series、本机清空与远端取消分离；正常 Desktop 已验添加／重开／同步／取消往返；当前 TV 正式入口已验添加／列表／重开／取消，证据见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)，其他平台和完整视觉仍待验。点赞按用户决定排除。
 
 ### 追更
 
@@ -118,11 +119,11 @@ E1 管理 UI／写屏障已接，当前管理切片 12／13；共享 History 回
 
 ### 预约
 
-工程实现、身份区分、失败对账、HTTP/native 已登录 parity 和共享 UI 已接；正式真实列表／日历／季入口、云写、宿主视觉和物理 TV 仍待验。
+工程实现、身份区分、失败对账、HTTP/native 已登录 parity 和共享 UI 已接；TV 正式入口已观察日历预约、列表读取、重开保留、取消与刷新为空，证据及剩余边界见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)。季入口、跨 owner／跨端完整流程和物理 TV 仍待验。
 
 ### 扫码／手机／验证
 
-Rust QR／手机号／MFA 状态与正式入口已接；Desktop 真实扫码成功，手机号／短信／MFA 与其他平台真实登录未验。
+Rust QR／手机号／MFA 状态与正式入口已接；Desktop 真实扫码成功；当前 TV 已由用户完成正式入口登录并验证重启保留，具体方式未单独留证；手机号／短信／MFA 完整链仍未验。
 
 ### 我的账号页面构图
 
@@ -130,15 +131,15 @@ Rust QR／手机号／MFA 状态与正式入口已接；Desktop 真实扫码成�
 
 ### 恢复／退出／切号／同步／合并
 
-私有持久凭证、账号隔离、云历史／进度双写、outbox、显式游客导入已接。正常 Desktop 关闭重开自动登录、云历史拉取及收藏往返已验；真实账号播放／进度上传仍失败或待验，游客导入未获授权，其他端及冲突场景未完整验收。
+私有持久凭证、账号隔离、云历史／进度双写、outbox、显式游客导入已接。正常 Desktop 关闭重开自动登录、云历史拉取及收藏往返已验；当前 TV 已验登录保留、真实记录读取与收藏往返。真实账号播放／进度上传仍失败或待验，游客导入未获授权，跨端及冲突场景未完整验收。
 
 ### 设置／外观／播放偏好
 
-主题（跟随系统／深／浅）、自动播放、记住位置、默认倍速、安静观看（桌面收起侧栏／顶栏）、账号入口、应用更新（仅宿主有 updater）、恢复默认已接；语言／缓存／预取／诊断／许可无真实数据源不展示；物理 Android TV 设备验收待补。
+主题（跟随系统／深／浅）、自动播放、记住位置、默认倍速、安静观看（桌面收起侧栏／顶栏）、账号入口、应用更新（仅宿主有 updater）、恢复默认已接；语言／缓存／预取无真实数据源不展示。TV 新布局保留同一偏好owner，普通偏好保存失败可在原行重试；关于展示构建元数据与项目MIT许可，支持／推荐未配置时明确不可用。当前宿主证据与剩余限制见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)，物理 Android TV 设备验收待补。
 
 ### 诊断／更新／版本／许可
 
-应用更新没有独立二级页：桌面在设置一级菜单原位完成检查／下载／安装／暂存与错误恢复，TV 用共享弹窗承载同一流程，账号页入口在 TV 打开弹窗、在桌面转到设置分区。TV 启动自动检查发现可安装或已就绪候选时自动弹窗（播放中延迟、每会话一次、不自动下载），桌面不弹窗。桌面经 NSH `installOnQuit` 暂存并在退出时换入，可提前重启；回执在启动时报告已更新或上次未完成。诊断与许可待迁移，启动自动弹出与真实退出换入／签名升级待真实验收，不以安装器打开计成功。
+应用更新没有独立二级页：桌面在设置一级菜单原位完成检查／下载／安装／暂存与错误恢复，TV 用共享弹窗承载同一流程，账号页入口在 TV 打开弹窗、在桌面转到设置分区。TV 启动自动检查发现可安装或已就绪候选时自动弹窗（播放中延迟、每会话一次、不自动下载），桌面不弹窗。桌面经 NSH `installOnQuit` 暂存并在退出时换入，可提前重启；回执在启动时报告已更新或上次未完成。诊断接线见下段，关于许可仅为项目MIT许可，不代表第三方依赖许可审计；启动自动弹出与真实退出换入／签名升级待真实验收，不以安装器打开计成功。
 
 诊断上报（`add-diagnostics-reporting`）已在 TV 宿主接通：设置页「诊断数据 → 发送诊断数据」默认关闭，打开才初始化官方 `sentry-android`；关闭时 SDK 不初始化、无网络请求。事件契约固定 `category`／`code`／`operation` 加发行版标识，脱敏在 TSX 侧完成（剥离 URL 查询串与片段、Bearer／JWT、邮箱、手机号）。DSN 经 `TV_SENTRY_DSN` 注入 `BuildConfig`，不进仓库。已在 TV 入口用真实分类失败验证：未同意零上报，同意后一次失败恰好一条脱敏上报且恢复界面不变；模拟器上验证了 SDK 初始化、`release`／`environment` 落盘与重启后同意重放。**未验证**：引擎致命错误转发、后端不可达时的可见行为、未捕获异常接管后的进程收敛（需可注入网络故障的物理设备）；ANR 与 NDK 崩溃不在范围；Desktop／Web／iOS 无上报。
 
@@ -178,39 +179,39 @@ C1／C2 已接默认原生入口、写队列关闭与显式 preview；TV 原生�
 
 供追溯使用；日常按状态与缺口判断，不需要读本表。
 
-| 功能／页面                     | 上游行为指针                                                                                                 | 状态所有者与契约                                                    |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| 首页续播                       | guest_history.go、ui/watching-return.js                                                                      | Rust library；app 导航                                              |
-| 搜索／结果／追加               | search_web.go、search_web_test.go、ui/pagination.js                                                          | core catalog SearchResult；app 查询／锚点                           |
-| 联想／热搜／搜索历史           | hongguo_client.go::SearchSuggestions、search_discovery.go、search_history.go                                 | Rust catalog／history；app 草稿／读写队列                           |
-| 演员作品                       | hongguo_client.go::ActorWorks、main.go::actorWorks、ui/app.js                                                | core catalog 演员身份／作品；app 导航                               |
-| 分类／筛选                     | ui/search-discovery.js、ui/index.html                                                                        | core 查询语义；app 筛选                                            |
-| 加载／占位（共享 UI 状态）     | 无上游页面指针（跨区域数据状态）                                                                             | app 区域状态判断；ui SkeletonBlock／SkeletonRegion                  |
-| 排行榜／榜单雷达               | lists.go::RankList、radar.go、rank_badge.go、radar_test.go                                                   | Rust RankResult；app 动态选择／游标／来源                           |
-| 新剧／上新日历                 | lists.go::NewSeries/SubscriptionList(calendar)、lists_test.go 独立游标                                       | Rust typed new/calendar；app 模式／日期／游标／来源                 |
-| 详情／选集／演员／相关         | hongguo_client.go::SeriesDetail、search_web.go、ui/app.js::renderDetailActors                               | core 独立 SeriesDetail；app 选集／完整元数据／来源                  |
-| 系列／季／自动下一季           | series_seasons.go、seasons.go、ui/next-season-hint.js                                                        | Rust 系列契约；app 浏览／媒体独立身份                               |
-| 播放／切集／进度／后台         | player_actions.go、minireel_range.go、ui/playback-recovery.js                                                | core play／media；app playback session                              |
-| 倍速／音量／清晰度／全屏／偏好 | ui/playback-settings.js、ui/playback-pointer.js                                                              | core 解析／偏好；app 播控／host                                    |
-| 历史／续播／管理／清空         | guest_history.go、library.go、guest_history_test.go                                                          | Rust SQLite Library／HistoryChange                                  |
-| 观看统计                       | watch_statistics.go、ui/watch-statistics.js                                                                  | Rust 独立 SQLite 按 owner／epoch 累计／重置；app Player 采集与展示   |
-| 收藏                           | library.go、library_test.go、cloud_test.go                                                                   | core library／account；app 操作                                     |
-| 追更                           | follow.go、follow_test.go                                                                                    | core account online follow；app 共享列表／详情                      |
+| 功能／页面                     | 上游行为指针                                                                                                | 状态所有者与契约                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 首页续播                       | guest_history.go、ui/watching-return.js                                                                     | Rust library；app 导航                                               |
+| 搜索／结果／追加               | search_web.go、search_web_test.go、ui/pagination.js                                                         | core catalog SearchResult；app 查询／锚点                            |
+| 联想／热搜／搜索历史           | hongguo_client.go::SearchSuggestions、search_discovery.go、search_history.go                                | Rust catalog／history；app 草稿／读写队列                            |
+| 演员作品                       | hongguo_client.go::ActorWorks、main.go::actorWorks、ui/app.js                                               | core catalog 演员身份／作品；app 导航                                |
+| 分类／筛选                     | ui/search-discovery.js、ui/index.html                                                                       | core 查询语义；app 筛选                                              |
+| 加载／占位（共享 UI 状态）     | 无上游页面指针（跨区域数据状态）                                                                            | app 区域状态判断；ui SkeletonBlock／SkeletonRegion                   |
+| 排行榜／榜单雷达               | lists.go::RankList、radar.go、rank_badge.go、radar_test.go                                                  | Rust RankResult；app 动态选择／游标／来源                            |
+| 新剧／上新日历                 | lists.go::NewSeries/SubscriptionList(calendar)、lists_test.go 独立游标                                      | Rust typed new/calendar；app 模式／日期／游标／来源                  |
+| 详情／选集／演员／相关         | hongguo_client.go::SeriesDetail、search_web.go、ui/app.js::renderDetailActors                               | core 独立 SeriesDetail；app 选集／完整元数据／来源                   |
+| 系列／季／自动下一季           | series_seasons.go、seasons.go、ui/next-season-hint.js                                                       | Rust 系列契约；app 浏览／媒体独立身份                                |
+| 播放／切集／进度／后台         | player_actions.go、minireel_range.go、ui/playback-recovery.js                                               | core play／media；app playback session                               |
+| 倍速／音量／清晰度／全屏／偏好 | ui/playback-settings.js、ui/playback-pointer.js                                                             | core 解析／偏好；app 播控／host                                      |
+| 历史／续播／管理／清空         | guest_history.go、library.go、guest_history_test.go                                                         | Rust SQLite Library／HistoryChange                                   |
+| 观看统计                       | watch_statistics.go、ui/watch-statistics.js                                                                 | Rust 独立 SQLite 按 owner／epoch 累计／重置；app Player 采集与展示   |
+| 收藏                           | library.go、library_test.go、cloud_test.go                                                                  | core library／account；app 操作                                      |
+| 追更                           | follow.go、follow_test.go                                                                                   | core account online follow；app 共享列表／详情                       |
 | 更新提醒                       | crates/core/src/account/notifications.rs、packages/app/src/notifications-state.ts                           | core 按 owner 保存本机快照差异；app 共享控制器／列表                 |
-| 预约                           | lists.go、lists_test.go、series_seasons.go                                                                   | core account；共享日历／季入口／预约列表                            |
-| 扫码／手机／验证               | account_qr.go、account_phone.go、account_mfa_regression_test.go                                             | core 凭据／会话；共享 Dialog 表单                                   |
-| 我的账号页面构图               | 原型 desktop.html／tv.html 账号页、账号页组件拆分 app/pages/account                                          | app/pages/account（身份卡、内容卡、片库区、登录弹窗）＋ ui/ActionRow |
-| 恢复／退出／切号／同步／合并   | account.go、cloud.go、guest_history.go、cloud_test.go                                                        | core 私有会话／owner 库；TSX 原子切换                              |
-| 设置／外观／播放偏好           | packages/app/src/settings.ts、pages/SettingsPage.tsx＋pages/settings/*、packages/ui/src/settings-row.tsx 等  | NSH Storage 本机偏好；页面状态归 app                                |
-| 诊断／更新／版本／许可         | playback_diagnostics.go、ui/updates.js、ui/third-party-licenses.txt                                          | core／host；app 状态                                                |
-| TV 遥控／媒体键／返回／输入    | ui/numeric-keypad.js、ui/number-input.js、ui/index.html                                                      | Android TvRemote／app 导航                                          |
-| 原生业务 bridge／独立安装      | runtime.go 仅行为对照                                                                                        | native-bridge→core；host 生命周期                                   |
-| 公网隔离／发行                 | 上游仅行为参考，遵守本项目 ENGINEERING                                                                       | Web 会话；签名／升级 host                                           |
+| 预约                           | lists.go、lists_test.go、series_seasons.go                                                                  | core account；共享日历／季入口／预约列表                             |
+| 扫码／手机／验证               | account_qr.go、account_phone.go、account_mfa_regression_test.go                                             | core 凭据／会话；共享 Dialog 表单                                    |
+| 我的账号页面构图               | 原型 desktop.html／tv.html 账号页、账号页组件拆分 app/pages/account                                         | app/pages/account（身份卡、内容卡、片库区、登录弹窗）＋ ui/ActionRow |
+| 恢复／退出／切号／同步／合并   | account.go、cloud.go、guest_history.go、cloud_test.go                                                       | core 私有会话／owner 库；TSX 原子切换                                |
+| 设置／外观／播放偏好           | packages/app/src/settings.ts、pages/SettingsPage.tsx＋pages/settings/*、packages/ui/src/settings-row.tsx 等 | NSH Storage 本机偏好；页面状态归 app                                 |
+| 诊断／更新／版本／许可         | playback_diagnostics.go、ui/updates.js、ui/third-party-licenses.txt                                         | core／host；app 状态                                                 |
+| TV 遥控／媒体键／返回／输入    | ui/numeric-keypad.js、ui/number-input.js、ui/index.html                                                     | Android TvRemote／app 导航                                           |
+| 原生业务 bridge／独立安装      | runtime.go 仅行为对照                                                                                       | native-bridge→core；host 生命周期                                    |
+| 公网隔离／发行                 | 上游仅行为参考，遵守本项目 ENGINEERING                                                                      | Web 会话；签名／升级 host                                            |
 | 刷剧／频道推荐                 | lists.go::Recommendations/parseFeedDramas、discussion_test.go、ui/app.js                                    | Rust FeedResult 核心保留；app 刷剧状态、页面及播放器嵌入分支移除     |
-| 社交能力                       | discussion.go、video_likes.go、hongguo_client.go::SeriesDetail、ui/index.html                               | 上游存在；本产品不消费                                             |
-| 离线下载／任务管理             | README.md 范围声明；minireel.go 与 ui/episode-prefetch-settings.js 仅证明缓存预取                          | 离线契约与状态所有者未确认                                          |
-| 支持／打赏／应用推荐           | ui/recommended-apps.js、ui/index.html                                                                        | 经确认的资产；app 展示／host 外链                                   |
-| TV 系统首页频道／外部卡片      | ui/index.html、上游 Android 宿主（待专项定位）                                                                | Android adapter；app 带来源路由                                     |
+| 社交能力                       | discussion.go、video_likes.go、hongguo_client.go::SeriesDetail、ui/index.html                               | 上游存在；本产品不消费                                               |
+| 离线下载／任务管理             | README.md 范围声明；minireel.go 与 ui/episode-prefetch-settings.js 仅证明缓存预取                           | 离线契约与状态所有者未确认                                           |
+| 支持／打赏／应用推荐           | ui/recommended-apps.js、ui/index.html                                                                       | 经确认的资产；app 展示／host 外链                                    |
+| TV 系统首页频道／外部卡片      | ui/index.html、上游 Android 宿主（待专项定位）                                                              | Android adapter；app 带来源路由                                      |
 
 ## 状态更新规则
 

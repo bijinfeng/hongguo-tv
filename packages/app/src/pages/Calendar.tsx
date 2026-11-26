@@ -36,7 +36,9 @@ import {
   type ReleaseCalendar,
 } from '../calendar';
 import { ReservationAction, ReservationNotice, type ReservationStore } from '../ReservationAction';
+import { tvColumns } from '../shell/tv-layout';
 import { desktopContentFrame } from '../shell/ContentColumn';
+import { collectionTargetVisible } from '../collection-visibility';
 
 /** Approved shared release browsing. The parent owns navigation and the controller lifetime. */
 export function Calendar(props: {
@@ -78,7 +80,8 @@ export function Calendar(props: {
   let disposed = false;
   let positionRevision = 0;
   let previous = calendar.key();
-  const columns = () => (props.target === 'tv' ? 1 : 4);
+  const columns = () => (props.target === 'tv' ? tvColumns('collection', width() - 12) : 4);
+  const cardWidth = () => Math.max(1, (width() - 12 - 16 * (columns() - 1)) / columns());
   const items = () => calendar.data()?.items ?? [];
   const restorePosition = (key: string, source?: string) => {
     if (disposed || !props.active || key !== calendar.key()) return;
@@ -120,14 +123,16 @@ export function Calendar(props: {
       }
       void Promise.all([ref.measure(), list?.measure()]).then(([card, viewport]) => {
         if (cardIntent !== intent || disposed || !props.active || !intent.owns()) return;
-        const axis = props.target === 'tv' ? 'x' : 'y';
-        const size = props.target === 'tv' ? 'width' : 'height';
         if (
           !card ||
           !viewport ||
-          card.pagePosition[axis] < viewport.pagePosition[axis] + 8 ||
-          card.pagePosition[axis] + card.bounds.size[size] >
-            viewport.pagePosition[axis] + viewport.bounds.size[size] - 8
+          !collectionTargetVisible(
+            card.pagePosition.y,
+            card.bounds.size.height,
+            viewport.pagePosition.y,
+            viewport.bounds.size.height,
+            8,
+          )
         ) {
           if (!intent.checked) {
             intent.checked = true;
@@ -254,40 +259,46 @@ export function Calendar(props: {
       }
     >
       {/* One name for one destination: the rail and crumb say 上新日历, so this page does too. */}
-      <UiText role="page">上新日历</UiText>
-      <CardControls label="上新日历视图" onNavigate={props.onNavigate} class="gap-3">
-        <Button
-          label="上新日历"
-          testID="calendar-mode-calendar"
-          selected={calendar.mode() === 'calendar'}
-          buttonRef={(ref) => {
-            primary = ref;
-            props.onPrimary?.(ref);
-          }}
-          onFocus={() => props.onSource(focusPrimary)}
-          onPress={() => {
-            props.onNavigate();
-            primary?.focus();
-            calendar.setMode('calendar');
-            props.onSource(focusPrimary);
-          }}
-        />
-        <Button
-          label="新剧"
-          testID="calendar-mode-new"
-          selected={calendar.mode() === 'new'}
-          buttonRef={(ref) => {
-            newMode = ref;
-          }}
-          onFocus={() => props.onSource(focusNew)}
-          onPress={() => {
-            props.onNavigate();
-            newMode?.focus();
-            calendar.setMode('new');
-            props.onSource(focusNew);
-          }}
-        />
-      </CardControls>
+      <View
+        class={
+          props.target === 'tv' ? 'flex-row flex-wrap items-center justify-between gap-3' : 'gap-6'
+        }
+      >
+        <UiText role="page">上新日历</UiText>
+        <CardControls label="上新日历视图" onNavigate={props.onNavigate} class="gap-3">
+          <Button
+            label="上新日历"
+            testID="calendar-mode-calendar"
+            selected={calendar.mode() === 'calendar'}
+            buttonRef={(ref) => {
+              primary = ref;
+              props.onPrimary?.(ref);
+            }}
+            onFocus={() => props.onSource(focusPrimary)}
+            onPress={() => {
+              props.onNavigate();
+              primary?.focus();
+              calendar.setMode('calendar');
+              props.onSource(focusPrimary);
+            }}
+          />
+          <Button
+            label="新剧"
+            testID="calendar-mode-new"
+            selected={calendar.mode() === 'new'}
+            buttonRef={(ref) => {
+              newMode = ref;
+            }}
+            onFocus={() => props.onSource(focusNew)}
+            onPress={() => {
+              props.onNavigate();
+              newMode?.focus();
+              calendar.setMode('new');
+              props.onSource(focusNew);
+            }}
+          />
+        </CardControls>
+      </View>
       <If
         when={calendar.mode() === 'calendar'}
         else={
@@ -317,7 +328,7 @@ export function Calendar(props: {
             testID="calendar-dates"
             style={{
               height: Math.max(
-                (props.target === 'tv' ? 74 : 112) * fontScale(),
+                (props.target === 'tv' ? 36 : 112) * fontScale(),
                 dateContentHeight() + (props.target === 'tv' ? 8 : 16),
               ),
               flexShrink: 0,
@@ -361,6 +372,7 @@ export function Calendar(props: {
                     };
                     return (
                       <DateChoice
+                        presentation={props.target === 'tv' ? 'inline' : undefined}
                         value={value()}
                         label={dayLabel(value())}
                         testID={`calendar-date-${value()}`}
@@ -386,7 +398,9 @@ export function Calendar(props: {
           </Scroll>
         </If>
       </If>
-      <If when={calendar.mode() === 'calendar' && calendar.effectiveDate()}>
+      <If
+        when={props.target !== 'tv' && calendar.mode() === 'calendar' && calendar.effectiveDate()}
+      >
         <UiText role="section">
           {`${calendar.effectiveDate().slice(0, 4)}年 · ${calendarDateLabel(calendar.effectiveDate(), calendar.schema()?.current_date)}`}
         </UiText>
@@ -575,8 +589,9 @@ export function Calendar(props: {
               items: items().slice(index * columns(), (index + 1) * columns()),
             }))}
             keyExtractor={(row) => row.id}
-            horizontal={props.target === 'tv'}
-            estimatedItemSize={props.target === 'tv' ? 138 : ((width() - 84) / 4) * 1.35 + 84}
+            estimatedItemSize={
+              props.target === 'tv' ? cardWidth() * 1.35 + 84 : ((width() - 84) / 4) * 1.35 + 84
+            }
             style={props.target === 'desktop' ? { width: '100%', maxWidth: 1100 } : undefined}
             contentStyle={{
               gap: props.target === 'tv' ? 6 : 12,
@@ -587,12 +602,15 @@ export function Calendar(props: {
             {(row) => (
               <View
                 style={
-                  props.target === 'tv'
-                    ? { width: 138, paddingHorizontal: 4 }
-                    : { paddingVertical: 8 }
+                  props.target === 'tv' ? { width: '100%', padding: 6 } : { paddingVertical: 8 }
                 }
               >
-                <CardControls label="上新短剧" onNavigate={props.onNavigate} class="w-full gap-7">
+                <CardControls
+                  label="上新短剧"
+                  onNavigate={props.onNavigate}
+                  class="w-full"
+                  gap={props.target === 'tv' ? 16 : 28}
+                >
                   <Each of={Array.from({ length: columns() }, (_, index) => index)}>
                     {(slot) => (
                       <View class="flex-1">
@@ -609,16 +627,21 @@ export function Calendar(props: {
                             });
                             return (
                               <PosterCard
+                                density={props.target === 'tv' ? 'compact' : undefined}
                                 title={title(item())}
                                 cover={cover(item())}
                                 caption={caption(item())}
                                 testID={`calendar-${calendarItemId(item())}`}
                                 selected={calendar.selected() === calendarItemId(item())}
-                                availableHeight={Math.max(
-                                  0,
-                                  height() - (props.target === 'tv' ? 8 : 32),
-                                )}
-                                width={(width() - 84) / 4 - 4}
+                                availableHeight={
+                                  props.target === 'tv' ? undefined : Math.max(0, height() - 32)
+                                }
+                                width={
+                                  props.target === 'tv'
+                                    ? Math.min(132, cardWidth())
+                                    : (width() - 84) / 4 - 4
+                                }
+                                fit={props.target === 'tv' ? 'contain' : undefined}
                                 buttonRef={(node) => {
                                   ref = node;
                                   refs.set(calendarItemId(item()), node);

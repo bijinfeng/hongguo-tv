@@ -1,22 +1,14 @@
 import { View } from 'nsh';
-import { Button, CardControls } from '@hongguo/ui';
+import { CardControls, NavigationItem, type IconName } from '@hongguo/ui';
 import type { Section, Store } from '../store';
-import {
-  Bell,
-  BellRing,
-  CalendarDays,
-  ChartNoAxesColumnIncreasing,
-  History,
-  House,
-  Search,
-} from 'nsh-icon-lucide';
 
 type NavItem = {
   name: Section;
   label: string;
-  icon?: string;
+  icon?: IconName;
   testID: string;
   selected: (store: Store) => boolean;
+  onPress?: (store: Store) => void;
 };
 
 /** Desktop and web rail order from the design draft, with the draft's own labels. */
@@ -24,28 +16,28 @@ const desktopRail: NavItem[] = [
   {
     name: 'home',
     label: '发现',
-    icon: House,
+    icon: 'home',
     testID: 'nav-home',
     selected: (store) => store.activePage('home'),
   },
   {
     name: 'discover',
     label: '找剧',
-    icon: Search,
+    icon: 'search',
     testID: 'nav-discover',
     selected: (store) => store.activePage('discover') || store.activePage('search'),
   },
   {
     name: 'rankings',
     label: '排行榜',
-    icon: ChartNoAxesColumnIncreasing,
+    icon: 'chart-no-axes-column-increasing',
     testID: 'nav-rank',
     selected: (store) => store.activePage('rankings'),
   },
   {
     name: 'calendar',
     label: '上新日历',
-    icon: CalendarDays,
+    icon: 'calendar-days',
     testID: 'nav-calendar',
     selected: (store) => store.activePage('calendar'),
   },
@@ -55,53 +47,53 @@ const desktopLibrary: NavItem[] = [
   {
     name: 'history',
     label: '观看记录',
-    icon: History,
+    icon: 'history',
     testID: 'nav-history',
     selected: (store) => store.activePage('history'),
   },
   {
     name: 'following',
     label: '追更',
-    icon: Bell,
+    icon: 'bell',
     testID: 'nav-following',
     selected: (store) => store.activePage('following'),
   },
   {
     name: 'notifications',
     label: '更新提醒',
-    icon: BellRing,
+    icon: 'bell-ring',
     testID: 'nav-notifications',
     selected: (store) => store.activePage('notifications'),
   },
 ];
 
-/** TV header order from the design draft: five tabs, history folds the account pages. */
+/** TV primary destinations; tools and secondary destinations keep their own routes. */
 const tvRail: NavItem[] = [
   {
     name: 'home',
-    label: '发现',
+    label: '精选',
     testID: 'nav-home',
-    // The calendar is reached from the home page's own entry, and the header has room for four
-    // tabs: folding it here keeps a current item instead of leaving the bar with none.
-    selected: (store) => store.activePage('home') || store.activePage('calendar'),
+    selected: (store) => store.activePage('home'),
   },
   {
     name: 'discover',
     label: '找剧',
     testID: 'nav-discover',
-    selected: (store) => store.activePage('discover') || store.activePage('search'),
+    selected: (store) => store.activePage('discover') || store.activePage('calendar'),
   },
   {
     name: 'rankings',
-    label: '排行榜',
+    label: '榜单',
     testID: 'nav-rank',
     selected: (store) => store.activePage('rankings'),
   },
   {
-    name: 'history',
-    label: '观看记录',
-    testID: 'nav-history',
+    name: 'mine',
+    label: '我的',
+    testID: 'nav-mine',
     selected: (store) =>
+      store.nav.routes().at(-1)?.name === 'account' ||
+      store.activePage('mine') ||
       store.activePage('history') ||
       store.activePage('following') ||
       store.activePage('reservations') ||
@@ -134,7 +126,7 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
           <View
             role="group"
             accessibilityLabel={group().label}
-            class={props.layout === 'tv' ? 'flex-row items-center' : 'flex-col'}
+            class={props.layout === 'tv' ? 'flex-row flex-wrap items-center' : 'flex-col'}
             style={{ gap: props.layout === 'tv' ? 12 : 8 }}
           >
             <Each of={group().items} key={(item) => item.name}>
@@ -146,17 +138,20 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                 // destination reads as a filled pill at TV distance, while the desktop rail keeps
                 // the muted shared surface.
                 return (
-                  <Button
+                  <NavigationItem
+                    presentation={props.layout === 'tv' ? 'bar' : 'rail'}
                     testID={item().testID}
                     buttonRef={(ref) => props.store.primaryRef(item().name, ref)}
-                    variant="navigation"
                     align={props.layout === 'desktop' ? 'center' : undefined}
                     icon={item().icon}
                     label={item().label}
                     current={on()}
                     currentSurface={props.layout === 'tv' ? 'contrast' : undefined}
                     class={props.layout === 'desktop' ? 'w-full justify-start' : undefined}
-                    onPress={() => props.store.navigate(item().name)}
+                    onPress={() => {
+                      if (item().onPress) item().onPress!(props.store);
+                      else props.store.navigate(item().name);
+                    }}
                   />
                 );
               }}

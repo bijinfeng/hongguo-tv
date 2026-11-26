@@ -11,7 +11,7 @@ import {
   type ViewRef,
 } from 'nsh';
 import { CardControls, CardRoot } from './card-controls';
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 import { border, focusRing, radius, space, weight } from './foundation';
 import { motionTokens } from './motion';
 import { textSize, textWeight } from './typography';
@@ -80,7 +80,7 @@ export function SearchPicker(props: {
 export function SearchSuggestionRow(props: {
   label: string;
   meta?: string;
-  icon: string;
+  icon: IconName;
   testID: string;
   rowRef: (ref: ViewRef) => void;
   onFocus: () => void;
@@ -107,7 +107,7 @@ export function SearchSuggestionRow(props: {
       // double it; the accent wash carries the focused state there instead.
       class={`flex-row items-center border-transparent hover:bg-muted active:bg-border ${platform.os === 'android' ? 'focus:bg-accent' : 'focus:border-ring focus:bg-accent'} ${reduceMotion() ? '' : 'transition-colors duration-100'}`}
     >
-      <Icon icon={props.icon} />
+      <Icon name={props.icon} />
       <View class="flex-1" style={{ gap: space('xxs') }}>
         <Text
           style={{

@@ -139,6 +139,8 @@ export function CardRoot(props: {
   /** Marks the current destination for screen readers (ARIA `aria-current="page"`). */
   current?: boolean;
   disabled?: boolean;
+  /** Explicitly controls whether this root may receive remote focus. */
+  focusable?: boolean;
   style?: ViewProps['style'];
   class?: string;
   onPress?: () => void;
@@ -146,19 +148,32 @@ export function CardRoot(props: {
   onBlur?: () => void;
   children?: JSX.Element;
 }) {
-  const member = Group()?.register(() => !props.disabled);
+  const interactive = () => (props.focusable ?? !!props.onPress) && !props.disabled;
+  const member = Group()?.register(interactive);
   if (!member) {
     const Root =
       props.current !== undefined ||
       props.onFocus ||
       props.onBlur ||
       props.expanded !== undefined ||
-      props.accessibilityDescription
+      props.accessibilityDescription ||
+      !props.onPress
         ? FocusedRemovalRoot
         : BaseButton;
     return (
       <Root
-        ref={(ref) => props.ref?.(ref)}
+        ref={(ref) =>
+          props.ref?.({
+            focus: () => {
+              if (interactive()) ref.focus();
+            },
+            blur: () => ref.blur(),
+            clearSelection: () => ref.clearSelection(),
+            measure: () => ref.measure(),
+            reveal: (options) => ref.reveal(options),
+            animateLayout: (transition) => ref.animateLayout(transition),
+          })
+        }
         testID={props.testID}
         accessibilityLabel={props.accessibilityLabel}
         {...{
@@ -168,9 +183,16 @@ export function CardRoot(props: {
         }}
         selected={props.selected}
         disabled={props.disabled}
+        focusable={interactive()}
         onFocus={props.onFocus}
         onBlur={props.onBlur}
-        onPress={props.onPress}
+        onPress={
+          props.onPress
+            ? () => {
+                if (interactive()) props.onPress?.();
+              }
+            : undefined
+        }
         style={props.style}
         class={props.class}
       >
@@ -184,7 +206,7 @@ export function CardRoot(props: {
         member.ref = ref;
         props.ref?.({
           focus() {
-            if (props.disabled) return;
+            if (!interactive()) return;
             member.activate();
             ref.focus();
           },
@@ -196,7 +218,7 @@ export function CardRoot(props: {
         });
       }}
       testID={props.testID}
-      role="button"
+      role={props.onPress ? 'button' : undefined}
       accessibilityLabel={props.accessibilityLabel}
       accessibilityHint={props.accessibilityDescription}
       accessibilityState={{
@@ -206,7 +228,7 @@ export function CardRoot(props: {
         expanded: props.expanded,
       }}
       disabled={props.disabled}
-      focusable={!props.disabled && member.stop()}
+      focusable={interactive() && member.stop()}
       onFocus={() => {
         member.focus();
         props.onFocus?.();
@@ -215,10 +237,15 @@ export function CardRoot(props: {
         member.blur();
         props.onBlur?.();
       }}
-      onPress={() => {
-        member.activate();
-        props.onPress?.();
-      }}
+      onPress={
+        props.onPress
+          ? () => {
+              if (!interactive()) return;
+              member.activate();
+              props.onPress?.();
+            }
+          : undefined
+      }
       style={props.style}
       class={props.class}
     >

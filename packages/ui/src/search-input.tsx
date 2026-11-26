@@ -43,7 +43,9 @@ export function SearchInput(props: SearchInputProps) {
         // The host placeholder default is too dim on the dark surface; use the shared muted tone.
         placeholderColor: token('muted-foreground'),
         outlineWidth: props.embedded ? 0 : ringed() ? focusRing : border,
-        outlineColor: token(props.invalid ? 'destructive' : focused() ? 'ring' : 'input'),
+        outlineColor: token(
+          props.invalid ? 'destructive' : focused() && platform.os !== 'android' ? 'ring' : 'input',
+        ),
         outlineOffset: props.embedded ? 0 : ringed() ? focusOffset : focusOffsetInside,
       }}
       testID="search-input"

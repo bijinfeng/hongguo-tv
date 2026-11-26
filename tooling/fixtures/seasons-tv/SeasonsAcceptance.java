@@ -122,6 +122,19 @@ public final class SeasonsAcceptance extends Instrumentation {
         for (int index = 0; index < maximum && !focused(id); index++) key(direction);
         check("remote reaches " + id, () -> focused(id));
     }
+    private boolean scrollForward(AccessibilityNodeInfo node) {
+        if (node == null) return false;
+        if (node.isScrollable() && node.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)) return true;
+        for (int index = 0; index < node.getChildCount(); index++)
+            if (scrollForward(node.getChild(index))) return true;
+        return false;
+    }
+    private void reveal(String value) {
+        for (int page = 0; page < 10 && !has(value); page++) {
+            if (!scrollForward(find(root(), "detail-scroll"))) break;
+            SystemClock.sleep(150);
+        }
+    }
     private void choose(String id) {
         String target = "season-" + id;
         if (!has(target)) {
@@ -226,8 +239,7 @@ public final class SeasonsAcceptance extends Instrumentation {
         check("synthetic public search result", () -> has("drama-101"));
         activate("drama-101");
         check("original detail loads before any playback", () -> has("detail-start") && enabled("detail-start"));
-        focus("detail-start");
-        walk("season-101", KeyEvent.KEYCODE_DPAD_DOWN, 12);
+        focus("season-101");
         check("original season is selected", () -> selected("season-101"));
         key(KeyEvent.KEYCODE_DPAD_RIGHT);
         check("DPAD focus does not commit another season", () -> focused("season-201") && selected("season-101") && !selected("season-201"));
@@ -239,19 +251,25 @@ public final class SeasonsAcceptance extends Instrumentation {
         String emptyHistory = history();
         if (!mismatch) {
             choose("301");
+            reveal("该季尚未上线，没有可播放的选集。");
             check("upcoming has no episode targets", () -> has("该季尚未上线，没有可播放的选集。") && !has("episode-1001") && !has("episode-2001"));
             check("upcoming main watch action is disabled", () -> disabled("detail-start"));
             capture("upcoming");
             choose("401");
+            reveal("这一季暂时无法观看。");
             check("unavailable remains browseable without episode targets", () -> has("这一季暂时无法观看。") && !has("episode-1001") && !has("episode-2001"));
             check("unavailable main watch action is disabled", () -> disabled("detail-start"));
             capture("unavailable");
         }
         choose("201");
+        reveal("detail-episodes-error");
         check(mismatch ? "mismatched detail identity is rejected" : "HTTP503 keeps safe retry", () -> has("detail-episodes-error") && !has("episode-1001") && !has("episode-2001"));
         check("failed detail cannot start stale media", () -> disabled("detail-start"));
         capture(mismatch ? "identity-rejected" : "detail-error");
         activate("重试");
+        check("retry restores enabled watch action", () -> enabled("detail-start") && !has("detail-episodes-error"));
+        focus("season-101");
+        walk("episode-2001", KeyEvent.KEYCODE_DPAD_DOWN, 6);
         check("same selection recovers real episode members", () -> has("episode-2001") && !has("episode-1001"));
         check("recovered episode belongs to second season", () -> selected("season-201"));
         check("browsing and retry leave guest history unchanged", () -> emptyHistory.equals(history()));

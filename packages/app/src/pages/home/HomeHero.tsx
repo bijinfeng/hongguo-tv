@@ -1,8 +1,7 @@
-import { Image, Text, View, token, windowSize } from 'nsh';
-import { Button, CardControls, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
+import { Image, Text, View, token, windowSize, fontScale } from 'nsh';
+import { Button, CardControls, Cover, SkeletonBlock, SkeletonRegion, UiText } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import type { Store } from '../../store';
-import { ArrowUpRight, Play } from 'nsh-icon-lucide';
 
 /**
  * Hero geometry from the desktop draft (`assets/theater.css`): 5fr/7fr at 355px,
@@ -102,58 +101,6 @@ function DesktopArt(props: { drama: Drama; second?: Drama }) {
   );
 }
 
-/** TV hero art: a wide glow that bleeds past the content column, as the TV draft sets it. */
-function TvArt(props: { drama: Drama; second?: Drama }) {
-  const word = () => Array.from(props.drama.title)[0] ?? '';
-  return (
-    <View
-      accessibilityElementsHidden
-      style={{
-        position: 'absolute',
-        right: -44,
-        top: -18,
-        width: 520,
-        height: 260,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundImage:
-          'radial-gradient(ellipse at 70% 40%, rgba(250, 119, 5, 0.2), transparent 67%)',
-      }}
-    >
-      <Text
-        style={{
-          position: 'absolute',
-          right: 75,
-          top: -7.5,
-          fontSize: 165,
-          lineHeight: 165 * 1.4,
-          letterSpacing: 165 * 0.1,
-          fontWeight: 'normal',
-          color: 'rgba(255, 255, 255, 0.07)',
-        }}
-      >
-        {word()}
-      </Text>
-      <Poster
-        drama={props.second}
-        width={119}
-        shift={-42.5}
-        offsetY={2.5}
-        rotate="-10deg"
-        opacity={0.8}
-      />
-      <Poster
-        drama={props.drama}
-        width={137.5}
-        shift={62.5}
-        offsetY={-2.5}
-        rotate="8deg"
-        shadow="12px 18px 35px rgba(0, 0, 0, 0.42)"
-      />
-    </View>
-  );
-}
-
 /**
  * Pending hero: the card, copy column and art panel keep the loaded geometry, so the
  * featured drama lands without a reflow. Same announcement as the grid region.
@@ -166,10 +113,10 @@ function HeroSkeleton(props: { tv: boolean }) {
       testID="home-hero-pending"
       class={props.tv ? '' : 'overflow-hidden rounded-(--radius) bg-card flex-row'}
       style={{
-        minHeight: props.tv ? 225 : size().minHeight,
+        minHeight: props.tv ? 128 : size().minHeight,
         marginBottom: props.tv ? 12 : 0,
-        flexDirection: props.tv ? 'column' : 'row',
-        alignItems: props.tv ? 'flex-start' : 'stretch',
+        flexDirection: 'row',
+        alignItems: props.tv ? 'center' : 'stretch',
         justifyContent: props.tv ? 'center' : undefined,
       }}
     >
@@ -177,28 +124,19 @@ function HeroSkeleton(props: { tv: boolean }) {
         class="justify-center"
         style={
           props.tv
-            ? { width: 395, paddingBottom: 4 }
+            ? { flex: 1, paddingBottom: 4 }
             : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: size().padLeft, gap: 12 }
         }
       >
-        {/* The TV bars carry the loaded text metrics (meta 21, display 62, two intro lines, 48
-            controls) and the loaded margins, so the featured drama lands without a jump. */}
         <If
           when={!props.tv}
           else={
-            <View>
-              <View style={{ marginBottom: 5 }}>
-                <SkeletonBlock width={70} height={21} radius={5} />
-              </View>
-              <View style={{ marginBottom: 16.5 }}>
-                <SkeletonBlock width="78%" height={62} radius={4} />
-              </View>
-              <View style={{ marginBottom: 15.5 }}>
-                <SkeletonBlock width="82%" height={42} radius={4} />
-              </View>
-              <View class="flex-row" style={{ gap: 9 }}>
-                <SkeletonBlock width={110} height={48} radius={6} />
-                <SkeletonBlock width={84} height={48} radius={6} />
+            <View style={{ gap: 12 }}>
+              <SkeletonBlock width="70%" height={39 * fontScale()} radius={4} />
+              <SkeletonBlock width={100} height={18 * fontScale()} radius={4} />
+              <View class="flex-row" style={{ gap: 12 }}>
+                <SkeletonBlock width={132} height={40 * fontScale()} radius={6} />
+                <SkeletonBlock width={104} height={36 * fontScale()} radius={6} />
               </View>
             </View>
           }
@@ -212,6 +150,9 @@ function HeroSkeleton(props: { tv: boolean }) {
           </View>
         </If>
       </View>
+      <If when={props.tv && fontScale() < 1.25}>
+        <SkeletonBlock width={84} height={112} radius={8} />
+      </If>
       <If when={!props.tv}>
         {/* The loaded hero's art panel fades out of the card on its leading edge, so the skeleton
             follows the same ramp instead of butting a grey block against the white copy column: the
@@ -258,10 +199,10 @@ export function HomeHero(props: { store: Store }) {
     return [kind, count].filter(Boolean).join(' · ');
   };
   // The intro is body copy, not fine print: the shared meta role sets its size on both hosts.
-  const introWidth = () => (tv() ? 322 : 392);
+  const introWidth = () => (tv() ? undefined : 392);
   const copyStyle = () => {
     return tv()
-      ? { width: 395, paddingBottom: 4 }
+      ? { flex: 1, paddingBottom: 4 }
       : { flex: 5, paddingTop: 36, paddingBottom: 36, paddingLeft: desktopHero().padLeft };
   };
   return (
@@ -280,34 +221,48 @@ export function HomeHero(props: { store: Store }) {
           class={tv() ? '' : 'overflow-hidden rounded-(--radius) bg-card'}
           style={{
             position: 'relative',
-            flexDirection: tv() ? 'column' : 'row',
-            alignItems: tv() ? 'flex-start' : 'stretch',
+            flexDirection: 'row',
+            gap: tv() ? 24 : 0,
+            alignItems: tv() ? 'center' : 'stretch',
             justifyContent: tv() ? 'center' : undefined,
-            minHeight: tv() ? 225 : desktopHero().minHeight,
+            minHeight: tv() ? 128 : desktopHero().minHeight,
             marginBottom: tv() ? 12 : 0,
           }}
         >
           <View class="justify-center" style={{ ...copyStyle(), position: 'relative', zIndex: 1 }}>
-            <View style={{ marginBottom: tv() ? 5 : 9 }}>
-              <UiText role="meta">{meta()}</UiText>
-            </View>
-            <View style={{ marginBottom: tv() ? 16.5 : 25 }}>
+            <If when={!tv()}>
+              <View style={{ marginBottom: 9 }}>
+                <UiText role="meta">{meta()}</UiText>
+              </View>
+            </If>
+            <View style={{ marginBottom: tv() ? 8 : 25 }}>
               {/* The TV draft marks this title h1; the desktop page keeps its greeting heading. */}
               <UiText role="display" lines={2} accessibilityLevel={tv() ? 1 : undefined}>
                 {drama().title}
               </UiText>
             </View>
-            <If when={drama().intro}>
-              <View style={{ marginBottom: tv() ? 15.5 : 25, maxWidth: introWidth() }}>
-                <UiText role="meta" lines={2}>
+            <If when={tv() && meta()}>
+              <View style={{ marginBottom: 8 }}>
+                <UiText role="meta">{meta()}</UiText>
+              </View>
+            </If>
+            <If when={!tv() && drama().intro}>
+              <View style={{ marginBottom: tv() ? 16 : 25, maxWidth: introWidth() }}>
+                <UiText role={tv() ? 'body' : 'meta'} tone="muted" lines={2}>
                   {drama().intro}
                 </UiText>
               </View>
             </If>
-            <CardControls label="精选" onNavigate={props.store.noteFocusIntent} gap={tv() ? 9 : 12}>
+            <CardControls
+              label="精选"
+              onNavigate={props.store.noteFocusIntent}
+              gap={12}
+              class="flex-wrap"
+            >
               <Button
                 variant="primary"
-                icon={Play}
+                size={tv() ? 'lg' : undefined}
+                icon="play"
                 label={watchLabel()}
                 testID="home-hero-watch"
                 onPress={() => props.store.watch(drama(), () => props.store.restoreFocus())}
@@ -315,14 +270,24 @@ export function HomeHero(props: { store: Store }) {
               <Button
                 variant="quiet"
                 label="查看详情"
-                icon={ArrowUpRight}
+                icon="arrow-up-right"
                 testID="home-hero-detail"
                 onPress={() => props.store.open(drama(), () => props.store.restoreFocus())}
               />
             </CardControls>
           </View>
           <If when={tv()} else={<DesktopArt drama={drama()} second={second()} />}>
-            <TvArt drama={drama()} second={second()} />
+            <If when={fontScale() < 1.25}>
+              <View accessibilityElementsHidden style={{ width: 84 }}>
+                <Cover
+                  src={drama().cover_fallback || drama().cover}
+                  title={drama().title}
+                  height={112}
+                  variant="compact-poster"
+                  fit="contain"
+                />
+              </View>
+            </If>
           </If>
         </View>
       )}

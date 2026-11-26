@@ -14,7 +14,6 @@ import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
 import { PageScroll } from '../shell/PageScroll';
-import { RefreshCw } from 'nsh-icon-lucide';
 
 type Mode = 'upcoming' | 'online';
 type Action = 'open' | 'cancel';
@@ -256,7 +255,7 @@ export function Reservations(props: { store: Store }) {
         <UiText role="page">预约</UiText>
         <Button
           label="刷新"
-          icon={RefreshCw}
+          icon="refresh-cw"
           testID="reservations-refresh"
           pending={reservations.loading()}
           disabled={!signedIn() || !active() || reservations.mutation()?.state === 'pending'}

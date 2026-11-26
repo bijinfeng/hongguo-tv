@@ -20,10 +20,18 @@ import { tvHostEnvironment } from './tv-host.mjs';
  */
 const args = process.argv.slice(2);
 const host = ['web', 'android'].find((value) => args.includes(`--${value}`)) ?? 'web';
-if (args.some((arg) => !['--web', '--android'].includes(arg)))
-  throw new Error('Expected --web or --android; a desktop host always opens windows');
-if (host === 'android') {
-  const adb = resolve(tvHostEnvironment().ANDROID_HOME, 'platform-tools/adb');
+const matrix = args.includes('--matrix');
+const conservative = args.includes('--conservative');
+const displayProfiles = matrix || conservative;
+if (
+  args.some((arg) => !['--web', '--android', '--matrix', '--conservative'].includes(arg)) ||
+  (displayProfiles && host !== 'android') ||
+  (matrix && conservative)
+)
+  throw new Error('Expected --web or --android [--matrix|--conservative]');
+const adb =
+  host === 'android' ? resolve(tvHostEnvironment().ANDROID_HOME, 'platform-tools/adb') : undefined;
+if (adb) {
   const devices = output(adb, ['devices'])
     .split('\n')
     .slice(1)
@@ -32,6 +40,11 @@ if (host === 'android') {
     throw new Error(
       'Start the pinned Android TV API34 emulator (adb devices must list exactly one) before --android.',
     );
+  if (
+    displayProfiles &&
+    output(adb, ['emu', 'avd', 'name']).split('\n')[0].trim() !== 'hongguo-tv-api34-arm64'
+  )
+    throw new Error('Display overrides are limited to the hongguo-tv-api34-arm64 test AVD.');
 }
 
 /** What the sweep proves on each host, kept beside the images it describes. */
@@ -39,7 +52,7 @@ const claims = {
   web: {
     proves: [
       'TV token density and page composition at 960x540dp, light and dark, in one run',
-      'every listed screen reaches its ready marker and the gallery renders in full, in one app',
+      'every listed screen reaches its ready marker and each gallery group opens, in one app',
     ],
     doesNotProve: [
       'macOS AppKit or Android drawing: the web host renders HTML/CSS',
@@ -51,7 +64,7 @@ const claims = {
   android: {
     proves: [
       'Android TV drawing, TV token density and page composition at 960x540dp, light and dark',
-      'every listed screen reaches its ready marker and the gallery renders in full, in one app',
+      'every listed screen reaches its ready marker and each gallery group opens, in one app',
     ],
     doesNotProve: [
       'physical TV, real remote, DPAD traversal order, long-press or system IME behaviour',
@@ -61,7 +74,10 @@ const claims = {
   },
 };
 
-const artifacts = resolve(root, `artifacts/tv-visual/${host}`);
+const artifacts = resolve(
+  root,
+  `artifacts/tv-visual/${host}${matrix ? '-matrix' : conservative ? '-conservative' : ''}`,
+);
 const project = resolve(root, `apps/tv/.nsh/tv-visual-${host}`);
 await rm(artifacts, { recursive: true, force: true });
 await mkdir(artifacts, { recursive: true });
@@ -119,6 +135,17 @@ await writeFile(
   ) + '\n',
 );
 await writeFile(
+  resolve(project, 'tsconfig.json'),
+  JSON.stringify(
+    {
+      extends: './.nsh/tsconfig.json',
+      include: ['**/*.ts', '**/*.tsx'],
+    },
+    null,
+    2,
+  ) + '\n',
+);
+await writeFile(
   resolve(project, 'hongguo-logo.png'),
   await readFile(resolve(root, 'apps/tv/assets/hongguo-logo.png')),
 );
@@ -140,20 +167,107 @@ mount(() => (
 ));
 `,
 );
-await writeFile(
-  resolve(project, 'visual.test.tsx'),
-  `import { registerVisualSweep } from '@hongguo/app/testing/visual-sweep';
-registerVisualSweep('./App.tsx', ${JSON.stringify(artifacts)});
-`,
-);
-
 const started = Date.now();
+const forwarded = [];
+const previousNight = adb
+  ? output(adb, ['shell', 'cmd', 'uimode', 'night']).match(/Night mode: (\w+)/)?.[1]
+  : undefined;
+if (adb && !['yes', 'no', 'auto'].includes(previousNight))
+  throw new Error('Cannot read Android appearance');
+const previousDisplay = displayProfiles
+  ? {
+      size: output(adb, ['shell', 'wm', 'size']).match(/Override size: (\S+)/)?.[1] ?? 'reset',
+      density:
+        output(adb, ['shell', 'wm', 'density']).match(/Override density: (\d+)/)?.[1] ?? 'reset',
+      fontScale: output(adb, ['shell', 'settings', 'get', 'system', 'font_scale']),
+    }
+  : undefined;
+const profiles = conservative
+  ? ['light', 'dark'].map((scheme) => ({
+      name: `1080p-conservative-extra-large-${scheme}`,
+      size: '1920x1080',
+      density: '320',
+      scale: '2.0',
+      scheme,
+      safeArea: { top: 27, right: 48, bottom: 27, left: 48 },
+    }))
+  : matrix
+    ? [
+        { name: '720p-standard', size: '1280x720', density: '213', scale: '1.0', scheme: 'dark' },
+        { name: '720p-large', size: '1280x720', density: '213', scale: '1.3', scheme: 'light' },
+        {
+          name: '720p-extra-large',
+          size: '1280x720',
+          density: '213',
+          scale: '2.0',
+          scheme: 'dark',
+        },
+        { name: '1080p-large', size: '1920x1080', density: '320', scale: '1.3', scheme: 'dark' },
+        {
+          name: '1080p-extra-large',
+          size: '1920x1080',
+          density: '320',
+          scale: '2.0',
+          scheme: 'light',
+        },
+        { name: '4k-standard', size: '3840x2160', density: '640', scale: '1.0', scheme: 'dark' },
+      ]
+    : (host === 'android' ? ['light', 'dark'] : [undefined]).map((scheme) => ({
+        name: '',
+        scheme,
+      }));
+let failure;
+const completedProfiles = [];
 try {
-  await run(executable('nsh'), ['test', 'visual.test.tsx', '--target', host], {
+  if (adb) {
+    const existing = output(adb, ['reverse', '--list']);
+    for (const port of new Set(
+      [origin, browsing.origin, calendar.origin, radar.origin].map((url) => new URL(url).port),
+    )) {
+      if (existing.includes(`tcp:${port} `))
+        throw new Error(`Refusing to replace adb reverse tcp:${port}`);
+      await run(adb, ['reverse', `tcp:${port}`, `tcp:${port}`]);
+      forwarded.push(port);
+    }
+  }
+  const verificationOptions = {
     cwd: project,
     env: rustEnvironment(host === 'android' ? tvHostEnvironment() : undefined),
-  });
+  };
+  for (const profile of profiles) {
+    const { scheme } = profile;
+    const destination = resolve(artifacts, profile.name);
+    await mkdir(destination, { recursive: true });
+    if (displayProfiles) {
+      console.log('TV_VISUAL_PROFILE', JSON.stringify(profile));
+      await run(adb, ['shell', 'wm', 'size', profile.size]);
+      await run(adb, ['shell', 'wm', 'density', profile.density]);
+      await run(adb, ['shell', 'settings', 'put', 'system', 'font_scale', profile.scale]);
+    }
+    if (adb) await run(adb, ['shell', 'cmd', 'uimode', 'night', scheme === 'dark' ? 'yes' : 'no']);
+    await writeFile(
+      resolve(project, 'visual.test.tsx'),
+      `import { registerVisualSweep } from '@hongguo/app/testing/visual-sweep';\nregisterVisualSweep('./App.tsx', ${JSON.stringify(destination)}, ${JSON.stringify({ host, scheme, textScale: displayProfiles ? Number(profile.scale) : undefined, safeArea: profile.safeArea })});\n`,
+    );
+    await run(executable('nsh'), ['check'], verificationOptions);
+    await run(executable('nsh'), ['build'], verificationOptions);
+    await run(
+      executable('nsh'),
+      ['test', 'visual.test.tsx', '--target', host],
+      verificationOptions,
+    );
+    completedProfiles.push(profile.name || scheme || host);
+  }
+} catch (error) {
+  failure = error;
 } finally {
+  for (const port of forwarded) await run(adb, ['reverse', '--remove', `tcp:${port}`]);
+  if (previousDisplay) {
+    await run(adb, ['shell', 'wm', 'size', previousDisplay.size]);
+    await run(adb, ['shell', 'wm', 'density', previousDisplay.density]);
+    await run(adb, ['shell', 'settings', 'put', 'system', 'font_scale', previousDisplay.fontScale]);
+  }
+  if (adb && previousNight) await run(adb, ['shell', 'cmd', 'uimode', 'night', previousNight]);
   await writeFile(
     resolve(artifacts, 'requests.json'),
     JSON.stringify(
@@ -168,7 +282,9 @@ try {
 }
 
 const files = [];
-for (const file of (await readdir(artifacts)).filter((name) => name.endsWith('.png')).sort()) {
+for (const file of (await readdir(artifacts, { recursive: true }))
+  .filter((name) => name.endsWith('.png'))
+  .sort()) {
   const bytes = await readFile(resolve(artifacts, file));
   files.push({
     file,
@@ -176,7 +292,7 @@ for (const file of (await readdir(artifacts)).filter((name) => name.endsWith('.p
     bytes: bytes.length,
   });
 }
-if (!files.length) throw new Error('The sweep produced no screenshots');
+if (!files.length && !failure) throw new Error('The sweep produced no screenshots');
 const elapsedMs = Date.now() - started;
 await writeFile(
   resolve(artifacts, 'manifest.json'),
@@ -184,10 +300,14 @@ await writeFile(
     {
       source: output('git', ['rev-parse', 'HEAD']),
       dirty: !!output('git', ['status', '--porcelain']),
-      command: `pnpm visual:tv --${host}`,
+      passed: !failure,
+      failure: failure?.message,
+      completedProfiles,
+      command: `pnpm visual:tv --${host}${matrix ? ' --matrix' : conservative ? ' --conservative' : ''}`,
       host,
-      viewport: { width: 960, height: 540, unit: 'dp' },
+      designViewport: { width: 960, height: 540, unit: 'points' },
       themeTokens: 'packages/ui/theme.tv.json',
+      profiles,
       fixture: 'synthetic local HTTP (browsing + calendar + ranking/radar), read-only',
       elapsedMs,
       ...claims[host],
@@ -197,4 +317,5 @@ await writeFile(
     2,
   ) + '\n',
 );
+if (failure) throw failure;
 console.log(`Visual sweep passed on ${host}: ${files.length} screenshots in ${elapsedMs}ms`);

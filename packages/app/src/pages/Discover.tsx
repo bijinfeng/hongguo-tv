@@ -11,7 +11,6 @@ import {
 import { PosterPage } from './PosterPage';
 import type { Store } from '../store';
 import type { CategoryDimension } from '../category';
-import { CalendarDays, ChartNoAxesColumnIncreasing, ChevronRight } from 'nsh-icon-lucide';
 
 const dimensions: { key: CategoryDimension; label: string }[] = [
   { key: 'genre', label: '类型' },
@@ -137,7 +136,7 @@ export function Discover(props: { store: Store }) {
             pending={category.loading()}
             variant="quiet"
             size="sm"
-            icon={ChevronRight}
+            icon="forward"
             disabled={category.loading()}
             onPress={() => {
               moreSource();
@@ -152,7 +151,7 @@ export function Discover(props: { store: Store }) {
           {/* The home rail carries the same entries as quiet; one semantic, one variant. */}
           <Button
             label="排行榜"
-            icon={ChartNoAxesColumnIncreasing}
+            icon="chart-no-axes-column-increasing"
             variant="quiet"
             testID="discover-rankings"
             onPress={() => {
@@ -162,7 +161,7 @@ export function Discover(props: { store: Store }) {
           />
           <Button
             label="上新日历"
-            icon={CalendarDays}
+            icon="calendar-days"
             variant="quiet"
             testID="discover-calendar"
             onPress={() => {
