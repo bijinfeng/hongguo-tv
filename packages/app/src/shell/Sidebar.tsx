@@ -1,16 +1,19 @@
 import { View, type ImageAsset } from 'nsh';
-import { Button, CardControls, Logo } from '@hongguo/ui';
+import { Button, CardControls, Logo, radius } from '@hongguo/ui';
 import type { Store } from '../store';
 import { Navigation } from './Navigation';
 import { Settings, User } from 'nsh-icon-lucide';
 
 /** Design draft geometry: 176px rail, 30px/17px/22px padding, 34px block gaps. */
 const geometry = { width: 176, top: 30, inline: 17, bottom: 22, gap: 34 };
+/** Direction C rail entries are capsules; the size metrics keep their own radius. Read inside the
+ * binding: `radius` resolves through the current theme, so it must not be captured at module load. */
+const capsule = () => ({ borderRadius: radius('full') });
 /** Desktop and web outer rail: brand, primary destinations, account. */
 export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
   return (
     <View
-      class="border-r border-border bg-background"
+      class="bg-card"
       style={{
         width: geometry.width,
         paddingTop: geometry.top,
@@ -32,6 +35,7 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
           icon={User}
           label="我的账号"
           current={props.store.nav.routes().at(-1)?.name === 'account'}
+          style={capsule()}
           onPress={props.store.accountPage}
         />
         <Button
@@ -42,6 +46,7 @@ export function Sidebar(props: { store: Store; logoMark: ImageAsset }) {
           testID="nav-settings"
           current={props.store.nav.routes().at(-1)?.name === 'settings'}
           buttonRef={(ref) => props.store.primaryRef('settings', ref)}
+          style={capsule()}
           onPress={() => props.store.settingsPage()}
         />
       </CardControls>

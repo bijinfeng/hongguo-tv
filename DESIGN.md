@@ -93,12 +93,12 @@ colors:
   background-dark: '#000000'
   foreground: '#171717'
   foreground-dark: '#f5f5f5'
-  card: '#ffffff'
-  card-dark: '#131414'
+  card: '#f9f9f9'
+  card-dark: '#101111'
   card-foreground: '#202020'
   card-foreground-dark: '#f5f5f5'
   popover: '#ffffff'
-  popover-dark: '#1d1e1e'
+  popover-dark: '#212323'
   popover-foreground: '#202020'
   popover-foreground-dark: '#f5f5f5'
   primary: '#fa7705'
@@ -109,18 +109,18 @@ colors:
   primary-strong-dark: '#ea6400'
   primary-strong-foreground: '#ffffff'
   primary-strong-foreground-dark: '#ffffff'
-  muted: '#f7f7f7'
-  muted-dark: '#292a2a'
+  muted: '#f2f3f3'
+  muted-dark: '#1a1c1c'
   muted-foreground: '#686868'
   muted-foreground-dark: '#a0a0a0'
-  skeleton: '#e8e8e8'
-  skeleton-dark: '#2d2f2f'
-  skeleton-surface: '#f3f3f3'
-  skeleton-surface-dark: '#1c1d1d'
-  border: '#e5e5e5'
-  border-dark: '#2a2c2c'
-  input: '#d9d9d9'
-  input-dark: '#424242'
+  skeleton: '#e9eaea'
+  skeleton-dark: '#232525'
+  skeleton-surface: '#f4f5f5'
+  skeleton-surface-dark: '#151616'
+  border: '#e8e9e9'
+  border-dark: '#2b2d2d'
+  input: '#c4c6c6'
+  input-dark: '#3f4242'
   ring: '#c85e00'
   ring-dark: '#ff9233'
   accent: '#fff1e8'
@@ -135,10 +135,10 @@ colors:
   cinema-foreground-dark: '#f5f5f5'
   cinema-muted: '#9a9a9a'
   cinema-muted-dark: '#9a9a9a'
-  cinema-control: '#1d1e1e'
-  cinema-control-dark: '#1d1e1e'
-  cinema-hover: '#292a2a'
-  cinema-hover-dark: '#292a2a'
+  cinema-control: '#212323'
+  cinema-control-dark: '#212323'
+  cinema-hover: '#2b2d2d'
+  cinema-hover-dark: '#2b2d2d'
   cinema-active: '#3a3c3c'
   cinema-active-dark: '#3a3c3c'
   cinema-track: '#676b6b'
@@ -153,18 +153,21 @@ colors:
 
 使用宿主系统 UI 字体。文字、图标、间距和目标尺寸由同一档位协调，不为单个页面复制字号。TV 使用 `theme.tv.json` 给出的 dp 值，与桌面同量级。
 
-| `UiText` 角色 | 桌面         | TV           | 字重 | 行高 | 用途                          |
-| ------------- | ------------ | ------------ | ---- | ---- | ----------------------------- |
-| display       | 44           | 28           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
-| page          | 32           | 22           | 600  | 1.3  | 页面标题                      |
-| section       | 24           | 18           | 600  | 1.5  | 栏目标题                      |
-| title         | 20           | 18           | 600  | 1.5  | 小节／面板标题                |
-| content-title | 18           | 14           | 600  | 1.5  | 海报与续播卡剧名              |
-| body          | 16           | 14           | 400  | 1.5  | 正文                          |
-| meta          | 14           | 12           | 400  | 1.5  | 元信息、说明、错误            |
-| numeric       | 16，等宽数字 | 14，等宽数字 | 400  | 1.5  | 时间、进度、榜位              |
+| `UiText` 角色 | 桌面         | TV           | 字重 | 行高 | 用途                     |
+| ------------- | ------------ | ------------ | ---- | ---- | ------------------------ |
+| display       | 44           | 28           | 500  | 1.15 | 精选剧名；字距 −0.01em   |
+| page          | 32           | 22           | 600  | 1.3  | 页面标题                 |
+| section       | 24           | 18           | 600  | 1.5  | 栏目标题                 |
+| title         | 20           | 18           | 600  | 1.5  | 小节／面板标题           |
+| content-title | 18           | 14           | 600  | 1.5  | 海报与续播卡剧名         |
+| body          | 16           | 14           | 400  | 1.6  | 正文                     |
+| meta          | 14           | 12           | 400  | 1.5  | 元信息、说明、错误       |
+| caption       | 12           | 12           | 400  | 1.4  | 角标、密集表格、辅助标注 |
+| numeric       | 16，等宽数字 | 14，等宽数字 | 400  | 1.5  | 时间、进度、榜位         |
 
-`title` 用于小节／面板标题，`content-title` 用于海报与续播卡的剧名；内容标题不因字号自动成为页面标题层级。时间、进度和榜位使用等宽数字。长剧名采用明确限行或换行；完整内容需要阅读时提供展开，不用无意义副标题补充。系统字号放大时允许容器增长，不固定高度裁掉文字。
+大字号不用正向字距：衬线的 +0.06em 搬到系统无衬线上会散开，display 因此取 −0.01em、紧凑行高 1.15。display 用 500 而非 400，否则 44/400 在视觉上比它上面的 32/600 更轻，视线会先落在问候语而不是精选内容。
+
+`title` 用于小节／面板标题，`content-title` 用于海报与续播卡的剧名；内容标题不因字号自动成为页面标题层级。低于 `meta` 的文字走 `caption`，不再就地写 12／13。时间、进度和榜位使用等宽数字。长剧名采用明确限行或换行；完整内容需要阅读时提供展开，不用无意义副标题补充。系统字号放大时允许容器增长，不固定高度裁掉文字。
 
 控件文字不另造句级角色：字号由 `controlMetrics(size).fontSize` 取 14／16／18，字重按 Button 的 variant／selected／current 决定，行高 1.5；不要用 `text-sm`、`text-xs` 或 `text-xl` 绕过。
 
@@ -173,15 +176,15 @@ typography:
   display-desktop:
     fontFamily: system-ui
     fontSize: 44px
-    fontWeight: 400
-    lineHeight: 1.4
-    letterSpacing: 0.06em
+    fontWeight: 500
+    lineHeight: 1.15
+    letterSpacing: -0.01em
   display-tv:
     fontFamily: system-ui
     fontSize: 28px
-    fontWeight: 400
-    lineHeight: 1.4
-    letterSpacing: 0.06em
+    fontWeight: 500
+    lineHeight: 1.15
+    letterSpacing: -0.01em
   page-desktop:
     fontFamily: system-ui
     fontSize: 32px
@@ -226,12 +229,12 @@ typography:
     fontFamily: system-ui
     fontSize: 16px
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.6
   body-tv:
     fontFamily: system-ui
     fontSize: 14px
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.6
   meta-desktop:
     fontFamily: system-ui
     fontSize: 14px
@@ -242,6 +245,16 @@ typography:
     fontSize: 12px
     fontWeight: 400
     lineHeight: 1.5
+  caption-desktop:
+    fontFamily: system-ui
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 1.4
+  caption-tv:
+    fontFamily: system-ui
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 1.4
   numeric-desktop:
     fontFamily: system-ui
     fontSize: 16px
@@ -317,7 +330,13 @@ spacing:
 
 ## Elevation & Depth
 
-平面优先：背景、留白与细边界表达层级，不增加装饰投影、发光或玻璃效果。菜单、建议层、Dialog、Sheet 和 Popover 使用统一语义表面与 NSH 承载，模态需要明确遮挡与焦点边界。影院以暗色内容区建立层级，视频保持等比显示，不因弹层重建。
+平面优先，但分层只有**一个机制**：表面色差 + 留白。边框不承担内容分层。
+
+表面按固定阶梯排列，每一级只与相邻一级相差约 1.05–1.15：页面（`background`）→ 卡片（`card`）→ 悬停／次要区（`muted`）→ 浮层（`popover`）。浅色主题同样成立：`card` 必须与页面不同，否则 hero、卡片和搜索框会变成白底白框，只剩细线在撑。`popover` 永远在 `muted` 之上，浮层不能比它所覆盖的悬停表面更暗。
+
+`border` 只作装饰性分隔（表格行、分组线），亮度低于 `input`；`input` 是控件识别边界，与任何表面至少 1.5:1。内容区之间不用线，用留白和表面差。
+
+浮层与遮挡：菜单、建议层、Dialog、Sheet 和 Popover 使用统一语义表面、共享 `overlayShadow` 两层投影与 NSH 承载，模态需要明确遮挡与焦点边界。投影只给真正浮起的层，平静表面不加投影。影院以暗色内容区建立层级，视频保持等比显示，不因弹层重建。
 
 | `Surface` 变体  | 何时使用                       | 内容配对                                          |
 | --------------- | ------------------------------ | ------------------------------------------------- |
@@ -655,7 +674,7 @@ components:
 
 浏览器原型用同一 Lucide 1.43.0 官方 SVG：资源、许可证和逐图 SHA 位于 `packages/ui/assets/lucide/`，`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移。打包内容等于源码导入的图标常量：`nsh-icon` 按导入裁剪，未引用的图标不进包；不要用计算出的名字取图标，那会拉进整个集合。
 
-保留官方 24×24 网格与几何，显示尺寸使用共享档位，不为页面改路径或线宽。颜色由语义 token 提供：`Icon` 的 `tone` 取对应 `text-*` 类并经文字色继承，不为图标单独传色值；纯图标动作有可访问名称，装饰图标不重复朗读。品牌、内容封面和系统原生控件自带图标除外。
+保留官方 24×24 网格与几何，显示尺寸使用共享档位，不为页面改路径。描边统一 1.75（`Icon` 传给 `nsh-icon` 的 `strokeWidth`）：官方 2 在 20 档渲染成 1.67pt、16 档 1.33pt，比 14–16 号中文的 1.1–1.4pt 竖笔更粗，整行会读成图标加说明；1.75 在 20 档为 1.46pt，与标签同重。颜色由语义 token 提供：`Icon` 的 `tone` 取对应 `text-*` 类并经文字色继承，不为图标单独传色值；纯图标动作有可访问名称，装饰图标不重复朗读。品牌、内容封面和系统原生控件自带图标除外。
 
 ## Do's and Don'ts
 

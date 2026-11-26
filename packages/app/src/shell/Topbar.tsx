@@ -1,6 +1,7 @@
-import { View, windowSize } from 'nsh';
+import { View } from 'nsh';
 import { Button, Controls, UiText } from '@hongguo/ui';
 import { SearchForm } from '../SearchForm';
+import { contentGutter } from './ContentColumn';
 import { sectionLabels } from '../sections';
 import type { Section, Store } from '../store';
 import { AccountButton } from './AccountButton';
@@ -19,8 +20,8 @@ const sections: Section[] = [
   'calendar',
 ];
 
-/** Draft inline padding: 24px to 64px across the window width. */
-const inset = () => Math.min(64, Math.max(24, windowSize().width * 0.035));
+/** The shared content gutter, so the top bar agrees with every page below it. */
+const inset = contentGutter;
 
 /** Design draft: 86px bar, page crumb, 360px search, account actions. */
 export function Topbar(props: { store: Store }) {

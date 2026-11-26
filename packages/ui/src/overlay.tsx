@@ -38,7 +38,15 @@ import {
   type ToastTransitionStatus,
 } from 'nsh/base';
 import { Button } from './button';
-import { border, controlMetrics, radius, space, weight, focusRingClass } from './foundation';
+import {
+  border,
+  controlMetrics,
+  overlayShadow,
+  radius,
+  space,
+  weight,
+  focusRingClass,
+} from './foundation';
 import { Icon } from './icon';
 import { textSize, textWeight } from './typography';
 
@@ -153,6 +161,7 @@ export function Dialog(props: DialogProps) {
         class="m-auto bg-popover border border-input"
         backdropClass="bg-cinema/40"
         style={{
+          boxShadow: overlayShadow,
           borderWidth: border,
           width: Math.max(
             0,
@@ -336,6 +345,7 @@ export function SidePanel(props: SidePanelProps) {
         closeOnSwipe={false}
         popupClass="bg-popover"
         popupStyle={{
+          boxShadow: overlayShadow,
           width: Math.min(440, windowSize().width),
           padding: space('xl'),
           gap: space('lg'),
@@ -430,6 +440,7 @@ export function Menu(props: MenuProps) {
       margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
+        boxShadow: overlayShadow,
         minWidth: MENU_MIN_WIDTH,
         maxWidth: Math.max(0, windowSize().width - space('lg')),
         padding: space('xs'),
@@ -536,6 +547,7 @@ export function Popover(props: PopoverProps) {
       margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
+        boxShadow: overlayShadow,
         width: Math.max(0, Math.min(320, windowSize().width - space('lg'))),
         padding: space('lg'),
         gap: space('md'),
@@ -591,6 +603,7 @@ export function Tooltip(props: TooltipProps) {
       testID={props.testID}
       class={`${popupClass} ${popupMotion()}`}
       style={{
+        boxShadow: overlayShadow,
         maxWidth: TOOLTIP_MAX_WIDTH,
         paddingHorizontal: space('sm'),
         paddingVertical: space('xs'),

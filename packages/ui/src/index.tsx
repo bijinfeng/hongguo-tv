@@ -5,6 +5,7 @@ export {
   focusRing,
   focusRingClass,
   focusWithinClass,
+  overlayShadow,
   radius,
   space,
   weight,

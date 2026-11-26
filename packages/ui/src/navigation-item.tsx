@@ -13,6 +13,7 @@ export interface NavigationItemProps extends Pick<
   | 'disabled'
   | 'accessibilityDescription'
   | 'class'
+  | 'style'
 > {
   current?: boolean;
   currentSurface?: 'muted' | 'contrast';

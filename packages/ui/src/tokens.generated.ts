@@ -3,9 +3,9 @@
 
 export const typeTokens = {
   display: {
-    fontWeight: 400,
-    lineHeight: 1.4,
-    letterSpacingEm: 0.06,
+    fontWeight: 500,
+    lineHeight: 1.15,
+    letterSpacingEm: -0.01,
   },
   page: {
     fontWeight: 600,
@@ -25,11 +25,15 @@ export const typeTokens = {
   },
   body: {
     fontWeight: 400,
-    lineHeight: 1.5,
+    lineHeight: 1.6,
   },
   meta: {
     fontWeight: 400,
     lineHeight: 1.5,
+  },
+  caption: {
+    fontWeight: 400,
+    lineHeight: 1.4,
   },
   numeric: {
     fontWeight: 400,

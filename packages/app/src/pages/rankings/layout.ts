@@ -1,4 +1,5 @@
 import { windowSize } from 'nsh';
+import { contentGutter } from '../../shell/ContentColumn';
 
 /**
  * The ranking draft keeps one reading column (`max-width: 1120px`) for the hero, the selector
@@ -23,6 +24,6 @@ export function rankingBandInset(): number {
   const available = windowSize().width - SIDEBAR;
   // Below 1120 + gutters the centred inset reaches 0, pinning the hero to the sidebar rule. The
   // shared content gutter is the floor, so this page matches every other page's edge.
-  const shared = Math.min(64, Math.max(24, windowSize().width * 0.035));
+  const shared = contentGutter();
   return Math.max(shared, (available - RANKING_COLUMN) / 2);
 }

@@ -1,4 +1,4 @@
-import { platform, token } from 'nsh';
+import { platform, token, type BoxShadowLayer } from 'nsh';
 
 /** Product input/density family, independent of the host operating system. */
 export type ProductTarget = 'desktop' | 'tv';
@@ -83,6 +83,17 @@ export const radius = (name: RadiusToken) => token(radiusTokens[name]);
 
 /** Hairline border, always one point. */
 export const border = 1;
+
+/**
+ * Depth for anything that floats above the page: menus, popovers, dialogs, sheets.
+ * Two layers, because one reads as a smudge: a tight layer for the contact edge and a
+ * wide soft one for the lift. Colour stays the platform's black with alpha, so it works
+ * on either theme without a second token.
+ */
+export const overlayShadow: BoxShadowLayer[] = [
+  { x: 0, y: 2, blur: 6, color: 'rgba(0, 0, 0, 0.18)' },
+  { x: 0, y: 12, blur: 32, color: 'rgba(0, 0, 0, 0.28)' },
+];
 
 /** Independent focus outline, two hairline units. */
 export const focusRing = border * 2;
