@@ -8,7 +8,7 @@ const rateOptions = PLAYBACK_RATES.map((rate) => ({ value: rate, label: `${rate}
 export function SettingsPlayback(props: { store: Store; tv: boolean }) {
   const settings = props.store.settings;
   /** Only a write failure is this row's; a read failure stays in the page notice. */
-  const rowError = (key: 'autoplayNext' | 'rememberPosition' | 'defaultRate') =>
+  const rowError = (key: 'autoplayNext' | 'rememberPosition' | 'defaultRate' | 'quietWatching') =>
     settings.failedKey() === key ? settings.error() : undefined;
   return (
     <SettingsSection title="播放">
@@ -16,6 +16,8 @@ export function SettingsPlayback(props: { store: Store; tv: boolean }) {
         label="自动播放下一集"
         testID="settings-autoplay-row"
         error={rowError('autoplayNext')}
+        onRetry={settings.retry}
+        retryLabel="重试保存"
       >
         <Switch
           label="自动播放下一集"
@@ -31,6 +33,8 @@ export function SettingsPlayback(props: { store: Store; tv: boolean }) {
         description="重新打开剧集时从上次观看的位置继续。"
         testID="settings-remember-row"
         error={rowError('rememberPosition')}
+        onRetry={settings.retry}
+        retryLabel="重试保存"
       >
         <Switch
           label="记住播放位置"
@@ -46,6 +50,8 @@ export function SettingsPlayback(props: { store: Store; tv: boolean }) {
         description="进入播放器时使用的初始速度。"
         testID="settings-rate-row"
         error={rowError('defaultRate')}
+        onRetry={settings.retry}
+        retryLabel="重试保存"
       >
         {/* TV lays the five short rates on the row itself; desktops keep the compact select. */}
         <If
@@ -77,6 +83,9 @@ export function SettingsPlayback(props: { store: Store; tv: boolean }) {
           label="安静观看"
           description="播放时收起侧栏与顶栏，只保留画面和播放控件。"
           testID="settings-quiet-row"
+          error={rowError('quietWatching')}
+          onRetry={settings.retry}
+          retryLabel="重试保存"
         >
           <Switch
             label="安静观看"

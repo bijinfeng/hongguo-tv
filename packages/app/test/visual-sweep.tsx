@@ -1,4 +1,4 @@
-import { expect, open, test, type App } from 'nsh/test';
+import { expect, open, test, type App, type SafeArea } from 'nsh/test';
 
 /**
  * One app instance renders the TV product and the flat component gallery behind a switch, so the
@@ -15,63 +15,82 @@ type Screen = {
 };
 
 /** Screens the remote reaches from the TV shell, in the order this sweep walks them. */
+async function browse(app: App) {
+  for (let depth = 0; depth < 5 && !app.shows('id:nav-home'); depth++) await app.back();
+  await app.waitFor('id:nav-home');
+}
+async function section(app: App, id: string) {
+  await browse(app);
+  await app.press(`id:${id}`);
+}
+async function mine(app: App, id?: string) {
+  await section(app, 'nav-mine');
+  if (id) await app.press(`id:mine-${id}`);
+}
+async function settings(app: App, panel: string) {
+  await section(app, 'nav-settings');
+  await app.press(`id:settings-panel-${panel}`);
+}
 const screens: Screen[] = [
   {
     name: 'home',
-    // A previous theme's pass can end on a stack page; back out until the shell shows again.
     open: async (app) => {
-      for (let attempt = 0; attempt < 4 && !app.shows('id:home-scroll'); attempt++) {
-        await app.back().catch(() => {});
-        await app.wait(200);
-      }
+      await section(app, 'nav-home');
     },
     ready: 'id:home-scroll',
   },
-  {
-    name: 'discover',
-    open: (app) => app.press('id:nav-discover'),
-    ready: 'id:category-results',
-  },
+  { name: 'discover', open: (app) => section(app, 'nav-discover'), ready: 'id:category-results' },
   {
     name: 'rankings',
-    // The previous theme's pass ends on the radar tab, so the source tab is selected again.
     open: async (app) => {
-      await app.press('id:nav-rank');
+      await section(app, 'nav-rank');
       await app.press('id:ranking-view-official');
     },
-    ready: 'id:ranking-hero',
+    ready: 'id:ranking-results',
   },
+  { name: 'radar', open: (app) => app.press('id:ranking-view-radar'), ready: 'id:radar-page' },
+  { name: 'mine', open: (app) => mine(app), ready: 'id:mine-scroll' },
+  { name: 'history', open: (app) => mine(app, 'history'), ready: 'id:history-page' },
+  { name: 'favorites', open: (app) => mine(app, 'favorites'), ready: 'id:history-page' },
+  { name: 'following', open: (app) => mine(app, 'following'), ready: 'id:following-page' },
+  { name: 'reservations', open: (app) => mine(app, 'reservations'), ready: 'id:reservations-page' },
   {
-    name: 'radar',
-    open: (app) => app.press('id:ranking-view-radar'),
-    ready: 'id:radar-page',
-  },
-  {
-    name: 'history',
-    open: async (app) => {
-      await app.press('id:nav-rank');
-      await app.press('id:nav-history');
-    },
-    ready: 'id:history-page',
+    name: 'notifications',
+    open: (app) => mine(app, 'notifications'),
+    ready: 'id:notifications-page',
   },
   {
     name: 'calendar',
     open: async (app) => {
-      await app.press('id:nav-home');
-      await openFromHome(app, 'id:home-calendar', 'id:release-calendar');
+      await section(app, 'nav-discover');
+      await app.press('id:discover-calendar');
     },
     ready: 'id:release-calendar',
   },
+  { name: 'search', open: (app) => section(app, 'nav-search'), ready: 'id:results' },
+  { name: 'account', open: (app) => mine(app, 'account'), ready: 'id:account-scroll' },
+  { name: 'settings', open: (app) => settings(app, 'appearance'), ready: 'id:settings-theme-row' },
   {
-    name: 'settings',
-    open: (app) => app.press('id:nav-settings'),
-    ready: 'id:settings-page',
+    name: 'settings-playback',
+    open: (app) => settings(app, 'playback'),
+    ready: 'id:settings-autoplay-row',
+  },
+  {
+    name: 'settings-local-data',
+    open: (app) => settings(app, 'local-data'),
+    ready: 'id:settings-local-data-row',
+  },
+  { name: 'about', open: (app) => settings(app, 'about'), ready: 'id:settings-about' },
+  { name: 'support', open: (app) => settings(app, 'support'), ready: 'id:settings-support' },
+  {
+    name: 'recommendations',
+    open: (app) => settings(app, 'recommendations'),
+    ready: 'id:settings-recommendations',
   },
   {
     name: 'detail',
     open: async (app) => {
-      await app.back();
-      await app.press('id:nav-home');
+      await section(app, 'nav-home');
       await openFromHome(app, 'id:home-poster-123', 'id:detail-scroll');
     },
     ready: 'id:detail-scroll',
@@ -99,21 +118,33 @@ async function openFromHome(app: App, selector: string, ready: string) {
  * Walks the TV shell and the component gallery in one app. `artifacts` names the directory the
  * screenshots go to; without it the run only asserts every screen loads.
  */
-export function registerVisualSweep(entry: string, artifacts: string | undefined) {
+export function registerVisualSweep(
+  entry: string,
+  artifacts: string | undefined,
+  options: {
+    host?: 'web' | 'android';
+    scheme?: 'light' | 'dark';
+    textScale?: number;
+    safeArea?: SafeArea;
+  } = {},
+) {
+  const android = options.host === 'android';
+  const schemes = android ? ([options.scheme ?? 'light'] as const) : (['light', 'dark'] as const);
   test('visual sweep: every TV screen and the whole gallery in one app', async () => {
     // DESIGN.md: a TV surface is 960x540dp whether the panel is 1080p or 4K.
     const app = await open(entry, {
-      width: 960,
-      height: 540,
-      colorScheme: 'light',
-      reducedMotion: true,
+      ...(android
+        ? {}
+        : { width: 960, height: 540, colorScheme: 'light' as const, reducedMotion: true }),
       network: 'live',
+      safeArea: options.safeArea,
     });
     try {
       await app.waitFor(screens[0].ready, { timeout: 20_000 });
-      for (const scheme of ['light', 'dark'] as const) {
-        await app.setColorScheme(scheme);
+      for (const scheme of schemes) {
+        if (!android) await app.setColorScheme(scheme);
         for (const screen of screens) {
+          console.log('TV_VISUAL_SCREEN', scheme, screen.name);
           await screen.open(app);
           await app.waitFor(screen.ready, { timeout: 20_000 });
           // Covers and transitions settle before the frame stands as evidence.
@@ -123,19 +154,58 @@ export function registerVisualSweep(entry: string, artifacts: string | undefined
         }
       }
 
+      await section(app, 'nav-home');
       // The flat gallery needs one tall surface; the product shell keeps its own size after.
       await app.host.send('view', 'gallery');
-      await app.setViewport(1920, 4400);
+      if (!android) await app.setViewport(1920, 4400);
+      await app.waitFor('id:gallery-host-metrics');
+      if (options.safeArea) {
+        const area = options.safeArea;
+        expect(
+          app
+            .texts()
+            .some((text) =>
+              text.includes(
+                `insets ${area.top ?? 0}/${area.right ?? 0}/${area.bottom ?? 0}/${area.left ?? 0}`,
+              ),
+            ),
+        ).toBe(true);
+      }
+      if (options.textScale !== undefined)
+        await app.waitUntil(() =>
+          app.texts().some((text) => text.includes(`· text ${options.textScale} ·`)),
+        );
+      console.log(
+        'TV_HOST_METRICS',
+        app.texts().filter((text) => text.startsWith('window ')),
+      );
       await app.waitFor('id:gallery-scroll', { timeout: 20_000 });
-      for (const scheme of ['light', 'dark'] as const) {
-        await app.setColorScheme(scheme);
+      for (const scheme of schemes) {
+        if (!android) await app.setColorScheme(scheme);
         await app.wait(600);
-        // The last group's own content: if it is on screen, nothing below was cut off.
-        expect(app.shows('text:更新下载进度')).toBe(true);
-        if (artifacts) await app.screenshot(`${artifacts}/components-tv-all-${scheme}.png`);
+        if (android) {
+          for (const group of [
+            'foundation',
+            'controls',
+            'forms',
+            'navigation',
+            'layers',
+            'content',
+            'cinema',
+            'feedback',
+          ]) {
+            await app.press(`id:gallery-sheet-${group}`);
+            await app.wait(200);
+            if (artifacts)
+              await app.screenshot(`${artifacts}/components-tv-${group}-${scheme}.png`);
+          }
+        } else {
+          expect(app.shows('text:更新下载进度')).toBe(true);
+          if (artifacts) await app.screenshot(`${artifacts}/components-tv-all-${scheme}.png`);
+        }
       }
       await app.host.send('view', 'app');
-      await app.setViewport(960, 540);
+      if (!android) await app.setViewport(960, 540);
       await app.waitFor('id:home-scroll', { timeout: 20_000 });
     } finally {
       app.dispose();

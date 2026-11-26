@@ -199,7 +199,7 @@ export function LoginDialog(props: {
               }}
               testID="account-existing-code"
             />
-            <If when={login()?.method === 'phone'}>
+            <If when={login()?.method === 'phone' || props.view.expired}>
               <UiText tone="muted">
                 {props.view.expired
                   ? loginStatus.expired
@@ -258,7 +258,12 @@ export function LoginDialog(props: {
           </View>
         </If>
         <If when={props.failure && !props.view.errorField}>
-          <Notice error message={props.failure} retry={props.onRetry} />
+          <Notice
+            error
+            message={props.failure}
+            retry={props.onRetry}
+            testID="account-login-feedback"
+          />
         </If>
       </View>
     </Dialog>

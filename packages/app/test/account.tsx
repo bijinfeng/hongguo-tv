@@ -1,3 +1,4 @@
+import { openHistory, openAccount } from './navigation';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import type {
   Account,
@@ -98,7 +99,11 @@ const signedIn = (): Account => ({
   phone_login_available: true,
 });
 
-export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+export function registerAccountTests(
+  target: 'desktop' | 'tv' = 'desktop',
+  entry = './App.tsx',
+  options: { artifacts?: string } = {},
+) {
   const dimensions = {
     width: target === 'tv' ? 1920 : 1440,
     height: target === 'tv' ? 1080 : 1000,
@@ -115,10 +120,8 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.waitFor('id:nav-history');
-    await app.press(
-      target === 'tv' ? 'role:button[集成账号]' : 'label:账号与记录 >> role:button[集成账号]',
-    );
+    await app.waitFor(target === 'tv' ? 'id:nav-mine' : 'id:nav-history');
+    await openAccount(app, target, '集成账号');
     await app.waitFor('id:account-logout');
     expect(app.shows('id:account-notifications')).toBe(true);
     expect(app.shows('id:account-following')).toBe(true);
@@ -147,8 +150,8 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.waitFor('id:nav-history');
-    await app.press('登录');
+    await app.waitFor(target === 'tv' ? 'id:nav-mine' : 'id:nav-history');
+    await openAccount(app, target);
     await app.waitFor('id:account-login-open');
     await app.press('id:account-login-open');
     await app.waitFor('id:account-login-dialog');
@@ -176,9 +179,67 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
     await app.waitFor('id:account-login-dialog');
     await app.keyboard.press('escape');
     await app.waitUntil(() => !app.shows('id:account-login-dialog'));
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-101');
     expect(app.shows('id:history-202')).toBe(false);
+  });
+
+  test('expired phone login keeps its explanation and can restart with visible failure feedback', async () => {
+    let starts = 0;
+    const fixture = accountFixture(({ command }, state) => {
+      if (command.action === 'phone_start') {
+        state.account = {
+          ...guest(),
+          login: { ...phone(), state: ++starts === 1 ? 'expired' : 'pending' },
+        };
+      } else if (command.action === 'phone_login') {
+        state.account = { ...guest(), login: { ...phone(), error: '合成登录未完成' } };
+      } else if (command.action === 'cancel') state.account = guest();
+      else return { error: 'unexpected synthetic account command' };
+      return ok(state);
+    });
+    const app = await open(entry, {
+      ...dimensions,
+      platform: 'macos',
+      clock: {},
+      reducedMotion: true,
+      network: { '*': fixture.network, 'POST *': fixture.network },
+    });
+    await openAccount(app, target);
+    await app.press('id:account-login-open');
+    await app.press('id:account-method-phone');
+    await app.waitFor(target === 'tv' ? 'id:account-phone-activate' : 'id:account-phone');
+    if (target === 'tv') await app.press('id:account-phone-activate');
+    await app.type('id:account-phone', '13800138000');
+    await app.wait(80);
+    if (target === 'tv') await app.keyboard.press('escape');
+    if (target === 'desktop') expect(app.value('id:account-phone')).toBe('13800138000');
+    await app.press('id:account-existing-code');
+    if (options.artifacts) await app.screenshot(`${options.artifacts}/phone-start-requested.png`);
+    await app.waitFor('登录已过期，请重新开始');
+    expect(app.enabled('id:account-phone-login')).toBe(false);
+    if (options.artifacts) await app.screenshot(`${options.artifacts}/phone-expired.png`);
+    await app.press('id:account-existing-code');
+    await app.waitFor('输入验证码后登录');
+    expect(app.shows('登录已过期，请重新开始')).toBe(false);
+    if (target === 'tv') await app.press('id:account-code-activate');
+    await app.type('id:account-code', '1');
+    if (target === 'tv') await app.keyboard.press('escape');
+    await app.press('id:account-phone-login');
+    await app.waitFor('请输入正确的验证码。');
+    if (target === 'tv') await app.press('id:account-code-activate');
+    await app.clear('id:account-code');
+    await app.type('id:account-code', '123456');
+    await app.wait(80);
+    if (target === 'tv') await app.keyboard.press('escape');
+    await app.press('id:account-phone-login');
+    await app.waitFor('id:account-login-feedback >> text:合成登录未完成');
+    expect(app.enabled('id:account-phone-login')).toBe(true);
+    if (options.artifacts) {
+      await app.screenshot(`${options.artifacts}/phone-failure-light.png`);
+      await app.setColorScheme('dark');
+      await app.screenshot(`${options.artifacts}/phone-failure-dark.png`);
+    }
   });
 
   test('synthetic account App existing-code login requires explicit MFA and restores separate guest history after logout', async () => {
@@ -212,7 +273,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       colorScheme: 'dark',
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press('登录');
+    await openAccount(app, target);
     await app.waitFor('id:account-login-open');
     await app.press('id:account-login-open');
     await app.waitFor('id:account-login-dialog');
@@ -244,19 +305,17 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
     await app.press('id:account-phone-verify');
     await app.waitFor('id:account-logout');
     await app.waitUntil(() => !app.shows('id:account-login-dialog'));
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-202');
     expect(app.shows('id:history-101')).toBe(false);
-    await app.press(
-      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
-    );
+    await openAccount(app, target, '集成账号');
     await app.waitFor('id:account-logout');
     expect(app.shows('id:account-notifications')).toBe(true);
     expect(app.shows('id:account-following')).toBe(true);
     expect(app.shows('id:account-reservations')).toBe(true);
     await app.press('id:account-logout');
     await app.waitFor('id:account-login-open');
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-101');
     expect(app.shows('id:history-202')).toBe(false);
     const logout = fixture.commands.find(({ command }) => command.action === 'logout');
@@ -285,7 +344,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press('登录');
+    await openAccount(app, target);
     await app.waitFor('id:account-login-open');
     await app.press('id:account-login-open');
     await app.waitFor('id:account-login-dialog');
@@ -297,7 +356,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
     await app.waitFor('id:account-logout');
     await app.waitUntil(() => !app.shows('id:account-login-dialog'));
     expect(fixture.recoveries()).toBe(1);
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.waitFor('id:history-202');
     expect(app.shows('id:history-101')).toBe(false);
     expect(fixture.commands.map(({ command }) => command.action)).toEqual(['qr_start', 'qr_poll']);
@@ -328,9 +387,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(
-      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
-    );
+    await openAccount(app, target, '集成账号');
     await app.waitFor('id:account-sync');
     expect(fixture.commands.length).toBe(0);
     await app.press('id:account-sync');
@@ -369,9 +426,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(
-      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
-    );
+    await openAccount(app, target, '集成账号');
     await app.press('id:account-import-open');
     await app.waitFor('id:account-import-cancel');
     await app.wait(80);
@@ -414,9 +469,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(
-      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
-    );
+    await openAccount(app, target, '集成账号');
     await app.press('id:account-import-open');
     await app.waitFor('id:account-import-confirm');
     await app.press('id:account-import-confirm');
@@ -451,9 +504,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(
-      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
-    );
+    await openAccount(app, target, '集成账号');
     await app.press('id:account-import-open');
     await app.waitFor('id:account-import');
     await app.press('id:account-import-confirm');
@@ -486,9 +537,7 @@ export function registerAccountTests(target: 'desktop' | 'tv' = 'desktop', entry
       reducedMotion: true,
       network: { '*': fixture.network, 'POST *': fixture.network },
     });
-    await app.press(
-      target === 'desktop' ? 'label:账号与记录 >> role:button[集成账号]' : 'role:button[集成账号]',
-    );
+    await openAccount(app, target, '集成账号');
     await app.press('id:account-import-open');
     await app.press('id:account-import-confirm');
     await app.waitFor('关闭');

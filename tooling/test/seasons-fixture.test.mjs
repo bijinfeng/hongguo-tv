@@ -8,6 +8,23 @@ test('series fixture preserves exact identities, queued failures, real media ran
   await seasonsFixtureSelfcheck();
 });
 
+test('series host accepts only the production home directory query', async () => {
+  const fixture = await seasonsFixture();
+  try {
+    const path = '/api/v1/category?genre=&category_dim_theme=&sort=&selectors=1';
+    const response = await fetch(fixture.origin + path);
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).data, { items: [], filters: [], has_more: false });
+    assert.deepEqual(fixture.unknown, []);
+    for (const query of [path.replace('selectors=1', 'selectors=0'), path + '&genre=other'])
+      assert.equal((await fetch(fixture.origin + query)).status, 400);
+    assert.equal(fixture.unknown.length, 2);
+    assert.deepEqual(fixture.writes, []);
+  } finally {
+    await fixture.close();
+  }
+});
+
 for (const [name, create, series, video] of [
   ['series', seasonsFixture, '101', '1001'],
   ['feed', () => browsingFixture({ feed: true }), '123', '1000'],

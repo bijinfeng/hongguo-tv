@@ -1,8 +1,10 @@
-import { Image, View, windowSize, type JSX } from 'nsh';
+import { ChevronRight, Search } from 'nsh-icon-lucide';
+import { Image, View, windowSize, signal, type JSX } from 'nsh';
 import {
   Button,
   CardControls,
   CardRoot,
+  ContinueCard,
   focusRingClass,
   Icon,
   Notice,
@@ -17,8 +19,8 @@ import type { Store } from '../../store';
 import { errorMessage } from '../../error-messages';
 import { playbackTime } from '../../format';
 import { historyLabel } from '../History';
+import { tvColumns } from '../../shell/tv-layout';
 import { contentGutter } from '../../shell/ContentColumn';
-import { ChevronRight, Search } from 'nsh-icon-lucide';
 
 type Entry = Library['entries'][number];
 
@@ -27,7 +29,7 @@ const continueTileWidth = () =>
   Math.floor((Math.min(1660, windowSize().width - 176) - contentGutter() * 2 - 36) / 3);
 
 /** Continue card: draft rail card on TV (stacked), horizontal row on desktop. */
-function ContinueTile(props: { entry: Entry; store: Store }) {
+function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
   const entry = () => props.entry;
   const tv = () => props.store.target === 'tv';
   const resume = () => props.store.watch(entry().drama, () => props.store.restoreFocus());
@@ -77,30 +79,28 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
   );
   if (tv()) {
     return (
-      <View
-        class="border border-border rounded-(--radius) bg-card"
-        style={{ width: 163, padding: 5, gap: 6 }}
-      >
-        <CardControls label={entry().drama.title} onNavigate={props.store.noteFocusIntent}>
-          <CardRoot
-            testID={`home-continue-${entry().drama.series_id}`}
-            accessibilityLabel={historyLabel(entry())}
-            onPress={resume}
-            style={{ padding: 0, gap: 6 }}
-            class={`hover:bg-muted active:bg-border ${focusRingClass(4)}`}
-          >
-            {cover(153)}
-            <UiText role="body" lines={1}>
-              {entry().drama.title}
-            </UiText>
-            <UiText role="meta" lines={1}>
-              第 {entry().episode ?? 1} 集{remaining()}
-            </UiText>
-            <If when={known()}>{progress()}</If>
-          </CardRoot>
-        </CardControls>
+      <View style={{ width: props.width, gap: 4 }}>
+        <ContinueCard
+          density="compact"
+          fit="contain"
+          testID={`home-continue-${entry().drama.series_id}`}
+          title={entry().drama.title}
+          image={coverSource()}
+          subtitle={`第 ${entry().episode ?? 1} 集${remaining()}`}
+          position={position()}
+          duration={duration()}
+          label="继续观看"
+          accessibilityLabel={historyLabel(entry())}
+          onPress={resume}
+        />
         <View class="items-start">
-          <Button label="选集与详情" icon={ChevronRight} onPress={openDetail} />
+          <Button
+            size="sm"
+            variant="quiet"
+            label="选集与详情"
+            icon={ChevronRight}
+            onPress={openDetail}
+          />
         </View>
       </View>
     );
@@ -150,15 +150,15 @@ function ContinueEmpty(props: { store: Store }) {
 }
 
 /** Pending rail: the same card, cover and copy rows as a loaded tile, no motion. */
-function ContinueSkeleton(props: { store: Store }) {
+function ContinueSkeleton(props: { store: Store; width: number; count: number }) {
   const tv = () => props.store.target === 'tv';
-  const count = () => (tv() ? 4 : 3);
+  const count = () => props.count;
   return (
     <SkeletonRegion
       label="正在加载观看记录"
       testID="home-continue-pending"
       class="flex-row"
-      style={{ gap: tv() ? 14 : 18 }}
+      style={{ gap: tv() ? 16 : 18 }}
     >
       <Each
         of={Array.from({ length: count() }, (_, index) => index)}
@@ -167,18 +167,17 @@ function ContinueSkeleton(props: { store: Store }) {
         {() =>
           tv() ? (
             <View
-              class="border border-border rounded-(--radius) bg-card"
-              style={{ width: 163, padding: 5, gap: 6 }}
+              style={{ width: Math.max(1, (props.width - (count() - 1) * 16) / count()), gap: 4 }}
             >
-              <SkeletonBlock width={153} height={153 * 0.625} radius={8} />
-              <View class="justify-center" style={{ height: 16.5 }}>
-                <SkeletonBlock width="72%" height={11} radius={4} />
+              <View class="flex-row items-center" style={{ gap: 12 }}>
+                <SkeletonBlock width={47} height={64} radius={8} />
+                <View class="flex-1" style={{ gap: 4 }}>
+                  <SkeletonBlock width="72%" height={18} radius={4} />
+                  <SkeletonBlock width="46%" height={12} radius={4} />
+                  <SkeletonBlock width="100%" height={2} radius={1} />
+                </View>
               </View>
-              <View class="justify-center" style={{ height: 15 }}>
-                <SkeletonBlock width="46%" height={10} radius={4} />
-              </View>
-              <SkeletonBlock width="100%" height={2} radius={1} />
-              <SkeletonBlock width={84} height={24} radius={6} />
+              <SkeletonBlock width={104} height={32} radius={6} />
             </View>
           ) : (
             <View style={{ width: continueTileWidth() }}>
@@ -220,36 +219,52 @@ function ContinueFailure(props: { store: Store }) {
 }
 
 /** “继续观看” rail with the library link, from the home draft. */
-export function ContinueSection(props: { store: Store }) {
+export function ContinueSection(props: { store: Store; showAll?: boolean }) {
   const tv = () => props.store.target === 'tv';
-  const entries = () => props.store.entries().slice(0, tv() ? 4 : 3);
+  const width = signal(0);
+  const count = () => (tv() ? tvColumns('continue', width()) : 3);
+  const entries = () => props.store.entries().slice(0, count());
   const library = props.store.library;
   const state = () => library.state();
   const pending = () => state() === 'unresolved' || state() === 'pending';
   return (
-    <View>
-      <View class="flex-row items-center justify-between" style={{ marginBottom: 16 }}>
-        <UiText role={tv() ? 'section' : 'title'}>{tv() ? '接着上次的故事' : '继续观看'}</UiText>
-        <Button
-          label="全部记录"
-          icon={ChevronRight}
-          variant="quiet"
-          compact
-          onPress={() => {
-            props.store.openLibrary('history');
-            props.store.restoreFocus();
-          }}
-        />
+    <View
+      onLayout={({ bounds }) => {
+        if (bounds.size.width > 0) width.set(bounds.size.width);
+      }}
+    >
+      <View class="flex-row flex-wrap items-center justify-between" style={{ marginBottom: 16 }}>
+        <UiText role={tv() ? 'section' : 'title'}>继续观看</UiText>
+        <If when={props.showAll !== false}>
+          <Button
+            label="全部记录"
+            icon={ChevronRight}
+            variant="quiet"
+            compact
+            onPress={() => {
+              props.store.openLibrary('history');
+              props.store.restoreFocus();
+            }}
+          />
+        </If>
       </View>
       <If when={entries().length > 0}>
-        <View class="flex-row" style={{ gap: tv() ? 14 : 18 }}>
+        <View class="flex-row" style={{ gap: tv() ? 16 : 18 }}>
           <Each of={entries()} key={(entry: Entry) => entry.drama.series_id}>
             {(entry) =>
               tv() ? (
-                <ContinueTile entry={entry()} store={props.store} />
+                <ContinueTile
+                  entry={entry()}
+                  store={props.store}
+                  width={tv() ? (width() - (count() - 1) * 16) / count() : undefined}
+                />
               ) : (
                 <View style={{ width: continueTileWidth() }}>
-                  <ContinueTile entry={entry()} store={props.store} />
+                  <ContinueTile
+                    entry={entry()}
+                    store={props.store}
+                    width={tv() ? (width() - (count() - 1) * 16) / count() : undefined}
+                  />
                 </View>
               )
             }
@@ -257,7 +272,7 @@ export function ContinueSection(props: { store: Store }) {
         </View>
       </If>
       <If when={entries().length === 0 && pending()}>
-        <ContinueSkeleton store={props.store} />
+        <ContinueSkeleton store={props.store} width={width()} count={count()} />
       </If>
       <If when={entries().length === 0 && state() === 'errored'}>
         <ContinueFailure store={props.store} />

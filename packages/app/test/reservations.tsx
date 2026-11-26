@@ -1,3 +1,4 @@
+import { openAccount } from './navigation';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import type {
   Account,
@@ -216,11 +217,7 @@ export function registerReservationTests(target: 'desktop' | 'tv', entry: string
       reducedMotion: true,
       network: { '*': f.network, 'POST *': f.network },
     });
-    await app.press(
-      target === 'tv'
-        ? `role:button[${f.account.profile?.name || '登录'}]`
-        : `label:账号与记录 >> role:button[${f.account.profile?.name || '登录'}]`,
-    );
+    await openAccount(app, target, f.account.profile?.name || '登录');
     await app.press('id:account-reservations');
     return app;
   };

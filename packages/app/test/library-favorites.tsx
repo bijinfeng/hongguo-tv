@@ -1,3 +1,4 @@
+import { openHistory } from './navigation';
 import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
 import type { Account, Drama, Library, LibraryChange } from '@hongguo/core-client';
 
@@ -128,10 +129,14 @@ export function registerLibraryFavoritesTests(target: 'desktop' | 'tv', entry: s
     ).toBe(true);
     expect(f.library().entries).toEqual([]);
     await app.back();
-    await app.press('id:nav-history');
+    await openHistory(app, target);
     await app.press('id:library-tabs-favorites');
     await app.waitFor('id:history-124');
     expect(app.texts().some((text) => text.includes('看到 '))).toBe(false);
+    await app.press('id:history-124');
+    await app.waitFor('返回收藏');
+    await app.back();
+    await app.waitFor('id:history-124');
     await app.press('id:history-manage');
     await app.press('id:history-remove-124');
     await app.waitFor('取消收藏会同步到当前账号；观看记录保留。');

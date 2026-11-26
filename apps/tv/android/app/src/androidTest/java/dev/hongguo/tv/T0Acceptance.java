@@ -73,6 +73,14 @@ public final class T0Acceptance extends Instrumentation {
     }
 
     @Override public void onStart() {
+        if ("header".equals(arguments.getString("suite"))) {
+            new HeaderAcceptance(this).run();
+            return;
+        }
+        if ("components".equals(arguments.getString("suite"))) {
+            new ComponentAcceptance(this, arguments).run();
+            return;
+        }
         if ("updates".equals(arguments.getString("suite"))) {
             new UpdateAcceptance(this, arguments).run();
             return;

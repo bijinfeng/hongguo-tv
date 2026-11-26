@@ -1,4 +1,14 @@
-import { View, cleanup, effect, platform, signal, untracked, windowSize, type ViewRef } from 'nsh';
+import {
+  View,
+  cleanup,
+  effect,
+  fontScale,
+  platform,
+  signal,
+  untracked,
+  windowSize,
+  type ViewRef,
+} from 'nsh';
 import {
   Button,
   ContentArrival,
@@ -213,129 +223,145 @@ function OfficialRankings(props: OfficialProps) {
       <If when={!props.hero && !unknown()}>
         <UiText role="page">{rankLabel()}</UiText>
       </If>
-      <If
-        when={props.rankings.groups().length > 0}
-        else={
-          <If when={unknown()}>
-            <RankingsToolbarSkeleton target={props.target} rowHeight={rowHeight()} />
-          </If>
-        }
+      <View
+        class={props.target === 'tv' ? 'flex-1 min-h-0 flex-row' : 'flex-1 min-h-0'}
+        style={{ gap: props.target === 'tv' ? 24 : 20 }}
       >
-        <RankingsToolbar
-          groups={props.rankings.groups()}
-          collection={props.rankings.key()}
-          target={props.target}
-          active={props.active}
-          height={filterHeight()}
-          rowHeight={rowHeight()}
-          gap={filterGap()}
-          visible={COLLAPSED_GROUPS}
-          expanded={filtersExpanded()}
-          hiddenChoices={hiddenChoiceCount()}
-          onExpandedChange={(expanded) => filtersExpanded.set(expanded)}
-          onChange={(group, value) => {
-            // A different ranking brings an unrelated group set, so it starts collapsed again;
-            // choosing an option inside an open group leaves that group open.
-            const root =
-              props.rankings.groups().find((candidate) => candidate.id === group)?.dimension ===
-              'rank';
-            if (root) filtersExpanded.set(false);
-            props.rankings.change(group, value);
-          }}
-          onSource={props.onSource}
-          onNavigate={props.onNavigate}
-          onPrimary={primaryRef}
-          onMeasureRow={measureSelector}
-        />
-      </If>
-      <If when={props.rankings.loading() && !props.rankings.data() && !props.rankings.error()}>
-        <RankingsPending target={props.target} />
-      </If>
-      {/* A kept board answers the previous selection; say so, but never by adding a row that
-          shifts the list under the reader's focus. */}
-      <If when={props.rankings.stale()}>
-        <UiText role="meta" tone="muted">
-          {props.rankings.error() ? '榜单未切换，仍是上一次的结果' : '正在切换榜单…'}
-        </UiText>
-      </If>
-      <If when={props.rankings.error() && !props.rankings.data()}>
-        <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
-      </If>
-      <If when={props.rankings.error() && !!props.rankings.data() && props.rankings.stale()}>
-        <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
-      </If>
-      <If when={props.rankings.data() && !props.rankings.data()!.items.length}>
-        <View class="items-start" style={{ gap: space('md'), paddingVertical: space('lg') }}>
-          <UiText role="title">这个榜单暂时没有内容</UiText>
-          <UiText role="meta" tone="muted" lines={2}>
-            {props.rankings.data()?.has_more
-              ? '本页暂无内容，可以继续浏览。'
-              : '该榜单当前没有可展示的条目，换个榜单或稍后再看。'}
-          </UiText>
-          <Button
-            label="换个榜单"
-            testID="ranking-empty-switch"
-            onPress={() => {
-              props.onNavigate();
-              // The selector rows sit above the empty board; send the reader back to them.
-              focusPrimary();
-            }}
-          />
-        </View>
-      </If>
-      <If when={props.rankings.data()}>
-        <ContentArrival class={props.target === 'tv' ? 'flex-1 min-h-0' : 'flex-1'}>
-          <RankingsList
-            rankings={props.rankings}
-            target={props.target}
-            active={props.active}
-            onOpen={props.onOpen}
-            onActor={props.onActor}
-            onSource={props.onSource}
-            onNavigate={props.onNavigate}
-            focusGuard={props.focusGuard}
-            footer={
-              <If when={props.rankings.data()?.has_more}>
-                <View
-                  class="items-start"
-                  style={{ paddingVertical: space('sm'), gap: space('sm') }}
-                >
-                  {/* A failed continuation is stated next to the button that retries it, so the
-                      notice never splits a half-drawn row from its retry entry. */}
-                  <If when={props.rankings.error()}>
-                    <Notice error message={props.rankings.error()} />
-                  </If>
-                  <Button
-                    buttonRef={(ref) => {
-                      more = ref;
-                    }}
-                    onFocus={moreSource}
-                    testID="ranking-more"
-                    label={
-                      props.rankings.loading()
-                        ? '正在加载…'
-                        : props.rankings.error()
-                          ? '重试加载更多'
-                          : '加载更多'
-                    }
-                    pending={props.rankings.loading()}
-                    displayLabel={props.rankings.loading() ? '正在加载…' : undefined}
-                    onPress={() => {
-                      if (props.rankings.loading()) return;
-                      props.onNavigate();
-                      more?.focus();
-                      moreSource();
-                      moreIntent = { key: props.rankings.key(), owns: props.focusGuard() };
-                      props.rankings.loadMore();
-                    }}
-                    onFocusedRemoval={platform.os === 'macos' ? terminalFocus : undefined}
-                  />
-                </View>
+        <View
+          class={props.target === 'tv' ? 'min-h-0' : undefined}
+          style={
+            props.target === 'tv'
+              ? { width: fontScale() >= 1.75 ? 184 : 144, flexShrink: 0 }
+              : undefined
+          }
+        >
+          <If
+            when={props.rankings.groups().length > 0}
+            else={
+              <If when={unknown()}>
+                <RankingsToolbarSkeleton target={props.target} rowHeight={rowHeight()} />
               </If>
             }
-          />
-        </ContentArrival>
-      </If>
+          >
+            <RankingsToolbar
+              groups={props.rankings.groups()}
+              collection={props.rankings.key()}
+              target={props.target}
+              active={props.active}
+              height={filterHeight()}
+              rowHeight={rowHeight()}
+              gap={filterGap()}
+              visible={COLLAPSED_GROUPS}
+              expanded={filtersExpanded()}
+              hiddenChoices={hiddenChoiceCount()}
+              onExpandedChange={(expanded) => filtersExpanded.set(expanded)}
+              onChange={(group, value) => {
+                // A different ranking brings an unrelated group set, so it starts collapsed again;
+                // choosing an option inside an open group leaves that group open.
+                const root =
+                  props.rankings.groups().find((candidate) => candidate.id === group)?.dimension ===
+                  'rank';
+                if (root) filtersExpanded.set(false);
+                props.rankings.change(group, value);
+              }}
+              onSource={props.onSource}
+              onNavigate={props.onNavigate}
+              onPrimary={primaryRef}
+              onMeasureRow={measureSelector}
+            />
+          </If>
+        </View>
+        <View class="flex-1 min-h-0" style={{ gap: props.target === 'tv' ? 12 : 20 }}>
+          <If when={props.rankings.loading() && !props.rankings.data() && !props.rankings.error()}>
+            <RankingsPending target={props.target} />
+          </If>
+          {/* A kept board answers the previous selection; say so, but never by adding a row that
+          shifts the list under the reader's focus. */}
+          <If when={props.rankings.stale()}>
+            <UiText role="meta" tone="muted">
+              {props.rankings.error() ? '榜单未切换，仍是上一次的结果' : '正在切换榜单…'}
+            </UiText>
+          </If>
+          <If when={props.rankings.error() && !props.rankings.data()}>
+            <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
+          </If>
+          <If when={props.rankings.error() && !!props.rankings.data() && props.rankings.stale()}>
+            <Notice error message={props.rankings.error()} retry={props.rankings.retry} />
+          </If>
+          <If when={props.rankings.data() && !props.rankings.data()!.items.length}>
+            <View class="items-start" style={{ gap: space('md'), paddingVertical: space('lg') }}>
+              <UiText role="title">这个榜单暂时没有内容</UiText>
+              <UiText role="meta" tone="muted" lines={2}>
+                {props.rankings.data()?.has_more
+                  ? '本页暂无内容，可以继续浏览。'
+                  : '该榜单当前没有可展示的条目，换个榜单或稍后再看。'}
+              </UiText>
+              <Button
+                label="换个榜单"
+                testID="ranking-empty-switch"
+                onPress={() => {
+                  props.onNavigate();
+                  // The selector rows sit above the empty board; send the reader back to them.
+                  focusPrimary();
+                }}
+              />
+            </View>
+          </If>
+          <If when={props.rankings.data()}>
+            <ContentArrival class={props.target === 'tv' ? 'flex-1 min-h-0' : 'flex-1'}>
+              <RankingsList
+                rankings={props.rankings}
+                target={props.target}
+                active={props.active}
+                onOpen={props.onOpen}
+                onActor={props.onActor}
+                onSource={props.onSource}
+                onNavigate={props.onNavigate}
+                focusGuard={props.focusGuard}
+                footer={
+                  <If when={props.rankings.data()?.has_more}>
+                    <View
+                      class="items-start"
+                      style={{ paddingVertical: space('sm'), gap: space('sm') }}
+                    >
+                      {/* A failed continuation is stated next to the button that retries it, so the
+                      notice never splits a half-drawn row from its retry entry. */}
+                      <If when={props.rankings.error()}>
+                        <Notice error message={props.rankings.error()} />
+                      </If>
+                      <Button
+                        buttonRef={(ref) => {
+                          more = ref;
+                        }}
+                        onFocus={moreSource}
+                        testID="ranking-more"
+                        label={
+                          props.rankings.loading()
+                            ? '正在加载…'
+                            : props.rankings.error()
+                              ? '重试加载更多'
+                              : '加载更多'
+                        }
+                        pending={props.rankings.loading()}
+                        displayLabel={props.rankings.loading() ? '正在加载…' : undefined}
+                        onPress={() => {
+                          if (props.rankings.loading()) return;
+                          props.onNavigate();
+                          more?.focus();
+                          moreSource();
+                          moreIntent = { key: props.rankings.key(), owns: props.focusGuard() };
+                          props.rankings.loadMore();
+                        }}
+                        onFocusedRemoval={platform.os === 'macos' ? terminalFocus : undefined}
+                      />
+                    </View>
+                  </If>
+                }
+              />
+            </ContentArrival>
+          </If>
+        </View>
+      </View>
     </View>
   );
 }
@@ -358,7 +384,7 @@ export function Rankings(props: RankingsProps) {
    * (1180×780 and 1440×1000) and on TV. Only a window too short to keep entries below it falls
    * back to the plain page heading, and that threshold sits under the shorter checked size.
    */
-  const showHero = () => props.target === 'tv' || windowSize().height >= 740;
+  const showHero = () => props.target !== 'tv' && windowSize().height >= 740;
   const primaries = signal<Partial<Record<'official' | 'radar', ViewRef>>>({});
   const rememberPrimary = (view: 'official' | 'radar', ref: ViewRef) =>
     untracked(() => primaries.update((prior) => ({ ...prior, [view]: ref })));
@@ -371,7 +397,7 @@ export function Rankings(props: RankingsProps) {
       class="flex-1 min-h-0"
       style={
         props.target === 'tv'
-          ? // The TV shell already insets every page by 44dp on each side.
+          ? // SafeFrame owns the TV content insets.
             { paddingTop: 12, gap: 12 }
           : {
               width: '100%',

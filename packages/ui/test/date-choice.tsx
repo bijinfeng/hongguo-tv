@@ -15,6 +15,16 @@ export function registerDateChoiceTests(entry: string, target: ProductTarget = '
   const dayColor = (app: Awaited<ReturnType<typeof open>>, value: string, day: string) =>
     app.spanStyle(`id:date-choice-${value} >> text:${day}`).color;
 
+  test('inline date preserves the full date name and controlled selection', async () => {
+    const app = await open(entry, settings());
+    expect(app.shows('id:date-choice-inline >> text:3月1日 周五')).toBe(true);
+    await app.press('id:date-choice-hold');
+    await app.press('id:date-choice-inline');
+    await app.waitFor('text:requested:20240301 · presses:1');
+    expect(app.shows('text:selected:20240228')).toBe(true);
+    app.dispose();
+  });
+
   test('date choice keeps external ownership and updates selected presentation in both themes', async () => {
     for (const theme of ['light', 'dark'] as const) {
       const app = await open(entry, settings(theme));

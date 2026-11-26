@@ -1,4 +1,11 @@
-import { expect, open, test, type StubRequest, type StubResponse } from 'nsh/test';
+import {
+  expect,
+  open,
+  test,
+  type OpenOptions,
+  type StubRequest,
+  type StubResponse,
+} from 'nsh/test';
 
 const ok = (data: unknown): StubResponse => ({ body: { ok: true, data } });
 
@@ -31,11 +38,20 @@ const stored = (app: { storage(): Record<string, string> }) => {
 };
 
 export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entry = './App.tsx') {
+  const selectPanel = async (app: Awaited<ReturnType<typeof open>>, panel: string) => {
+    if (target === 'tv') await app.press(`id:settings-panel-${panel}`);
+  };
   const dimensions = {
     width: target === 'tv' ? 1920 : 1440,
     height: target === 'tv' ? 1080 : 1000,
   };
-  const openSettings = async (options: { storage?: Record<string, string> } = {}) => {
+  const openSettings = async (
+    options: {
+      storage?: Record<string, string>;
+      platform?: 'macos';
+      modules?: OpenOptions['modules'];
+    } = {},
+  ) => {
     const app = await open(entry, {
       ...dimensions,
       platform: target === 'tv' ? 'android' : 'macos',
@@ -56,12 +72,18 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
     }
     // The headless entry has no update adapter, so the update section stays absent.
     expect(app.shows('id:settings-auto-updates-row')).toBe(false);
+    await selectPanel(app, 'playback');
     await app.waitUntil(() => app.enabled('id:settings-autoplay'));
+    await selectPanel(app, 'local-data');
     expect(app.enabled('id:settings-reset')).toBe(false);
+    await selectPanel(app, 'playback');
     await app.press('id:settings-autoplay');
     await app.waitUntil(() => stored(app)?.autoplayNext === false);
+    await selectPanel(app, 'local-data');
     expect(app.enabled('id:settings-reset')).toBe(true);
     await app.press('id:settings-reset');
+    expect(stored(app)?.autoplayNext).toBe(false);
+    await app.press('id:settings-reset-confirm-confirm');
     await app.waitUntil(() => stored(app)?.autoplayNext === true);
     expect(app.enabled('id:settings-reset')).toBe(false);
     expect(app.texts().some((text) => text.includes('设置未能保存'))).toBe(false);
@@ -78,11 +100,53 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
     };
     await pick('settings-theme', '浅色', 'light');
     await first.waitUntil(() => stored(first)?.theme === 'light');
+    await selectPanel(first, 'playback');
     await pick('settings-rate', '1.5×', '1.5');
     await first.waitUntil(() => stored(first)?.defaultRate === '1.5');
     const second = await openSettings({ storage: first.storage() });
     await second.waitUntil(() => second.texts().some((text) => text.includes('浅色')));
+    await selectPanel(second, 'playback');
     expect(second.texts().some((text) => text.includes('1.5×'))).toBe(true);
+  });
+
+  test('settings: failed saves keep their row and retry the intended value until it survives reopening', async () => {
+    const values = new Map<string, string>();
+    let fail = true;
+    let attempts = 0;
+    const app = await openSettings({
+      modules: {
+        nsh: {
+          'Storage.getItem': (key) => values.get(String(key)) ?? null,
+          'Storage.setItem': (key, value) => {
+            if (key === 'settings.v1') {
+              attempts++;
+              if (fail) throw new Error('synthetic storage write failure');
+            }
+            values.set(String(key), String(value));
+          },
+        },
+      },
+    });
+    await selectPanel(app, 'playback');
+    await app.waitUntil(() => app.enabled('id:settings-autoplay'));
+    await app.press('id:settings-autoplay');
+    await app.waitFor('id:settings-autoplay-row-retry');
+    expect(values.has('settings.v1')).toBe(false);
+    await app.press('id:settings-autoplay-row-retry');
+    await app.waitUntil(() => attempts === 2 && app.shows('id:settings-autoplay-row-retry'));
+    expect(app.shows('id:settings-save-error')).toBe(false);
+    fail = false;
+    await app.press('id:settings-autoplay-row-retry');
+    await app.waitUntil(() => JSON.parse(values.get('settings.v1') ?? '{}').autoplayNext === false);
+    await app.waitFor('id:settings-autoplay-row-retry', { state: 'gone' });
+    expect(attempts).toBe(3);
+    app.dispose();
+    const reopened = await openSettings({ storage: Object.fromEntries(values) });
+    await selectPanel(reopened, 'playback');
+    await reopened.waitUntil(() => reopened.enabled('id:settings-autoplay'));
+    await reopened.press('id:settings-autoplay');
+    await reopened.waitUntil(() => stored(reopened)?.autoplayNext === true);
+    reopened.dispose();
   });
 
   test('settings: unreadable storage falls back to defaults and says so', async () => {
@@ -102,6 +166,7 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
       autoCheckUpdates: true,
     };
     const app = await openSettings({ storage: { 'settings.v1': JSON.stringify(older) } });
+    await selectPanel(app, 'playback');
     await app.waitUntil(() => app.texts().some((text) => text.includes('1.5×')));
     // No "unrecognized" notice: only the absent field took its default, and it is off.
     expect(app.texts().some((text) => text.includes('无法识别'))).toBe(false);
@@ -110,6 +175,7 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
   test('settings: diagnostics reporting is absent without a host to receive it', async () => {
     // The headless fixture embeds no host handler, so the row must not promise it.
     const app = await openSettings();
+    await selectPanel(app, 'playback');
     await app.waitUntil(() => app.enabled('id:settings-autoplay'));
     expect(app.shows('id:settings-diagnostics-row')).toBe(false);
     // Whatever the surface shows, the stored default is off.
@@ -118,14 +184,28 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
 
   test('settings: reachable from the target navigation and back leaves the page', async () => {
     const app = await openSettings();
+    await selectPanel(app, 'playback');
     await app.waitUntil(() => app.enabled('id:settings-autoplay'));
     // The page's own crumb names the destination and returns through the same stack.
-    expect(app.texts().some((text) => text.includes('返回发现'))).toBe(true);
+    expect(
+      app.texts().some((text) => text.includes(target === 'tv' ? '返回精选' : '返回发现')),
+    ).toBe(true);
     await app.press('id:settings-back');
     await app.waitFor('id:settings-page', { state: 'gone' });
     const reopened = await openSettings();
+    await selectPanel(reopened, 'playback');
     await reopened.waitUntil(() => reopened.enabled('id:settings-autoplay'));
     await reopened.back();
     await reopened.waitFor('id:settings-page', { state: 'gone' });
+  });
+
+  test('settings: returning restores the tool so confirmation reopens it', async () => {
+    const app = await openSettings({ platform: 'macos' });
+    await app.back();
+    await app.waitFor('id:settings-page', { state: 'gone' });
+    await app.wait(100);
+    await app.keyboard.press('enter');
+    await app.waitFor('id:settings-page');
+    app.dispose();
   });
 }

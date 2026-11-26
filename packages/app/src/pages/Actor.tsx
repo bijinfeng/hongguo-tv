@@ -1,4 +1,4 @@
-import { Image, Text, View, resource, signal, effect, lifecycle } from 'nsh';
+import { Image, Text, View, resource, signal, effect, lifecycle, type ViewRef } from 'nsh';
 import { BackButton, Notice, UiText } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
@@ -8,6 +8,7 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
   const request = captureRequest();
   const snapshot = signal<ActorWorksResult | undefined>(undefined);
   const selected = signal('');
+  let back: ViewRef | undefined;
   const result = resource(
     () => (props.active && lifecycle() === 'active' && !snapshot() ? props.actorId : undefined),
     (id, { signal }) =>
@@ -19,8 +20,11 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
   });
   const data = () => snapshot() ?? result();
   const header = () => (
-    <View style={{ gap: 28 }}>
+    <View style={{ gap: props.store.target === 'tv' ? 14 : 28 }}>
       <BackButton
+        buttonRef={(ref) => {
+          back = ref;
+        }}
         testID="actor-back"
         label={props.store.backLabel()}
         onPress={() => props.store.back()}
@@ -62,6 +66,7 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
   return (
     <PosterPage
       target={props.store.target}
+      onEmptyFocus={() => back?.focus()}
       active={props.active}
       testID="actor-results"
       pageTestID="actor-works"

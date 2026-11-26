@@ -666,7 +666,7 @@ async fn logout_during_upload_preserves_account_pending_and_original_guest() {
 
 #[tokio::test]
 async fn timeout_stop_shutdown_and_drop_cancel_rounds_and_reject_restart() {
-    for mode in ["timeout", "stop", "shutdown", "drop"] {
+    for mode in ["startup-timeout", "timeout", "stop", "shutdown", "drop"] {
         let temp = Temp::new();
         let service = temp.open().await;
         switch(&service, UID).await;
@@ -691,35 +691,31 @@ async fn timeout_stop_shutdown_and_drop_cancel_rounds_and_reject_restart() {
             response
         })
         .await;
-        // Only `timeout` is about the round deadline; the other three interrupt a round that is
-        // in flight, so they need it long enough to actually start one. Sharing the 30ms budget
-        // with them made `count(HISTORY) == 1` unreachable whenever the runner was slow enough
-        // that starting the round took longer than the deadline: the round timed out before its
-        // first request, and `wait` burned its whole 30s budget (run 45745693501).
-        //
-        // This does not make the test immune to starvation: with every core busy it still fails,
-        // because `wait` polls a fixture counter that depends on the round reaching its first
-        // request. Which is why the duration is proved by the assertions below, not by this
-        // budget — measured at 0.15s unloaded, and green across every run since.
+        // Interrupt modes need an in-flight request; a round deadline may expire before transport.
         configure(
             &service,
             &fixture,
             Duration::from_secs(60),
-            if mode == "timeout" {
-                Duration::from_millis(30)
-            } else {
-                Duration::from_secs(60)
+            match mode {
+                "startup-timeout" => Duration::ZERO,
+                "timeout" => Duration::from_millis(30),
+                _ => Duration::from_secs(60),
             },
         );
         let (sender, receiver) = watch::channel(false);
         let worker = service.clone();
         let task = tokio::spawn(async move { worker.run_sync(receiver).await });
-        wait(|| fixture.count(HISTORY) == 1).await;
+        if !matches!(mode, "startup-timeout" | "timeout") {
+            wait(|| fixture.count(HISTORY) == 1).await;
+        }
         match mode {
-            "timeout" => {
+            "startup-timeout" | "timeout" => {
                 let account = settled(&service).await;
                 assert_eq!(account.sync.state, AccountSyncState::Error);
                 assert!(account.sync.error.unwrap().contains("超时"));
+                if mode == "startup-timeout" {
+                    assert_eq!(fixture.count(HISTORY), 0);
+                }
                 stop(&service, sender, task).await;
             }
             "stop" => {

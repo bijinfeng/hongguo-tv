@@ -37,6 +37,14 @@ export function CalendarChoices() {
             )}
           </Each>
         </CardControls>
+        <DateChoice
+          value="20240301"
+          label="周五"
+          presentation="inline"
+          selected={selected() === '20240301'}
+          testID="date-choice-inline"
+          onPress={() => choose('20240301')}
+        />
         <View class="flex-row items-start" style={{ height: 108 }}>
           <DateChoice
             value="20000229"

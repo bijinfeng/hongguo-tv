@@ -236,6 +236,15 @@ export async function seasonsFixture({ port = 0 } = {}) {
       };
     }
     if (request.method !== 'GET') return invalid(record, 'HEAD is only valid for media');
+    if (url.pathname === '/api/v1/category') {
+      if (
+        !exact(params, ['genre', 'category_dim_theme', 'sort', 'selectors']) ||
+        ['genre', 'category_dim_theme', 'sort'].some((key) => params.get(key) !== '') ||
+        params.get('selectors') !== '1'
+      )
+        return invalid(record, 'Unexpected home directory parameters');
+      return ok({ items: [], filters: [], has_more: false });
+    }
     const cover = /^\/seasons-cover\/([0-3])$/.exec(url.pathname);
     if (cover && !url.search)
       return {

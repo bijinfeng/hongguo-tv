@@ -19,8 +19,18 @@ export function Home(props: { store: Store }) {
           <UiText role="page">把今晚，留给好故事。</UiText>
         </If>
         <HomeHero store={props.store} />
-        <ContinueSection store={props.store} />
-        <CatalogSection store={props.store} />
+        <If
+          when={tv()}
+          else={
+            <>
+              <ContinueSection store={props.store} />
+              <CatalogSection store={props.store} />
+            </>
+          }
+        >
+          <CatalogSection store={props.store} />
+          <ContinueSection store={props.store} />
+        </If>
       </ContentColumn>
     </Scroll>
   );

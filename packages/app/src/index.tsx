@@ -57,7 +57,11 @@ export function App(props: {
       <View
         testID={`app-${props.target}`}
         onTouchStartCapture={store.noteFocusIntent}
-        class="flex-1 bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+        class={
+          props.target === 'tv'
+            ? 'flex-1 bg-background'
+            : 'flex-1 bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
+        }
       >
         <If
           when={props.target === 'tv'}

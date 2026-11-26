@@ -20,6 +20,8 @@ export function SettingsAppearance(props: { store: Store }) {
         error={
           props.store.settings.failedKey() === 'theme' ? props.store.settings.error() : undefined
         }
+        onRetry={settings.retry}
+        retryLabel="重试保存"
       >
         {/* TV lays the short option set on the row itself: a popup makes the remote travel to
             it and back. Desktops keep the compact anchored select. */}

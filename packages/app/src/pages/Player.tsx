@@ -29,7 +29,6 @@ import {
   Notice,
   Controls,
   CinemaButton,
-  CinemaChips,
   CinemaSlider,
   CinemaSelect,
   CinemaControls,
@@ -49,9 +48,12 @@ import {
   ChevronRight,
   List,
   Maximize,
+  Pause,
   Play,
   Settings,
   SkipForward,
+  Volume2,
+  VolumeX,
   X,
 } from 'nsh-icon-lucide';
 
@@ -889,7 +891,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                 <View class="flex-row items-center" style={{ gap: tv ? 8 : 6 }}>
                   <CinemaButton
                     label={paused() || !enabled() ? '播放' : '暂停'}
-                    icon={paused() || !enabled() ? 'play' : 'pause'}
+                    icon={paused() || !enabled() ? Play : Pause}
                     iconOnly={!tv}
                     disabled={!enabled()}
                     buttonRef={(ref) => {
@@ -928,7 +930,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                   <If when={!tv}>
                     <CinemaButton
                       label={volume() ? '静音' : '取消静音'}
-                      icon={volume() ? 'volume' : 'mute'}
+                      icon={volume() ? Volume2 : VolumeX}
                       iconOnly
                       disabled={!enabled()}
                       onPress={() => {
@@ -1077,9 +1079,8 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           <CinemaButton label="关闭播放设置" icon={X} iconOnly onPress={closeMore} />
         </View>
         <CinemaSettingRow label="倍速">
-          <CinemaChips
+          <CinemaSelect
             label="播放速度"
-            testID="player-rate"
             value={rate()}
             items={PLAYBACK_RATES.map((value) => ({
               value,
@@ -1090,9 +1091,8 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           />
         </CinemaSettingRow>
         <CinemaSettingRow label="清晰度">
-          <CinemaChips
+          <CinemaSelect
             label="清晰度"
-            testID="player-quality"
             value={quality()}
             items={[
               { value: '', title: '自动' },

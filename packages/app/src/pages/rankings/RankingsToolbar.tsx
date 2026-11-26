@@ -54,6 +54,7 @@ function RankingGroupSelector(props: {
     >
       <LabeledChoiceList
         title={dimensionLabel(props.group)}
+        orientation={props.target === 'tv' ? 'vertical' : 'horizontal'}
         label={props.group.label}
         value={props.group.value ?? props.group.options[0]?.id ?? ''}
         items={props.group.options.map((option) => ({ value: option.id, title: option.label }))}
@@ -115,7 +116,8 @@ export function RankingsToolbar(props: {
   const canExpand = () => expandableGroups().length > 0;
   const collapsed = () => !props.expanded && canExpand();
   /** Only the groups the reader asked for are measured and rendered. */
-  const shown = () => (collapsed() ? props.groups.slice(0, props.visible) : props.groups);
+  const shown = () =>
+    props.target !== 'tv' && collapsed() ? props.groups.slice(0, props.visible) : props.groups;
   const rows = () => (
     <Each of={shown()} key={(group) => group.id}>
       {(group) => (
@@ -148,6 +150,16 @@ export function RankingsToolbar(props: {
   const listClass = () => (props.target === 'tv' ? 'flex-row flex-wrap items-center' : undefined);
   const listGap = () => (props.target === 'tv' ? space('sm') : props.gap);
   const listPadding = () => (props.target === 'tv' ? space('xxs') : space('xs'));
+  if (props.target === 'tv')
+    return (
+      <Scroll
+        testID="ranking-filters"
+        class="flex-1 min-h-0"
+        contentStyle={{ gap: space('md'), padding: 6 }}
+      >
+        {rows()}
+      </Scroll>
+    );
   return (
     <View class="border-b border-border" style={{ flexShrink: 0 }}>
       <If

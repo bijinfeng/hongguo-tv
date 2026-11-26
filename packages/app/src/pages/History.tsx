@@ -41,15 +41,20 @@ export function HistoryItem(props: {
   controlRef?: (key: string, ref?: ViewRef, previous?: ViewRef) => void;
 }) {
   let ref: ViewRef | undefined;
+  const detailRef = signal<ViewRef | undefined>(undefined);
   const selectRef = signal<ViewRef | undefined>(undefined);
   const removeRef = signal<ViewRef | undefined>(undefined);
   const progress = () => ('favorite_at' in props.entry ? undefined : props.entry);
   effect(() => {
     const id = props.entry.drama.series_id;
-    if (ref) props.register?.(id, ref);
-    const owned = ref;
+    const owned = props.managing ? detailRef() : ref;
+    if (owned) props.register?.(id, owned);
     cleanup(() => props.register?.(id, undefined, owned));
   });
+  const open = () => {
+    if (props.open) props.open(props.entry);
+    else props.store.open(props.entry.drama, () => (props.managing ? detailRef() : ref)?.focus());
+  };
   effect(() => {
     const id = props.entry.drama.series_id;
     const nodes = props.managing ? { select: selectRef(), remove: removeRef() } : {};
@@ -63,16 +68,15 @@ export function HistoryItem(props: {
   return (
     <ResultCard
       buttonRef={(node) => {
-        ref = node;
-        props.register?.(props.entry.drama.series_id, node);
+        if (!props.managing) {
+          ref = node;
+          props.register?.(props.entry.drama.series_id, node);
+        }
       }}
       testID={`history-${props.entry.drama.series_id}`}
       label={historyLabel(props.entry)}
       selected={false}
-      onPress={() => {
-        if (props.open) props.open(props.entry);
-        else props.store.open(props.entry.drama, () => ref?.focus());
-      }}
+      onPress={props.managing ? undefined : open}
     >
       <View
         style={{
@@ -84,6 +88,7 @@ export function HistoryItem(props: {
           src={props.entry.drama.cover_fallback || props.entry.drama.cover}
           title={props.entry.drama.title}
           class="w-full h-full"
+          fit={props.store.target === 'tv' ? 'contain' : undefined}
         />
       </View>
       <View class="flex-1 min-w-0 justify-center gap-2">
@@ -116,7 +121,15 @@ export function HistoryItem(props: {
           </View>
         </If>
         <If when={props.managing}>
-          <View class="flex-row">
+          <View class="flex-row flex-wrap gap-2">
+            <Button
+              label={`查看${props.entry.drama.title}的详情`}
+              displayLabel="查看详情"
+              testID={`history-open-${props.entry.drama.series_id}`}
+              variant="quiet"
+              buttonRef={detailRef.set}
+              onPress={open}
+            />
             <Button
               label={
                 progress()

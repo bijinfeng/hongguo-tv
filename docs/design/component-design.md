@@ -16,7 +16,7 @@
 
 根目录 [DESIGN.md](../../DESIGN.md) 是设计规范的唯一来源。新的桌面稿和 TV 稿只提供端型构图、真实目录和尺寸参考；基础组件稿必须从同一组语义 token 和状态规则派生，不在页面 CSS 里另造按钮、输入框或选集边界。
 
-两端共用以下控件规则：所有可操作控件共用 `card` 表面、`foreground` 文字和同一条 `input` 1px 边界——普通边框按钮、可选项、选集按钮、输入框与 Select 之间不出现第二种边界色；悬停与按下只改变表面颜色；选中使用 `accent` 配对；主动作使用 `primary`；焦点始终使用独立 `ring` 轮廓。搜索组合只有一条外框。桌面 40px；TV 60px；TV 更强的焦点轮廓属于端型密度，不改变这套语义。档位为 sm 32／md 40／lg 60，见 [DESIGN](../../DESIGN.md) 的“组件架构与尺寸契约”。
+控件尺寸、边界、焦点与状态只维护在 [DESIGN](../../DESIGN.md)；实际变体与用法见 [UI 包](../../packages/ui/README.md)。TV 使用独立主题，不能从历史稿的像素值推断当前原生尺寸。
 
 桌面稿中的搜索栏、描边操作、选集网格和 TV 稿中的主舞台、导航、选集面板都要回到 `design/prototype/visual-redesign-real/shared/controls.css` 与 `packages/ui/src` 的对应组件。组件稿只消费由 `packages/ui/theme.json` 生成的 `components/assets/theme.css`；两处状态规则必须同时修改，不在页面另补颜色。
 
@@ -24,18 +24,13 @@
 
 一份受控值／事件／状态契约，一个package；桌面／TV只在尺度、输入和宿主承载边界适配。端型尺寸、输入高度／单边界、Select候选确认、Tabs激活、TV编辑及slider预览／取消，以DESIGN对应章节为准，不建立两套业务交互。
 
-| 组合补充             | 桌面  | TV参考值 |
-| -------------------- | ----- | -------- |
-| Dialog               | 宽480 | 宽800    |
-| SidePanel／选集Sheet | 宽440 | 宽640    |
-
-这些是已有组合的设计约束；TV 数值来自 `theme.tv.json` 的 token，系统大字与可达性仍需实际观察。DateChoice／SeasonChoice／RankingCard／RadarTable的公开契约和几何直接查UI包对应章节，不在此再抄一份API。
+Dialog、SidePanel、日期／选季、榜位及快照表的公开契约和几何直接查 UI 包对应章节；系统大字与可达性以实际宿主证据为准。
 
 ## 从设计到NSH
 
 浏览器工厂与事件处理保持一份，HTML弹层／空间寻焦只服务原型，不进入NSH。nsh/base承接语义与基础交互，UI层承接有限样式／输入适配，app拥有请求、媒体、导航和持久化意图。禁止用绝对定位View重造通用弹层。
 
-NSH 0.5适配按实际生成类型：Slider提交映射onChangeEnd({value})；Tabs由各Tab的selected／onPress承接；Dialog内容用class／style，Sheet／Popover内容用popupClass／popupStyle。项目Button的variant／size／pending是包装契约，不能直接传给base。保留现有SelectFocus与来源移除交接，不为视觉一致删掉已验证适配。
+NSH 版本以 `.nsh-version` 为准，底层 API 以各端 `.nsh/types/` 为准。项目控件包装契约见 UI 包，不能直接传给 base；保留现有 SelectFocus 与来源移除交接，不为视觉一致删掉已验证适配。
 
 新增组件前查[当前覆盖](component-implementation.md)和[候选准入](component-roadmap.md)，先确认真实用途／状态／焦点路径及NSH承接。原型更新先改公共资源，NSH只使用公共UI，不能为未确认业务补造协议或成功状态。
 

@@ -13,6 +13,7 @@ import { CardControls, PosterCard, type ProductTarget } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import { POSTER_GAP, posterGrid } from '../shell/poster-grid';
 import { PageScroll } from '../shell/PageScroll';
+import { PosterCollection } from '../PosterCollection';
 
 /**
  * A poster page: one page scroll, as NSH documents for "one page scroll containing page chrome and
@@ -43,6 +44,7 @@ export function PosterPage(props: {
   caption: (drama: Drama) => string | undefined;
   onOpen: (drama: Drama, restore: () => void) => void;
   onSource?: (restore: () => void) => void;
+  onEmptyFocus?: () => void;
   /** Page chrome: heading, filters, pending and failure states. */
   header?: () => JSX.Element;
   /** Content after the grid: paging, and the entries only TV carries on a page. */
@@ -237,14 +239,21 @@ export function PosterPage(props: {
       }}
     >
       {props.header?.()}
-      <View
-        class="flex-1"
-        onLayout={({ bounds }) => {
-          if (bounds.size.height > 0) laneHeight.set(bounds.size.height);
-        }}
-      >
-        {listBody((laneWidth() - 84) / 4 - 4, Math.max(0, laneHeight() - 8))}
-      </View>
+      <PosterCollection
+        target="tv"
+        active={props.active}
+        items={props.items}
+        collection={props.collection}
+        label={props.label}
+        testID={props.testID}
+        selected={props.selected}
+        onNavigate={props.onNavigate}
+        focusGuard={props.focusGuard}
+        caption={props.caption}
+        onOpen={props.onOpen}
+        onSource={props.onSource}
+        onEmptyFocus={props.onEmptyFocus}
+      />
       {props.footer?.()}
     </View>
   );

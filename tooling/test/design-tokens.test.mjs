@@ -22,6 +22,8 @@ const design = (overrides = {}) => {
   card-dark: '#131414'
   card-foreground: '#202020'
   card-foreground-dark: '#f5f5f5'
+  ring: '#c85e00'
+  ring-dark: '#ff9233'
 `;
   const typography =
     overrides.typography ??
@@ -74,8 +76,10 @@ test('compiles scales, radii and both type surfaces', () => {
 });
 
 test('rejects a value theme.json does not match', () => {
-  const drifted = design({ colors: "  background: '#fffffe'\n" });
-  assert.throws(() => compile(drifted, theme), /background/);
+  const base = compile(design()).themes;
+  const drifted = design().replace("background: '#ffffff'", "background: '#fffffe'");
+  assert.throws(() => compile(drifted, base, { check: true }), /colors.background is/);
+  assert.equal(compile(drifted).themes.desktop.cssVars.light.background, '#fffffe');
 });
 
 test('rejects a component reference to a missing token', () => {
@@ -83,6 +87,50 @@ test('rejects a component reference to a missing token', () => {
     components: "  card:\n    rounded: '{rounded.xxl}'\n",
   });
   assert.throws(() => compile(drifted, theme), /rounded\.xxl/);
+});
+
+test('accepts TV-only overrides and rejects unknown override roles', () => {
+  const tvOverride = [
+    block('colors-tv', "  ring: '#ff9233'\n  ring-dark: '#ff9233'\n"),
+    block('rounded-tv', '  xl: 10px\n'),
+  ].join('');
+  const tv = compile(tvOverride + design(), { desktop: theme, tv: theme });
+  assert.equal(tv.themes.tv.cssVars.theme['radius-xl'], '10px');
+  assert.equal(tv.themes.tv.cssVars.light.ring, '#ff9233');
+  assert.deepEqual(tv.themes.desktop, compile(design()).themes.desktop);
+  assert.equal(tv.themes.tv.cssVars.dark.card, '#131414');
+  assert.throws(
+    () =>
+      compile(block('colors-tv', "  missing: '#ff9233'\n") + design(), {
+        desktop: theme,
+        tv: theme,
+      }),
+    /colors-tv\.missing/,
+  );
+});
+
+test('rejects invalid and unknown TV overrides without weakening base validation', () => {
+  for (const [group, body, error] of [
+    ['colors-tv', "  ring: 'red'\n", /colors.ring is not a color/],
+    ['rounded-tv', '  missing: 4px\n', /rounded-tv.missing/],
+    ['rounded-tv', '  xl: -1px\n', /non-negative integer/],
+    ['rounded-tv', '  xl: 1.5px\n', /non-negative integer/],
+    ['rounded-tv', '  xl: auto\n', /pixel value/],
+  ])
+    assert.throws(() => compile(design() + block(group, body)), error);
+  for (const group of ['colors', 'rounded', 'spacing']) {
+    const without = design().replace(new RegExp('```yaml\\n' + group + ':\\n[\\s\\S]*?```\\n'), '');
+    assert.throws(() => compile(without), new RegExp('missing the ' + group + ' block'));
+  }
+});
+
+test('generated themes are deterministic and checked independently', () => {
+  const source = design() + block('colors-tv', "  ring-dark: '#123456'\n");
+  const first = compile(source);
+  assert.deepEqual(compile(source, first.themes, { check: true }), first);
+  const stale = structuredClone(first.themes);
+  stale.tv.cssVars.dark.ring = '#000000';
+  assert.throws(() => compile(source, stale, { check: true }), /theme.tv.json.dark/);
 });
 
 test('rejects a missing type surface', () => {

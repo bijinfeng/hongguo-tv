@@ -1,3 +1,4 @@
+import { Lock } from 'nsh-icon-lucide';
 import { Scroll, Text, View, effect, signal, untracked } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
 import { Button, CinemaEpisodeButton, CinemaSelect, EpisodeRange, Notice } from '@hongguo/ui';
@@ -5,6 +6,7 @@ import type { Store } from '../../store';
 import type { SeasonsController } from '../../seasons';
 import type { createSeasonDetail } from '../../season-detail';
 import { SeasonPicker } from '../../SeasonPicker';
+import { tvColumns } from '../../shell/tv-layout';
 
 /** Compact season switcher for the player rail; the shared picker keeps the reading order. */
 function RailSeasons(props: {
@@ -81,7 +83,8 @@ export function Episodes(props: {
   cinema?: boolean;
   onSelect: (episode: Episode) => void;
 }) {
-  const size = props.target === 'tv' ? 12 : 24;
+  const width = signal(0);
+  const size = 24;
   const episodes = () => props.drama.episodes ?? [];
   const initial = episodes().findIndex((episode) => episode.video_id === props.current?.video_id);
   const segment = signal(Math.max(0, Math.floor(initial / size)));
@@ -113,13 +116,24 @@ export function Episodes(props: {
         class={props.cinema ? 'flex-1 min-h-0 w-full' : 'flex-1'}
         contentStyle={{ width: '100%', paddingBottom: 12 }}
       >
-        <View class="flex-row flex-wrap" style={{ rowGap: 8 }}>
+        <View
+          class="flex-row flex-wrap"
+          onLayout={({ bounds }) => {
+            if (bounds.size.width > 0) width.set(bounds.size.width);
+          }}
+          style={{ rowGap: 8 }}
+        >
           <Each
             of={episodes().slice(segment() * size, (segment() + 1) * size)}
             key={(episode) => episode.video_id}
           >
             {(episode) => (
-              <View style={{ width: '25%', paddingRight: 8 }}>
+              <View
+                style={{
+                  width: `${100 / (props.target === 'tv' ? tvColumns('episodes', width()) : 4)}%`,
+                  paddingRight: 8,
+                }}
+              >
                 <If
                   when={props.cinema}
                   else={
@@ -129,10 +143,10 @@ export function Episodes(props: {
                       label={`第 ${episode().index} 集${episode().locked ? ' · 未开放' : ''}`}
                       displayLabel={
                         props.target === 'tv'
-                          ? `第 ${episode().index} 集`
+                          ? String(episode().index)
                           : String(episode().index).padStart(2, '0')
                       }
-                      icon={episode().locked ? 'lock' : undefined}
+                      icon={episode().locked ? Lock : undefined}
                       disabled={episode().locked}
                       selected={episode().video_id === props.current?.video_id}
                       onPress={() => props.onSelect(episode())}
