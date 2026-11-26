@@ -5,6 +5,7 @@ const options = {
   height: 800,
   platform: 'macos' as const,
   reducedMotion: true,
+  clock: {},
   network: {},
 };
 const entry = './PosterCollectionPreview.tsx';
