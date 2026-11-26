@@ -157,19 +157,29 @@ macOS 使用 Xcode CLT/SDK 与签名工具；Windows 使用匹配的 MSVC/SDK；
 
 目标采用短期功能分支与PR合并；当前分支／提交状态以Git为准，不根据早期提案改名。是否提交、推送、合并或发布遵守用户授权，不从流程建议推导授权。
 
-| 环节           | 工具/规则                                                         |
-| -------------- | ----------------------------------------------------------------- |
-| 换行/编码      | `.editorconfig` + `.gitattributes`；文本统一 LF、二进制显式标记   |
-| hooks          | Lefthook，显式安装；统一调度 JS/Rust/Android 检查                 |
-| pre-commit     | 首方工作区的只读格式/lint/契约检查；排除第三方与生成目录          |
-| commit-msg     | commitlint + Conventional Commits                                 |
-| pre-push       | 只读格式/lint/契约检查；完整 verify 在批次冻结时执行              |
-| PR             | 模板包含问题/结果、影响端、验证证据、迁移与回滚                   |
-| 合并           | 受保护 master：必须 PR、required 必过、禁强推与删除，squash merge |
-| 提交与发布历史 | 校验 squash PR 标题；统一产品版本、按端记录 changelog             |
-| 代码责任       | CODEOWNERS 映射真实维护者；共享契约/上游更新/原生边界需对应审查   |
+| 环节           | 工具/规则                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| 换行/编码      | `.editorconfig` + `.gitattributes`；文本统一 LF、二进制显式标记                            |
+| hooks          | Lefthook，显式安装；统一调度 JS/Rust/Android 检查                                          |
+| pre-commit     | 首方工作区的只读格式/lint/契约检查；排除第三方与生成目录                                   |
+| commit-msg     | commitlint + Conventional Commits                                                          |
+| pre-push       | 只读格式/lint/契约检查；完整 verify 在批次冻结时执行                                       |
+| PR             | 模板包含问题/结果、影响端、验证证据、迁移与回滚；一个 PR 只解决一个目标                    |
+| 合并           | 受保护 master：必须 PR、required 必过、禁强推与删除，默认 squash merge；合并后删除短期分支 |
+| 提交与发布历史 | 校验 squash PR 标题；统一产品版本、按端记录 changelog                                      |
+| 代码责任       | CODEOWNERS 映射真实维护者；共享契约/上游更新/原生边界需对应审查                            |
 
 提交示例：`feat(tv): support remote focus restoration`、`fix(core): preserve media range cancellation`、`chore(tooling): pin Rust checks`。scope 对应产品或责任层，中文说明允许。
+
+### PR 生命周期
+
+- PR 标题是 squash 后进入 `master` 的提交标题，必须通过 Conventional Commits 校验；PR 正文描述最终结果，不写开发流水账。
+- 一个 PR 只对应一个用户问题、缺陷或可独立验收的技术目标。重构、依赖升级、格式化和无关清理拆成独立 PR；超过约 500 个有效改动时说明原因，超过约 1000 个改动优先拆分。生成文件、锁文件和资源文件不机械按行数判断，但不能借此混入无关行为变化。
+- 创建 PR 前作者先按模板自审：关联 Issue／OpenSpec，写清用户可观察变化、影响端、状态或协议所有者、实现边界、验证命令与实际结果、未验证项、风险和回滚方式。UI 或 TV 变化必须记录真实宿主、键盘／遥控器和截图边界。
+- reviewer 先检查目标和范围，再检查行为正确性、协议与状态所有权、错误／取消／恢复路径、测试有效性、跨端一致性、可用性、性能和安全。评论必须指出影响、触发条件和最小修复位置；个人偏好不作为阻塞项。阻塞评论在合并前必须解决或由责任 reviewer 明确接受风险。
+- review 期间可以保留多个修正提交；合并时统一 squash。不得在 squash 后继续复用原功能分支开新 PR，后续工作从最新 `master` 新建分支。Squash 会把中间提交合并为一个主线提交，若需要保留独立提交历史，应使用长期分支或在合并前建立 tag。
+- 默认合并后删除短期功能分支；PR、评论、审批、CI 和变更记录仍保留。`release/*`、`maintenance/*`、仍被其他 PR 依赖的分支，以及有审计或独立回滚需要的分支可以保留。
+- 发布 tag 和正式产物必须锚定 squash 后已经进入 `master` 的确切 SHA，不得使用合并前功能分支的提交作为发布源码。
 
 hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将同文件其他未暂存改动带入提交。只读文件检查反映工作区内容，不保证完全等于部分暂存的 index；最终以 CI 检查提交内容为准。
 
