@@ -38,7 +38,30 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 ## Colors
 
-页面和控件只消费语义 token，裸色只定义在生成的 theme 中。浅色、深色分别配对，影院语境独立于页面外观。YAML 中不带后缀的是浅色值，`-dark` 是深色覆盖；组件引用基础名，深色模式按同名 `-dark` 替换。深色页面使用 `background`／`card`／`popover` 的黑到炭灰层级，浅色页面使用白色页面与浅灰辅助表面。
+页面和控件只消费语义 token，裸色只定义在生成的 theme 中。浅色、深色分别配对，影院语境独立于页面外观。YAML 中不带后缀的是浅色值，`-dark` 是深色覆盖；组件引用基础名，深色模式按同名 `-dark` 替换。
+
+### 两端是两套主题，不是一套主题的覆盖
+
+桌面与 TV 共享**同一套角色名和同一套使用规则**，但色值是两套独立标定，因为观看条件不同：桌面在 60–100cm 的明亮环境，纯黑背景不刺眼且能压住周围界面；TV 在 2–3m 的暗室，纯黑会让画面与边框界线消失，且大屏低亮度下纯黑大面积会显得脏。因此 TV 抬高了整个表面阶梯（`background` 到 `#141619`），并把品牌色提亮到 `#ff874d`、焦点改为白色——远距离和低亮度下，橙色轮廓的辨识度不足。
+
+`theme.tv.json` 用 `colors-tv` 覆盖组表达这套值，但它是**完整标定**而非个别补丁：10 个核心角色全部与桌面不同，逐项列在下方对照表里。不要把它读成「TV 只改了这几个」。
+
+| 角色         | 桌面深色  | TV 深色   | 为什么不同                                   |
+| ------------ | --------- | --------- | -------------------------------------------- |
+| `background` | `#000000` | `#141619` | 暗室大屏用纯黑会让画面与边框界线消失         |
+| `card`       | `#101111` | `#212428` | 跟随抬高后的页面基底，保持同一级差           |
+| `popover`    | `#212323` | `#212428` | TV 上浮层与卡片同表面，靠投影而非色差分      |
+| `muted`      | `#1a1c1c` | `#2c3035` | 同上级差比例                                 |
+| `border`     | `#2b2d2d` | `#3b4048` | 远距离下细线需要更高对比才可见               |
+| `input`      | `#3f4242` | `#525861` | 同上                                         |
+| `ring`       | `#ff9233` | `#ffffff` | 遥控焦点轮廓用白色，橙色在暗室远距离辨识不足 |
+| `primary`    | `#fa7705` | `#ff874d` | 大屏低亮度下提高明度，避免橙色发暗           |
+| `accent`     | `#3a2415` | `#3c4148` | TV 选中用中性灰蓝，不与品牌橙抢注意力        |
+| `foreground` | `#f5f5f5` | `#f4f4f5` | 近乎相同；仅 TV 略降明度以减屏幕溢出感       |
+
+两端共享的部分：角色清单、配对规则、对比度门槛、影院语境、以及 `destructive`／`skeleton-*` 的语义。
+
+### 角色
 
 | 角色                                          | 用途                                                         |
 | --------------------------------------------- | ------------------------------------------------------------ |
@@ -62,30 +85,9 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 控件边界（`input`）在浅色取与分隔线同族的浅灰，在深色比分隔线高一档，让输入框、下拉、复选和按钮读作同一种线；可操作识别由表面、文字、形状和独立的 3:1 焦点环承担，边界不单独承担识别。禁用控件边界与内容分隔线使用 `border`；进入 `muted` 表面的控件按禁用处理。影院滑杆和焦点使用影院角色另验。对比度计算验证 token 配对，真实宿主还要观察细线、缩放、焦点裁切和状态组合。
 
-```yaml
-colors-tv:
-  cinema-focus: '#ffffff'
-  cinema-focus-dark: '#ffffff'
-  background-dark: '#141619'
-  foreground-dark: '#f4f4f5'
-  card-dark: '#212428'
-  card-foreground-dark: '#f4f4f5'
-  popover-dark: '#212428'
-  popover-foreground-dark: '#f4f4f5'
-  muted-dark: '#2c3035'
-  muted-foreground-dark: '#b1b5bc'
-  border-dark: '#3b4048'
-  input-dark: '#525861'
-  primary-dark: '#ff874d'
-  primary-foreground-dark: '#24130b'
-  accent-dark: '#3c4148'
-  accent-foreground-dark: '#ffffff'
-  ring: '#1c2026'
-  ring-dark: '#ffffff'
-  destructive-dark: '#ffafa5'
-```
+### 页面里不写裸色
 
-`colors-tv` is an optional TV-only override. Keys must already exist in `colors`; omitted roles inherit the shared color. The generator rejects unknown override keys and keeps desktop/Web colors unchanged.
+渐变、阴影和半透明遮罩同样只是配色，必须走 token。唯一例外是带实际图片内容的艺术效果（如海报环境光），但它的色相仍须取自品牌色或语义角色，不能另立一套颜色：现存的 `HomeHero`／`RankingsHero` 渐变与影院遮罩属于这类例外，改动它们需要同步本节。
 
 ```yaml
 colors:
@@ -149,6 +151,31 @@ colors:
   cinema-transparent-dark: '#00000000'
 ```
 
+```yaml
+colors-tv:
+  cinema-focus: '#ffffff'
+  cinema-focus-dark: '#ffffff'
+  background-dark: '#141619'
+  foreground-dark: '#f4f4f5'
+  card-dark: '#212428'
+  card-foreground-dark: '#f4f4f5'
+  popover-dark: '#212428'
+  popover-foreground-dark: '#f4f4f5'
+  muted-dark: '#2c3035'
+  muted-foreground-dark: '#b1b5bc'
+  border-dark: '#3b4048'
+  input-dark: '#525861'
+  primary-dark: '#ff874d'
+  primary-foreground-dark: '#24130b'
+  accent-dark: '#3c4148'
+  accent-foreground-dark: '#ffffff'
+  ring: '#1c2026'
+  ring-dark: '#ffffff'
+  destructive-dark: '#ffafa5'
+```
+
+The generator rejects keys in `colors-tv` that do not already exist in `colors`, and leaves the desktop theme untouched. A role omitted here inherits the shared value — which is why only the ten roles that genuinely differ appear above.
+
 ## Typography
 
 使用宿主系统 UI 字体。文字、图标、间距和目标尺寸由同一档位协调，不为单个页面复制字号。TV 使用 `theme.tv.json` 给出的 dp 值，与桌面同量级。
@@ -169,7 +196,13 @@ colors:
 
 `title` 用于小节／面板标题，`content-title` 用于海报与续播卡的剧名；内容标题不因字号自动成为页面标题层级。低于 `meta` 的文字走 `caption`，不再就地写 12／13。时间、进度和榜位使用等宽数字。长剧名采用明确限行或换行；完整内容需要阅读时提供展开，不用无意义副标题补充。系统字号放大时允许容器增长，不固定高度裁掉文字。
 
-控件文字不另造句级角色：字号由 `controlMetrics(size).fontSize` 取 14／16／18，字重按 Button 的 variant／selected／current 决定，行高 1.5；不要用 `text-sm`、`text-xs` 或 `text-xl` 绕过。
+### 字号只有一个入口
+
+页面文字走 `UiText role`，控件文字走 `controlMetrics(size).fontSize`。这两条之外没有第三条路：不要写 `fontSize: 14`，不要用 `text-sm`／`text-lg`／`text-[13px]`。原因不是洁癖——`role` 和 `controlMetrics` 会在桌面与 TV 两套主题间自动换值，写死的数字不会，于是同一个页面在两端长得不一样。
+
+实测现状：`packages/ui` 里有 46 处 `textSize()` 调用，而 `packages/app` 里是 0 处；app 侧目前全靠 `UiText role` 和 95 处 `role=` 属性，一旦有人绕过就会写裸值。已存在的越界点（`SearchForm` 的 `text-sm`、`SeasonEpisodes` 的 `text-lg`、若干 `fontSize: 12/14`）属于待收敛项，不在本规范追认。
+
+控件文字不另造句级角色：字号由 `controlMetrics(size).fontSize` 取 14／16／22（见下方档位表；TV 三档同为 14），字重按 Button 的 variant／selected／current 决定，行高 1.5；不要用 `text-sm`、`text-xs` 或 `text-xl` 绕过。
 
 ```yaml
 typography:
@@ -324,15 +357,40 @@ spacing:
 
 这些是选择依据，不是逐项增加公共 token。先复用共享组合；页面只决定排列与区域关系。PosterCard 图文间距 12／14、影院左内距 44 等既有配方例外由所属组件维护，不能扩散为页面自由值。
 
+### 间距档位是唯一刻度
+
+数值只有两处来源：`space(name)` 读档位，或组件自己的布局常量。页面里不写 `gap: 12`、`padding: 20`——即使数值恰好等于某档，也要写成 `space('sm')`。理由和字号一样：档位在两端会换值，数字不会。
+
+实测现状：`packages/app` 有 55 处直接写在 `style` 里的间距，其中 20、36、22、10、15、34 不在任何档位上。这些非档位值是长期手工微调的沉积，不是有意设计。收敛方向是就近归入档位（20→24 或 16，36→32 或 40），而不是给它们新增 token。
+
+TV 的 `spacing-tv` 目前与共享档位同值（4/8/12/16/24/32/40/48），保留该覆盖组是为了让 TV 以后能独立调节而不改桌面；在它真的分叉之前，不要假设两端间距不同。
+
 ### 端型边界
 
-几何值只有两个来源：theme 里的 `--space-*`、`--radius-*`、`--text-*`、`--control-*`，以及组件自己的布局常量。组件不读端型，也不做运行时缩放；换端只换主题文件。
+几何值只有两个来源：theme 里的 `--space-*`、`--radius-*`、`--text-*`、`--control-*`，以及组件自己的布局常量。`packages/ui/src` 不出现端型判断；换端只换主题文件。
+
+端型判断允许出现在 `packages/app`，但只用于**结构与交互**，不用于几何：
+
+| 允许         | 例子                                                 |
+| ------------ | ---------------------------------------------------- |
+| 结构差异     | 侧栏 vs 顶部导航；海报网格 vs 横向车道               |
+| 交互差异     | 遥控方向键焦点、`activation="confirm"`、Tooltip 禁用 |
+| 布局常量差异 | 侧栏 176 vs TV 车道高度                              |
+
+| 不允许                                                 | 为什么                                         |
+| ------------------------------------------------------ | ---------------------------------------------- |
+| `target === 'tv' ? 12 : 16` 这类间距／字号／圆角三元式 | 这些已经由主题给出；再判断一次就要维护两份真值 |
+| 组件内部读端型改几何                                   | 换端应只换 `theme.json`／`theme.tv.json`       |
+
+实测现状：`packages/app` 有 186 处 `target === 'tv'` 判断，而 `space()` 只有 61 处调用。这意味着相当一部分端型差异写在 JS 里而不是主题里——它们不会随主题调整而更新，也是「两端越长越不一样」的主要来源。收敛方向：几何类判断逐步换成 token，结构类保留。本规范记录该边界，不要求一次性重写。
 
 ## Elevation & Depth
 
 平面优先，但分层只有**一个机制**：表面色差 + 留白。边框不承担内容分层。
 
-表面按固定阶梯排列，每一级只与相邻一级相差约 1.05–1.15：页面（`background`）→ 卡片（`card`）→ 悬停／次要区（`muted`）→ 浮层（`popover`）。浅色主题同样成立：`card` 必须与页面不同，否则 hero、卡片和搜索框会变成白底白框，只剩细线在撑。`popover` 永远在 `muted` 之上，浮层不能比它所覆盖的悬停表面更暗。
+表面按固定阶梯排列：页面（`background`）→ 卡片（`card`）→ 悬停／次要区（`muted`）→ 浮层（`popover`）。桌面每级相差 1.08–1.11，落在 1.05–1.15 内；TV 每级约 1.17，略高于该区间，因为 TV 从纯黑附近起步，同比例需要更大的绝对变化才看得出。浅色主题同样成立：`card` 必须与页面不同，否则 hero、卡片和搜索框会变成白底白框，只剩细线在撑。`popover` 永远在 `muted` 之上，浮层不能比它所覆盖的悬停表面更暗。
+
+TV 是这条阶梯的唯一例外：`card` 与 `popover` 同为 `#212428`，浮层靠 `overlayShadow` 而不是色差分与卡片区分。这是有意的——大屏暗室里把浮层再拉一级色差会显得脏，投影在远处更容易读。桌面严格走色差阶梯。
 
 `border` 只作装饰性分隔（表格行、分组线），亮度低于 `input`；`input` 是控件识别边界，与任何表面至少 1.5:1。内容区之间不用线，用留白和表面差。
 
@@ -379,6 +437,12 @@ rounded:
 
 边界通常 1 单位，焦点使用独立轮廓；TV 使用自己的主题值。hover、pressed、selected 和 focus 不改变占位。嵌套表面圆角与内距协调，内容裁切服从容器边界，外侧焦点轮廓不得被裁掉。Button 焦点 offset 4、输入焦点 offset 3 暂作组件配方保留。
 
+### 圆角同样只有档位
+
+`radius('sm'|'md'|'lg'|'xl'|'full')`，没有第六个值。桌面与 TV 的差异只在档位取值：桌面 md 与 lg 是 6／8，TV 三档统一取 6（远距离下 8 与 6 看不出差别，统一能减少视觉噪声）。
+
+实测有三处越界：`HomeHero` 的 `borderRadius: 3`、`SearchForm` 与 `ContinueSection` 的 `8`、`RadarTable` 的 `0`。它们分别是骨架内元素、搜索框内层和表格单元格——都有合理的就地理由，但应按「骨架内元素取 `sm`／表头不取圆角」写进所属组件的配方，而不是在页面里写裸数字。本规范把它们记为待收敛项，不追认成新档位。
+
 ## Motion & Micro-interaction
 
 | 变化                                 | 工具与节奏                                                      | 减少动态效果     |
@@ -416,19 +480,29 @@ rounded:
 
 `packages/ui/src` 不出现端型判断；基础组件只通过 `size` 取得几何。数值来自 app 级主题：桌面（含验收宿主）用 `theme.json`，TV 用 `theme.tv.json`，组件只读 `--space-*`、`--radius-*`、`--text-*`、`--control-*` 这些 token。
 
+**桌面档位**
+
 | 档位 | 高度 | 字号 | 水平／垂直内距 | gap | 圆角 | 图标 |
 | ---- | ---- | ---- | -------------- | --- | ---- | ---- |
 | sm   | 32   | 14   | 12／4          | 6   | 8    | 16   |
 | md   | 40   | 16   | 16／8          | 8   | 12   | 20   |
-| lg   | 60*  | 22*  | 24／12*        | 12  | 12   | 26*  |
+| lg   | 60   | 22   | 24／12         | 12  | 12   | 26   |
+
+**TV 档位**
+
+| 档位 | 高度 | 字号 | 水平／垂直内距 | gap | 圆角 | 图标 |
+| ---- | ---- | ---- | -------------- | --- | ---- | ---- |
+| sm   | 32   | 14   | 12／4          | 6   | 6    | 16   |
+| md   | 36   | 14   | 16／6          | 8   | 6    | 18   |
+| lg   | 40   | 14   | 18／8          | 8   | 6    | 20   |
 
 - `size` 只决定几何，不决定交互；不能写 `if (size === 'lg')` 触发遥控行为。
-- 40 是桌面鼠标密度：16 号字、1.5 行高（24）加 8×2 垂直内距正好 40；44 是移动端触控目标，桌面偏大。32 容纳 14 号字、1.5 行高（21）加 4×2 垂直内距，并留 3px 余量。
-- TV 的设计基线是 960×540 points；实际 windowSize、pixelRatio、字号和安全区按宿主度量核对，不能把浏览器或单台模拟器结果推广到所有 4K 设备。`theme.tv.json` 使用紧凑的 TV 档位：sm 32／14、md 36／14、lg 40／14；控件随语义选择档位，不再把所有按钮放大到同一个 48 高度。文字放大时允许内容增高，不整体放大画布。
-- `lg` 的桌面值只在确有超大动作时使用；标 * 的值在 TV 上不生效。
+- 桌面 40 是鼠标密度：16 号字、1.5 行高（24）加 8×2 垂直内距正好 40；44 是移动端触控目标，桌面偏大。32 容纳 14 号字、1.5 行高（21）加 4×2 垂直内距，并留 3px 余量。
+- 桌面 `lg` 只在确有超大动作时使用（60 高、22 号字），不是常规动作的放大档。
+- TV 的设计基线是 960×540 points；实际 windowSize、pixelRatio、字号和安全区按宿主度量核对，不能把浏览器或单台模拟器结果推广到所有 4K 设备。TV 三档都停在 14 号字，靠**高度与内距**区分层级而不是靠字号——观看距离固定，字号变大只带来换行风险。文字放大时允许内容增高，不整体放大画布。
 - `controlMetrics(size)` 读 `--control-<size>-*`；`space(name)`、`radius(name)`、`textSize(role)` 读对应 token。没有 `unit()`／`adaptive()`／`Scale`。
 - 选集是组件配方，不新增档位：桌面详情 48、播放器面板 42、TV 48。Badge 28、RankingCard 42 也归配方。
-- `Avatar` 的 `sm`／`md`／`lg` 分别取 32／40／64，与 `control sm`、默认控件高度和大号卡片同档；头像与其他控件同排时与它们同高、同中线。三档都是正圆；无图、加载中或失败显示首字，未登录显示轮廓图标而不是臆造的首字。账号头像只接受核心校验过的公开 HTTPS 图片；本机不自行拼接或信任上游原始字段。
+- `Avatar` 的 `sm`／`md`／`lg` 分别取 32／40／64，与 `control sm`、默认控件高度和大号卡片同高、同中线。三档都是正圆；无图、加载中或失败显示首字，未登录显示轮廓图标而不是臆造的首字。账号头像只接受核心校验过的公开 HTTPS 图片；本机不自行拼接或信任上游原始字段。
 
 ```yaml
 controls:
