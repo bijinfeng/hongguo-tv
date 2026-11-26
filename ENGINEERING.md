@@ -212,7 +212,7 @@ Linux entry job 的 GTK／GStreamer 基线约 45 MB，runner 的 Ubuntu 镜像�
 
 entry job 的超时必须容纳冷启动，否则缓存未命中会被读成失败：NSH 0.7 下无缓存时 `tv`（macOS）crate 编译 9m33s、headless runner 13m19s，旧的 25 分钟上限在 25m22s 取消了仍在工作的 job（run 45632126021）。现为 macOS／Linux 45 分钟、Windows 60 分钟；热跑远在其内。
 
-`nsh` 把构建写进 `apps/<app>/target`，而 `Swatinem/rust-cache` 只缓存仓库根的 `target/`，且保存时按根 workspace 的包清单裁剪。entry job 因此把 `apps/<app>/target` 作为 `cache-directories` 一并缓存——该参数原样打包、不经过裁剪，`nsh-app-*` runner（来自 `apps/<app>/.nsh/rust` 这套独立 workspace）才留得住。`cache-directories` 不参与缓存键，改动缓存内容必须同步改 `shared-key` 的代次，否则会命中不含新内容的旧缓存并跳过保存，长期静默冷跑。entry job 测试后断言 runner 落在 `target/debug`，产物位置漂移会直接失败。
+`nsh` 把构建写进 `apps/<app>/target`，而 `Swatinem/rust-cache` 只缓存仓库根的 `target/`，且保存时按根 workspace 的包清单裁剪。entry job 与 `workspace` job 因此把 `apps/<app>/target` 作为 `cache-directories` 一并缓存——该参数原样打包、不经过裁剪，`nsh-app-*` runner 与 `nsh check` 的产物（来自 `apps/<app>/.nsh/rust` 这套独立 workspace）才留得住。`cache-directories` 不参与缓存键，改动缓存内容必须同步改 `shared-key` 的代次（当前 `v2-*`），否则会命中不含新内容的旧缓存并跳过保存，长期静默冷跑；`rust` 与 `workspace` 共用同一 `v2-<os>` 键，两处必须一起改名，否则共享的缓存被拆成两份。两个 job 都在构建后断言产物落在被缓存的目录，位置漂移会直接失败。`workspace` 的冷跑里 `pnpm check` 耗时 627s，其中 `nsh check` 分别编了 7m53s 与 8m57s，而 clippy 只用 63s——缓存对象的正是前两者。
 
 不要把 `CARGO_TARGET_DIR` 指到仓库根 `target` 来共享产物：实测这会改变缓存键使全部旧缓存作废，`workspace` 里三个并行 `nsh check` 改成共用目录后被 cargo 文件锁串行化（`pnpm check` 142s→581s），而 runner 产物仍因裁剪而留不住，净效果是全线变慢。
 
