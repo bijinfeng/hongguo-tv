@@ -19,4 +19,6 @@
 - UI 可见变化还要在真实宿主观察。headless TV 入口通过不等于真机、遥控、解码或独立安装包通过。
 - 不提交 .local/、artifacts/、target/、.nsh/、runtime.generated.json 或凭据；记录未验证项，不把骨架、预览包和正式发行混淆。
 
+- PR、review 和合并按 [ENGINEERING.md](ENGINEERING.md)「Git 与协作」执行：一个 PR 一个目标，先自审再请求对应责任 reviewer，验证命令必须带实际结果和限制；默认 squash merge，合并后删除短期分支，后续工作从最新 `master` 新建分支。PR、评论、审批和 CI 记录仍是追溯依据；发布必须使用已进入 `master` 的 squash 后 SHA。
+
 - 一个事实只有一个主要来源；按 docs/README.md 的职责表更新。当前状态不追加成长篇过程日志，历史放 docs/history 并注明非当前指令；不在多份交接复制同段增量。纯文档变更检查格式／链接／适用OpenSpec，不触发产品构建。
