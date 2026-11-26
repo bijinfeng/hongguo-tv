@@ -6,6 +6,7 @@ import { controlMetrics, space, border, focusRingClass } from './foundation';
 import { Icon } from './icon';
 import { motionTokens } from './motion';
 import { textLineHeight, textSize, textWeight } from './typography';
+import { ChevronRight } from 'nsh-icon-lucide';
 
 /** One caller-owned ranking entry; the component never derives a position or fetches content. */
 export interface RankingCardProps {
@@ -68,7 +69,7 @@ export function RankingCard(props: RankingCardProps) {
       <UiText role="body" tone={props.selected ? 'selected' : 'default'}>
         {props.actionLabel}
       </UiText>
-      <Icon name="forward" color={token(props.selected ? 'accent-foreground' : 'foreground')} />
+      <Icon icon={ChevronRight} tone={props.selected ? 'accent-foreground' : 'foreground'} />
     </View>
   );
   return (

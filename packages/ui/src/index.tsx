@@ -13,7 +13,7 @@ export {
   type RadiusToken,
   type SpaceToken,
 } from './foundation';
-export { Icon, type IconName, type IconProps } from './icon';
+export { Icon, type IconTone, type IconProps } from './icon';
 export { Logo } from './branding';
 export { Button, IconButton, type ButtonProps, type ButtonVariant } from './button';
 export { NavigationItem, type NavigationItemProps } from './navigation-item';

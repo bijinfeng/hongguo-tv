@@ -4,6 +4,7 @@ import { SearchForm } from '../SearchForm';
 import { sectionLabels } from '../sections';
 import type { Section, Store } from '../store';
 import { AccountButton } from './AccountButton';
+import { History } from 'nsh-icon-lucide';
 
 /** Every browse section the topbar can show, in the order the crumb resolves them. */
 const sections: Section[] = [
@@ -37,7 +38,7 @@ export function Topbar(props: { store: Store }) {
       </View>
       <Controls label="账号与记录">
         <Button
-          icon="history"
+          icon={History}
           iconOnly
           variant="quiet"
           label="观看记录"

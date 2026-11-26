@@ -9,6 +9,7 @@ import {
   type ProductTarget,
 } from '@hongguo/ui';
 import type { RankingChoices } from '../../rankings';
+import { ChevronDown } from 'nsh-icon-lucide';
 
 /**
  * One visible name per selector row. A sub-rank says "子榜" because its upstream label is the
@@ -197,7 +198,7 @@ export function RankingsToolbar(props: {
             size="sm"
             variant="default"
             label={props.expanded ? '收起筛选' : '展开筛选'}
-            icon="down"
+            icon={ChevronDown}
             expanded={props.expanded}
             selected={props.expanded}
             accessibilityDescription={

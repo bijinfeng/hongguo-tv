@@ -38,8 +38,9 @@ import {
 } from 'nsh/base';
 import { Button } from './button';
 import { border, controlMetrics, radius, space, weight, focusRingClass } from './foundation';
-import { Icon, type IconName } from './icon';
+import { Icon } from './icon';
 import { textSize, textWeight } from './typography';
+import { Check, ChevronDown } from 'nsh-icon-lucide';
 
 /** Popups stop short of the window edges and of a two-line hint. */
 const TOOLTIP_MAX_WIDTH = 320;
@@ -386,7 +387,7 @@ export interface MenuCommand {
   /** The visible command. */
   label: string;
   /** Optional official Lucide semantic icon. */
-  icon?: IconName;
+  icon?: string;
   /** Disabled commands remain visible and are skipped by keyboard navigation. */
   disabled?: boolean;
   /** Defined only for checkable commands. */
@@ -481,12 +482,12 @@ export function Menu(props: MenuProps) {
               }}
               indicator={
                 <View class="opacity-0 group-checked:opacity-100">
-                  <Icon name="check" />
+                  <Icon icon={Check} />
                 </View>
               }
             >
               <If when={command().icon}>
-                <Icon name={command().icon!} />
+                <Icon icon={command().icon!} />
               </If>
               <Text
                 class={`${command().destructive ? 'text-destructive' : 'text-popover-foreground'} group-disabled:text-muted-foreground`}
@@ -833,7 +834,7 @@ export function Accordion(props: AccordionProps) {
                 <View
                   class={`group-aria-expanded:rotate-180 ${reduceMotion() ? '' : 'transition-transform duration-100'}`}
                 >
-                  <Icon name="down" />
+                  <Icon icon={ChevronDown} />
                 </View>
               </AccordionTrigger>
             </AccordionHeader>

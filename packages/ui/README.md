@@ -40,7 +40,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。控件档�
 | 模块                                                | 责任                                                                                                                                                                          |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | foundation                                          | `controlMetrics(size)`、`space(name)`、`radius(name)`、`border`；数值来自 app 的主题文件（桌面 `theme.json`／TV `theme.tv.json`），名称与使用规则见 [DESIGN](../../DESIGN.md) |
-| icon / assets/lucide                                | 官方 Lucide 资源、稳定语义别名、原生渲染                                                                                                                                      |
+| icon / assets/lucide                                | `Icon`：包装 `nsh-icon` 的 `<Icon>`，调用方传 `nsh-icon-lucide` 常量；`tone` 映射文本色类，尺寸取 `size` 档位；`assets/lucide` 供浏览器原型                                   |
 | button                                              | Button／IconButton，有限 variant 与 size；`navigation` 变体让当前目的地保持 foreground、其余降一档                                                                            |
 | back-button                                         | 页面级返回：箭头加目的地名，无静止表面，页面／影院两档色调                                                                                                                    |
 | text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                                                                                                                            |
@@ -151,7 +151,9 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 安装图标和 Web favicon 共用 [品牌资源](assets/brand/README.md)，由三端 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
-主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。官方 Lucide 0.468.0 SVG、ISC 许可证及每图 SHA256 位于 `assets/lucide/`。`pnpm ui:icons` 从这些源生成 NSH 几何和浏览器图标；`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形。升级时从同一官方版本更新源与校验，再生成三方输出。
+主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。
+
+图标经 `nsh-icon-lucide`（Lucide 1.43.0）绘制，三端 `nsh.json` 的 `dependencies` 声明、`nsh.lock` 锁定。调用方从图标集导入常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 不维护名称清单，打包内容等于源码实际导入的常量，未引用的图标不进包。浏览器原型用同版本官方 SVG：ISC 许可证及每图 SHA256 位于 `assets/lucide/`，`pnpm ui:icons` 生成原型图标并校验源，`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形；升级时同步 `nsh upgrade` 的锁文件与原型资源版本。
 
 浏览器产品设计稿与组件板复用 `design/prototype/visual-redesign-real/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 
