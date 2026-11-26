@@ -67,6 +67,8 @@
 - 旧 409 仍未解释，首帧截图／远端原始进度回读未验。
 - 随后重开遇到热更新后进程存活但零窗口，未能观察续播入口。
 - 完整管理、后台、全屏、稳定性继续待验。
+- **NSH 0.7.0 的 Linux `lifecycle()` 缺陷使桌面首页恒为骨架屏（2026-11-26 定位）**：`nsh-platform-linux` 用隐藏宿主窗口的 `surface.root.is_mapped()` 计算 `lifecycle()`，桌面窗口模型下宿主从不 map，因此 Linux 应用整个运行期间只报 `background`。本仓 40+ 处以 `lifecycle() === 'active'` 门控读取（含 `packages/app/src/category.ts:25` 的首页目录），条件恒假时 effect 走 `cancel()` 且不设错误，界面停在骨架屏且不显示失败态；探针实测 `lifecycle` 在 X11 与 Wayland 下均为 `background`，移除 `titleBar` 后不变，故与标题栏改动无关。上游已修（[#3239](https://github.com/longbridge/nsh/issues/3239)，PR [#3252](https://github.com/longbridge/nsh/pull/3252) `5ffa0bf984`），但**不在 0.7.1 内**：逐条核对 0.7.1 的 23 个提交无此项，`main` 领先 0.7.1 共 138 个提交，11-25 的 nightly 早于修复。Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)、[#3300](https://github.com/longbridge/nsh/pull/3300)），macOS 按整个应用计算不受影响。结论：骨架屏不是本仓缺陷，升到含修复的版本前桌面真实数据验收不可通过。
+- **Linux 隐藏标题栏时 GTK 窗口按钮在浅色下不可见（2026-11-26 观察，已报上游 [#3381](https://github.com/longbridge/nsh/issues/3381)）**：`chrome.rs::apply_title_bar` 只设 margin 与 decoration layout，不设颜色或 CSS class，按钮前景取 GTK 主题值。浅色下三个字形为纯白 `#ffffff`、无底色，在 `#f9f9f9` 栏面上对比度 **1.05:1**（纯白栏面为 1.0:1）；深色下 `#b3b4b4` on `#101111` 为 **9.1:1** 且有实心圆底。同一截图中应用自身文字为 `#171717` 满强度，排除未聚焦变暗。用 `nsh init --template ts` 独立最小工程实测复现（三个按钮均在，产品截图中「最小化缺失」是账号图标位置重叠造成的误判）。`titleBar: { style: "hidden" }` 在 Linux 浅色下的可用性等上游修复再判。
 
 ### TV native
 
@@ -132,6 +134,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 - fixture 未制造继续观看失败与精选区隐藏。
 - 读屏实际播报、物理遥控与物理 TV、真实慢网／失败、正式 harness／Desktop 宿主截图未验证；骨架高度差只有视觉复核，未逐像素测量。
+- Desktop 上骨架屏永不退出的成因不是本节的加载态缺陷，而是 NSH 0.7.0 的 Linux `lifecycle()` 恒为 `background` 使读取从未发起，见[Desktop native](#desktop-native)；在含上游修复的 NSH 版本上重新验收本节。
 
 ### 排行榜／榜单雷达（统一设计）
 
