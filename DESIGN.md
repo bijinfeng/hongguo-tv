@@ -51,7 +51,11 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 一个值同时出现在两处，就还没定下来。先合并到唯一所有者，再动。
 
-**3. 用真实入口看结果。** `pnpm ui:preview` 跟改、`ui:host:tv`／`ui:host:desktop` 看宿主密度、`pnpm dev --target …` 看完整壳。不要凭代码推断渲染结果：token 写 40px，实际渲染可能是 43px，差额来自文字行高与边界。
+**3. 用真实入口看结果。** 分工固定：**开发与设计阶段用 web 端**（`apps/harness` + fixture，`pnpm dev --target harness`），**验收时才用真实端**（`pnpm dev --target desktop|tv`、`ui:host:tv`／`ui:host:desktop`）。
+
+这样分工是因为真实端常不具备开发条件——桌面 native 数据受 NSH `lifecycle()` 缺陷影响、`ui:host:desktop` 要 macOS 宿主——把迭代绑在真实端会让视觉判断几乎停滞。harness 跑的是同一份产品代码，几何与 token 完全一致，足以支撑设计与开发；它不证明宿主行为，所以验收仍须回到真实端。
+
+不要凭代码推断渲染结果：token 写 40px，实际渲染可能是 43px，差额来自文字行高与边界。
 
 **4. 让闸门回答「有没有漂移」。** `pnpm test` 里的 layout-contract 用例会读真实应用的 `layout()` 与 `viewStyle()`。它失败时看的是差在哪个元素、差多少，不是「视觉回归了」这种笼统结论。要加新断言，期望值从 `token()` 与 `textLineHeight()` 推导，不写死数字——写死的数字会在下一次合法的 token 调整时变成假警报。
 

@@ -124,8 +124,10 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ### 基础组件／还原
 
-公共实现、三端 check／build 和行为回归，macOS 桌面／TV 密度、部分 Android 模拟器及独立视觉审查有分项证据；主题已按新设计稿同步到 `packages/ui/theme.json`，组件稿 `theme.css` 由它生成，对比度按 WCAG 公式核算。
+公共实现、三端 check／build 和行为回归，macOS 桌面／TV 密度、部分 Android 模拟器及独立视觉审查有分项证据；主题以 `packages/ui/theme.json`／`theme.tv.json` 为运行时来源，由 DESIGN.md 经 `pnpm design:codegen` 生成，对比度按 WCAG 公式核算。浏览器原型已于 2026-11-26 删除（见[该次决定](docs/history/2026-11-26/design)），视觉真相只余 DESIGN.md 与产品代码。
 
+- **Web 端（harness）已能截图，开发期的视觉核对走它**（2026-11-26）：`nsh test <file> --target web` 需要 `clang` 与 `llvm-ar`；两者装上后 `zstd-sys` 的 web runtime 可编译，`open()` 的 `screenshot` 输出真实像素。首页 hero 的浅深两色已用 fixture 数据截到真实渲染（1180×780，非骨架态），圆角逐行量测为 4 行收到 0，符合 `radius('lg')`=8；同一 fixture 下 hero 的文本序列为「持／全 113 集／持械入宋／简介／立即观看／查看详情」。
+- 需要区分三种证据：`pnpm test` 通过、web 端截图看过、真实桌面／TV 宿主通过。第三种仍是验收标准，web 截图不能替代——它证明的是产品代码在可控宿主里的渲染，不是宿主行为。
 - 新主题与默认边框规则尚未在真实宿主逐项截图。
 - 全家族所有状态、人工 IME、读屏、大字／距离、hover／pressed 与逐帧动效不能由样例或静态截图概括；见[组件矩阵](docs/design/component-implementation.md)。
 
