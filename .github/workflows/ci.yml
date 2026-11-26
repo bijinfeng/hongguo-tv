@@ -10,6 +10,13 @@ permissions:
 # is the bulk of what the cache stores and the bulk of what a cold run writes: the app target
 # alone is 11 GB of `deps`. Line tables keep backtraces readable — a test failure still names
 # file and line — while cutting the archive the cache packs and restores on every job.
+#
+# Job-level on purpose: rust-cache hashes every `CARGO*` variable into its key, and it must, or
+# a cache built with one debug level would be restored for a build expecting another. Cargo's
+# own fingerprint would then rebuild everything the cache just paid to restore. Adding this
+# variable therefore invalidates the caches saved before it, once; that was the state of the
+# `entry-v2-*` entries on 2026-11-26 (`No cache found` on run 45745693501) and the next master
+# run repopulates them under the new key.
 env:
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
 concurrency:
