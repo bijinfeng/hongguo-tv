@@ -187,7 +187,7 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 | `rust-core`       | Linux                  | 根锁检查、core/http-api 的 Clippy/nextest/doctest/覆盖率、测试向量与并发场景 |
 | `web`             | Linux + 浏览器         | NSH check/build/headless、静态产物、Web API 集成与浏览器冒烟                 |
 | `desktop-macos`   | macOS                  | mixed 原生构建、Rust/NSH 测试、进程内核心生命周期、无开发服务安装包冒烟      |
-| `desktop-windows` | Windows                | MSVC 构建、同类生命周期/安装冒烟、路径/退出兼容                              |
+| `desktop-windows` | Windows                | MSVC 构建、同类生命周期/安装冒烟、路径/退出兼容；仅合并后的 push 运行        |
 | `desktop-linux`   | 固定 Linux/GTK 基线    | 原生构建、同类冒烟、动态库依赖验证                                           |
 | `tv-android`      | 固定 JDK/SDK/NDK       | Rust/JNI 编译、Android Lint、桥接/宿主测试、APK 产物与模拟器可自动化场景     |
 | `security`        | 受限权限 Linux         | pnpm audit、cargo-deny、secret scan、Android 依赖及许可策略                  |
@@ -203,7 +203,15 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 
 Linux entry job 的 GTK／GStreamer 基线约 45 MB，runner 的 Ubuntu 镜像曾以约 50 kB/s 传输，单次 975 秒。下载的 deb 缓存在 `runner.temp/apt-archives`，缓存键为 workflow 文件哈希，基线变更才失效。
 
-Actions 固定完整 commit SHA，默认 `contents: read`。非信任 PR 不获得签名/部署密钥，不通过 `pull_request_target` 执行其代码。缓存键包含 OS/架构、编译器、锁文件、features/target；不缓存账号数据或签名材料。
+entry job 的超时必须容纳冷启动，否则缓存未命中会被读成失败：NSH 0.7 下无缓存时 `tv`（macOS）crate 编译 9m33s、headless runner 13m19s，旧的 25 分钟上限在 25m22s 取消了仍在工作的 job（run 45632126021）。现为 macOS／Linux 45 分钟、Windows 60 分钟；热跑远在其内。
+
+`nsh` 把构建写进 `apps/<app>/target`，而 `Swatinem/rust-cache` 只缓存仓库根的 `target/`，且保存时按根 workspace 的包清单裁剪。entry job 因此把 `apps/<app>/target` 作为 `cache-directories` 一并缓存——该参数原样打包、不经过裁剪，`nsh-app-*` runner（来自 `apps/<app>/.nsh/rust` 这套独立 workspace）才留得住。`cache-directories` 不参与缓存键，改动缓存内容必须同步改 `shared-key` 的代次，否则会命中不含新内容的旧缓存并跳过保存，长期静默冷跑。entry job 测试后断言 runner 落在 `target/debug`，产物位置漂移会直接失败。
+
+不要把 `CARGO_TARGET_DIR` 指到仓库根 `target` 来共享产物：实测这会改变缓存键使全部旧缓存作废，`workspace` 里三个并行 `nsh check` 改成共用目录后被 cargo 文件锁串行化（`pnpm check` 142s→581s），而 runner 产物仍因裁剪而留不住，净效果是全线变慢。
+
+pull request 的 entry 矩阵含 macOS 与 Linux，Windows desktop 只在合并后的 push 运行——它的冷启动约 8m44s，且该行验证的是构建与生命周期兼容性，不是 review 所需的行为。`entryMatrix` 按 `GITHUB_EVENT_NAME` 裁剪，无事件名时保留完整矩阵；`required` 只要求矩阵内列出的 job，因此裁剪不会让某个 host 两边都不跑。
+
+Actions 固定完整 commit SHA，默认 `contents: read`。非信任 PR 不获得签名/部署密钥，不通过 `pull_request_target` 执行其代码。缓存键包含 OS/架构、编译器、锁文件、features/target；不缓存账号数据或签名材料。缓存键固定后 `saveCache` 会跳过已存在的键，不能靠冻结锁文件哈希复用旧缓存。
 
 CI 上传按语言区分的测试/覆盖率、NSH 构建日志、安装冒烟日志与必要截图。失败报告区分工具缺失、编译、行为、网络与设备故障；重试有上限，不能反复重跑掩盖不稳定测试。
 

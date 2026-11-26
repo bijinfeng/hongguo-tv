@@ -119,7 +119,12 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.scope.outputs.entry) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.os == 'windows-2025' && 45 || matrix.os == 'ubuntu-24.04' && 30 || 25 }}
+    # A cold run is the slowest legitimate outcome, and it has to fit: with NSH 0.7 and no
+    # cache, `tv` on macOS compiled its crate for 9m33s and the headless runner for 13m19s
+    # before the tests started, and the old 25-minute ceiling cancelled it at 25m22s while it
+    # was still working (run 45632126021). A cache miss must cost time, never read as a
+    # failure, so every host gets room for that path; warm runs finish far inside it.
+    timeout-minutes: ${{ matrix.os == 'windows-2025' && 60 || matrix.os == 'ubuntu-24.04' && 45 || 45 }}
     defaults:
       run:
         shell: bash
@@ -187,9 +192,21 @@ jobs:
             $packages
           sudo rm -rf "$archives/partial" "$archives/lock"
           sudo chown -R "$(id -u):$(id -g)" "$archives"
+      # `nsh` builds into `apps/<app>/target`, and the rust-cache step above only saves the
+      # repository's `target/`: what it restored here held the cargo registry and none of this
+      # job's own output, so the headless runner was rebuilt from zero on every run (5m35 on
+      # macOS, 5m30 on Windows, 13m19 for TV once NSH changed). Naming that directory as a
+      # cache directory instead is what makes it survive, because `cache-directories` entries
+      # are archived as they are while the action prunes its workspace `target/` to packages
+      # of the root workspace — and the runner, built from `apps/<app>/.nsh/rust`, is not one.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          shared-key: entry-${{ matrix.target }}-${{ matrix.os }}
+          # v2: the cache now also holds `apps/<app>/target`. `cache-directories` does not
+          # contribute to the key, so leaving the old name would restore a cache without the
+          # runner in it and then skip saving this one over the same key — every run cold
+          # again, silently. The generation has to move with the contents.
+          shared-key: entry-v2-${{ matrix.target }}-${{ matrix.os }}
+          cache-directories: ${{ matrix.target != 'web' && format('{0}/apps/{1}/target', github.workspace, matrix.target) || '' }}
       # Installs the pinned toolchain from rust-toolchain.toml before nsh reaches for cargo.
       - run: rustup show active-toolchain
       # `App.tsx` imports the gitignored `runtime.generated.json`; without it every test fails
@@ -198,6 +215,23 @@ jobs:
       - name: Behavior in ${{ matrix.target }} on ${{ matrix.os }}
         working-directory: apps/${{ matrix.target }}
         run: nsh test
+      # The cache entry above saves `apps/<app>/target`; a build that lands anywhere else would
+      # make every run cold while all of this still passed. `web` has no Rust crate and never
+      # produces a runner, so it is skipped by the same test.
+      - name: Assert the runner landed in the cached directory
+        if: ${{ matrix.target != 'web' }}
+        working-directory: apps/${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          # Windows names it `...-test.exe`; `-type f` keeps the dep file beside it from
+          # satisfying the check.
+          found=$(find target/debug -maxdepth 1 -type f \( -name 'nsh-app-*-test' -o -name 'nsh-app-*-test.exe' \) -print -quit)
+          if [ -z "$found" ]; then
+            echo "::error::nsh did not build into apps/${{ matrix.target }}/target"
+            find . .nsh -maxdepth 5 \( -name 'nsh-app-*-test' -o -name 'nsh-app-*-test.exe' \) -print 2>/dev/null
+            exit 1
+          fi
+          echo "Headless runner: $found"
   security:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
