@@ -27,7 +27,8 @@ process nonce 与合成 nonce 生成，不含真实注册身份、账号凭据�
 
 ## 图标
 
-界面图标使用固定版本的 Lucide 官方 SVG，许可证见
+界面图标来自 Lucide 1.43.0，经 `nsh-icon` 0.2.2 与 `nsh-icon-lucide` 0.2.2（Apache-2.0，
+<https://github.com/huacnlee/nsh-icon>）绘制；图标集内容按 ISC 许可，许可证见
 [`packages/ui/assets/lucide/LICENSE`](../packages/ui/assets/lucide/LICENSE)。
 设计稿原型中的第三方资源许可证见对应目录内 LICENSE。
 

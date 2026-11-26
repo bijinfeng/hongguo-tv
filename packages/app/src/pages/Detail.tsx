@@ -21,6 +21,7 @@ import { createDetailFavorite } from '../detail-favorite';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { FollowAction, FollowNotice } from '../FollowAction';
 import { ReservationAction, ReservationNotice } from '../ReservationAction';
+import { Bookmark, Play } from 'nsh-icon-lucide';
 
 export function Detail(props: {
   drama: Drama;
@@ -197,7 +198,7 @@ export function Detail(props: {
                     }}
                     label={startLabel()}
                     primary
-                    icon="play"
+                    icon={Play}
                     disabled={!startEpisode()}
                     onPress={() => {
                       const episode = startEpisode();
@@ -230,7 +231,7 @@ export function Detail(props: {
               <Button
                 testID="detail-start"
                 primary
-                icon="play"
+                icon={Play}
                 label={startLabel()}
                 disabled={!startEpisode()}
                 buttonRef={(ref) => {
@@ -432,7 +433,7 @@ function FavoriteButton(props: {
         <Button
           testID="detail-favorite"
           label={props.favorite.selected() ? '已收藏' : '收藏'}
-          icon="bookmark"
+          icon={Bookmark}
           selected={props.favorite.selected()}
           pending={props.favorite.pending()}
           disabled={props.favorite.disabled()}
@@ -443,7 +444,7 @@ function FavoriteButton(props: {
       <CinemaButton
         testID="detail-favorite"
         label={props.favorite.selected() ? '已收藏' : '收藏'}
-        icon="bookmark"
+        icon={Bookmark}
         selected={props.favorite.selected()}
         pending={props.favorite.pending()}
         disabled={props.favorite.disabled()}

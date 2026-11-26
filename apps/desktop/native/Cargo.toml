@@ -10,6 +10,8 @@ license.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
+nsh-icon-lucide = "0.2.2"
+nsh-icon = "0.2.2"
 nsh-core.workspace = true
 hongguo-native-bridge.workspace = true
 

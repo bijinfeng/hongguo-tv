@@ -10,6 +10,7 @@ import {
 } from './foundation';
 import { Icon } from './icon';
 import { type ChoiceOption } from './choice';
+import { Check } from 'nsh-icon-lucide';
 
 /** One controlled value represented by visible, stable options. */
 export interface ChoiceGroupProps {
@@ -59,9 +60,9 @@ export function ChoiceGroup(props: ChoiceGroupProps) {
                 style={{ width: size().iconSize, height: size().iconSize }}
               >
                 <Icon
-                  name="check"
+                  icon={Check}
                   size={props.size}
-                  color={token(inactive(option()) ? 'muted-foreground' : 'accent-foreground')}
+                  tone={inactive(option()) ? 'muted-foreground' : 'accent-foreground'}
                 />
               </View>
               <Text

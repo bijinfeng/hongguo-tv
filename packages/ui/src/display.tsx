@@ -13,7 +13,8 @@ import {
 import { Avatar as BaseAvatar, Progress as BaseProgress } from 'nsh/base';
 import { Button } from './button';
 import { border, controlMetrics, radius, space } from './foundation';
-import { Icon, type IconName } from './icon';
+import { Icon } from './icon';
+import { CircleAlert, LoaderCircle } from 'nsh-icon-lucide';
 
 const BADGE_MIN_HEIGHT = 28;
 const BADGE_PADDING_X = 10;
@@ -123,7 +124,7 @@ export function Surface(props: SurfaceProps) {
 export interface BadgeProps {
   label: string;
   tone?: 'neutral' | 'selected' | 'error';
-  icon?: IconName;
+  icon?: string;
   testID?: string;
 }
 
@@ -145,14 +146,14 @@ export function Badge(props: BadgeProps) {
     >
       <If when={props.icon}>
         <Icon
-          name={props.icon!}
-          color={token(
+          icon={props.icon!}
+          tone={
             props.tone === 'selected'
               ? 'accent-foreground'
               : props.tone === 'error'
                 ? 'destructive'
-                : 'muted-foreground',
-          )}
+                : 'muted-foreground'
+          }
         />
       </If>
       <UiText
@@ -268,7 +269,7 @@ export function Spinner(props: SpinnerProps) {
       style={motion.style}
       class="self-start"
     >
-      <Icon name="loader-circle" color={token('muted-foreground')} />
+      <Icon icon={LoaderCircle} tone="muted-foreground" />
     </View>
   );
 }
@@ -294,8 +295,8 @@ export function InlineStatus(props: InlineStatusProps) {
         else={
           <If when={props.status === 'success' || props.status === 'error'}>
             <Icon
-              name={props.status === 'error' ? 'circle-alert' : 'check'}
-              color={token(props.status === 'error' ? 'destructive' : 'foreground')}
+              icon={props.status === 'error' ? 'circle-alert' : 'check'}
+              tone={props.status === 'error' ? 'destructive' : 'foreground'}
             />
           </If>
         }
@@ -352,7 +353,7 @@ export function Notice(props: NoticeProps) {
       class={`${inline() ? 'flex-row items-center' : 'items-start'} shrink-0 w-full min-w-0 ${cinema() ? 'bg-cinema-control' : 'bg-muted'}`}
     >
       <If when={props.error}>
-        <Icon name="circle-alert" color={token('destructive')} />
+        <Icon icon={CircleAlert} tone="destructive" />
       </If>
       <View class={`${inline() ? 'flex-1' : 'w-full'} min-w-0`} style={{ gap: space('xxs') }}>
         <If when={props.title}>
@@ -413,7 +414,7 @@ export function Empty(props: EmptyProps) {
       class="items-center justify-center"
     >
       <If when={props.error}>
-        <Icon name="circle-alert" color={token('muted-foreground')} />
+        <Icon icon={CircleAlert} tone="muted-foreground" />
       </If>
       <UiText role="body" align="center">
         {props.title}

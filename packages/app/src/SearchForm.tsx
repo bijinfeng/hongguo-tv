@@ -13,6 +13,7 @@ import { Button, SearchInput, SearchPicker, SearchSuggestionRow } from '@hongguo
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
 import type { Store } from './store';
+import { Search } from 'nsh-icon-lucide';
 
 export function SearchForm(props: { store: Store }) {
   const suggestions = props.store.suggestions;
@@ -167,7 +168,7 @@ export function SearchForm(props: { store: Store }) {
             testID="nav-search"
             buttonRef={(ref) => props.store.primaryRef('search', ref)}
             label="搜索记录"
-            icon="search"
+            icon={Search}
             iconOnly
             compact
             variant="quiet"
@@ -234,7 +235,7 @@ export function SearchForm(props: { store: Store }) {
             <Text class="px-3 py-2 text-sm text-muted-foreground">建议未能加载</Text>
             <SearchSuggestionRow
               label="重试"
-              icon="search"
+              icon={Search}
               testID="suggestions-retry"
               rowRef={(ref) => rows.set('retry', ref)}
               onFocus={ownFocus}

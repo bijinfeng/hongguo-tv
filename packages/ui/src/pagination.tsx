@@ -2,6 +2,7 @@ import { Text, View, reduceMotion, token } from 'nsh';
 import { Pagination as BasePagination, type PaginationItemState } from 'nsh/base';
 import { Icon } from './icon';
 import { border, controlMetrics, weight, type ControlSize, focusRingClass } from './foundation';
+import { ChevronLeft, ChevronRight } from 'nsh-icon-lucide';
 
 /** Hongguo's themed page navigation; paging behavior and semantics stay in `nsh/base`. */
 export interface PaginationProps {
@@ -87,8 +88,8 @@ export function Pagination(props: PaginationProps) {
             </If>
             <If when={item.kind === 'previous' || item.kind === 'next'}>
               <Icon
-                name={item.kind === 'previous' ? 'back' : 'forward'}
-                color={token(item.disabled ? 'muted-foreground' : 'foreground')}
+                icon={item.kind === 'previous' ? ChevronLeft : ChevronRight}
+                tone={item.disabled ? 'muted-foreground' : 'foreground'}
                 size={props.size}
               />
               <If when={!props.compact}>

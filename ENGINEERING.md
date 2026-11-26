@@ -50,9 +50,10 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 
 NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)和[组件交接](docs/design/component-design.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
 
-- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。生产资源、语义名称映射与 NSH 适配统一归 `packages/ui`，设计原型复用同一来源；业务页面和各端入口不复制图标路径。
-- 首次接入时固定官方包精确版本及锁文件，或记录所纳入官方资源的版本、来源和校验信息，并保留对应许可证。只打包实际使用的图标，不依赖运行时 CDN；版本升级时同步设计稿、资源和映射。
-- 采用静态 SVG 资源或构建期提取；不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。NSH 适配以锁定版本生成的 `.nsh/types/` 为准；必要转换必须可重复生成，禁止手工修改生成的几何数据。
+- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。NSH 侧经 `nsh-icon` 的 `<Icon>` 绘制，图标集为 `nsh-icon-lucide`；调用方从图标集导入常量再交给 `packages/ui` 的 `Icon`（`<Icon icon={Search} />` 或 `icon={Search}`），`packages/ui` 只适配尺寸与颜色。业务页面和各端入口不复制图标路径。
+- 三端 `nsh.json` 声明 `nsh-icon`／`nsh-icon-lucide`（`^0.2.2`），解析结果由各端 `nsh.lock` 锁定并随应用提交；`nsh add` 同时写入应用 crate 的 Cargo 依赖。只打包实际使用的图标，不依赖运行时 CDN；升级时用 `nsh upgrade` 更新锁文件，并同步浏览器原型的同版本资源和校验。
+- 不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。不在 `packages/ui` 维护名称到图形的清单，也不按计算出的名称取图标：NSH 由导入静态裁剪，字符串查表会让整个图标集进包。图标常量直接出现在 JSX 与数据行里，打包内容因此等于实际引用。颜色经 `tone` 映射到 `text-*` 类字面量，由文字色继承。
+- 浏览器原型资源位于 `packages/ui/assets/lucide/`（Lucide 1.43.0、ISC 许可证、逐图 SHA256）；`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移，禁止手工修改几何数据。
 - 迁移时核对每个语义名称、主题颜色、尺寸、状态及可访问名称，执行对应 NSH check **和** build，并在实际宿主观察。新增依赖执行 `pnpm security`；依赖或资源落地前，本规则仅表示已确定的约束，不表示已完成迁移或验收。
 
 ### 基础组件工程边界
@@ -210,7 +211,7 @@ Linux entry job 的 GTK／GStreamer 基线约 45 MB，runner 的 Ubuntu 镜像�
 
 entry job 的超时必须容纳冷启动，否则缓存未命中会被读成失败：NSH 0.7 下无缓存时 `tv`（macOS）crate 编译 9m33s、headless runner 13m19s，旧的 25 分钟上限在 25m22s 取消了仍在工作的 job（run 45632126021）。现为 macOS／Linux 45 分钟、Windows 60 分钟；热跑远在其内。
 
-`nsh` 把构建写进 `apps/<app>/target`，而 `Swatinem/rust-cache` 只缓存仓库根的 `target/`，且保存时按根 workspace 的包清单裁剪。entry job 因此把 `apps/<app>/target` 作为 `cache-directories` 一并缓存——该参数原样打包、不经过裁剪，`nsh-app-*` runner（来自 `apps/<app>/.nsh/rust` 这套独立 workspace）才留得住。`cache-directories` 不参与缓存键，改动缓存内容必须同步改 `shared-key` 的代次，否则会命中不含新内容的旧缓存并跳过保存，长期静默冷跑。entry job 测试后断言 runner 落在 `target/debug`，产物位置漂移会直接失败。
+`nsh` 把构建写进 `apps/<app>/target`，而 `Swatinem/rust-cache` 只缓存仓库根的 `target/`，且保存时按根 workspace 的包清单裁剪。entry job 与 `workspace` job 因此把 `apps/<app>/target` 作为 `cache-directories` 一并缓存——该参数原样打包、不经过裁剪，`nsh-app-*` runner 与 `nsh check` 的产物（来自 `apps/<app>/.nsh/rust` 这套独立 workspace）才留得住。`cache-directories` 不参与缓存键，改动缓存内容必须同步改 `shared-key` 的代次（当前 `v2-*`），否则会命中不含新内容的旧缓存并跳过保存，长期静默冷跑；`rust` 与 `workspace` 共用同一 `v2-<os>` 键，两处必须一起改名，否则共享的缓存被拆成两份。两个 job 都在构建后断言产物落在被缓存的目录，位置漂移会直接失败。`workspace` 的冷跑里 `pnpm check` 耗时 627s，其中 `nsh check` 分别编了 7m53s 与 8m57s，而 clippy 只用 63s——缓存对象的正是前两者。
 
 不要把 `CARGO_TARGET_DIR` 指到仓库根 `target` 来共享产物：实测这会改变缓存键使全部旧缓存作废，`workspace` 里三个并行 `nsh check` 改成共用目录后被 cargo 文件锁串行化（`pnpm check` 142s→581s），而 runner 产物仍因裁剪而留不住，净效果是全线变慢。
 

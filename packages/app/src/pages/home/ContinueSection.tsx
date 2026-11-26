@@ -18,6 +18,7 @@ import { errorMessage } from '../../error-messages';
 import { playbackTime } from '../../format';
 import { historyLabel } from '../History';
 import { contentGutter } from '../../shell/ContentColumn';
+import { ChevronRight, Search } from 'nsh-icon-lucide';
 
 type Entry = Library['entries'][number];
 
@@ -99,7 +100,7 @@ function ContinueTile(props: { entry: Entry; store: Store }) {
           </CardRoot>
         </CardControls>
         <View class="items-start">
-          <Button label="选集与详情" icon="forward" onPress={openDetail} />
+          <Button label="选集与详情" icon={ChevronRight} onPress={openDetail} />
         </View>
       </View>
     );
@@ -125,7 +126,7 @@ function ContinueEmpty(props: { store: Store }) {
         class="shrink-0 items-center justify-center rounded-full bg-accent"
         style={{ width: tv() ? 32 : 44, height: tv() ? 32 : 44 }}
       >
-        <Icon name="search" />
+        <Icon icon={Search} />
       </View>
       <View class="min-w-0 flex-1" style={{ gap: tv() ? 2 : 4 }}>
         <UiText role="title">还没有观看记录</UiText>
@@ -135,7 +136,7 @@ function ContinueEmpty(props: { store: Store }) {
       </View>
       <Button
         label="去找剧"
-        icon="search"
+        icon={Search}
         variant="primary"
         size={tv() ? 'md' : 'sm'}
         testID="home-continue-discover"
@@ -231,7 +232,7 @@ export function ContinueSection(props: { store: Store }) {
         <UiText role={tv() ? 'section' : 'title'}>{tv() ? '接着上次的故事' : '继续观看'}</UiText>
         <Button
           label="全部记录"
-          icon="forward"
+          icon={ChevronRight}
           variant="quiet"
           compact
           onPress={() => {

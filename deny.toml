@@ -119,6 +119,45 @@ name = "winx"
 version = "=0.36.4"
 allow = ["Apache-2.0 WITH LLVM-exception"]
 
+# Lucide icons. `nsh-icon` 0.2.2 draws SVG and turns on `nsh-core`'s `svg` feature
+# (nsh-icon-0.2.2/Cargo.toml), which links resvg/usvg; the icon set itself is
+# `nsh-icon-lucide`, a non-optional dependency of hongguo-desktop-native and
+# hongguo-tv-native once `nsh add` writes the app crates. Every entry below is a
+# runtime path in shipped desktop and TV builds, not build-only.
+#
+# ISC AND MIT: `nsh-icon-lucide` is the icon set's own crate. Its Cargo.toml declares
+# `ISC AND MIT` because the Lucide artwork is ISC and the crate code is MIT; both are
+# permissive and both licence texts ship in the crate. nsh-icon itself is Apache-2.0,
+# already on the global allow list.
+# Obligation: keep the crate's NOTICE/LICENSE text in distributable packages.
+# Owner: jfbi. Expires: 2027-05-31, or the next nsh-icon upgrade if that comes first.
+[[licenses.exceptions]]
+name = "nsh-icon-lucide"
+version = "=0.2.2"
+allow = ["ISC", "MIT"]
+
+# BSD-2-Clause, OSI-approved (SPDX license-list-data: isOsiApproved = true).
+# Path: resvg 0.48.1 -> tiny-skia 0.12.0 -> arrayref 0.3.9, and also
+# tiny-skia -> tiny-skia-path 0.12.0 -> arrayref, all under nsh-core's `svg` feature
+# reached through nsh-icon.
+# Obligation: keep the copyright notice and the two-clause text; do not use
+# contributors' names to endorse derived work.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "arrayref"
+version = "=0.3.9"
+allow = ["BSD-2-Clause"]
+
+# Zlib, OSI-approved (SPDX: isOsiApproved = true). Path: resvg 0.48.1 -> usvg 0.48.1 ->
+# fontdb 0.24.0 -> slotmap 1.1.1, under nsh-core's `svg` feature reached through
+# nsh-icon. `foldhash` and `zlib-rs` above carry the same licence for other paths.
+# Obligation: keep the notice and do not misrepresent the origin of the source.
+# Owner: jfbi. Expires: 2027-05-31.
+[[licenses.exceptions]]
+name = "slotmap"
+version = "=1.1.1"
+allow = ["Zlib"]
+
 [licenses.private]
 ignore = true
 

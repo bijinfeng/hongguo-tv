@@ -72,14 +72,15 @@ jobs:
           tool: cargo-nextest@0.9.151
       - run: rustup show active-toolchain
       - run: cargo fmt --all -- --check
-      # Shares the target directory with the workspace job on macOS: both run the same clippy
-      # and the same Rust crates behind `nsh check`, which was 446s of rebuilding without it.
-      # Only the master run writes. A pull request that saved would race the others for one key
-      # and the 10 GB allowance cannot hold a generation per branch — the four generations it
-      # came to hold were 12.4 GB, so every save evicted a cache someone else needed.
+      # Shares one cache with the workspace job on the same OS, which is why the key carries the
+      # generation: `cache-directories` (the app crates' `nsh check` output, added there) is not
+      # part of rust-cache's key, so both jobs must name the same generation or the shared entry
+      # is split in two. Only the master run writes. A pull request that saved would race the
+      # others for one key and the 10 GB allowance cannot hold a generation per branch — the four
+      # generations it came to hold were 12.4 GB, so every save evicted a cache someone needed.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          shared-key: ${{ matrix.os }}
+          shared-key: ${{ format('v2-{0}', matrix.os) }}
           save-if: ${{ github.ref == 'refs/heads/master' }}
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - run: cargo nextest run --locked --workspace
@@ -147,11 +148,35 @@ jobs:
       - run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          shared-key: ubuntu-24.04
+          # v2: this cache now also holds the two app crates' `nsh check` output. `pnpm check`
+          # spent 627s on a cold runner — 7m53s and 8m57s of `nsh` compiling `apps/*/target` —
+          # while clippy alone finished in 63s from the same cache. `cache-directories` is what
+          # keeps them: the action prunes its workspace `target/` to packages of the root
+          # workspace, and the app crates are built from `apps/<app>/.nsh/rust` instead. It also
+          # does not contribute to the key, so the generation moves with the contents.
+          shared-key: v2-ubuntu-24.04
+          cache-directories: |
+            ${{ github.workspace }}/apps/desktop/target
+            ${{ github.workspace }}/apps/tv/target
           save-if: ${{ github.ref == 'refs/heads/master' }}
       - run: pnpm doctor:workspace
       - run: pnpm check
       - run: pnpm build
+      # The cache entry above saves `apps/*/target`; a check that builds somewhere else would
+      # make every run cold while all of this still passed. `web` has no Rust crate, so only the
+      # two native apps are asserted.
+      - name: Assert the app checks landed in the cached directories
+        run: |
+          set -euo pipefail
+          missing=0
+          for app in desktop tv; do
+            if ! compgen -G "apps/$app/target/debug/deps/*nsh_app*" > /dev/null; then
+              echo "::error::nsh check for $app did not build into apps/$app/target"
+              find "apps/$app" .nsh -maxdepth 4 -name '*nsh_app*' -print 2>/dev/null | head
+              missing=1
+            fi
+          done
+          exit "$missing"
   entry:
     # One runner per target: they each compile Rust and start an NSH engine, so sharing a
     # 3-4 core runner made them contend — serial was 1245s and three-in-one was worse.

@@ -10,6 +10,7 @@ import {
   focusRingClass,
 } from './foundation';
 import { Icon } from './icon';
+import { Check, Minus } from 'nsh-icon-lucide';
 
 /** Controlled boolean selection; NSH handles mixed state, activation and disabled behavior. */
 export interface CheckboxProps {
@@ -63,8 +64,8 @@ export function Checkbox(props: CheckboxProps) {
       indicator={
         <If when={props.checked || props.indeterminate}>
           <Icon
-            name={props.indeterminate ? 'minus' : 'check'}
-            color={token(props.disabled ? 'accent-foreground' : 'primary-strong-foreground')}
+            icon={props.indeterminate ? Minus : Check}
+            tone={props.disabled ? 'accent-foreground' : 'primary-strong-foreground'}
             size={props.size}
           />
         </If>

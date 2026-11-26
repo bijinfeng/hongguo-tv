@@ -15,12 +15,13 @@ import {
   type ViewRef,
 } from 'nsh';
 import { Button, Select, Sheet, Slider } from 'nsh/base';
-import { Icon, type IconName } from './icon';
+import { Icon } from './icon';
 import { controlMetrics, radius, space, weight, focusRingClass } from './foundation';
 import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
 import { textSize, textWeight } from './typography';
+import { ChevronDown, Lock, Play } from 'nsh-icon-lucide';
 
 const CinemaEnabled = context<() => boolean>(() => true);
 
@@ -31,7 +32,7 @@ const EPISODE_SETTING_LABEL_WIDTH = 80;
 /** The approved cinema controls share the app's target, icons and semantic theme. */
 export function CinemaButton(props: {
   label: string;
-  icon?: IconName;
+  icon?: string;
   iconOnly?: boolean;
   /** Transparent resting fill for dismissive actions such as closing the player. */
   quiet?: boolean;
@@ -79,8 +80,8 @@ export function CinemaButton(props: {
     >
       <If when={props.icon && !props.dropdown}>
         <Icon
-          name={props.pending ? 'loader-circle' : props.icon!}
-          color={token(blocked() ? 'cinema-muted' : 'cinema-foreground')}
+          icon={props.pending ? 'loader-circle' : props.icon!}
+          tone={blocked() ? 'cinema-muted' : 'cinema-foreground'}
         />
       </If>
       <If when={!props.iconOnly}>
@@ -98,7 +99,7 @@ export function CinemaButton(props: {
         </Text>
       </If>
       <If when={props.icon && props.dropdown}>
-        <Icon name={props.icon!} color={token('cinema-muted')} />
+        <Icon icon={props.icon!} tone="cinema-muted" />
       </If>
     </Button>
   );
@@ -235,8 +236,8 @@ export function CinemaSelect(props: {
               {props.items.find((item) => item.value === props.value)?.title ?? props.label}
             </Text>
             <Icon
-              name="down"
-              color={token(props.disabled || !enabled() ? 'cinema-muted' : 'cinema-foreground')}
+              icon={ChevronDown}
+              tone={props.disabled || !enabled() ? 'cinema-muted' : 'cinema-foreground'}
             />
           </SelectFocus>
         </Button>
@@ -438,7 +439,7 @@ export function CinemaStageAction(props: {
             height: 64,
           }}
         >
-          <Icon name="play" color={token('cinema-foreground')} />
+          <Icon icon={Play} tone="cinema-foreground" />
         </View>
       </If>
     </Button>
@@ -487,7 +488,7 @@ export function CinemaEpisodeButton(props: {
       }`}
     >
       <If when={props.locked}>
-        <Icon name="lock" color={token('cinema-muted')} size="sm" />
+        <Icon icon={Lock} tone="cinema-muted" size="sm" />
       </If>
       <Text
         style={{

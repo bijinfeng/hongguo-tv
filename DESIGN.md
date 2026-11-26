@@ -617,9 +617,11 @@ components:
 
 ### 统一图标
 
-固定 `lucide-static@0.468.0` 官方 SVG，唯一资源、许可证和 SHA 位于 `packages/ui/assets/lucide/`。生产只经 UI 的 `Icon` 消费；设计稿、原型和 NSH 共享官方来源、名称及语义映射。禁止手写、临摹或修改 SVG/path，不混图标库、emoji 或字符图标；缺图先用文字。
+固定 `nsh-icon-lucide@^0.2.2`（Lucide 1.43.0），三端 `nsh.json` 声明、`nsh.lock` 锁定，经 `nsh-icon` 的 `<Icon>` 绘制。调用方从 `nsh-icon-lucide` 导入图标常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 只做尺寸与颜色的适配，不维护第二份名称表，也不按字符串查图标。禁止手写、临摹或修改 SVG/path，不混图标库、emoji 或字符图标；缺图先用文字。
 
-保留官方 24×24 网格、几何与 2 单位描边，显示尺寸使用共享档位，不为页面改路径或线宽。颜色由语义 token 提供，纯图标动作有可访问名称，装饰图标不重复朗读。品牌、内容封面和系统原生控件自带图标除外。运行 `pnpm ui:icons` 再生，`pnpm ui:icons:check` 检查漂移，不手改生成结果。
+浏览器原型用同一 Lucide 1.43.0 官方 SVG：资源、许可证和逐图 SHA 位于 `packages/ui/assets/lucide/`，`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移。打包内容等于源码导入的图标常量：`nsh-icon` 按导入裁剪，未引用的图标不进包；不要用计算出的名字取图标，那会拉进整个集合。
+
+保留官方 24×24 网格与几何，显示尺寸使用共享档位，不为页面改路径或线宽。颜色由语义 token 提供：`Icon` 的 `tone` 取对应 `text-*` 类并经文字色继承，不为图标单独传色值；纯图标动作有可访问名称，装饰图标不重复朗读。品牌、内容封面和系统原生控件自带图标除外。
 
 ## Do's and Don'ts
 
