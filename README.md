@@ -6,7 +6,7 @@ NSH TSX + Rust 的桌面和 Android TV 客户端，采用 pnpm／Cargo 工作区
 
 ## 开始开发
 
-先安装 Rust／rustup、固定版本 Node／pnpm 和[官方 NSH CLI](https://nsh.dev/zh-CN/docs/getting-started/)。版本分别由 `.node-version`、`package.json#packageManager`、`.nsh-version`、`rust-toolchain.toml` 管理。
+先安装 Rust／rustup、Node／pnpm 和[官方 NSH CLI](https://nsh.dev/zh-CN/docs/getting-started/)。Node 接受 `package.json#engines` 的 `>=24.2 <27`（`import.meta.main` 与 `node:sqlite` 的门槛），`.node-version` 只钉 CI 安装的参考版本；pnpm、NSH 与 Rust 分别由 `package.json#packageManager`、`.nsh-version`、`rust-toolchain.toml` 管理。
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts

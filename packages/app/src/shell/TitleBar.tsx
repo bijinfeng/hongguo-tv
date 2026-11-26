@@ -45,7 +45,10 @@ export function TitleBar(props: { children?: JSX.Element; collapsed?: boolean })
   // row with the same content instead of a native bar that cannot lay out.
   if (!hasWindow()) {
     return (
-      <View class="w-full flex-row items-center gap-3" style={{ minHeight: TITLE_BAR_HEIGHT, height: TITLE_BAR_HEIGHT }}>
+      <View
+        class="w-full flex-row items-center gap-3"
+        style={{ minHeight: TITLE_BAR_HEIGHT, height: TITLE_BAR_HEIGHT }}
+      >
         {props.children}
       </View>
     );
