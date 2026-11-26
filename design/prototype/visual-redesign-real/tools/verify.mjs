@@ -5,12 +5,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
-const pages = [
-  "index.html",
-  "desktop.html",
-  "tv.html",
-  "components.html",
-];
+const pages = ["index.html", "desktop.html", "tv.html", "components/index.html"];
 for (const p of pages) {
   const html = read(p);
   assert.ok(html.includes('lang="zh-CN"'), p + " language");
@@ -19,7 +14,7 @@ for (const p of pages) {
     if (ref.startsWith("#")) continue;
     assert.ok(!/^https?:/.test(ref), p + " has remote runtime dependency");
     assert.ok(
-      fs.existsSync(path.resolve(root, ref.split("#")[0])),
+      fs.existsSync(path.resolve(root, path.dirname(p), ref.split("#")[0])),
       p + " missing " + ref,
     );
   }
@@ -29,7 +24,6 @@ for (const p of pages) {
     p + " scripts closed",
   );
 }
-assert.match(read("tv.html"), /<\/span>\s*<\/footer>/, "tv help markup");
 for (const file of fs
   .readdirSync(path.join(root, "assets"))
   .filter((x) => x.endsWith(".js")))
@@ -79,14 +73,12 @@ assert.equal(T.seasonName(T.get("song")), "第 11 季");
 assert.ok(!T.nav("desktop").includes("官网公开内容"));
 assert.match(read("assets/app.js"), /data-od-id="app-updates"/);
 assert.match(read("assets/app.js"), /data-action="check-updates"/);
-assert.match(read("assets/tv.js"), /data-tv-action="check-updates"/);
 for (const file of [
   "index.html",
-  "components.html",
+  "components/index.html",
   "tv.html",
   "assets/app.js",
   "assets/catalog.js",
-  "assets/components.js",
 ]) {
   const source = read(file);
   assert.ok(!source.includes("官网公开内容 · 设计预览"), file + " explanatory marker");

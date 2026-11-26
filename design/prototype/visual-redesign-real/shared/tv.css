@@ -1,5 +1,5 @@
 /* Scoped proposal system. The v4 pages and its component specimen share these controls. */
-[data-candidate='tv4'] {
+[data-surface='tv'] {
   --background: #141619;
   --foreground: #f4f4f5;
   --card: #212428;
@@ -71,23 +71,23 @@
   color-scheme: dark;
   accent-color: var(--primary);
 }
-[data-candidate='tv4'][data-safe='overscan'] {
+[data-surface='tv'][data-safe='overscan'] {
   --safe-inline: 48px;
   --safe-block: 27px;
 }
-[data-candidate='tv4'][data-text-size='large'] {
+[data-surface='tv'][data-text-size='large'] {
   --poster-columns: 5;
   --search-columns: 3;
   --rank-columns: 4;
   --episode-columns: 8;
 }
-[data-candidate='tv4'][data-text-size='extra-large'] {
+[data-surface='tv'][data-text-size='extra-large'] {
   --poster-columns: 4;
   --search-columns: 2;
   --rank-columns: 3;
   --episode-columns: 6;
 }
-[data-theme='light'] [data-candidate='tv4'] {
+[data-theme='light'] [data-surface='tv'] {
   --background: #f3f2ef;
   --foreground: #202327;
   --card: #fff;
@@ -103,32 +103,32 @@
   --destructive: #a32424;
   color-scheme: light;
 }
-[data-candidate='tv4'] * {
+[data-surface='tv'] * {
   box-sizing: border-box;
 }
-[data-candidate='tv4'] ::selection {
+[data-surface='tv'] ::selection {
   background: var(--primary);
   color: var(--primary-foreground);
 }
-[data-candidate='tv4'] ::-webkit-scrollbar {
+[data-surface='tv'] ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
-[data-candidate='tv4'] ::-webkit-scrollbar-thumb {
+[data-surface='tv'] ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: var(--radius);
 }
-[data-candidate='tv4'] button,
-[data-candidate='tv4'] input,
-[data-candidate='tv4'] select {
+[data-surface='tv'] button,
+[data-surface='tv'] input,
+[data-surface='tv'] select {
   font: inherit;
   color: inherit;
 }
-[data-candidate='tv4'] :is(button, input, select):focus-visible {
+[data-surface='tv'] :is(button, input, select):focus-visible {
   outline: var(--focus-width) solid var(--ring);
   outline-offset: 3px;
 }
-[data-candidate='tv4'] .ui-button {
+[data-surface='tv'] .ui-button {
   min-height: var(--control);
   min-width: 0;
   padding-block: var(--space-xs);
@@ -138,29 +138,29 @@
   line-height: 1.3;
   transition: background-color var(--instant);
 }
-[data-candidate='tv4'] .ui-button.play {
+[data-surface='tv'] .ui-button.play {
   min-height: var(--control-primary);
   padding-inline: var(--space-xl);
   font-weight: 600;
 }
-[data-candidate='tv4'] .ui-button.icon-only {
+[data-surface='tv'] .ui-button.icon-only {
   width: var(--control);
   height: var(--control);
   padding: 0;
   flex: none;
 }
-[data-candidate='tv4'] .ui-button.nav {
+[data-surface='tv'] .ui-button.nav {
   font-size: var(--nav-type);
   min-height: var(--control-nav);
   padding-inline: var(--space-lg);
 }
-[data-candidate='tv4'] .ui-button.account-trigger {
+[data-surface='tv'] .ui-button.account-trigger {
   min-height: 56px;
   padding: var(--space-xs) var(--space-sm);
   gap: var(--space-lg);
   text-align: start;
 }
-[data-candidate='tv4'] .account-trigger .avatar {
+[data-surface='tv'] .account-trigger .avatar {
   width: 48px;
   height: 48px;
   flex: none;
@@ -169,28 +169,28 @@
   display: grid;
   place-items: center;
 }
-[data-candidate='tv4'] .account-trigger .avatar .icon {
+[data-surface='tv'] .account-trigger .avatar .icon {
   width: 24px;
   height: 24px;
 }
-[data-candidate='tv4'] .account-copy {
+[data-surface='tv'] .account-copy {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
 }
-[data-candidate='tv4'] .account-name {
+[data-surface='tv'] .account-name {
   font-size: var(--page-title);
   font-weight: 600;
 }
-[data-candidate='tv4'] .account-action {
+[data-surface='tv'] .account-action {
   font-size: var(--meta);
   font-weight: 400;
   color: var(--muted-foreground);
 }
-[data-candidate='tv4'] .ui-button:active:not(:disabled) {
+[data-surface='tv'] .ui-button:active:not(:disabled) {
   filter: brightness(0.82);
 }
-[data-candidate='tv4'] .icon {
+[data-surface='tv'] .icon {
   width: var(--icon);
   height: var(--icon);
   display: inline-flex;
@@ -198,12 +198,12 @@
   align-items: center;
   justify-content: center;
 }
-[data-candidate='tv4'] .icon svg {
+[data-surface='tv'] .icon svg {
   width: 100%;
   height: 100%;
   stroke-width: 1.8;
 }
-[data-candidate='tv4'] .poster {
+[data-surface='tv'] .poster {
   border: 0;
   background: transparent;
   padding: 0;
@@ -214,13 +214,13 @@
   min-width: 0;
   cursor: pointer;
 }
-[data-candidate='tv4'] .poster:hover .poster-art {
+[data-surface='tv'] .poster:hover .poster-art {
   filter: brightness(1.1);
 }
-[data-candidate='tv4'] .poster:active .poster-art {
+[data-surface='tv'] .poster:active .poster-art {
   filter: brightness(0.82);
 }
-[data-candidate='tv4'] .poster-art {
+[data-surface='tv'] .poster-art {
   position: relative;
   border-radius: var(--radius-card);
   overflow: hidden;
@@ -228,13 +228,13 @@
   aspect-ratio: var(--poster-ratio);
   transition: filter var(--instant);
 }
-[data-candidate='tv4'] .poster-art img {
+[data-surface='tv'] .poster-art img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
 }
-[data-candidate='tv4'] .poster-title {
+[data-surface='tv'] .poster-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -244,13 +244,13 @@
   margin-top: var(--space-sm);
   height: 2.9em;
 }
-[data-candidate='tv4'] .poster-meta {
+[data-surface='tv'] .poster-meta {
   color: var(--muted-foreground);
   font-size: var(--meta);
   display: block;
   margin-top: var(--space-xs);
 }
-[data-candidate='tv4'] .art-label {
+[data-surface='tv'] .art-label {
   position: absolute;
   bottom: var(--space-sm);
   right: var(--space-sm);
@@ -260,7 +260,7 @@
   font-size: var(--meta);
   border-radius: var(--radius);
 }
-[data-candidate='tv4'] .rank-no {
+[data-surface='tv'] .rank-no {
   position: absolute;
   top: var(--space-sm);
   left: var(--space-sm);
@@ -273,7 +273,7 @@
   border-radius: var(--radius);
   font-weight: 600;
 }
-[data-candidate='tv4'] .field {
+[data-surface='tv'] .field {
   background: var(--card);
   border: 1px solid var(--input);
   border-radius: var(--radius);
@@ -283,7 +283,7 @@
   caret-color: var(--primary);
   width: 100%;
 }
-[data-candidate='tv4'] .setting-row {
+[data-surface='tv'] .setting-row {
   min-height: 56px;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -292,20 +292,20 @@
   gap: var(--space-lg);
   padding-block: var(--space-md);
 }
-[data-candidate='tv4'] .setting-row .row-copy {
+[data-surface='tv'] .setting-row .row-copy {
   min-width: 0;
   flex: 1;
 }
-[data-candidate='tv4'] .setting-row > :not(.row-copy) {
+[data-surface='tv'] .setting-row > :not(.row-copy) {
   flex-shrink: 0;
 }
-[data-candidate='tv4'] .setting-row small {
+[data-surface='tv'] .setting-row small {
   display: block;
   color: var(--muted-foreground);
   font-size: var(--meta);
   margin-top: var(--space-xs);
 }
-[data-candidate='tv4'] .switch {
+[data-surface='tv'] .switch {
   width: 46px;
   min-height: 26px;
   border: 1px solid var(--input);
@@ -315,7 +315,7 @@
   cursor: pointer;
   flex: none;
 }
-[data-candidate='tv4'] .switch::after {
+[data-surface='tv'] .switch::after {
   content: '';
   display: block;
   width: 18px;
@@ -323,42 +323,42 @@
   background: var(--foreground);
   border-radius: 50%;
 }
-[data-candidate='tv4'] .switch[aria-checked='true'] {
+[data-surface='tv'] .switch[aria-checked='true'] {
   background: var(--primary);
   border-color: var(--primary);
 }
-[data-candidate='tv4'] .switch[aria-checked='true']::after {
+[data-surface='tv'] .switch[aria-checked='true']::after {
   margin-left: auto;
   background: var(--primary-foreground);
 }
-[data-candidate='tv4'] .episode-grid {
+[data-surface='tv'] .episode-grid {
   display: grid;
   grid-template-columns: repeat(var(--episode-columns), minmax(0, 1fr));
   gap: var(--space-sm);
   padding: var(--space-xs);
 }
-[data-candidate='tv4'] .episode-grid .ui-button {
+[data-surface='tv'] .episode-grid .ui-button {
   padding: 0;
   min-width: 0;
   font-variant-numeric: tabular-nums;
 }
-[data-candidate='tv4'] .episode-grid .playing {
+[data-surface='tv'] .episode-grid .playing {
   border-color: var(--primary);
   color: var(--primary);
 }
-[data-candidate='tv4'] .progress {
+[data-surface='tv'] .progress {
   height: 3px;
   background: var(--border);
   overflow: hidden;
   border-radius: var(--radius);
 }
-[data-candidate='tv4'] .progress > span {
+[data-surface='tv'] .progress > span {
   display: block;
   width: var(--progress, 36%);
   height: 100%;
   background: var(--primary);
 }
-[data-candidate='tv4'] .empty-state {
+[data-surface='tv'] .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -367,22 +367,22 @@
   min-height: 260px;
   text-align: center;
 }
-[data-candidate='tv4'] .empty-state > .icon {
+[data-surface='tv'] .empty-state > .icon {
   width: 32px;
   height: 32px;
   color: var(--muted-foreground);
 }
-[data-candidate='tv4'] .empty-state h2 {
+[data-surface='tv'] .empty-state h2 {
   margin: 0;
   font-size: var(--page-title);
   font-weight: 600;
 }
-[data-candidate='tv4'] .empty-state p {
+[data-surface='tv'] .empty-state p {
   margin: 0;
   max-width: 38ch;
   color: var(--muted-foreground);
 }
-[data-candidate='tv4'] .notice {
+[data-surface='tv'] .notice {
   background: var(--card);
   padding: var(--space-md) var(--space-lg);
   display: flex;
@@ -391,22 +391,22 @@
   border-radius: var(--radius);
   margin-block: var(--space-lg);
 }
-[data-candidate='tv4'] .notice.error {
+[data-surface='tv'] .notice.error {
   color: var(--destructive);
 }
-[data-candidate='tv4'] .notice .ui-button {
+[data-surface='tv'] .notice .ui-button {
   margin-left: auto;
   flex: none;
 }
-[data-candidate='tv4'] .skeleton {
+[data-surface='tv'] .skeleton {
   background: var(--muted);
   border-radius: var(--radius-card);
   aspect-ratio: var(--poster-ratio);
 }
-[data-candidate='tv4']:is([data-text-size='large'], [data-text-size='extra-large']) .skeleton {
+[data-surface='tv']:is([data-text-size='large'], [data-text-size='extra-large']) .skeleton {
   max-width: var(--poster-art-max);
 }
-[data-candidate='tv4'] dialog {
+[data-surface='tv'] dialog {
   width: 480px;
   max-width: calc(var(--canvas-inline) - var(--safe-inline) * 2);
   max-height: calc(var(--canvas-block) - var(--content-block) * 2);
@@ -425,41 +425,41 @@
   transform-origin: center;
   overflow: auto;
 }
-[data-candidate='tv4'] dialog[open] {
+[data-surface='tv'] dialog[open] {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
 }
-[data-candidate='tv4'] dialog h2 {
+[data-surface='tv'] dialog h2 {
   font-size: var(--page-title);
   margin: 0;
 }
-[data-candidate='tv4'] dialog p {
+[data-surface='tv'] dialog p {
   margin: 0;
   color: var(--muted-foreground);
 }
-[data-candidate='tv4'] dialog:modal {
+[data-surface='tv'] dialog:modal {
   overscroll-behavior: contain;
 }
-[data-candidate='tv4'] dialog::backdrop {
+[data-surface='tv'] dialog::backdrop {
   background: var(--scrim);
   overflow: hidden;
   overscroll-behavior: contain;
 }
-[data-candidate='tv4'] .dialog-actions {
+[data-surface='tv'] .dialog-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
 }
-[data-candidate='tv4'][data-text-size='extra-large'] .dialog-actions {
+[data-surface='tv'][data-text-size='extra-large'] .dialog-actions {
   flex-direction: column;
   align-items: stretch;
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-candidate='tv4'] *,
-  [data-candidate='tv4'] *::after {
+  [data-surface='tv'] *,
+  [data-surface='tv'] *::after {
     transition: none !important;
     animation: none !important;
     scroll-behavior: auto !important;
@@ -467,7 +467,7 @@
 }
 
 /* Cinema is one complete appearance, independent of the surrounding library theme. */
-[data-candidate='tv4'] .player {
+[data-surface='tv'] .player {
   --background: #141619;
   --foreground: #f4f4f5;
   --card: #212428;
@@ -483,12 +483,12 @@
   --destructive: #ffafa5;
   color-scheme: dark;
 }
-[data-candidate='tv4'] .brand img {
+[data-surface='tv'] .brand img {
   background: var(--brand-ground);
   padding: var(--space-xs);
   border-radius: var(--radius);
 }
-[data-candidate='tv4'] .player .ui-button.playing {
+[data-surface='tv'] .player .ui-button.playing {
   background: var(--accent);
   color: var(--primary);
   border-color: var(--primary);
