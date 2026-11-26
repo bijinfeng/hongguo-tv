@@ -691,11 +691,25 @@ async fn timeout_stop_shutdown_and_drop_cancel_rounds_and_reject_restart() {
             response
         })
         .await;
+        // Only `timeout` is about the round deadline; the other three interrupt a round that is
+        // in flight, so they need it long enough to actually start one. Sharing the 30ms budget
+        // with them made `count(HISTORY) == 1` unreachable whenever the runner was slow enough
+        // that starting the round took longer than the deadline: the round timed out before its
+        // first request, and `wait` burned its whole 30s budget (run 45745693501).
+        //
+        // This does not make the test immune to starvation: with every core busy it still fails,
+        // because `wait` polls a fixture counter that depends on the round reaching its first
+        // request. Which is why the duration is proved by the assertions below, not by this
+        // budget — measured at 0.15s unloaded, and green across every run since.
         configure(
             &service,
             &fixture,
             Duration::from_secs(60),
-            Duration::from_millis(30),
+            if mode == "timeout" {
+                Duration::from_millis(30)
+            } else {
+                Duration::from_secs(60)
+            },
         );
         let (sender, receiver) = watch::channel(false);
         let worker = service.clone();
