@@ -98,6 +98,16 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@11.1.3
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      # `pnpm test:tooling` is not file-only: `update-manifest.test.mjs` and the archive tests
+      # run `nsh update-manifest` against fixtures, and without this they fail with
+      # `spawnSync nsh ENOENT` before any Rust work has started (run 45745109311). The
+      # installer is one download, so the gate still lands far ahead of the compiling jobs.
+      - name: Install pinned NSH
+        run: |
+          curl --fail --silent --show-error --location https://nsh.dev/install.sh -o "$RUNNER_TEMP/nsh-install.sh"
+          NSH_VERSION="v$(cat .nsh-version)" sh "$RUNNER_TEMP/nsh-install.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.nsh/bin" >> "$GITHUB_PATH"
       - run: pnpm fmt:check
       - run: pnpm lint
       - run: pnpm codegen:check

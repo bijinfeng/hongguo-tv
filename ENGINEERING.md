@@ -201,7 +201,7 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 
 `required` 同时校验两个方向：需要跑的 job 必须 `success`，被判定不适用的 job 必须是 `skipped`；某 job 实际跑了但 `scope` 判定不需要也算失败。这样裁剪逻辑本身出错时会在汇聚 job 暴露，而不是悄悄放行。对应回归在 `tooling/test/ci-paths.test.mjs` 与 `tooling/test/ci-gate.test.mjs`。
 
-`checks` 是全部快速门禁的独立闸门：frozen install、格式、Oxlint、契约生成、包边界、PR 标题与工具测试，全部只读文件、不需要 nsh 或 cargo，约 40 秒。`rust`、`workspace`、`entry`、`security` 都 `needs: checks`，所以格式化一类的错误在几十秒内返回，而不是等 Rust 工具链、缓存恢复与安装之后；`required` 也把 `checks` 列为无条件必需的 job。这些步骤原先是 `workspace` 的前五步，串在关键路径上。
+`checks` 是全部快速门禁的独立闸门：frozen install、格式、Oxlint、契约生成、包边界、PR 标题与工具测试，约 40 秒。工具测试并非纯读文件——`update-manifest.test.mjs` 与归档测试会对 fixture 运行 `nsh update-manifest`，所以这个 job 必须安装 pinned NSH；缺少时会在任何 Rust 工作开始前以 `spawnSync nsh ENOENT` 失败（run 45745109311）。安装只是一次下载，闸门仍远早于所有编译 job。`rust`、`workspace`、`entry`、`security` 都 `needs: checks`，所以格式化一类的错误在几十秒内返回，而不是等 Rust 工具链、缓存恢复与安装之后；`required` 也把 `checks` 列为无条件必需的 job。这些步骤原先是 `workspace` 的前五步，串在关键路径上。
 
 Rust 缓存只由 master 写入（`save-if`）。PR 若也保存，会在同一个键上互相竞争，而 10 GB 配额装不下每分支一代——此前四代合计 12.4 GB，每次保存都会驱逐别人还要用的缓存。entry 的 `cache-directories` 条目同样只从 master 保存。
 
