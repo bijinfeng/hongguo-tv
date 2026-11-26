@@ -17,14 +17,14 @@ import {
 async function fixture() {
   const dir = await mkdtemp(join(tmpdir(), 'hongguo-release-'));
   const version = join(dir, 'product-version.json');
-  const web = join(dir, 'web.json');
+  const harness = join(dir, 'harness.json');
   const desktop = join(dir, 'desktop.json');
   const packageFile = join(dir, 'package.json');
   await writeFile(version, JSON.stringify({ version: '1.2.3', build: 7 }));
-  await writeFile(web, JSON.stringify({ version: '1.2.3', build: 7 }));
+  await writeFile(harness, JSON.stringify({ version: '1.2.3', build: 7 }));
   await writeFile(desktop, JSON.stringify({ version: '1.2.3', build: 7 }));
   await writeFile(packageFile, JSON.stringify({ name: 'fixture', version: '1.2.3' }));
-  return { dir, version, web, desktop, packageFile };
+  return { dir, version, harness, desktop, packageFile };
 }
 
 test('release version is validated against every app manifest', async () => {
@@ -33,7 +33,7 @@ test('release version is validated against every app manifest', async () => {
   assert.deepEqual(
     await checkReleaseVersion({
       versionPath: files.version,
-      manifests: [files.web, files.desktop],
+      manifests: [files.harness, files.desktop],
       packagePath: files.packageFile,
     }),
     { version: '1.2.3', build: 7 },
@@ -42,7 +42,7 @@ test('release version is validated against every app manifest', async () => {
   await assert.rejects(
     checkReleaseVersion({
       versionPath: files.version,
-      manifests: [files.web, files.desktop],
+      manifests: [files.harness, files.desktop],
       packagePath: files.packageFile,
     }),
     /Release version drift/,
@@ -56,7 +56,7 @@ test('release version is validated against every app manifest', async () => {
   await assert.rejects(
     checkReleaseVersion({
       versionPath: files.version,
-      manifests: [files.web, files.desktop],
+      manifests: [files.harness, files.desktop],
       packagePath: files.packageFile,
     }),
     /package\.json: expected version/,

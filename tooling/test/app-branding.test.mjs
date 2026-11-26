@@ -49,7 +49,9 @@ function decodeRgba(png) {
 
 test('all app manifests use the approved name and the same square brand PNG', async () => {
   let source;
-  for (const target of ['web', 'desktop', 'tv']) {
+  // The harness is a test host rather than a product, but it runs the same shell and needs the
+  // same identity: nothing about it should look like a second, shippable app.
+  for (const target of ['harness', 'desktop', 'tv']) {
     const appDirectory = resolve(root, 'apps', target);
     const metadata = JSON.parse(await readFile(resolve(appDirectory, 'nsh.json'), 'utf8'));
     assert.equal(metadata.name, '红果');

@@ -1,7 +1,7 @@
 # search-discovery-surface Specification
 
 ## Purpose
-Provide real anonymous suggestions and trending video cards in the approved shared search surface, with equivalent navigation, cancellation and recovery behavior across desktop, web and television.
+Provide real anonymous suggestions and trending video cards in the approved shared search surface, with equivalent navigation, cancellation and recovery behavior across desktop, the harness and television.
 
 ## Requirements
 

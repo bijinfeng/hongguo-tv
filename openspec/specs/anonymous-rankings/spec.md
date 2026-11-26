@@ -1,7 +1,7 @@
 # anonymous-rankings Specification
 
 ## Purpose
-Provide one anonymous official-ranking contract to Web and native consumers, preserving dynamic selectors, exact continuation and distinct drama/actor identities without account, history or media side effects.
+Provide one anonymous official-ranking contract to native consumers and the acceptance harness, preserving dynamic selectors, exact continuation and distinct drama/actor identities without account, history or media side effects.
 
 ## Requirements
 

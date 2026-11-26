@@ -36,7 +36,7 @@ test('prototype glyphs derive from the verified official SVG sources', async () 
 });
 
 test('apps draw the same Lucide set through nsh-icon-lucide', async () => {
-  for (const app of ['desktop', 'tv', 'web']) {
+  for (const app of ['desktop', 'tv', 'harness']) {
     const manifest = JSON.parse(await readFile(resolve(root, 'apps', app, 'nsh.json'), 'utf8'));
     assert.equal(manifest.dependencies['nsh-icon-lucide'], '^0.2.2', app);
     const lock = JSON.parse(await readFile(resolve(root, 'apps', app, 'nsh.lock'), 'utf8'));

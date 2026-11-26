@@ -24,7 +24,7 @@
 
 ### 1. 明确端型装配，双端视图留在 app 包
 
-应用接受最小 `desktop | tv` 产品端型（暂定命名，实施时服从已有 API）；Web/Desktop 显式传 desktop，TV 显式传 tv。legacy 脚本复用 `apps/web`，不再维护根级 demo 入口。业务 store 和查询／续播动作复用；可在 `packages/app/src` 内为 desktop/tv 分组视图，按实际文件增长拆分，不复制 store。
+应用接受最小 `desktop | tv` 产品端型（暂定命名，实施时服从已有 API）；桌面与验收宿主显式传 desktop，TV 显式传 tv。legacy 脚本复用 `apps/harness`，不再维护根级 demo 入口。业务 store 和查询／续播动作复用；可在 `packages/app/src` 内为 desktop/tv 分组视图，按实际文件增长拆分，不复制 store。
 
 不以 `platform.os === 'android'` 推导 TV；OS 仅用于确有需要的宿主差异。不一次性引入完整 AppServices／native adapter 框架，因为本批只有现成 HTTP transport。后续 C 批接原生时再按实际接口提取。
 

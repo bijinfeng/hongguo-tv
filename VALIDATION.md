@@ -1,17 +1,19 @@
 # 当前验收状态
 
-更新：2026-11-25。完整 MVP 尚未完成。验收规则唯一来源为 [ENGINEERING §9](ENGINEERING.md#9-安全测试与可观测性)，实现缺口维护在[功能台账](docs/feature-ledger.md)，本页只维护当前验收矩阵、开放失败与证据索引。
+更新：2026-11-26。完整 MVP 尚未完成。验收规则唯一来源为 [ENGINEERING §9](ENGINEERING.md#9-安全测试与可观测性)，实现缺口维护在[功能台账](docs/feature-ledger.md)，本页只维护当前验收矩阵、开放失败与证据索引。
 
 正式入口的真实数据／实际流程是功能验收依据；合成数据只记边界回归。工程门禁、局部真实流程、恢复诊断与整体验收分开记账，保留全部失败。逐轮运行正文在 [history](docs/history/README.md)，本页不追加过程叙事。
+
+2026-11-26 起 Web 不再是产品端（官方产品已有 Web），原 `apps/web` 改名 `apps/harness`。本页与历史记录里的「Web 轮次」「Web fixture」「Web 套件」指的都是这个无头 Chromium 验收宿主；其源码、命令与产物路径按当时名称保留，不改写，向下按「宿主」读即可。
 
 ## 状态总览
 
 | 范围                     | 状态             | 未验要点                                               |
 | ------------------------ | ---------------- | ------------------------------------------------------ |
 | 工程门禁                 | 通过             | 根工作区通过；不含签名、安装、升级与真实流程           |
-| Web 内容发现／详情       | 部分验收         | 分类／榜单／日历／推荐、真实切季逐项待验               |
+| 宿主内容发现／详情       | 部分验收         | 分类／榜单／日历／推荐、真实切季逐项待验               |
 | 取源协议（共享 core）    | 已修复待宿主实看 | 模型与媒体就绪已验；首帧／进度／后台未验               |
-| Web 真实播放             | 部分验收         | 后续详情／系列超时；深色与清空未执行                   |
+| 宿主真实播放             | 部分验收         | 后续详情／系列超时；深色与清空未执行                   |
 | Desktop native           | 部分验收         | 旧 409 未解释；续播入口、全屏、后台、稳定性            |
 | TV v4组件化重设计        | 已实现、部分验收 | 上游真实播放失败；账号、完整IME、读屏、物理TV与4K待验  |
 | TV native                | 部分验收         | 仅当时 APK；当前包、物理 TV、纯遥控、硬解、长播        |
@@ -25,7 +27,7 @@
 | 观看统计                 | 部分验收         | Desktop／TV、重启恢复、重置、账号切换、物理 TV         |
 | 设置／维护／更新         | 部分验收         | 物理端设置、真实播放偏好、签名升级、诊断／许可         |
 | TV 诊断上报              | 部分验收         | 业务失败实际上报、未捕获异常进程收敛、物理 TV          |
-| 平台与发行               | 首发完成         | Windows／Linux、公开 Web、签名公证、N-1 升级、SBOM     |
+| 平台与发行               | 首发完成         | Windows／Linux、签名公证、N-1 升级、SBOM               |
 | 安全                     | 根门禁通过       | 宿主锁文件不在根图；两条 advisory 无修复版本           |
 
 ## 未验与阻塞
@@ -37,14 +39,14 @@
 - Rust 显式联网 probe 跳过 1 项，headless 有 warning。
 - 门禁只覆盖本机工作树的根工作区，不含签名、安装、升级与真实流程。
 
-### Web 内容发现／详情
+### 验收宿主内容发现／详情
 
-正式 Web 入口在 macOS 图形宿主及 Chromium 的部分真实搜索、详情／相关返回已有证据；演员／相关共享页面 Web fixture 4/4 通过。
+`apps/harness` 在 macOS 图形宿主及 Chromium 的部分真实搜索、详情／相关返回已有证据；演员／相关共享页面 fixture 4/4 通过。
 
 - 演员、完整分类／分页／榜单／日历／推荐、真实切季／自动续季等逐项待验。
 - 2026-11-16 正式匿名演员／相关流程因 macOS 锁屏停在首页；旧合成宿主通过不计功能已验收。
 
-### Web 真实播放
+### 验收宿主真实播放
 
 最新 Chromium 浅色三次真实播放有进度增长，暂停稳定、恢复增长，季状态同步。
 
@@ -55,7 +57,7 @@
 2026-11-24 修复 Mobile-v5 签名缺项后，真实取源恢复。核心证据：`playback_probe --live` 对「重生」「甜宠」「逆袭」「穿越」四个真实搜索入口均取得模型并准备出媒体（HEVC 1080P／720P，3.94–10.16 MB）；正式 `GET /api/v1/play/info` 返回 `ok:true`／`hevc`／`1080P`，媒体代理 Range 为 `206` + `video/mp4`，下载整文件经 `ffprobe`（HEVC 1920×1080 + AAC 91.37 秒）与 `ffmpeg -f null` 全片解码无错误。
 
 - 修复前同一入口在「重生」上 9 路来源全部 `PLAYBACK_SOURCE_EMPTY` 并失败；`video_tab` 在修复后仍为空，实际取得模型的是 v5，因此不能把结论外推到其它来源。
-- 这是取源与媒体准备证据。各宿主播放器首帧、进度、暂停恢复、后台、硬解与物理设备仍分别按 Web／Desktop／TV 小节验收，不因本条视为播放已通过。
+- 这是取源与媒体准备证据。各宿主播放器首帧、进度、暂停恢复、后台、硬解与物理设备仍分别按 harness／Desktop／TV 小节验收，不因本条视为播放已通过。
 - 本机未执行三端 UI 实看；结论限于上述命令与 HTTP 入口。
 
 ### Desktop native
@@ -112,7 +114,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ### 游客历史 E1
 
-管理实现与写屏障已接；共享 History 管理回归 headless 25／25 通过（唯一跳过项是 TV 目标的 `detail return restores…`，原因与替代覆盖见[功能台账](docs/feature-ledger.md)）；冻结源码 `pnpm verify` 通过；正式 Web 有真实记录、取消／单删／所选删／清空、部分跨重启证据；真实键盘管理有局部证据。
+管理实现与写屏障已接；共享 History 管理回归 headless 25／25 通过（唯一跳过项是 TV 目标的 `detail return restores…`，原因与替代覆盖见[功能台账](docs/feature-ledger.md)）；冻结源码 `pnpm verify` 通过；验收宿主有真实记录、取消／单删／所选删／清空、部分跨重启证据；真实键盘管理有局部证据。
 
 - 管理切片当前 12／13；后续运行的播放错误和详情超时保留。
 - 完整真实焦点／长列表／后台、Desktop native／当前 TV 包未整体验收。
@@ -129,7 +131,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 统一为静帧骨架模型，含 `skeleton`／`skeleton-surface` token 与 `SkeletonBlock`／`SkeletonRegion`；当批三端应用回归与宿主 fixture 截图见[批次记录](docs/history/2026-11-17/home-loading-unification.md)。
 
 - fixture 未制造继续观看失败与精选区隐藏。
-- 读屏实际播报、物理遥控与物理 TV、真实慢网／失败、正式 Web／Desktop 宿主截图未验证；骨架高度差只有视觉复核，未逐像素测量。
+- 读屏实际播报、物理遥控与物理 TV、真实慢网／失败、正式 harness／Desktop 宿主截图未验证；骨架高度差只有视觉复核，未逐像素测量。
 
 ### 排行榜／榜单雷达（统一设计）
 
@@ -160,13 +162,13 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 追更与预约真实来源比较、预约身份／分页／失败对账、通知本机持久化、HTTP/native parity、已登录 loopback 正向／未确认 parity、core-client scope fencing、Desktop／TV 共享列表和首次加载／返回焦点回归通过。
 
-- TV 正式入口的单条预约写入／列表／重开／取消／刷新为空见本页 TV v4 项；追更写入、单条／全部已读、owner 隔离及 Web／Desktop 对应完整流程仍待验，合成回归不替代真实验收。
+- TV 正式入口的单条预约写入／列表／重开／取消／刷新为空见本页 TV v4 项；追更写入、单条／全部已读、owner 隔离及 harness／Desktop 对应完整流程仍待验，合成回归不替代真实验收。
 
 ### 观看统计
 
-独立 owner／epoch SQLite、批次幂等／重置围栏、真实 Player advancing stream 接入、History 共享页面、HTTP/native parity、三端 check、core／app 边界回归、完整 verify 通过；真实 Web 浅色首播约 30.6 秒已产生统计并在面板显示。
+独立 owner／epoch SQLite、批次幂等／重置围栏、真实 Player advancing stream 接入、History 共享页面、HTTP/native parity、三端 check、core／app 边界回归、完整 verify 通过；真实宿主浅色首播约 30.6 秒已产生统计并在面板显示。
 
-- 正式 Web 整轮因后续上游 `/play/info` 重播失败而未通过。
+- 正式宿主整轮因后续上游 `/play/info` 重播失败而未通过。
 - Desktop／TV、跨主题／重启恢复、重置后不删历史、账号切换及物理 TV 尚未验收；合成数据不作为功能通过依据。
 
 ### 设置／维护／更新
@@ -195,7 +197,7 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 
 2026-11-20 首次正式发布 `v0.1.0`；2026-11-21 从 master 发布 `v0.1.1`（源码 `722cbd8`，run 44764824518）。两次的 `quality`／`security` 前置 job 均通过，两端构建成功；`v0.1.1` 的产物已下载实测：APK 证书 `8d34d7e8…` 与 `tooling/release-policy.json` 一致（`CN=Hongguo TV Release`），两端 SHA-256 与各自清单一致，两份更新清单的 Ed25519 签名以配置公钥验签通过。发布细节与逐项未验见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
 
-- Windows／Linux 实际安装、公开 Web 会话隔离／部署、正式签名／公证／SBOM、无 Go 干净环境及完整产品矩阵未完成。2026-11-22 接入两平台的工程门禁：ci.yml entry 在 windows-2025／ubuntu-24.04 跑桌面行为测试，release-preview 的 `windows-preview`／`linux-preview` 产出未签名预览 ZIP／归档；两者首次流水线运行与产物真机验收均未完成，不据此宣称平台支持。
+- Windows／Linux 实际安装、正式签名／公证／SBOM、无 Go 干净环境及完整产品矩阵未完成。2026-11-22 接入两平台的工程门禁：ci.yml entry 在 windows-2025／ubuntu-24.04 跑桌面行为测试，release-preview 的 `windows-preview`／`linux-preview` 产出未签名预览 ZIP／归档；两者首次流水线运行与产物真机验收均未完成，不据此宣称平台支持。
 - **桌面发布流水线已扩到三平台（2026-11-24，仅源码改动，尚未跑过发布）**：`release-publish.yml` 的 `desktop` 改为 macOS／Windows／Linux 矩阵，各平台产 `<os>-<arch>` 命名的归档，由新增 `desktop-manifest` job 生成一份三平台 `latest.json`；新增 `tooling/src/desktop-archive.mjs` 按 `nsh-updater` 暂存规则复核归档（单一顶层目录、可执行文件、`nsh/app.json` 的应用 ID），preview 与 publish 共用。**证据只到工具层**：`update-manifest` 回归 7 项全部通过（本机装的是 NSH 0.6.1、仓库固定 0.6.0，固定版本那条断言只在把 `.nsh-version` 临时指向 0.6.1 时通过；已还原为 0.6.0，CI 装固定版本不受影响），`desktop-archive` 2 项通过；校验器对真实 `apps/desktop/.nsh/out/红果.tar.gz` 通过；用临时密钥对三平台归档（真实 Linux 包 + 合成的 macOS／Windows 包）跑通「生成记录 → 壳层签名 → 复验」，并确认删掉 Windows 平台键后即使签名正确仍被拒绝。**Windows runner 打包、三平台同时发布、Windows／Linux 真机安装与 N-1 → N 升级均未验，不宣称两平台已支持。**
 - **Linux x64 源码构建与打包已在本机 Ubuntu 26.04（GTK 4.22／WebKitGTK 6.0 2.52）通过**（2026-11-23）：`pnpm setup:workspace`、`pnpm check --target desktop`、`pnpm build --target desktop`、`pnpm package:desktop` 均退出码 0，产出 `apps/desktop/.nsh/out/红果` 与 `红果.tar.gz`；包内 `App` 的 `ldd` 无缺失库，启动后真实 GTK 窗口渲染出侧边栏与首页骨架，并在 `~/.local/share/dev.hongguo.desktop/` 建立 `guest.sqlite3`／`account.sqlite3`／`watch-statistics.sqlite3` 与媒体 lease 目录；`strace` 记录到 DNS 与多条 443 外连，说明 native core 的真实上游请求已发出。**限制：本机无 GTK 开发头文件，构建借用 `/tmp` 之外的隔离 sysroot（解包的 `libgtk-4-dev`／`libwebkitgtk-6.0-dev`／GStreamer dev 包）而非系统安装，因此该结论不等于「干净宿主按文档可构建」；安装包交互（桌面文件安装、启动器、N-1 升级）、真实数据能否在界面完成加载、以及窗口装饰仍未验收。**
 - **桌面默认窗口尺寸此前缺失，本次修正**：`apps/desktop/nsh.json` 未配置 `"window"`，NSH 的 Linux 宿主回退到其内部 `390×844` 手机尺寸（`nsh-platform-linux-0.6.0/src/app.rs:207`），与 DESIGN「390px 窄窗口已退出产品范围／正式桌面按 1180×780、1440×1000 检查」冲突。已按 1180×780 写入 `window.defaultSize`，打包后 `app.json` 携带该值，X11 实测窗口尺寸由 390×844 变为 1180×780。**该尺寸只在 X11／XWayland 量化确认；GNOME Wayland 原生窗口未取得窗口几何证据。**

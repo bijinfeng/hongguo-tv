@@ -83,7 +83,7 @@ The system SHALL support marking one stable item ID read and marking all current
 
 ### Requirement: Shared quiet UI
 
-The app SHALL provide one shared update-notifications controller and page for Web, Desktop, and TV. The page SHALL show loading, empty, populated, stale/error-with-retry, and pending/unknown read states. The unread badge SHALL appear only when it comes from a successful real notification snapshot. The page SHALL be reachable from the account activity tabs, keep focus/keyboard/DPAD semantics, and SHALL not fetch while playback is active, the app is backgrounded, or a modal is open.
+The app SHALL provide one shared update-notifications controller and page for Desktop and TV. The page SHALL show loading, empty, populated, stale/error-with-retry, and pending/unknown read states. The unread badge SHALL appear only when it comes from a successful real notification snapshot. The page SHALL be reachable from the account activity tabs, keep focus/keyboard/DPAD semantics, and SHALL not fetch while playback is active, the app is backgrounded, or a modal is open.
 
 #### Scenario: Read failure keeps the list
 

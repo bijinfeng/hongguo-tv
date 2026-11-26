@@ -26,7 +26,7 @@ A 批浏览界面已提交为 `9285503`，Rust 的播放地址接口仍返回 50
 
 ## Impact
 
-- `crates/core/src/playback/`、现有 `media.rs`、`crates/http-api`、`services/web-api`；HTTP 与未来 native bridge 复用 core，不加入 sidecar 或 Go 发行依赖。
+- `crates/core/src/playback/`、现有 `media.rs`、`crates/http-api`、`services/core-api`；HTTP 与未来 native bridge 复用 core，不加入 sidecar 或 Go 发行依赖。
 - `packages/contracts`、`packages/core-client`、`packages/app` 和 `packages/ui`；三端仍为薄入口，播放器不在各应用复制。
 - 生成 OpenAPI／TypeScript，增加去敏离线样本、Rust／HTTP／NSH 与宿主验收；依赖只在实际实现需要时选取、固定并运行 security，不放宽既有门禁。
 - 公开 Web 身份隔离、账号、持久偏好、互动、下载、原生独立运行与发行属于 C／E／F／G；本批不读取旧客户端数据，不自动推送、发布或进入用户的原生 Chrome／全屏。

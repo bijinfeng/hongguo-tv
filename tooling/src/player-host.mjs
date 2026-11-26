@@ -5,7 +5,7 @@ import { tvHostEnvironment } from './tv-host.mjs';
 
 const target = process.argv[2];
 if (!['web', 'macos', 'android'].includes(target)) throw new Error('Expected web|macos|android');
-const app = resolve(root, target === 'android' ? 'apps/tv' : 'apps/web');
+const app = resolve(root, target === 'android' ? 'apps/tv' : 'apps/harness');
 const artifacts = resolve(root, `artifacts/playback/player-${target}`);
 await mkdir(artifacts, { recursive: true });
 const file = resolve(app, `.nsh/PlayerHost-${target}.test.tsx`);

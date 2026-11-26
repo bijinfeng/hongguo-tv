@@ -30,14 +30,14 @@ Android 遥控先浏览当前滚动区域，再离开到区域外的对齐控件
 - 首次成功内容用 `ContentArrival`（180ms／8 单位／ease-out），减少动态时关闭位移；续页和虚拟行回收不重播进入。
 - 加载文案在原位置更新，pending 保留来源目标；失败用现有 `Notice`，重试保留已完成条目。无弹层、拖动或声音。
 - 官方榜头部沿用暗红渐变（`#5c120d → #8f2417 → #3b1311`）与白色文字，不加装饰投影；来源 Tabs 在头部之上，雷达头部只保留控件带，不重复标题区。
-- 验收须观察 Web、macOS、TV 的浅深与大字状态，未观察项不可算通过。
+- 验收须观察 harness（Chromium）、macOS、TV 的浅深与大字状态，未观察项不可算通过。
 
 ## 可重复验证
 
 ```sh
 pnpm check
 pnpm build
-pnpm test --target web
+pnpm test --target harness
 node tooling/src/rankings-host.mjs web
 node tooling/src/rankings-host.mjs macos --foreground
 node tooling/src/rankings-tv-remote.mjs run --suite identity --profile light
@@ -47,7 +47,7 @@ node tooling/src/rankings-tv-remote.mjs run --suite player --profile all
 
 TV 命令使用独立 API34 模拟器验收包，复用生产 MainActivity／TvRemote Java 和共享 TSX。默认七组榜单 suite 通过合成只读 HTTP source 验证输入；单独的 `player` suite 复用既有 PlayerAcceptance 和自制媒体 fixture，检查共享输入适配的播放器、弹层及嵌套 Select 回归，仅在 fixture 内写播放历史，不访问真实账号。两类请求边界与结果分别记录，不把媒体回归计为榜单读取。
 
-工具不跑 Cargo、不覆盖生产 APK；保存并恢复生产 APK 路径／SHA、前台、字体、主题和 reverse，卸载本次独立包。可用 `--suite`／`--profile` 定向复现。Web／macOS 工具不覆盖运行配置，显式生成 ignored 验收入口。
+工具不跑 Cargo、不覆盖生产 APK；保存并恢复生产 APK 路径／SHA、前台、字体、主题和 reverse，卸载本次独立包。可用 `--suite`／`--profile` 定向复现。harness／macOS 工具不覆盖运行配置，显式生成 ignored 验收入口。
 
 RankingCard 独立样例与测试说明见 [UI 包](../packages/ui/README.md#rankingcard)。实际执行结果和已知失败归因见 [VALIDATION](../VALIDATION.md)，不能把测试源码、headless 或 Mac 的 TV 密度当作 Android 遥控通过。
 

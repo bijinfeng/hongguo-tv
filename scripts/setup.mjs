@@ -39,7 +39,7 @@ try {
     await runtimeConfig();
     await run(nsh, ['check'], { cwd: legacyUiDir });
     await buildCore();
-    console.log('Setup complete. Run npm run dev:web or npm run dev.');
+    console.log('Setup complete. Run npm run legacy:dev or npm run dev.');
   }
 } catch (error) {
   console.error(error.message);

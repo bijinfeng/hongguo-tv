@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Let authenticated users read their actual follow-update membership and explicitly follow or unfollow a precise series through the formal application. Preserve account isolation, honest remote outcomes, existing viewing flows and accessible navigation across desktop, web and TV.
+Let authenticated users read their actual follow-update membership and explicitly follow or unfollow a precise series through the formal application. Preserve account isolation, honest remote outcomes, existing viewing flows and accessible navigation across desktop, the acceptance harness and TV.
 
 ## ADDED Requirements
 

@@ -6,11 +6,11 @@
 
 已核对的实际实现：
 
-- `crates/core/src/media.rs` 只有 ByteRange，尚无媒体网络或存储实现；`http-api/src/lib.rs` 的 `/api/v1/play/info` 为 501，未注册媒体路由。`services/web-api` 只装配 CatalogClient 与 LibraryStore。
+- `crates/core/src/media.rs` 只有 ByteRange，尚无媒体网络或存储实现；`http-api/src/lib.rs` 的 `/api/v1/play/info` 为 501，未注册媒体路由。`services/core-api`（本批写作时为 `services/web-api`）只装配 CatalogClient 与 LibraryStore。
 - `packages/contracts/src/index.ts` 的 PlayInfo 为手写兼容类型；core-client 固定请求 range/default，并只允许同源 `/minireel-proxy/media/`。此 URL 安全边界保留。
 - `packages/app/src/pages/Player.tsx` 已有 Video、暂停／seek／下一集及 progressSession，但未实现定稿的两端播放器布局、选集面板、控制层或质量切换。业务 store 与 NavStack 现已按挂载隔离，不能引入新的模块级播放器状态。
 - 固定参考为 `upstream.lock.json` 的 `de9712bf358dcbdf8a188e26cba711e3e5354e8a`。本次只读检查了 `minireel.go`、`minireel_source_sequence.go`、`minireel_single_model.go`、`minireel_single_registered.go`、`minireel_sign.go`、`minireel_range.go` 和播放器原型规格。它不是一个无状态 URL 转发：身份注册、来源预算、编解码及媒体准备均影响成功。
-- 设计真值是 `design/prototype/{desktop,tv}.{js,css}` 与 `docs/design/prototype-system.md`，不是当前兼容 Player；三端 Video 的生成类型已有 volume/rate 和 seek。全屏需核对相应宿主公开 API，不能套用 DOM 或私有接口。
+- 设计真值是 `design/prototype/{desktop,tv}.{js,css}` 与 `docs/design/prototype-system.md`，不是当前兼容 Player；各入口 Video 的生成类型已有 volume/rate 和 seek。全屏需核对相应宿主公开 API，不能套用 DOM 或私有接口。
 
 ## Goals / Non-Goals
 
@@ -85,5 +85,5 @@ progressSession 仍是 TSX 播放会话状态，Rust LibraryStore 仍是持久�
 2. 实现 core 解析／身份／取消，再做媒体读取、缓存和真实 HTTP Range；每一层先验证 fixture 边界，不宣称官网可用。
 3. 装配 HTTP 与真实 binary，生成播放 DTO；迁移 TS 客户端，确认 501／新服务错误均可恢复。
 4. 实现两端播放器、选集与控制层；保留浏览返回、历史隔离及真实播放前零写入。
-5. 完整 verify、codegen 漂移、依赖 security、原型回归及三端宿主观察；真实 Web/macOS 搜索至重启续播单独验收，TV 与物理电视保持各自范围。
+5. 完整 verify、codegen 漂移、依赖 security、原型回归及各宿主观察；真实 harness／macOS 搜索至重启续播单独验收，TV 与物理电视保持各自范围。
 6. 回退按本批源码与生成契约整体回退，不回退或删除游客历史；媒体缓存可在无活跃租约时清理。提交／推送／归档／发布按用户指令，不把规划状态视为实现完成。

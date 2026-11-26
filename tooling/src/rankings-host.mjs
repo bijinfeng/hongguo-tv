@@ -20,7 +20,7 @@ if (
 )
   throw new Error('Expected only --foreground and/or --filter text');
 
-const application = resolve(root, 'apps/web');
+const application = resolve(root, 'apps/harness');
 const artifacts = resolve(root, `artifacts/rankings-ui/${host}/desktop`);
 await mkdir(resolve(application, '.nsh'), { recursive: true });
 await mkdir(artifacts, { recursive: true });

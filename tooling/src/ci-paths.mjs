@@ -4,9 +4,9 @@
 import { root } from './process.mjs';
 
 /** Everything: shared packages, contracts, Rust crates, toolchains and CI itself. */
-export const all = Object.freeze({ rust: true, web: true, desktop: true, tv: true });
+export const all = Object.freeze({ rust: true, desktop: true, tv: true });
 /** Nothing to build; only documentation-formatting checks still apply. */
-export const none = Object.freeze({ rust: false, web: false, desktop: false, tv: false });
+export const none = Object.freeze({ rust: false, desktop: false, tv: false });
 
 // The Rust workspace members inside the apps; their sources are crates, not app code.
 const NATIVE = /^apps\/(?:desktop|tv)\/native\//;
@@ -28,15 +28,18 @@ export function classify(path) {
   if (DOCS.test(normalized) || DOC_FILES.test(normalized)) return none;
   // A native crate is a Rust workspace member even though it lives under an app.
   if (NATIVE.test(normalized)) return { ...none, rust: true };
+  // The harness is a test host with no shipped artifact: `workspace` still type-checks and
+  // builds it, so its own edits need no target job.
+  if (/^apps\/harness\//.test(normalized)) return none;
   // An app's own sources and tests produce that target's binaries alone.
-  const app = /^apps\/(web|desktop|tv)\//.exec(normalized);
+  const app = /^apps\/(desktop|tv)\//.exec(normalized);
   if (app) return { ...none, [app[1]]: true };
   return null;
 }
 
 /** Merge per-path verdicts; an undecidable path forces the full matrix. */
 export function combine(verdicts) {
-  const merged = { rust: false, web: false, desktop: false, tv: false };
+  const merged = { rust: false, desktop: false, tv: false };
   for (const verdict of verdicts) {
     if (!verdict) return all;
     for (const name of Object.keys(merged)) if (verdict[name]) merged[name] = true;
@@ -53,7 +56,6 @@ export function select(paths) {
 // One runner per target; desktop additionally gates on the Windows and Linux hosts, matching
 // the ENGINEERING matrix's desktop-windows / desktop-linux rows.
 const ENTRY_HOSTS = {
-  web: ['macos-15'],
   desktop: ['macos-15', 'windows-2025', 'ubuntu-24.04'],
   tv: ['macos-15'],
 };

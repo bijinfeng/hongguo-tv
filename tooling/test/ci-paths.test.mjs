@@ -49,29 +49,26 @@ test('documentation is the only class that skips every build job', () => {
 });
 
 test('an app reaches its own target and never another', () => {
-  assert.deepEqual(classify('apps/web/App.tsx'), {
-    rust: false,
-    web: true,
-    desktop: false,
-    tv: false,
-  });
   assert.deepEqual(classify('apps/desktop/App.test.tsx'), {
     rust: false,
-    web: false,
     desktop: true,
     tv: false,
   });
   assert.deepEqual(classify('apps/tv/fixtures/t0-a.mp4'), {
     rust: false,
-    web: false,
     desktop: false,
     tv: true,
   });
 });
 
+test('the harness is a test host, so its own edits build no target', () => {
+  for (const path of ['apps/harness/App.tsx', 'apps/harness/App.test.tsx', 'apps/harness/nsh.json'])
+    assert.deepEqual(classify(path), none, path);
+});
+
 test('a native crate still needs the Rust matrix', () => {
   for (const path of ['apps/desktop/native/src/lib.rs', 'apps/tv/native/src/lib.rs']) {
-    assert.deepEqual(classify(path), { rust: true, web: false, desktop: false, tv: false }, path);
+    assert.deepEqual(classify(path), { rust: true, desktop: false, tv: false }, path);
   }
 });
 
@@ -82,7 +79,7 @@ test('shared inputs stay on the full matrix', () => {
     'packages/contracts/src/generated.ts',
     'crates/core/src/playback/sign_v5.rs',
     'crates/http-api/src/playback.rs',
-    'services/web-api/src/main.rs',
+    'services/core-api/src/main.rs',
     'tooling/src/cli.mjs',
     'contracts/openapi.json',
     'Cargo.lock',
@@ -99,13 +96,12 @@ test('shared inputs stay on the full matrix', () => {
 });
 
 test('a mix of paths merges, and one undecidable path restores the full matrix', () => {
-  assert.deepEqual(combine([classify('apps/web/App.tsx'), classify('docs/README.md')]), {
+  assert.deepEqual(combine([classify('apps/tv/App.tsx'), classify('docs/README.md')]), {
     rust: false,
-    web: true,
     desktop: false,
-    tv: false,
+    tv: true,
   });
-  assert.equal(combine([classify('apps/web/App.tsx'), classify('crates/core/src/lib.rs')]), all);
+  assert.equal(combine([classify('apps/tv/App.tsx'), classify('crates/core/src/lib.rs')]), all);
 });
 
 test('an empty selection never silently skips the matrix', () => {
@@ -113,7 +109,6 @@ test('an empty selection never silently skips the matrix', () => {
   assert.equal(select(undefined), all);
   assert.deepEqual(select(['apps/tv/App.tsx']), {
     rust: false,
-    web: false,
     desktop: false,
     tv: true,
   });

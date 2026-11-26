@@ -40,14 +40,12 @@ const passed = {
 };
 const full = {
   rust: 'true',
-  web: 'true',
   desktop: 'true',
   tv: 'true',
-  entry: JSON.stringify({ include: [{ target: 'web', os: 'macos-15' }] }),
+  entry: JSON.stringify({ include: [{ target: 'desktop', os: 'macos-15' }] }),
 };
 const docs = {
   rust: 'false',
-  web: 'false',
   desktop: 'false',
   tv: 'false',
   entry: JSON.stringify({ include: [] }),
@@ -113,7 +111,6 @@ test('a run that did work the scope did not ask for fails the run', async () => 
   assert.notEqual(run(gate, { results: passed, selection: docs }).status, 0);
   const tvOnly = {
     rust: 'false',
-    web: 'false',
     desktop: 'false',
     tv: 'true',
     entry: JSON.stringify({ include: [{ target: 'tv', os: 'macos-15' }] }),
@@ -123,23 +120,23 @@ test('a run that did work the scope did not ask for fails the run', async () => 
 
 test('an entry matrix is built only from the selected targets', async () => {
   const { entryMatrix } = await import('../src/ci-paths.mjs');
-  assert.deepEqual(entryMatrix({ web: false, desktop: false, tv: false }), []);
-  assert.deepEqual(entryMatrix({ web: true, desktop: false, tv: false }), [
-    { target: 'web', os: 'macos-15' },
-  ]);
+  assert.deepEqual(entryMatrix({ desktop: false, tv: false }), []);
   assert.deepEqual(
-    entryMatrix({ web: false, desktop: true, tv: false }).map((row) => row.os),
+    entryMatrix({ desktop: true, tv: false }).map((row) => row.os),
     ['macos-15', 'windows-2025', 'ubuntu-24.04'],
   );
-  assert.deepEqual(entryMatrix({ web: true, desktop: false, tv: true }), [
-    { target: 'web', os: 'macos-15' },
+  assert.deepEqual(entryMatrix({ desktop: false, tv: true }), [{ target: 'tv', os: 'macos-15' }]);
+  assert.deepEqual(entryMatrix({ desktop: true, tv: true }), [
+    { target: 'desktop', os: 'macos-15' },
+    { target: 'desktop', os: 'windows-2025' },
+    { target: 'desktop', os: 'ubuntu-24.04' },
     { target: 'tv', os: 'macos-15' },
   ]);
 });
 
 test('a pull request drops the Windows host and a merge keeps every host', async () => {
   const { entryMatrix } = await import('../src/ci-paths.mjs');
-  const all = { web: true, desktop: true, tv: true };
+  const all = { desktop: true, tv: true };
   // The merge covering the dropped host is the whole reason narrowing a PR is safe: if this
   // ever stops returning Windows, a desktop compatibility break would reach master unseen.
   assert.deepEqual(
@@ -162,7 +159,7 @@ test('a pull request drops the Windows host and a merge keeps every host', async
     entryMatrix(all, { event: 'pull_request' })
       .map((row) => `${row.target}/${row.os}`)
       .sort(),
-    ['desktop/macos-15', 'desktop/ubuntu-24.04', 'tv/macos-15', 'web/macos-15'],
+    ['desktop/macos-15', 'desktop/ubuntu-24.04', 'tv/macos-15'],
   );
   // A dispatching caller that names no event keeps the full matrix rather than guessing.
   assert.deepEqual(entryMatrix(all).filter((row) => row.target === 'desktop').length, 3);

@@ -94,10 +94,10 @@ const proxy = createServer(async (request, response) => {
 await new Promise((done) => proxy.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${proxy.address().port}`;
 
-const runtime = resolve(root, 'apps/web/runtime.generated.json');
+const runtime = resolve(root, 'apps/harness/runtime.generated.json');
 const previous = await readFile(runtime);
 const artifacts = resolve(root, 'artifacts/account-redesign', host);
-const appDir = host === 'macos' ? 'apps/desktop' : 'apps/web';
+const appDir = host === 'macos' ? 'apps/desktop' : 'apps/harness';
 /** TV renders the same app at 960×540dp with the TV token set behind its own mount. */
 const project =
   host === 'tv' ? resolve(root, 'apps/tv/.nsh/account-visual-tv') : resolve(root, appDir, '.nsh');
@@ -107,7 +107,7 @@ const file =
     : resolve(appDir, '.nsh/AccountHost.test.tsx');
 try {
   await mkdir(artifacts, { recursive: true });
-  await runtimeConfig('web', origin);
+  await runtimeConfig('harness', origin);
   if (host === 'tv') {
     await mkdir(project, { recursive: true });
     await writeFile(

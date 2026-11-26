@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 // Keep the legacy Go-backed commands runnable without retaining the old root demo.
-export const legacyUiDir = resolve(root, 'apps/web');
+export const legacyUiDir = resolve(root, 'apps/harness');
 export const coreVersion = 'nsh-poc-de9712bf358d';
 export const nshVersion = readFileSync(resolve(root, '.nsh-version'), 'utf8').trim();
 export function nshPath() {

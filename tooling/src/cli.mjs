@@ -14,6 +14,7 @@ import {
   pnpm,
   prepareNsh,
   nshSpec,
+  products,
   root,
   run,
   runtimeConfig,
@@ -50,6 +51,15 @@ async function requireFile(file) {
 
 const { command, target } = parseArgs(process.argv.slice(2));
 const selected = target ? [target] : targets;
+/**
+ * `dev` and `package` run and ship a product; the harness only exists to be tested, so asking
+ * for it here is a mistake worth naming rather than a build nobody asked for.
+ */
+function requireProduct(command) {
+  if (!target) throw new Error(`${command} requires --target desktop|tv`);
+  if (!products.includes(target))
+    throw new Error(`${command} needs a product target (${products.join('|')}), not ${target}`);
+}
 async function doctor({ requireDevice = true } = {}) {
   const results = baseDoctor();
   if (target === 'tv') {
@@ -278,12 +288,12 @@ try {
       for (const app of selected) await runtimeConfig(app);
       break;
     case 'dev':
-      if (!target) throw new Error('dev requires --target');
+      requireProduct('dev');
       await doctor();
       await dev(target, runtimeMode(target));
       break;
     case 'dev:fixture':
-      if (!target) throw new Error('dev:fixture requires --target');
+      requireProduct('dev:fixture');
       await doctor();
       await fixtureDev(target);
       break;
@@ -292,7 +302,7 @@ try {
         'run',
         '--locked',
         '-p',
-        'hongguo-web-api',
+        'hongguo-core-api',
         '--',
         '--data-dir',
         resolve(root, '.local/data/rust'),
@@ -349,7 +359,7 @@ try {
       await pnpm(['audit', '--audit-level', 'moderate']);
       break;
     case 'ci:jobs': {
-      // Writes `rust`, `web`, `desktop` and `tv` as GitHub Actions step outputs. Skipped jobs
+      // Writes `rust`, `desktop` and `tv` as GitHub Actions step outputs. Skipped jobs
       // can only come from paths whose reach is provably limited; anything else is the full
       // matrix, so a wrong guess fails safe towards running more.
       const selection = await selectJobs({
@@ -367,7 +377,7 @@ try {
       break;
     }
     case 'package':
-      if (!target) throw new Error('package requires --target');
+      requireProduct('package');
       {
         const mode = runtimeMode(target);
         if (mode === 'http-preview' && !process.env.HONGGUO_CORE_ORIGIN)

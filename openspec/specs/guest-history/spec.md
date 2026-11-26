@@ -67,5 +67,5 @@ Library GET/POST SHALL use generated Rust DTOs and the existing envelope. Exact 
 
 #### Scenario: Shared clients and offline verification
 
-- **WHEN** Web, desktop and TV run their shared behavior tests with local data
+- **WHEN** the harness, desktop and TV run their shared behavior tests with local data
 - **THEN** existing history semantics remain compatible, generated contracts have no drift, and tests need neither Go nor live accounts

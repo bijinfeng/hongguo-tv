@@ -1138,6 +1138,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hongguo-core-api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "hongguo-core",
+ "hongguo-http-api",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "hongguo-desktop-native"
 version = "0.1.0"
 dependencies = [
@@ -1204,17 +1215,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "webpki-roots 1.0.12",
-]
-
-[[package]]
-name = "hongguo-web-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "hongguo-core",
- "hongguo-http-api",
- "serde_json",
- "tokio",
 ]
 
 [[package]]

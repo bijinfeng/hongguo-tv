@@ -13,20 +13,24 @@ export const rustVersion = readFileSync(resolve(root, 'rust-toolchain.toml'), 'u
 const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 const pnpmVersion = packageManifest.packageManager.split('@')[1];
 const nodeVersion = readFileSync(resolve(root, '.node-version'), 'utf8').trim();
-export const targets = ['web', 'desktop', 'tv'];
+/** Every NSH project in the workspace. The harness is a test host, not a product. */
+export const targets = ['harness', 'desktop', 'tv'];
+/** The targets that ship to users: `dev` and `package` accept only these. */
+export const products = ['desktop', 'tv'];
 export function parseArgs(args) {
   const [command, ...rest] = args;
   let target;
   if (rest.length) {
     if (rest.length !== 2 || rest[0] !== '--target' || !targets.includes(rest[1]))
-      throw new Error('Expected --target web|desktop|tv');
+      throw new Error('Expected --target harness|desktop|tv');
     target = rest[1];
   }
   return { command, target };
 }
+/** The NSH platform a project builds for; the harness renders in a browser engine. */
 export function nativeTarget(target, platform = process.platform) {
   if (!targets.includes(target)) throw new Error(`Unknown target: ${target}`);
-  if (target === 'web') return 'web';
+  if (target === 'harness') return 'web';
   if (target === 'tv') return 'android';
   const native = { darwin: 'macos', linux: 'linux', win32: 'windows' }[platform];
   if (!native) throw new Error(`Unsupported desktop: ${platform}`);
@@ -121,10 +125,10 @@ export function runtimeMode(target, env = process.env) {
   if (!targets.includes(target)) throw new Error(`Unknown target: ${target}`);
   const mode =
     env.HONGGUO_RUNTIME_MODE ||
-    (env.HONGGUO_CORE_ORIGIN || target === 'web' ? 'http-preview' : 'native');
+    (env.HONGGUO_CORE_ORIGIN || target === 'harness' ? 'http-preview' : 'native');
   if (
     !['native', 'http-preview', 't0'].includes(mode) ||
-    (target === 'web' && mode !== 'http-preview') ||
+    (target === 'harness' && mode !== 'http-preview') ||
     (mode === 't0' && target !== 'tv')
   )
     throw new Error(`Unsupported runtime mode ${mode} for ${target}`);
@@ -173,8 +177,8 @@ export async function runtimeConfig(target, origin, base = root, mode) {
     }
   }
   config ??= checkedRuntime(target, {
-    mode: mode || (origin || target === 'web' ? 'http-preview' : 'native'),
-    coreOrigin: origin || (target === 'web' ? 'http://127.0.0.1:18997' : undefined),
+    mode: mode || (origin || target === 'harness' ? 'http-preview' : 'native'),
+    coreOrigin: origin || (target === 'harness' ? 'http://127.0.0.1:18997' : undefined),
   });
   await mkdir(resolve(base, 'apps', target), { recursive: true });
   await writeFile(file, JSON.stringify(config, null, 2) + '\n');

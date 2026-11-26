@@ -23,11 +23,11 @@ Windows 按官方 PowerShell 安装说明设置 NSH_VERSION，其余 pnpm 命令
 
 ## 运行模式与数据
 
-`pnpm dev:web` 启动当前 Rust API 并分配端口，`pnpm dev:api` 只启动 loopback API。Desktop／TV 的 dev 和 package 默认使用包内 Rust，不要求电脑 API 或 adb reverse。
+`pnpm dev:api` 启动 loopback Rust API（验收宿主与 http-preview 使用）。Desktop／TV 的 dev 和 package 默认使用包内 Rust，不要求电脑 API 或 adb reverse。
 
-`pnpm dev:fixture:web|desktop|tv` 用 `tooling/src/browsing-fixture.mjs` 的本地合成 core 启动同一入口，只用于开发与回归（接口契约、布局、状态切换）；启动时明确标注 synthetic data，不能作为功能验收证据，验收使用 `pnpm dev:*` 或正式包连真实 core。
+`pnpm dev:fixture:desktop|tv` 用 `tooling/src/browsing-fixture.mjs` 的本地合成 core 启动同一入口，只用于开发与回归（接口契约、布局、状态切换）；启动时明确标注 synthetic data，不能作为功能验收证据，验收使用 `pnpm dev:*` 或正式包连真实 core。
 
-`HONGGUO_RUNTIME_MODE=native|http-preview|t0` 显式选择模式；未设置时 Desktop／TV 为 native，Web 为 http-preview。显式提供 `HONGGUO_CORE_ORIGIN` 也会选择 http-preview，不能同时指定 native／t0。HTTP preview 打包必须提供精确 origin，不回退默认地址。
+`HONGGUO_RUNTIME_MODE=native|http-preview|t0` 显式选择模式；未设置时 Desktop／TV 为 native，验收宿主（`apps/harness`）恒为 http-preview。显式提供 `HONGGUO_CORE_ORIGIN` 也会选择 http-preview，不能同时指定 native／t0。HTTP preview 打包必须提供精确 origin，不回退默认地址。
 
 ```sh
 HONGGUO_RUNTIME_MODE=http-preview pnpm dev:tv
@@ -43,23 +43,8 @@ HTTP 开发 API 仅监听 loopback，校验精确 Host／Origin，不能直接�
 
 ## 定向验证
 
-check／build／test 可加 `--target web|desktop|tv`，默认三端。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
+check／build／test 可加 `--target harness|desktop|tv`，默认三个工程；`dev`／`dev:fixture`／`package` 只接受 `desktop|tv`，因为 harness 不发行。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
 
-| 入口                                                  | 范围与限制                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm ui:check`／`ui:test`／`ui:preview`              | 基础组件三端检查、公共控件行为与显式预览；预览固定端口单实例；不等于 Android 遥控／系统输入法                                                                                                                                                                                                                                                                                                                                                                   |
-| `pnpm ui:host:desktop`／`ui:host:tv`                  | 唯一需要 AppKit 窗口的路径，拆成两条各开一个窗口：桌面临时密度 / TV 密度各一张整板截图（平铺全部组、浅深各一）；行为断言留在无头 `ui:test`；密度来自 manifest 主题，不是页面切换                                                                                                                                                                                                                                                                                |
-| `pnpm visual:tv`                                      | 全部视觉证据一次出齐：TV 产品页面 × 浅深 + 同源组件板，**同一命令、同一 fixture、单个 app 实例**。默认 `--web` 无头 Chrome（零窗口），`--android` 用固定 API34 模拟器；Web 组件板用高视口平铺，Android 按八个分组截图；`--android --matrix` 另验 720p／1080p／4K 与系统字号，并恢复测试 AVD 原设置；`--android --conservative` 单独跑 1080p／200% 浅深，注入 48／27 点安全区并读回，不覆盖既有矩阵。产物与证明边界见 `artifacts/tv-visual/<host>/manifest.json` |
-| `pnpm test:tv-emulator`                               | 显式 T0 最终 APK 的技术验证，不是完整业务                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `pnpm dev:fixture:web`／`desktop`／`tv`               | 真实入口 + 本地合成 core；只用于开发／回归，不算真实数据功能验收                                                                                                                                                                                                                                                                                                                                                                                                |
-| `pnpm test:tv-browsing`／`test:tv-player`             | 显式 HTTP fixture；不算真实数据功能验收                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `pnpm test:tv-components`                             | 把同源组件板装入正式 TV 宿主，在固定 API34 AVD 检查原生弹层返回、动态失能恢复、遥控键盘和 InputConnection 中文组合输入；覆盖浅深及系统字号 100%／130%／200%，最后一组关闭系统动画。结束后恢复系统设置并重新安装正式入口；不等于真实账号、内容播放、人工 IME 候选或物理电视验收。                                                                                                                                                                                |
-| `pnpm test:tv-native-startup`／`test:tv-native-retry` | 原生入口合成启动／失败／重试，不是独立真实业务                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `pnpm test:tv-native-business`                        | 当前原生 APK、官网媒体、SQLite、进程重启；需要唯一固定 TV API34 模拟器                                                                                                                                                                                                                                                                                                                                                                                          |
-| `pnpm test:desktop-updates`／`test:tv-updates`        | 更新状态／宿主适配，不创建线上 Release，不代替正式签名 N-1→N 升级                                                                                                                                                                                                                                                                                                                                                                                               |
-| `pnpm coverage`／`pnpm fuzz`                          | 运行范围和要求见 ENGINEERING；fuzz 先安装仓库要求的独立 nightly                                                                                                                                                                                                                                                                                                                                                                                                 |
-
-单组原生回归可用 `node tooling/src/tv-browsing.mjs browsing --profile large-text`，其他值为 `light`／`dark`；省略时运行三组。单组结果只证明该组，不替代完整矩阵。工具实时写出检查进度，失败保留截图、视图树和合成请求记录。
 
 真实匿名流程使用现有工具，不注入合成响应或直接伪造观看记录：
 
@@ -69,7 +54,7 @@ node tooling/src/live-history-host.mjs macos --anonymous-live
 node tooling/src/live-history-host.mjs web --anonymous-live
 ```
 
-macos 参数运行该宿主中的正式 Web／HTTP 入口，不是 Desktop native；web 参数使用 Chromium 和精确 Origin。历史来自实际媒体进度并核对持久结果；每段结果和整轮结果分别记录，重试恢复不抹去原失败。当前证明了哪些流程，查 VALIDATION，勿从命令存在推断通过。
+macos 参数在 `apps/harness` 里用原生窗口跑 HTTP 入口，不是 Desktop native；web 参数用 Chromium 和精确 Origin。历史来自实际媒体进度并核对持久结果；每段结果和整轮结果分别记录，重试恢复不抹去原失败。当前证明了哪些流程，查 VALIDATION，勿从命令存在推断通过。
 
 真实 runner 每次 API 启动保留独立 stderr，附件位置在 `result.json` 的 `apiStarts[].diagnostics`。诊断只记安全阶段／来源／错误分类；内部来源失败可能随后恢复，不等于最终播放失败。原生专项诊断需 `NSH_VERBOSE=1`，默认 NSH test 隐藏原生 stderr。不得记录签名媒体 URL、凭据或原始敏感错误；准备成功也不代替实际解码／播放。
 

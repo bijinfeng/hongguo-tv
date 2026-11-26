@@ -12,7 +12,7 @@ if (!['macos', 'web'].includes(target))
     'Expected macos|web graphical host; desktop font scaling needs a supported host control.',
   );
 const fixture = await browsingFixture();
-const runtime = resolve(root, 'apps/web/runtime.generated.json');
+const runtime = resolve(root, 'apps/harness/runtime.generated.json');
 const previous = await readFile(runtime);
 const artifacts = resolve(
   root,
@@ -20,10 +20,10 @@ const artifacts = resolve(
 );
 try {
   await mkdir(artifacts, { recursive: true });
-  await runtimeConfig('web', fixture.origin);
+  await runtimeConfig('harness', fixture.origin);
   const file = resolve(
     root,
-    `apps/web/.nsh/${suite === 'category' ? 'Category' : suite === 'suggestions' ? 'Suggestions' : 'Browsing'}Host.test.tsx`,
+    `apps/harness/.nsh/${suite === 'category' ? 'Category' : suite === 'suggestions' ? 'Suggestions' : 'Browsing'}Host.test.tsx`,
   );
   const register =
     suite === 'category'
@@ -41,7 +41,7 @@ try {
     executable('nsh'),
     ['test', file, '--target', target, ...(target === 'macos' ? ['--foreground'] : [])],
     {
-      cwd: resolve(root, 'apps/web'),
+      cwd: resolve(root, 'apps/harness'),
       env: rustEnvironment(),
     },
   );

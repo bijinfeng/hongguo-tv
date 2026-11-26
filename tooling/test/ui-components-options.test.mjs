@@ -21,9 +21,9 @@ test('UI component commands default to every product without an explicit target'
   });
 });
 
-test('each host command runs one product, so a run opens one window', () => {
-  assert.deepEqual(hostProducts, { 'host-desktop': 'web', 'host-tv': 'tv' });
-  // A host product comes from the command itself; a target would be a second, contradicting one.
+test('each host command runs one project, so a run opens one window', () => {
+  assert.deepEqual(hostProducts, { 'host-desktop': 'harness', 'host-tv': 'tv' });
+  // A host project comes from the command itself; a target would be a second, contradicting one.
   assert.throws(() => uiComponentsOptions(['host-tv', '--target', 'desktop']), /Unknown option/);
 });
 
@@ -42,7 +42,7 @@ test('preview passes display, window size and port to the dev host', () => {
   assert.equal(uiComponentsOptions(['preview']).port, undefined);
 });
 
-test('every product previews on its own fixed port', () => {
+test('every project previews on its own fixed port', () => {
   const ports = Object.values(previewPorts);
   assert.equal(new Set(ports).size, 3);
   assert.ok(ports.every((port) => Number.isInteger(port) && port > 1024 && port < 65535));
@@ -64,7 +64,7 @@ test('UI component options fail closed', () => {
   );
   assert.throws(
     () => uiComponentsOptions(['preview', '--target', 'android']),
-    /Expected --target desktop\|web\|tv/,
+    /Expected --target desktop\|harness\|tv/,
   );
   assert.throws(() => uiComponentsOptions(['preview', '--display', '0']), /Expected --display/);
   assert.throws(
@@ -98,14 +98,17 @@ test('preview reuses one fixed port per product and forwards only explicit overr
     '--display',
     '2',
   ]);
-  assert.equal(previewArgs('a.tsx', 'web', 'web', { windowSize: '1280x800' }).at(-1), '1280x800');
+  assert.equal(
+    previewArgs('a.tsx', 'harness', 'web', { windowSize: '1280x800' }).at(-1),
+    '1280x800',
+  );
 });
 
 test('host test runs stay in the background', () => {
-  const args = hostArgs('/repo/apps/web/.nsh/BaseComponents.host.test.tsx', 'macos');
+  const args = hostArgs('/repo/apps/harness/.nsh/BaseComponents.host.test.tsx', 'macos');
   assert.deepEqual(args, [
     'test',
-    '/repo/apps/web/.nsh/BaseComponents.host.test.tsx',
+    '/repo/apps/harness/.nsh/BaseComponents.host.test.tsx',
     '--target',
     'macos',
   ]);

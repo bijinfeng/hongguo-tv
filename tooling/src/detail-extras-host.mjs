@@ -19,7 +19,7 @@ if (
   )
 )
   throw new Error('Expected --foreground and/or --filter text');
-const application = resolve(root, 'apps/web');
+const application = resolve(root, 'apps/harness');
 const artifacts = resolve(
   root,
   `artifacts/detail-extras-ui/${host}/${new Date().toISOString().replace(/[:.]/g, '-')}`,

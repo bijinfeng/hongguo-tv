@@ -48,7 +48,7 @@ workflow 顺序为：候选回验 → 上传草稿 → 鉴权下载回验 → �
 
 ## 本次验证
 
-- 完整 `pnpm verify` exit 0：格式、lint、边界、codegen、Rust check/Clippy、三端 NSH check/build、Rust 159/159、Web 52/52、Desktop 50/50、TV 51/51；当时 tooling 26/26。最后新增校验和/缺签名回归后，单独 `pnpm test:tooling` 27/27，全数通过，无跳过。完整日志 `artifacts/release-metadata/verify.log`，最终 tooling 日志同目录 `tooling.log`。
+- 完整 `pnpm verify` exit 0：格式、lint、边界、codegen、Rust check/Clippy、各入口 NSH check/build、Rust 159/159、harness 52/52、Desktop 50/50、TV 51/51；当时 tooling 26/26。最后新增校验和/缺签名回归后，单独 `pnpm test:tooling` 27/27，全数通过，无跳过。完整日志 `artifacts/release-metadata/verify.log`，最终 tooling 日志同目录 `tooling.log`。
 - 新增清单测试 6/6：与固定 NSH 0.5.0 CLI 的签名逐字节一致；错误签名上下文、公钥、篡改、缺签名、未知 schema、错应用/版本、可变 URL、错哈希/大小、SDK/ABI、debug、多签名者和校验和漂移均拒绝。2026-11-17 升级 NSH 0.5.1、2026-11-19 升级 NSH 0.6.0 后，该测试按新固定 CLI 各重跑一次并通过（0.6.0 上 6/6）：签名域与清单结构未变，`localizedNotes` 与 `channels` 都是可选增量，不传即不写入。
 - 真实本地 APK 的 aapt2/apksigner 报告核对通过：其 debug 属性被正式发行校验器拒绝。仅为核对报告解析，曾在内存中去掉 debug 行并以实际证书替代预期值；这部分不能计作生产签名或正式候选通过，未改写/重签 APK，也未安装。
 - Oxfmt、Oxlint、`pnpm release:check`、YAML 解析及全部 workflow shell block 的 `bash -n` 通过；无依赖、Rust DTO 或客户端 UI 变化。
