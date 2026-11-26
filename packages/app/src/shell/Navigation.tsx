@@ -159,7 +159,9 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                     current={on()}
                     currentSurface={props.layout === 'tv' ? 'contrast' : undefined}
                     class={props.layout === 'desktop' ? 'w-full justify-start' : undefined}
-                    style={props.layout === 'desktop' ? { borderRadius: radius('full') } : undefined}
+                    style={
+                      props.layout === 'desktop' ? { borderRadius: radius('full') } : undefined
+                    }
                     onPress={() => {
                       if (item().onPress) item().onPress!(props.store);
                       else props.store.navigate(item().name);
