@@ -171,7 +171,9 @@ export function Notifications(props: { store: Store }) {
           disabled={!signedIn() || !active() || notifications.mutation()?.state === 'pending'}
           buttonRef={(ref) => {
             refreshRef = ref;
-            if (props.store.target === 'tv' && signedIn())
+            // Signed out or empty, re-reading is the only thing left, so refresh keeps the target.
+            // With rows, the first row's action claims it as it registers.
+            if (props.store.target === 'tv' && signedIn() && !items().length)
               props.store.primaryRef('notifications', ref);
           }}
           onPress={refresh}
@@ -287,6 +289,12 @@ export function Notifications(props: { store: Store }) {
                     if (!action.detail && !action.read) actions.delete(row.id);
                     else actions.set(row.id, action);
                     if (restorePlan?.id === row.id) scheduleRestore();
+                    // The first row's action is the entry target: rows register after mount, so
+                    // this runs here rather than at the header's own buttonRef.
+                    if (props.store.target === 'tv' && signedIn() && items()[0]?.id === row.id) {
+                      const primary = action.read ?? action.detail;
+                      if (primary) props.store.primaryRef('notifications', primary);
+                    }
                   }}
                 />
               );
