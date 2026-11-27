@@ -68,6 +68,7 @@ export function ChoiceGroup(props: ChoiceGroupProps) {
               <Text
                 style={{
                   fontSize: size().fontSize,
+                  lineHeight: size().lineHeight,
                   fontWeight: props.value === option().value ? weight.strong() : weight.regular(),
                   color: token(
                     inactive(option())
