@@ -25,6 +25,7 @@ export function Field(props: FieldProps) {
       <Text
         style={{
           fontSize: controlMetrics(props.size).fontSize,
+          lineHeight: controlMetrics(props.size).lineHeight,
           fontWeight: weight.strong(),
           color: token('foreground'),
         }}
@@ -66,6 +67,7 @@ export function FieldGroup(props: FieldGroupProps) {
         role="header"
         style={{
           fontSize: textSize('content-title'),
+          lineHeight: textLineHeight('content-title'),
           fontWeight: weight.strong(),
           color: token('foreground'),
         }}

@@ -38,6 +38,7 @@ export function SearchInput(props: SearchInputProps) {
         minHeight: size().height,
         borderRadius: size().radius,
         fontSize: size().fontSize,
+        lineHeight: size().lineHeight,
         paddingHorizontal: props.embedded ? space('xxs') : size().paddingHorizontal,
         paddingVertical: size().paddingVertical,
         // The host placeholder default is too dim on the dark surface; use the shared muted tone.

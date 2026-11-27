@@ -90,6 +90,7 @@ export function SettingsRow(props: SettingsRowProps) {
             class="flex-1"
             style={{
               fontSize: textSize('meta'),
+              lineHeight: textLineHeight('meta'),
               fontWeight: textWeight('meta'),
               color: token('destructive'),
             }}

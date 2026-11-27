@@ -26,6 +26,7 @@ const SLIDER_TRACK_HEIGHT = 6;
 import {
   textLetterSpacing,
   textLineHeight,
+  textLineHeightRatio,
   textSize,
   textWeight,
   type TextRole,
@@ -216,7 +217,13 @@ export function Avatar(props: AvatarProps) {
       imageClass="rounded-full object-cover"
       fallbackClass="rounded-full bg-muted text-muted-foreground items-center justify-center"
       fallback={
-        <Text class="text-muted-foreground" style={{ fontSize: initialSize() }}>
+        <Text
+          class="text-muted-foreground"
+          style={{
+            fontSize: initialSize(),
+            lineHeight: Math.round(initialSize() * textLineHeightRatio('body')),
+          }}
+        >
           {props.name.slice(0, 1)}
         </Text>
       }

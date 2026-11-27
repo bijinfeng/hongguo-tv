@@ -10,7 +10,7 @@ import {
   focusRingClass,
 } from './foundation';
 import { motionTokens } from './motion';
-import { textSize, textWeight } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 function dateParts(value: string) {
   if (!/^\d{8}$/.test(value)) return;
@@ -73,6 +73,7 @@ export function DateChoice(props: DateChoiceProps) {
                 <Text
                   style={{
                     fontSize: textSize('meta'),
+                    lineHeight: textLineHeight('meta'),
                     fontWeight: textWeight('meta'),
                     color: muted(),
                   }}
@@ -82,6 +83,7 @@ export function DateChoice(props: DateChoiceProps) {
                 <Text
                   style={{
                     fontSize: textSize('title'),
+                    lineHeight: textLineHeight('title'),
                     fontWeight: weight.strong(),
                     color: foreground(),
                   }}
@@ -91,6 +93,7 @@ export function DateChoice(props: DateChoiceProps) {
                 <Text
                   style={{
                     fontSize: textSize('meta'),
+                    lineHeight: textLineHeight('meta'),
                     fontWeight: textWeight('meta'),
                     color: muted(),
                   }}
@@ -103,6 +106,7 @@ export function DateChoice(props: DateChoiceProps) {
             <Text
               style={{
                 fontSize: size().fontSize,
+                lineHeight: size().lineHeight,
                 fontWeight: props.selected ? weight.strong() : weight.regular(),
                 color: foreground(),
               }}

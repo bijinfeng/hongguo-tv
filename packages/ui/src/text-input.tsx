@@ -199,6 +199,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           style={{
             minHeight: size().height,
             fontSize: size().fontSize,
+            lineHeight: size().lineHeight,
             color: token('foreground'),
             // The host placeholder default is too dim on the dark surface.
             placeholderColor: token('muted-foreground'),

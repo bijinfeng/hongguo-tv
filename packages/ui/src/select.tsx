@@ -145,6 +145,7 @@ export function Select(props: SelectProps) {
         <Text
           style={{
             fontSize: size().fontSize,
+            lineHeight: size().lineHeight,
             fontWeight: weight.regular(),
             color: token('muted-foreground'),
             paddingHorizontal: space('sm'),

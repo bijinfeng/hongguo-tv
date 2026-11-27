@@ -71,6 +71,7 @@ export function Cover(props: CoverProps) {
             class={`${props.variant === 'feature' ? 'text-cinema-muted' : 'text-muted-foreground'} text-center`}
             style={{
               fontSize: textSize('meta'),
+              lineHeight: textLineHeight('meta'),
               padding: space('md'),
             }}
           >
@@ -297,7 +298,11 @@ export function ContinueCard(props: {
             </Text>
             <Text
               class="text-muted-foreground"
-              style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+              style={{
+                fontSize: textSize('meta'),
+                lineHeight: textLineHeight('meta'),
+                fontWeight: textWeight('meta'),
+              }}
             >
               {props.subtitle}
             </Text>
@@ -388,6 +393,7 @@ export function StoryFeature(props: {
         <Text
           style={{
             fontSize: textSize('page'),
+            lineHeight: textLineHeight('page'),
             fontWeight: textWeight('page'),
             color: token('cinema-foreground'),
           }}
@@ -395,12 +401,18 @@ export function StoryFeature(props: {
         >
           {props.title}
         </Text>
-        <Text style={{ fontSize: textSize('title') }} class="text-cinema-muted">
+        <Text
+          style={{ fontSize: textSize('title'), lineHeight: textLineHeight('title') }}
+          class="text-cinema-muted"
+        >
           {props.meta}
         </Text>
         <If when={props.description}>
           <Text
-            style={{ fontSize: textSize('content-title') }}
+            style={{
+              fontSize: textSize('content-title'),
+              lineHeight: textLineHeight('content-title'),
+            }}
             class="text-cinema-foreground line-clamp-2"
           >
             {props.description}
@@ -408,7 +420,10 @@ export function StoryFeature(props: {
         </If>
         <View class="items-start">{props.children}</View>
         <If when={props.footer}>
-          <Text style={{ fontSize: textSize('title') }} class="text-cinema-muted">
+          <Text
+            style={{ fontSize: textSize('title'), lineHeight: textLineHeight('title') }}
+            class="text-cinema-muted"
+          >
             {props.footer}
           </Text>
         </If>
