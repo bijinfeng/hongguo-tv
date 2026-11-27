@@ -34,6 +34,7 @@
 - 功能契约：[详情](features/detail-discovery.md)、[日历](features/calendar-browsing.md)、[系列／季](features/season-browsing.md)、[排行榜](features/rankings-browsing.md)、[榜单雷达](features/radar-snapshots.md)、[历史管理](features/guest-history-management.md)、[追更](features/following.md)、[观看记录与收藏](features/library-favorites.md)、[预约](features/reservations.md)。每个页面一份，承接该页的接线、数据边界、动效清单与验证边界，不重复维护全局状态。
 - 核心实现：[历史存储](../crates/core/src/library/README.md)、[播放](../crates/core/src/playback/README.md)、[媒体](../crates/core/src/media/README.md)、[Mobile-v5 取源](playback-v5.md)。fixture 说明留在 [contracts](../contracts/fixtures/) 旁，包用法留在包内。
 - 设计参考：[页面地图](design/ui-map.md)、[参考产品](design/ui-reference-products.md)。历史简报、早期调研与原型规格从 [history](history/README.md) 进入。
+- 依赖核查：[原生发行依赖](dependencies/native-release-security.md)、[目录 HTTP/TLS](dependencies/catalog-tls.md)、[游客 SQLite](dependencies/guest-sqlite.md)。记录固定版本的原因与许可证边界，不复制 `deny.toml` 规则。
 - TV 重设计：[设计说明](design/tv-redesign.md)、[竞品研究依据](design/tv-reference-research.md)、[组件化技术方案](../openspec/changes/compose-tv-v4-from-shared-components/design.md)、[分批任务](../openspec/changes/compose-tv-v4-from-shared-components/tasks.md)。设计值、外部证据和实施决策各有唯一来源；当前组件与页面已接线，验收和阻塞统一见 [VALIDATION](../VALIDATION.md#tv-v4-组件化重设计)。
 - OpenSpec：[主规范](../openspec/specs/)、[活跃变更](../openspec/changes/)。2026-11-20 已把 21 个任务全完的变更归档并沉淀 20 项主规范；归档和任务勾选只表示该变更交付范围结束，不等于功能通过真实验收，状态仍以台账和 VALIDATION 为准。
 
