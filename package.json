@@ -6,9 +6,7 @@
   "type": "module",
   "scripts": {
     "setup:workspace": "node tooling/src/cli.mjs setup",
-    "setup:runtime": "node tooling/src/cli.mjs prepare",
     "doctor:workspace": "node tooling/src/cli.mjs doctor",
-    "dev": "node tooling/src/cli.mjs dev --target desktop",
     "dev:web": "node tooling/src/cli.mjs dev --target harness",
     "dev:desktop": "node tooling/src/cli.mjs dev --target desktop",
     "dev:tv": "node tooling/src/cli.mjs dev --target tv",
@@ -53,7 +51,6 @@
     "legacy:verify": "node scripts/nsh.mjs check && node scripts/nsh.mjs build && node --test scripts/*.test.mjs && node scripts/nsh.mjs test && go -C upstream/hongguo test ./core/cmd/hongguotv",
     "upstream:sync": "node scripts/sync-upstream.mjs",
     "setup:tools": "node tooling/src/cli.mjs setup:tools",
-    "coverage": "node tooling/src/cli.mjs coverage",
     "test:rust": "node tooling/src/cli.mjs test:rust",
     "fuzz": "node tooling/src/fuzz.mjs",
     "test:tv-updates": "node tooling/src/tv-updates.mjs",
@@ -64,7 +61,9 @@
     "ui:test": "node tooling/src/ui-components.mjs test",
     "ui:host:desktop": "node tooling/src/ui-components.mjs host-desktop",
     "ui:host:tv": "node tooling/src/ui-components.mjs host-tv",
-    "ui:preview": "node tooling/src/ui-components.mjs preview"
+    "ui:preview": "node tooling/src/ui-components.mjs preview",
+    "coverage": "node tooling/src/cli.mjs coverage",
+    "dev": "node tooling/src/cli.mjs dev --target desktop"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",

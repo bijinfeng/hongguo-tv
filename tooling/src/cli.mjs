@@ -283,12 +283,6 @@ try {
       ]);
       break;
     }
-    case 'prepare':
-      // Writes the gitignored runtime config the app entry imports. `nsh check`/`build`/`test`
-      // reach this through `prepareNsh`, but a workflow that runs `nsh test` itself needs the
-      // file too, and `pnpm setup` would also compile the whole workspace.
-      for (const app of selected) await runtimeConfig(app);
-      break;
     case 'dev':
       // `dev` runs the code, not a release: the harness is the development surface now, so it is
       // allowed here while `package` still refuses it (the harness never ships).
