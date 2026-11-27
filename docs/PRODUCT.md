@@ -8,7 +8,7 @@ adaptive
 
 本文件是桌面端和 Android TV 的共享产品上下文，适用于 `apps/desktop`、`apps/tv`、`apps/harness`、`packages/app` 和 `packages/ui`。两端共享功能语义，按键鼠或遥控器适配操作；桌面以 macOS 真机为 MVP 验收平台，Android TV 以固定模拟器为验收环境。这里的 adaptive 不表示已支持 iOS、tvOS、webOS 或 Tizen。
 
-Windows／Linux 仍是构建目标并继续产出未签名预览包，但真机安装、签名与升级不属于 MVP 验收条件；物理 Android TV 的遥控、硬解、4K 与观看距离同样记为平台限制，不作为 MVP 条件。验收宿主矩阵见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)。
+Windows／Linux 仍是构建目标并继续产出未签名预览包，但真机安装、签名与升级不属于 MVP 验收条件；物理 Android TV 的遥控、硬解、4K 与观看距离同样记为平台限制，不作为 MVP 条件。验收宿主矩阵见 [ENGINEERING §9](./ENGINEERING.md#验收宿主矩阵)。
 
 官方产品已有 Web 端，本仓库不提供 Web 客户端。`apps/harness` 是无头浏览器验收宿主，用来在真实 UI 上跑 fixture 与 HTTP 证据，不是可交付的端，也不对外承诺任何 Web 部署。
 

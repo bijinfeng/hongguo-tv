@@ -149,7 +149,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ## 资源与演进
 
-安装图标共用 [品牌资源](assets/brand/README.md)，由各 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
+安装图标共用 [品牌资源](./assets/brand/README.md)，由各 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
 主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后跑 `pnpm design:codegen` 重新生成两份 theme 与 `tokens.generated.ts`；不手改生成文件，也不为某一份稿另补颜色。
 
@@ -214,6 +214,6 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 - `ResultCard.onPress` 缺省时是静态内容行，不显示“查看详情”或整行按钮语义；管理模式只聚焦选择、明确的详情入口与删除动作。`ChoiceList.orientation="vertical"` 复用同一稳定选项和焦点契约，供有界侧栏使用。
 - Android TV 每个原生窗口共用 `TvRemote` 作为焦点轮廓拥有者；内部 `RemoteFocusScope` 通过公开 `nativeComponent` 注册弹层窗口，其他宿主为空视图。内层 Select 先处理返回，关闭弹层再恢复原入口；控件不重复画父子焦点环。禁用／等待阻止激活与程序恢复焦点，恢复后重新可达。
 
-业务组合与列数规则见 [TV 技术方案](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)，实际验证范围见 [VALIDATION](../../VALIDATION.md)。画廊中的宿主度量读取真实环境，仅供开发验收，不进入产品界面。
+业务组合与列数规则见 [TV 技术方案](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)，实际验证范围见 [VALIDATION](../../docs/VALIDATION.md)。画廊中的宿主度量读取真实环境，仅供开发验收，不进入产品界面。
 
 `textLineHeight(role)` 是只读的语义行高度量，供业务集合计算文字槽位与虚拟化估计；它不改变字号、主题或系统缩放，也不是页面绘制覆盖参数。

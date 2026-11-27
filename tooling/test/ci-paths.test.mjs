@@ -40,9 +40,14 @@ test('documentation is the only class that skips every build job', () => {
     'openspec/specs/playback/spec.md',
     'upstream/hongguo/core/cmd/hongguotv/minireel.go',
     'README.md',
-    'PRODUCT.md',
     'THIRD_PARTY_NOTICES.md',
     'LICENSE',
+    // The four contracts moved under docs/, so they are covered by the prefix rule rather than
+    // the root-file allowlist; keep one here to prove the move did not open a build path.
+    'docs/PRODUCT.md',
+    'docs/ARCHITECTURE.md',
+    'docs/ENGINEERING.md',
+    'docs/VALIDATION.md',
   ]) {
     assert.deepEqual(classify(path), none, path);
   }

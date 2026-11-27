@@ -1,6 +1,6 @@
 # Linux 平台限制排查记录（2026-11-27 归档）
 
-非当前指令。本文件保存从 `VALIDATION.md` 移出的两处 Linux 平台限制定位过程。当前结论与状态见 [VALIDATION](../../../VALIDATION.md#desktop-native)，规则见 [ENGINEERING §9](../../../ENGINEERING.md#验收宿主矩阵)。
+非当前指令。本文件保存从 `VALIDATION.md` 移出的两处 Linux 平台限制定位过程。当前结论与状态见 [VALIDATION](../../VALIDATION.md#desktop-native)，规则见 [ENGINEERING §9](../../ENGINEERING.md#验收宿主矩阵)。
 
 这两项都属于 Linux 桌面宿主的上游缺陷，而 Linux 不在 MVP 验收宿主内（桌面只认 macOS 真机），因此保留事实、不阻塞 MVP。
 
@@ -12,7 +12,13 @@
 
 **排除项**：探针实测 `lifecycle` 在 X11 与 Wayland 下均为 `background`；移除 `titleBar` 后不变，故与标题栏改动无关。macOS 按整个应用计算，不受影响。
 
-**上游状态**：已修（[#3239](https://github.com/longbridge/nsh/issues/3239)，PR [#3252](https://github.com/longbridge/nsh/pull/3252) `5ffa0bf984`），但**不在 0.7.1 内**——逐条核对 0.7.1 的 23 个提交无此项，`main` 领先 0.7.1 共 138 个提交，11-25 的 nightly 早于修复。Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)、[#3300](https://github.com/longbridge/nsh/pull/3300)）。
+**上游状态**：已修（[#3239](https://github.com/longbridge/nsh/issues/3239)，PR [#3252](https://github.com/longbridge/nsh/pull/3252) `5ffa0bf984`），合入 `main`，但**不在 0.7.1**——逐条核对 0.7.1 的 23 个提交无此项。**也不在 0.7.2**（2026-11-27 核对以下三项）：
+
+- `compare/5ffa0bf984...v0.7.2` 为 `diverged`，`behind_by` 非 0；该修复提交只对 `main` 是 `ahead`。
+- 0.7.2 发布树 `crates/nsh-platform-linux/src/system.rs` 的 `lifecycle()` 仍只读 `surface.root.is_mapped()`，无 `any_shown`；`grep any_shown crates/` 无结果。
+- 该段 `system.rs` 在 0.7.1 与 0.7.2 之间逐字节相同，故 0.7.2 未触碰此缺陷。
+
+原因是 nsh 的发布流程：release notes 由 `main` 生成，tag 却打在独立的 `release/0.7` 分支（0.7.2 tag 提交 `0c29b5e`，与 `main` 分叉 217 个提交），而 0.7.2 的 25 个独有提交里 8 个 `linux:` 提交全是 canvas／GStreamer／shadow 性能改动，无 lifecycle 项。判定规则见 [ENGINEERING §1](../../ENGINEERING.md#1-工具链所有权与版本)。Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)、[#3300](https://github.com/longbridge/nsh/pull/3300)），并且 #3300 **在** 0.7.2 内（`nsh-platform-windows/src/system.rs` 已含 `app_window::hwnds` 分支）。
 
 **结论**：不是本仓缺陷。它只阻塞 Linux 上的实时数据观察。
 
@@ -25,3 +31,5 @@
 **复现**：用 `nsh init --template ts` 独立最小工程实测复现，三个按钮（`− □ ×`）均在。产品截图中「最小化缺失」是账号图标位置重叠造成的误判。
 
 **待判**：`titleBar: { style: "hidden" }` 在 Linux 浅色下的可用性等上游修复再判。
+
+**上游状态（2026-11-27 核对）**：修复 PR [#3399](https://github.com/longbridge/nsh/pull/3399) `b0af54db` 已合入 `main`，issue 因此自动关闭，但**不在 0.7.2 内**：`compare/b0af54db...v0.7.2` 为 `diverged`；0.7.2 发布树的 `chrome.rs`／`menu_style.rs` 里没有该 PR 引入的 `nsh-on-light`／`nsh-on-dark` 类（`grep` 无结果），`apply_title_bar` 仍只设 margin 与 decoration layout。**issue 显示 CLOSED 不代表已随任何 tag 发布**，后续以 ENGINEERING §1 的 tag 祖先核对为准。

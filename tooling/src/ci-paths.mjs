@@ -13,7 +13,9 @@ const NATIVE = /^apps\/(?:desktop|tv)\/native\//;
 
 // Documentation, history and read-only references never reach a build or a type check.
 const DOCS = /^(?:docs\/|design\/|openspec\/|upstream\/)/;
-const DOC_FILES = /^(?:README\.md|PRODUCT\.md|LICENSE|THIRD_PARTY_NOTICES\.md)$/i;
+// Root-level docs that carry no build: PRODUCT and VALIDATION now live under docs/, which the
+// prefix rule above already covers, so only these remain.
+const DOC_FILES = /^(?:README\.md|LICENSE|THIRD_PARTY_NOTICES\.md)$/i;
 
 /**
  * Job selection for one changed path, or `null` when paths alone cannot decide. Every

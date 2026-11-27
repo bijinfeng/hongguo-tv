@@ -1,6 +1,6 @@
 # TV 竞品研究依据
 
-取证日期：2026-11-23～24。本文是本次TV重设计外部证据的唯一记录，记录选定版本、静态代码／资源、有限运行观察和公开截图；不表示此后版本或所有设备行为。设计决定见[TV重设计](tv-redesign.md)，实现方式与验收任务见[组件化规划](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)。
+取证日期：2026-11-23～24。本文是本次TV重设计外部证据的唯一记录，记录选定版本、静态代码／资源、有限运行观察和公开截图；不表示此后版本或所有设备行为。设计决定见[TV重设计](./tv-redesign.md)，实现方式与验收任务见[组件化规划](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)。
 
 ## 证据边界
 

@@ -1,6 +1,6 @@
 # 多端工程架构
 
-本文维护稳定的分层、依赖、状态所有权和宿主边界；已实现／未实现看[功能台账](docs/feature-ledger.md)，实际通过范围看[VALIDATION](VALIDATION.md)，开发顺序看[实施路线](docs/implementation-roadmap.md)。早期提案与阶段记录见[历史快照](docs/history/2026-11-15/ARCHITECTURE.md)。
+本文维护稳定的分层、依赖、状态所有权和宿主边界；已实现／未实现看[功能台账](./feature-ledger.md)，实际通过范围看[VALIDATION](./VALIDATION.md)，开发顺序看[实施路线](./implementation-roadmap.md)。早期提案与阶段记录见[历史快照](./history/2026-11-15/ARCHITECTURE.md)。
 
 ## 核心决策
 
@@ -15,7 +15,7 @@
 | 原生       | Desktop mixed与Android/JNI调用共享native bridge；业务进程内运行，媒体字节不经TSX反复复制 |
 | 编排与缓存 | pnpm scripts调用Node编排和各语言工具；复用pnpm／Cargo缓存，不增加无实际收益的任务层      |
 
-取舍原因和替代方案见[ADR-001：Rust核心](docs/architecture/adr/ADR-001-rust-core.md)、[ADR-002：原生会话](docs/architecture/adr/ADR-002-native-session.md)。方向成立不表示所有能力已迁移或验收。
+取舍原因和替代方案见[ADR-001：Rust核心](./architecture/adr/ADR-001-rust-core.md)、[ADR-002：原生会话](./architecture/adr/ADR-002-native-session.md)。方向成立不表示所有能力已迁移或验收。
 
 ## 目录与依赖
 
@@ -70,7 +70,7 @@ App／UI／Client为源码依赖，harness→API为网络调用，bridge→core�
 
 列表使用稳定身份和ID＋offset锚点，返回先恢复位置，再在当前行恢复有效焦点；来源失效回退可用入口。覆盖页保留必要布局但退出焦点候选，避免虚拟列表回收后丢失上下文。
 
-Rust拥有持久历史和目标账号状态，TSX消费已提交快照并派生显示。实际开始播放后才串行保存紧凑进度DTO，验证owner和媒体revision；浏览、准备失败、未加载媒体不写观看记录。删除／清空、旧checkpoint失效、关闭排空与部分失败由同一所有者协调，详情或评论不进入历史载荷。具体不变量见[历史存储](crates/core/src/library/README.md)和对应活跃变更。
+Rust拥有持久历史和目标账号状态，TSX消费已提交快照并派生显示。实际开始播放后才串行保存紧凑进度DTO，验证owner和媒体revision；浏览、准备失败、未加载媒体不写观看记录。删除／清空、旧checkpoint失效、关闭排空与部分失败由同一所有者协调，详情或评论不进入历史载荷。具体不变量见[历史存储](../crates/core/src/library/README.md)和对应活跃变更。
 
 游客／账号的会话、存储与缓存隔离是账号迁移前提。持久状态迁移尚未全部完成，不能从bridge已接通或兼容入口存在推断账号可用；实现缺口只维护在台账。
 
@@ -90,9 +90,9 @@ Rust拥有持久历史和目标账号状态，TSX消费已提交快照并派生�
 
 `services/core-api`只监听loopback，为验收宿主与原生`http-preview`提供同一HTTP契约，不是可公网部署的服务。它仍按认证用户实例化独立上下文：即使多用户共享一个进程，也不能共享单账号全局状态，因为多条验收会话会同时连同一实例。
 
-TV独立运行不依赖电脑API或adb reverse。默认native、显式HTTP preview与T0的选择及命令见[运行手册](docs/development.md#运行模式与数据)。初始化／停止、后台／恢复、JNI所有权、遥控返回／焦点、解码和安装包分别验收。MVP 的 TV 验收宿主是固定 API34 AVD 模拟器，模拟器注入的遥控与输入属于验收范围；物理电视、硬解与 4K 按平台限制记录，不能用模拟器结果宣称为物理设备通过。webOS／Tizen／tvOS不因共享仓库自动获得支持。
+TV独立运行不依赖电脑API或adb reverse。默认native、显式HTTP preview与T0的选择及命令见[运行手册](./development.md#运行模式与数据)。初始化／停止、后台／恢复、JNI所有权、遥控返回／焦点、解码和安装包分别验收。MVP 的 TV 验收宿主是固定 API34 AVD 模拟器，模拟器注入的遥控与输入属于验收范围；物理电视、硬解与 4K 按平台限制记录，不能用模拟器结果宣称为物理设备通过。webOS／Tizen／tvOS不因共享仓库自动获得支持。
 
-Android TV／盒子复用 packages/app 与 packages/ui；Android adapter 拥有输入、媒体 surface、系统安装与生命周期。Desktop／TV 共用 Rust 核心和 native bridge，不新增 TV 业务副本、Go 子进程或第二套状态机。最低运行范围 API26，target SDK 与渠道要求单独管理；arm64 是首批目标，armv7 须在可构建且真实 32 位运行环境验收后才声明支持。固定工具链、版本、ABI 与构建入口归 [Android 宿主](apps/tv/android/README.md)，不在架构层复制一张易漂移的版本表。
+Android TV／盒子复用 packages/app 与 packages/ui；Android adapter 拥有输入、媒体 surface、系统安装与生命周期。Desktop／TV 共用 Rust 核心和 native bridge，不新增 TV 业务副本、Go 子进程或第二套状态机。最低运行范围 API26，target SDK 与渠道要求单独管理；arm64 是首批目标，armv7 须在可构建且真实 32 位运行环境验收后才声明支持。固定工具链、版本、ABI 与构建入口归 [Android 宿主](../apps/tv/android/README.md)，不在架构层复制一张易漂移的版本表。
 
 APK 内受限 loopback 媒体路由不是电脑 API 依赖；独立验收时电脑 API 停止、reverse 为空，不能清库绕过失败。
 

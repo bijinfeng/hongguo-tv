@@ -18,15 +18,15 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 ### 来源与维护
 
-| 内容                 | 唯一职责与入口                                                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 产品范围与真实能力   | [PRODUCT.md](PRODUCT.md)；固定上游只作行为证据，不因原型样例新增能力                                                                                         |
-| 公共视觉与交互规则   | 本文件；任务相关的组件交接补充组合细节，不能覆盖公共规则                                                                                                     |
-| 运行时主题           | [theme.json](packages/ui/theme.json)（桌面）与 [theme.tv.json](packages/ui/theme.tv.json)（TV），由本文件经 `pnpm design:codegen` 生成；组件不写裸色、裸数值 |
-| Token 名称、值与用法 | 本文件各节的 YAML 块；YAML 是唯一编辑源，运行时以生成的两份 theme 为准                                                                                       |
-| 普通控件档位／文字   | [foundation.ts](packages/ui/src/foundation.ts)、[typography.ts](packages/ui/src/typography.ts)、[display.tsx](packages/ui/src/display.tsx)                   |
-| 实际公共 API         | [UI 包规范](packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                     |
-| 已验证行为与限制     | [VALIDATION.md](VALIDATION.md)、[组件实施验收](docs/design/component-implementation.md)                                                                      |
+| 内容                 | 唯一职责与入口                                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 产品范围与真实能力   | [PRODUCT.md](./docs/PRODUCT.md)；固定上游只作行为证据，不因原型样例新增能力                                                                                      |
+| 公共视觉与交互规则   | 本文件；任务相关的组件交接补充组合细节，不能覆盖公共规则                                                                                                         |
+| 运行时主题           | [theme.json](./packages/ui/theme.json)（桌面）与 [theme.tv.json](./packages/ui/theme.tv.json)（TV），由本文件经 `pnpm design:codegen` 生成；组件不写裸色、裸数值 |
+| Token 名称、值与用法 | 本文件各节的 YAML 块；YAML 是唯一编辑源，运行时以生成的两份 theme 为准                                                                                           |
+| 普通控件档位／文字   | [foundation.ts](./packages/ui/src/foundation.ts)、[typography.ts](./packages/ui/src/typography.ts)、[display.tsx](./packages/ui/src/display.tsx)                 |
+| 实际公共 API         | [UI 包规范](./packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                       |
+| 已验证行为与限制     | [VALIDATION.md](./docs/VALIDATION.md)、[组件实施验收](./docs/design/component-implementation.md)                                                                 |
 
 规则有明确所有者，示例使用真实 API，修复在共享源生效。规范与实现不一致时先明确差异，不把实现偶然值或旧快照默认为新规则。机器可读值只保留在 YAML 块。
 
@@ -34,7 +34,7 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 视觉真相只有两处：本文件（契约）与产品代码（渲染）。不维护与产品并行的 HTML/CSS 设计稿。原因是可验证的：并行实现有自己的变量表，同名 token 会被写进不同的值，整条间距阶梯可以悄悄错开一档，而任何一份文档都不会因此变红。要看界面就打开产品——`pnpm dev --target …`、`pnpm ui:host:tv`／`ui:host:desktop` 的组件板，或 `pnpm visual:tv` 的锁定矩阵。
 
-构图意图（哪几屏、什么次序、一块内容占多少视觉重量）写进本文件和对应功能文档，不写进第二套 CSS。token 拥有的尺寸由 [layout-contract 测试](packages/app/test/layout-contract.tsx)在真实应用上断言，期望值从 token 推导，因此改 token 会同时移动实现与断言；没有 token 拥有的构图只靠宿主观察记录，不伪装成自动化结论。
+构图意图（哪几屏、什么次序、一块内容占多少视觉重量）写进本文件和对应功能文档，不写进第二套 CSS。token 拥有的尺寸由 [layout-contract 测试](./packages/app/test/layout-contract.tsx)在真实应用上断言，期望值从 token 推导，因此改 token 会同时移动实现与断言；没有 token 拥有的构图只靠宿主观察记录，不伪装成自动化结论。
 
 ### 改界面的做法
 
@@ -517,7 +517,7 @@ rounded:
 | 播放控制层                           | 共享短透明度过渡；隐藏后不可聚焦，暂停／错误／编辑时保留操作    | 即时显隐         |
 | Spinner／不确定进度                  | 只表示实际等待，不能虚构完成比例                                | 静态可读状态     |
 
-不增加界面音效、装饰循环、海报缩放或逐条错峰动画。每个新流程编码前补状态／动效清单，实际宿主逐项观察；旧批次记录和静态截图不证明逐帧表现。功能级动效清单归属于各功能文档，不在这里复制：发现与播放见[日历](docs/features/calendar-browsing.md#状态与动效清单)、[系列／季](docs/features/season-browsing.md#动效清单)、[榜单雷达](docs/features/radar-snapshots.md#动效清单)、[排行榜](docs/features/rankings-browsing.md#动效清单)、[详情演员与相关作品](docs/features/detail-discovery.md#动效清单)、[历史管理](docs/features/guest-history-management.md#动效清单)、[追更](docs/features/following.md#动效与交互清单)与[预约](docs/features/reservations.md#动效与交互清单)。
+不增加界面音效、装饰循环、海报缩放或逐条错峰动画。每个新流程编码前补状态／动效清单，实际宿主逐项观察；旧批次记录和静态截图不证明逐帧表现。功能级动效清单归属于各功能文档，不在这里复制：发现与播放见[日历](./docs/features/calendar-browsing.md#状态与动效清单)、[系列／季](./docs/features/season-browsing.md#动效清单)、[榜单雷达](./docs/features/radar-snapshots.md#动效清单)、[排行榜](./docs/features/rankings-browsing.md#动效清单)、[详情演员与相关作品](./docs/features/detail-discovery.md#动效清单)、[历史管理](./docs/features/guest-history-management.md#动效清单)、[追更](./docs/features/following.md#动效与交互清单)与[预约](./docs/features/reservations.md#动效与交互清单)。
 
 ## Voice & Content Strategy
 
@@ -820,7 +820,7 @@ Lucide 1.43.0 官方 SVG 的源、许可证与逐图 SHA 位于 `packages/ui/ass
 - 尺寸只取 `sm`／`md`／`lg`；不要在页面写 44／36 等旧档位，也不要用 `style` 改控件内距、字号或圆角。
 - token 名称和值以本文件 YAML 与表格为准；改 YAML 后跑 `pnpm design:codegen` 生成两份 theme 与 `tokens.generated.ts`，组件里不写裸 hex、`dark:` 补丁或第二套字号。
 - 以真实数据组织找剧、详情和安静观看；保留输入、卡片身份、列表位置、实际播放进度和精确来源焦点。
-- 变更同步规则、主题／组件源和原生验收页。可操作样板是生产组件本身：`pnpm ui:host:tv`／`ui:host:desktop` 打开组件板，`pnpm ui:preview` 在浏览器里跟改；组合细节见[设计交接](docs/design/component-design.md)。不另维护一份 HTML 稿：视觉真相只存在于本文件与产品代码，稿一旦与代码并行就必然漂移。
+- 变更同步规则、主题／组件源和原生验收页。可操作样板是生产组件本身：`pnpm ui:host:tv`／`ui:host:desktop` 打开组件板，`pnpm ui:preview` 在浏览器里跟改；组合细节见[设计交接](./docs/design/component-design.md)。不另维护一份 HTML 稿：视觉真相只存在于本文件与产品代码，稿一旦与代码并行就必然漂移。
 - UI 修改执行各入口 check **和** build、现有组件行为回归与相关真实宿主观察；根门禁按工程规范执行。依赖变化另跑 security，缺工具不能静默跳过。
 - 视觉检查覆盖浅深主题、字级、边界、对齐、长文、状态叠加、焦点裁切、字号放大和减少动态效果。保存实际源码／宿主／尺寸与证据，未验项明确记录。
-- 不将浏览器、headless、macOS TV 密度与 API34 模拟器相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。MVP 的验收宿主为 macOS 真机（桌面）与固定 API34 AVD（TV），见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)；物理电视与 Windows／Linux 真机按平台限制记录，不阻塞 MVP。
+- 不将浏览器、headless、macOS TV 密度与 API34 模拟器相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。MVP 的验收宿主为 macOS 真机（桌面）与固定 API34 AVD（TV），见 [ENGINEERING §9](./docs/ENGINEERING.md#验收宿主矩阵)；物理电视与 Windows／Linux 真机按平台限制记录，不阻塞 MVP。

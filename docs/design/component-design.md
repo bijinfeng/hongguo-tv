@@ -6,13 +6,13 @@
 
 组件板就是生产组件本身，没有另一份浏览器稿。每个入口一条命令，都读当前 `packages/ui`：
 
-| 想看的                       | 命令                        | 说明                                                       |
-| ---------------------------- | --------------------------- | ---------------------------------------------------------- |
-| 浏览器里改、热重载           | `pnpm ui:preview`           | 前台激活，固定端口，重复启动替换上一次预览                 |
-| AppKit／GTK 窗口里看桌面密度 | `pnpm ui:host:desktop`      | 后台窗口，不抢键盘；密度取 `theme.json`                    |
-| AppKit／GTK 窗口里看 TV 密度 | `pnpm ui:host:tv`           | 后台窗口；密度取 `theme.tv.json`                           |
-| 全部页面与组件板的锁定矩阵   | `pnpm visual:tv --web`      | 960×540，浅深×字级，产出截图与 manifest                    |
-| 真实应用                     | `pnpm dev --target desktop`／`dev:tv` | 产品完整壳，数据走真实 core                       |
+| 想看的                       | 命令                                  | 说明                                       |
+| ---------------------------- | ------------------------------------- | ------------------------------------------ |
+| 浏览器里改、热重载           | `pnpm ui:preview`                     | 前台激活，固定端口，重复启动替换上一次预览 |
+| AppKit／GTK 窗口里看桌面密度 | `pnpm ui:host:desktop`                | 后台窗口，不抢键盘；密度取 `theme.json`    |
+| AppKit／GTK 窗口里看 TV 密度 | `pnpm ui:host:tv`                     | 后台窗口；密度取 `theme.tv.json`           |
+| 全部页面与组件板的锁定矩阵   | `pnpm visual:tv --web`                | 960×540，浅深×字级，产出截图与 manifest    |
+| 真实应用                     | `pnpm dev --target desktop`／`dev:tv` | 产品完整壳，数据走真实 core                |
 
 八组为：基础、按钮与选择、输入与表单、导航、弹层、内容、观看、反馈。布局配方及业务组合置于对应组，不按新名称无限扩组。评审标签不进入产品，账号／视频／进度样例不代表真实能力。
 
@@ -30,10 +30,10 @@
 
 NSH 版本以 `.nsh-version` 为准，底层 API 以各端 `.nsh/types/` 为准。项目控件包装契约见 UI 包，不能直接传给 base；保留现有 SelectFocus 与来源移除交接，不为视觉一致删掉已验证适配。
 
-新增组件前查[当前覆盖](component-implementation.md)和[候选准入](component-roadmap.md)，先确认真实用途／状态／焦点路径及 NSH 承接。NSH 只使用公共 UI，不能为未确认业务补造协议或成功状态。
+新增组件前查[当前覆盖](./component-implementation.md)和[候选准入](./component-roadmap.md)，先确认真实用途／状态／焦点路径及 NSH 承接。NSH 只使用公共 UI，不能为未确认业务补造协议或成功状态。
 
 ## 验证与追溯
 
 浏览器渲染／交互、NSH check 和 build、真实宿主、Android TV 遥控／IME、系统大字／读屏及真实媒体分别验收：前者不等于后者。token 拥有的尺寸由 [layout-contract 测试](../../packages/app/test/layout-contract.tsx)在真实应用上断言，构图与绘制仍靠宿主观察。924×873 评审视口暴露的搜索双边框／58 对 60 高度问题是历史修复依据，不是新的窄窗产品规格。
 
-已实现家族、设计还原与剩余限制统一见[覆盖矩阵](component-implementation.md)；原始组合、用户反馈及历次设计观察保存在[历史交接](../history/2026-11-15/design/component-design.md)。后续不在本页追加运行计数和日期日志。
+已实现家族、设计还原与剩余限制统一见[覆盖矩阵](./component-implementation.md)；原始组合、用户反馈及历次设计观察保存在[历史交接](../history/2026-11-15/design/component-design.md)。后续不在本页追加运行计数和日期日志。

@@ -49,7 +49,7 @@ TV 命令使用独立 API34 模拟器验收包，复用生产 MainActivity／TvR
 
 工具不跑 Cargo、不覆盖生产 APK；保存并恢复生产 APK 路径／SHA、前台、字体、主题和 reverse，卸载本次独立包。可用 `--suite`／`--profile` 定向复现。harness／macOS 工具不覆盖运行配置，显式生成 ignored 验收入口。
 
-RankingCard 独立样例与测试说明见 [UI 包](../../packages/ui/README.md#rankingcard)。实际执行结果和已知失败归因见 [VALIDATION](../../VALIDATION.md)，不能把测试源码、headless 或 Mac 的 TV 密度当作 Android 遥控通过。
+RankingCard 独立样例与测试说明见 [UI 包](../../packages/ui/README.md#rankingcard)。实际执行结果和已知失败归因见 [VALIDATION](../VALIDATION.md)，不能把测试源码、headless 或 Mac 的 TV 密度当作 Android 遥控通过。
 
 ## 范围
 

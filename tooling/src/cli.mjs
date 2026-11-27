@@ -196,10 +196,12 @@ const fmt = async (check) => {
     '.vscode',
     'README.md',
     'AGENTS.md',
-    'ARCHITECTURE.md',
-    'ENGINEERING.md',
     'DESIGN.md',
-    'VALIDATION.md',
+    'THIRD_PARTY_NOTICES.md',
+    // The four contracts live here now; without this the format gate stops covering them.
+    // History is frozen evidence and keeps whatever formatting it was written with.
+    'docs/**/*.md',
+    '!docs/history/**',
     'package.json',
     'pnpm-workspace.yaml',
     'commitlint.config.mjs',

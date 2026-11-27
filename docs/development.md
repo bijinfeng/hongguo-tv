@@ -1,6 +1,6 @@
 # 开发运行手册
 
-本文件只维护可执行的环境、运行与诊断方法。工具与工程要求见 [ENGINEERING](../ENGINEERING.md)，当前结果见 [VALIDATION](../VALIDATION.md)，版本以仓库版本文件为准。
+本文件只维护可执行的环境、运行与诊断方法。工具与工程要求见 [ENGINEERING](./ENGINEERING.md)，当前结果见 [VALIDATION](./VALIDATION.md)，版本以仓库版本文件为准。
 
 ## 环境准备
 
@@ -52,7 +52,7 @@ HTTP 开发 API 仅监听 loopback，校验精确 Host／Origin，不能直接�
 
 ## 定向验证
 
-check／build／test 可加 `--target harness|desktop|tv`，默认三个工程；`dev`／`dev:fixture`／`package` 只接受 `desktop|tv`，因为 harness 不发行。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
+check／build／test 可加 `--target harness|desktop|tv`，默认三个工程；`dev`／`dev:fixture`／`package` 只接受 `desktop|tv`，因为 harness 不发行。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](./implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
 
 真实匿名流程使用现有工具，不注入合成响应或直接伪造观看记录：
 
@@ -85,6 +85,6 @@ pnpm package:tv
 
 ## 发行与迁移对照
 
-版本唯一编辑源为 `product-version.json`。release:check／sync／metadata／record／verify-record 的参数、工作流、签名和晋级规则见[分发方案](github-delivery-and-updates.md)、[发行摘要](release-metadata-validation.md)及[客户端更新](client-updates.md)，不在此复制发布流程。
+版本唯一编辑源为 `product-version.json`。release:check／sync／metadata／record／verify-record 的参数、工作流、签名和晋级规则见[分发方案](./github-delivery-and-updates.md)、[发行摘要](./release-metadata-validation.md)及[客户端更新](./client-updates.md)，不在此复制发布流程。
 
 `pnpm legacy:setup`、`legacy:dev:web`、`legacy:dev`、`legacy:verify` 只用于旧行为对照，仅这条链路需要 Go。新工程不执行 Go，不读取旧客户端数据，不修改固定上游。旧链路退役条件见 ARCHITECTURE。

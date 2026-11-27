@@ -1,12 +1,12 @@
 # 当前验收状态
 
-更新：2026-11-26。完整 MVP 尚未完成。验收规则唯一来源为 [ENGINEERING §9](ENGINEERING.md#9-安全测试与可观测性)，实现缺口维护在[功能台账](docs/feature-ledger.md)，本页只维护当前验收矩阵、开放失败与证据索引。
+更新：2026-11-26。完整 MVP 尚未完成。验收规则唯一来源为 [ENGINEERING §9](./ENGINEERING.md#9-安全测试与可观测性)，实现缺口维护在[功能台账](./feature-ledger.md)，本页只维护当前验收矩阵、开放失败与证据索引。
 
-正式入口的真实数据／实际流程是功能验收依据；合成数据只记边界回归。工程门禁、局部真实流程、恢复诊断与整体验收分开记账，保留全部失败。逐轮运行正文在 [history](docs/history/README.md)，本页不追加过程叙事。
+正式入口的真实数据／实际流程是功能验收依据；合成数据只记边界回归。工程门禁、局部真实流程、恢复诊断与整体验收分开记账，保留全部失败。逐轮运行正文在 [history](./history/README.md)，本页不追加过程叙事。
 
 2026-11-26 起 Web 不再是产品端（官方产品已有 Web），原 `apps/web` 改名 `apps/harness`。本页与历史记录里的「Web 轮次」「Web fixture」「Web 套件」指的都是这个无头 Chromium 验收宿主；其源码、命令与产物路径按当时名称保留，不改写，向下按「宿主」读即可。
 
-2026-11-27 起 MVP 验收宿主收窄为两种：桌面为 macOS 真机，TV 为固定 API34 arm64 AVD 模拟器。物理电视（真实遥控、硬解、4K、真实 overscan、观看距离）与 Windows／Linux 真机安装升级改为平台限制，仍在本页保留事实与原因，但不再是 MVP 验收条件。规则见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)。TV 的 DPAD／媒体键／系统 IME 由模拟器注入，属于 MVP 范围，不因「非物理设备」回到待验收。
+2026-11-27 起 MVP 验收宿主收窄为两种：桌面为 macOS 真机，TV 为固定 API34 arm64 AVD 模拟器。物理电视（真实遥控、硬解、4K、真实 overscan、观看距离）与 Windows／Linux 真机安装升级改为平台限制，仍在本页保留事实与原因，但不再是 MVP 验收条件。规则见 [ENGINEERING §9](./ENGINEERING.md#验收宿主矩阵)。TV 的 DPAD／媒体键／系统 IME 由模拟器注入，属于 MVP 范围，不因「非物理设备」回到待验收。
 
 ## 状态总览
 
@@ -38,7 +38,7 @@
 
 ### 工程门禁
 
-2026-11-26 TV v4 分支 rebase 到 master `8ffe66349` 后，`c32d53b2c` 加同步超时测试修正的 `pnpm verify` 通过（NSH 0.7.0）；此前的 UI 验收入口 check＋build、design:check 与 ui:icons:check 保留各自源码范围。当前命令和范围见下方 TV v4 项。2026-11-20 的 security 与 master CI 结果仅覆盖当时源码，见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)，不作为本次 CI／发行证明。
+2026-11-26 TV v4 分支 rebase 到 master `8ffe66349` 后，`c32d53b2c` 加同步超时测试修正的 `pnpm verify` 通过（NSH 0.7.0）；此前的 UI 验收入口 check＋build、design:check 与 ui:icons:check 保留各自源码范围。当前命令和范围见下方 TV v4 项。2026-11-20 的 security 与 master CI 结果仅覆盖当时源码，见[门禁与发布记录](./history/2026-11-20/gate-and-release.md)，不作为本次 CI／发行证明。
 
 - Rust 显式联网 probe 跳过 1 项，headless 有 warning。
 - 门禁只覆盖本机工作树的根工作区，不含签名、安装、升级与真实流程。
@@ -66,15 +66,15 @@
 
 ### Desktop native
 
-MVP 桌面验收平台为 macOS 真机（见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)），以下 Linux 记录作为平台限制保留，不阻塞 MVP。
+MVP 桌面验收平台为 macOS 真机（见 [ENGINEERING §9](./ENGINEERING.md#验收宿主矩阵)），以下 Linux 记录作为平台限制保留，不阻塞 MVP。
 
 正式入口真实搜索／详情成功；最新同账号同剧实际播放 8→87 秒、暂停后恢复至 160 秒，SQLite 进度和同步 ACK 已观察。
 
 - 旧 409 仍未解释，首帧截图／远端原始进度回读未验。
 - 随后重开遇到热更新后进程存活但零窗口，未能观察续播入口。
 - 完整管理、后台、全屏、稳定性继续待验；这些需在 macOS 真机上补齐才算 MVP 通过。
-- **NSH 0.7.0 的 Linux `lifecycle()` 恒报 `background` 使数据页停在骨架屏（Linux 平台限制，不阻塞 MVP）**：上游已修（[#3239](https://github.com/longbridge/nsh/issues/3239)／PR [#3252](https://github.com/longbridge/nsh/pull/3252)），**不在 0.7.1 内**；macOS 按整个应用计算不受影响，Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)／[#3300](https://github.com/longbridge/nsh/pull/3300)）。定位过程与逐条核对见[平台限制排查归档](docs/history/2026-11-27/linux-platform-limits.md)。
-- **Linux 隐藏标题栏时 GTK 窗口按钮在浅色下不可见（Linux 平台限制，已报上游 [#3381](https://github.com/longbridge/nsh/issues/3381)）**：浅色字形纯白 `#ffffff` 落在 `#f9f9f9` 栏面，对比度 1.05:1；深色 9.1:1 且有实心圆底。像素测量与最小复现见[平台限制排查归档](docs/history/2026-11-27/linux-platform-limits.md)。
+- **NSH 0.7.0 的 Linux `lifecycle()` 恒报 `background` 使数据页停在骨架屏（Linux 平台限制，不阻塞 MVP）**：上游已修并合入 `main`（[#3239](https://github.com/longbridge/nsh/issues/3239)／PR [#3252](https://github.com/longbridge/nsh/pull/3252)），但**不在 0.7.1，也不在 0.7.2**——0.7.2 的发布树里 `lifecycle()` 仍只读宿主隐藏窗口，且该段源码与 0.7.1 逐字节相同。macOS 按整个应用计算不受影响，Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)／[#3300](https://github.com/longbridge/nsh/pull/3300)）。定位过程与逐条核对见[平台限制排查归档](./history/2026-11-27/linux-platform-limits.md)。
+- **Linux 隐藏标题栏时 GTK 窗口按钮在浅色下不可见（Linux 平台限制，已报上游 [#3381](https://github.com/longbridge/nsh/issues/3381)）**：浅色字形纯白 `#ffffff` 落在 `#f9f9f9` 栏面，对比度 1.05:1；深色 9.1:1 且有实心圆底。上游修复 PR [#3399](https://github.com/longbridge/nsh/pull/3399) 已合入 `main` 并自动关闭该 issue，但**同样不在 0.7.2**：issue 关闭不等于已发布。像素测量与最小复现见[平台限制排查归档](./history/2026-11-27/linux-platform-limits.md)。
 
 ### TV native
 
@@ -91,37 +91,37 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 开放：上游真实 `/play/info` 在正式入口曾播放失败，未取得首帧；账号写读仅覆盖局部；完整 TalkBack 播报与遍历、其他 IME、逐帧动效未验；4K 输出与物理设备按平台限制记录。
 
-逐项设备读数、运行计数、失败原始证据与排查过程见[验收详情归档](docs/history/2026-11-27/tv-v4-acceptance-detail.md)。
+逐项设备读数、运行计数、失败原始证据与排查过程见[验收详情归档](./history/2026-11-27/tv-v4-acceptance-detail.md)。
 
 ### 游客历史 E1
 
-管理实现与写屏障已接；共享 History 管理回归 headless 25／25 通过（唯一跳过项是 TV 目标的 `detail return restores…`，原因与替代覆盖见[功能台账](docs/feature-ledger.md)）；冻结源码 `pnpm verify` 通过；验收宿主有真实记录、取消／单删／所选删／清空、部分跨重启证据；真实键盘管理有局部证据。
+管理实现与写屏障已接；共享 History 管理回归 headless 25／25 通过（唯一跳过项是 TV 目标的 `detail return restores…`，原因与替代覆盖见[功能台账](./feature-ledger.md)）；冻结源码 `pnpm verify` 通过；验收宿主有真实记录、取消／单删／所选删／清空、部分跨重启证据；真实键盘管理有局部证据。
 
 - 管理切片当前 12／13；后续运行的播放错误和详情超时保留。
 - 完整真实焦点／长列表／后台、Desktop native／当前 TV 包未整体验收。
 
 ### 基础组件／还原
 
-公共实现、三端 check／build 和行为回归，macOS 桌面／TV 密度、部分 Android 模拟器及独立视觉审查有分项证据；主题以 `packages/ui/theme.json`／`theme.tv.json` 为运行时来源，由 DESIGN.md 经 `pnpm design:codegen` 生成，对比度按 WCAG 公式核算。浏览器原型已于 2026-11-26 删除（见[该次决定](docs/history/2026-11-26/design)），视觉真相只余 DESIGN.md 与产品代码。
+公共实现、三端 check／build 和行为回归，macOS 桌面／TV 密度、部分 Android 模拟器及独立视觉审查有分项证据；主题以 `packages/ui/theme.json`／`theme.tv.json` 为运行时来源，由 DESIGN.md 经 `pnpm design:codegen` 生成，对比度按 WCAG 公式核算。浏览器原型已于 2026-11-26 删除（见[该次决定](./history/2026-11-26/design)），视觉真相只余 DESIGN.md 与产品代码。
 
 - **Web 端（harness）已能截图，开发期的视觉核对走它**（2026-11-26）：`nsh test <file> --target web` 需要 `clang` 与 `llvm-ar`；两者装上后 `zstd-sys` 的 web runtime 可编译，`open()` 的 `screenshot` 输出真实像素。首页 hero 的浅深两色已用 fixture 数据截到真实渲染（1180×780，非骨架态），圆角逐行量测为 4 行收到 0，符合 `radius('lg')`=8；同一 fixture 下 hero 的文本序列为「持／全 113 集／持械入宋／简介／立即观看／查看详情」。
 - 需要区分三种证据：`pnpm test` 通过、web 端截图看过、真实桌面／TV 宿主通过。第三种仍是验收标准，web 截图不能替代——它证明的是产品代码在可控宿主里的渲染，不是宿主行为。
 - 新主题与默认边框规则尚未在真实宿主逐项截图。
-- 全家族所有状态、人工 IME、读屏、大字／距离、hover／pressed 与逐帧动效不能由样例或静态截图概括；见[组件矩阵](docs/design/component-implementation.md)。
+- 全家族所有状态、人工 IME、读屏、大字／距离、hover／pressed 与逐帧动效不能由样例或静态截图概括；见[组件矩阵](./design/component-implementation.md)。
 
 ### 首页加载／占位（共享 UI）
 
-统一为静帧骨架模型，含 `skeleton`／`skeleton-surface` token 与 `SkeletonBlock`／`SkeletonRegion`；当批三端应用回归与宿主 fixture 截图见[批次记录](docs/history/2026-11-17/home-loading-unification.md)。
+统一为静帧骨架模型，含 `skeleton`／`skeleton-surface` token 与 `SkeletonBlock`／`SkeletonRegion`；当批三端应用回归与宿主 fixture 截图见[批次记录](./history/2026-11-17/home-loading-unification.md)。
 
 - fixture 未制造继续观看失败与精选区隐藏。
 - 读屏实际播报、真实慢网／失败、正式 harness／Desktop 宿主截图未验证；骨架高度差只有视觉复核，未逐像素测量。遥控输入由模拟器覆盖；物理设备按平台限制记录。
-- Desktop 上骨架屏永不退出的成因不是本节的加载态缺陷，而是 NSH 0.7.0 的 Linux `lifecycle()` 恒为 `background` 使读取从未发起，见[Desktop native](#desktop-native)；这是 Linux 平台限制，需在含上游修复的 NSH 版本上重新观察，macOS 真机验收不受影响。
+- Desktop 上骨架屏永不退出的成因不是本节的加载态缺陷，而是 NSH 0.7.0 的 Linux `lifecycle()` 恒为 `background` 使读取从未发起，见[Desktop native](#desktop-native)；这是 Linux 平台限制，需在含上游修复的 NSH 版本上重新观察（该修复截至 0.7.2 仍未随任何发行发布），macOS 真机验收不受影响。
 
 ### 排行榜／榜单雷达（统一设计）
 
-页面级来源 Tabs、雷达控件带、hairline 表格、TV 比例列宽与整行焦点已落地；macOS 宿主与 TV 视觉捕获见[批次记录](docs/history/2026-11-17/rankings-radar-unified-design.md)。
+页面级来源 Tabs、雷达控件带、hairline 表格、TV 比例列宽与整行焦点已落地；macOS 宿主与 TV 视觉捕获见[批次记录](./history/2026-11-17/rankings-radar-unified-design.md)。
 
-- 2026-11-19 `--anonymous-live` 对 `all/ranklist_hot_play_sc`、`ranklist_celebrity/ranklist_actor_fans`、`series_album/series_album_new_rank` 解析出 10／20／10 条真实条目；本机 Rust API + macOS 宿主以真实数据渲染（真实剧名、简介、`8907万热度`、`逆袭·全319集` 元信息、四行服务端分组名），截图 `artifacts/rankings-live/desktop/`；字段映射归[功能台账](docs/feature-ledger.md)。
+- 2026-11-19 `--anonymous-live` 对 `all/ranklist_hot_play_sc`、`ranklist_celebrity/ranklist_actor_fans`、`series_album/series_album_new_rank` 解析出 10／20／10 条真实条目；本机 Rust API + macOS 宿主以真实数据渲染（真实剧名、简介、`8907万热度`、`逆袭·全319集` 元信息、四行服务端分组名），截图 `artifacts/rankings-live/desktop/`；字段映射归[功能台账](./feature-ledger.md)。
 - 宿主截图：TV `pnpm visual:tv --web` 960×540dp 浅／深（`artifacts/tv-visual/web/tv-rankings-{light,dark}.png`，viewport 记在同目录 `manifest.json`，source `f5cd6e8`）；桌面现存 `artifacts/rankings-ui/web/desktop/`，`artifacts/radar-ui/` 与 macos 目录已不在本机，原 radar 4／4 截图不可复现。
 - 本机 `cargo nextest` 全量并行时 `lifecycle_tests::a_directory_alias_reopen_waits_for_the_original_session_to_drain` 偶发失败（单独运行 50／50 通过），属既有目录锁时序不稳定，与榜单链路无关。
 
@@ -137,7 +137,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 ### 我的账号页面构图
 
-桌面与 TV 构图、深浅色、登录弹窗已截图并完成四轮视觉复评；过程、评语与三端账号回归见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
+桌面与 TV 构图、深浅色、登录弹窗已截图并完成四轮视觉复评；过程、评语与三端账号回归见[门禁与发布记录](./history/2026-11-20/gate-and-release.md)。
 
 - TV 本轮已观察真实登录后的账号与同步状态，证据见 TV v4 项；真实账号系统大字及完整同步仍待验，模拟遥控已覆盖，物理遥控按平台限制记录。旧构图评审使用合成服务响应。
 - TV 以轻标题＋按钮带替代第二列与卡片容器属端型适配，不作为桌面还原度的一部分。
@@ -179,7 +179,7 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 
 ### 平台与发行
 
-2026-11-20 首次正式发布 `v0.1.0`；2026-11-21 从 master 发布 `v0.1.1`（源码 `722cbd8`，run 44764824518）。两次的 `quality`／`security` 前置 job 均通过，两端构建成功；`v0.1.1` 的产物已下载实测：APK 证书 `8d34d7e8…` 与 `tooling/release-policy.json` 一致（`CN=Hongguo TV Release`），两端 SHA-256 与各自清单一致，两份更新清单的 Ed25519 签名以配置公钥验签通过。发布细节与逐项未验见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
+2026-11-20 首次正式发布 `v0.1.0`；2026-11-21 从 master 发布 `v0.1.1`（源码 `722cbd8`，run 44764824518）。两次的 `quality`／`security` 前置 job 均通过，两端构建成功；`v0.1.1` 的产物已下载实测：APK 证书 `8d34d7e8…` 与 `tooling/release-policy.json` 一致（`CN=Hongguo TV Release`），两端 SHA-256 与各自清单一致，两份更新清单的 Ed25519 签名以配置公钥验签通过。发布细节与逐项未验见[门禁与发布记录](./history/2026-11-20/gate-and-release.md)。
 
 - Windows／Linux 实际安装、正式签名／公证／SBOM、无 Go 干净环境未完成；这些不阻塞 MVP，但也不得宣称两平台已支持。2026-11-22 接入两平台的工程门禁：ci.yml entry 在 windows-2025／ubuntu-24.04 跑桌面行为测试，release-preview 的 `windows-preview`／`linux-preview` 产出未签名预览 ZIP／归档；两者首次流水线运行与产物真机验收均未完成。
 - **桌面发布流水线已扩到三平台（2026-11-24，仅源码改动，尚未跑过发布）**：`release-publish.yml` 的 `desktop` 改为 macOS／Windows／Linux 矩阵，各平台产 `<os>-<arch>` 命名的归档，由新增 `desktop-manifest` job 生成一份三平台 `latest.json`；新增 `tooling/src/desktop-archive.mjs` 按 `nsh-updater` 暂存规则复核归档（单一顶层目录、可执行文件、`nsh/app.json` 的应用 ID），preview 与 publish 共用。**证据只到工具层**：`update-manifest` 回归 7 项全部通过（本机装的是 NSH 0.6.1、仓库固定 0.6.0，固定版本那条断言只在把 `.nsh-version` 临时指向 0.6.1 时通过；已还原为 0.6.0，CI 装固定版本不受影响），`desktop-archive` 2 项通过；校验器对真实 `apps/desktop/.nsh/out/红果.tar.gz` 通过；用临时密钥对三平台归档（真实 Linux 包 + 合成的 macOS／Windows 包）跑通「生成记录 → 壳层签名 → 复验」，并确认删掉 Windows 平台键后即使签名正确仍被拒绝。**Windows runner 打包、三平台同时发布、Windows／Linux 真机安装与 N-1 → N 升级均未验，按平台限制记录；不宣称两平台已支持，也不阻塞 MVP。**
@@ -194,11 +194,11 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 
 ### 安全
 
-`cargo-deny` 的 bans／sources 通过；依赖已升到 NSH 0.6.1（`Cargo.toml:45-47` 的 `nsh-base`／`nsh-core`／`nsh-engine`）。2026-11-20 按[依赖检查](docs/dependencies/native-release-security.md)给 4 项许可证与 2 项 unmaintained advisory 补精确版本例外后，`deny.toml` 保留 bans／sources 与全局 `allow`，`unused-ignored-advisory = "deny"`（`deny.toml:17-21`），`pnpm security` 退出码 0。2026-11-23 升到 0.6.1 后 `pnpm security` 仍退出码 0（advisories／bans／licenses／sources 全 ok）；同两条 advisory 的 `chrono 0.4.45`／`ttf-parser 0.25.1` 在 0.6.1 依赖图中未变，例外继续适用；`deny.toml:105` 的 `webpki-roots` 许可证例外在 0.6.1 依赖图中未命中，只产生 `license-exception-not-encountered` warning，不影响门禁结果。
+`cargo-deny` 的 bans／sources 通过；依赖已升到 NSH 0.6.1（`Cargo.toml:45-47` 的 `nsh-base`／`nsh-core`／`nsh-engine`）。2026-11-20 按[依赖检查](./dependencies/native-release-security.md)给 4 项许可证与 2 项 unmaintained advisory 补精确版本例外后，`deny.toml` 保留 bans／sources 与全局 `allow`，`unused-ignored-advisory = "deny"`（`deny.toml:17-21`），`pnpm security` 退出码 0。2026-11-23 升到 0.6.1 后 `pnpm security` 仍退出码 0（advisories／bans／licenses／sources 全 ok）；同两条 advisory 的 `chrono 0.4.45`／`ttf-parser 0.25.1` 在 0.6.1 依赖图中未变，例外继续适用；`deny.toml:105` 的 `webpki-roots` 许可证例外在 0.6.1 依赖图中未命中，只产生 `license-exception-not-encountered` warning，不影响门禁结果。
 
 - `pnpm security` 只按根工作区跑 `cargo deny --locked check`（`tooling/src/cli.mjs:338-341`，cwd 固定为仓库根），NSH 生成宿主锁文件（`apps/*/.nsh/rust/Cargo.lock`，含 bincode 1.3.3、syntect、two-face）不在其范围。
 - 两条 advisory（chrono 0.4.45 RUSTSEC-2026-0543、ttf-parser 0.25.1 RUSTSEC-2026-0192）均无修复版本，到期 2027-02-28；根门禁按精确版本例外放行，`v0.1.0` 即在该策略下发布，宿主锁文件仍未纳入同一策略。
-- 单独 `pnpm audit --audit-level moderate` 此前实测 exit 0（见[依赖检查](docs/dependencies/native-release-security.md)「尚未完成的验证」）；SBOM／provenance／NOTICE 与 Gitleaks 均未接入 `.github`（`grep -rIl` 为空）。
+- 单独 `pnpm audit --audit-level moderate` 此前实测 exit 0（见[依赖检查](./dependencies/native-release-security.md)「尚未完成的验证」）；SBOM／provenance／NOTICE 与 Gitleaks 均未接入 `.github`（`grep -rIl` 为空）。
 
 ## 开放问题与下一步
 
@@ -216,31 +216,31 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 
 下表指向保留的历史章节；artifact 在忽略目录中，换机器时可能不可用。缺失产物时保持证据不可复现／待补，不凭文字继承通过。
 
-| 证据                                                                                                                  | 来源与限制                                                                                                                       |
-| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| [门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)                                                         | 2026-11-20 工程门禁、master CI、首次发布产物实测与账号页构图评语；当前状态见本页矩阵                                             |
-| [账号会话批次](docs/history/2026-11-15/account-session.md)                                                            | 真实扫码／同库恢复／退出的局部成功、账号历史整轮失败、游客公开路径与浅深色四图；工程门禁另记，不代证完整账号验收                 |
-| [账号片库同步批次](docs/history/2026-11-15/account-library-sync.md)                                                   | 正常应用目录持久登录、真实云端历史及收藏往返已验；离线回归单列，播放、游客合并与平台视觉仍开放                                   |
-| [账号追更批次](docs/history/2026-11-15/account-follow.md)                                                             | 固定协议、scope／凭证／失响应审查与正式共享入口；合成边界、真实只读及授权云写分开记账                                            |
-| [账号更新提醒批次](docs/history/2026-11-16/account-notifications.md)                                                  | 真实来源协议与本机通知工程实现、三端 UI／状态回归；未替代正式账号变化、已读、重启和 owner 隔离验收                               |
-| [账号预约批次](docs/history/2026-11-16/account-reservations.md)                                                       | 两组预约读取、item／series 身份、失败对账和共享 UI 的工程／源码审查；真实列表、云写、宿主和物理 TV 仍待验                        |
-| [原生核心收尾审查](docs/history/2026-11-16/native-core-review.md)                                                     | C3.3 完整 verify、codegen、OpenSpec strict 与安全门禁结果；Desktop C3.2、物理 TV、安全发行仍待验                                 |
-| [观看统计批次](docs/history/2026-11-16/account-watch-statistics.md)                                                   | 独立存储、真实 Player 采集、共享 History UI、完整 verify 和三端回归；真实播放、重启／重置和物理 TV 仍待验                        |
-| [详情演员与相关作品批次](docs/history/2026-11-16/detail-actors-related.md)                                            | Web fixture 4/4、TV 输入适配 light/dark/1.3 通过；正式匿名 Web 因锁屏未进入搜索，不能代替真实验收                                |
-| [排行榜与雷达统一设计批次](docs/history/2026-11-17/rankings-radar-unified-design.md)                                  | 原型桌面／TV 与产品端统一结构、macOS 宿主 radar 4／4 与 rankings 8／8、TV 视觉捕获 2／2；真实流程、物理 TV 与读屏仍未验          |
-| [首页加载态统一批次](docs/history/2026-11-17/home-loading-unification.md)                                             | 静帧骨架状态模型、共享原语与 token、三端构建与组件回归；宿主 fixture 浅深色／TV 首屏 4／4；失败路径、读屏与正式宿主仍未验        |
-| [设置页还原批次](docs/history/2026-11-17/settings-page.md)                                                            | 单列设置页与真实偏好、NSH Storage 持久化、当批源码三端套件与 Web／macOS／Android TV 模拟器截图；物理端、真实播放与签名升级仍待验 |
-| [最新播放与最终工程检查](docs/history/2026-11-15/VALIDATION.md#实际播放进度确认--2026-11-15局部真实流程)              | Web 真实轮次失败、原生 409、一次原生诊断恢复、实际图像复核与最终 verify；诊断不算完整验收                                        |
-| [播放状态与早期失败](docs/history/2026-11-15/VALIDATION.md#播放状态与原始失败诊断--2026-11-15真实复验未通过)          | 合成四态、搜索 504、只读准备 probe、磁盘不足和前序工程失败分开保留                                                               |
-| [真实键盘管理](docs/history/2026-11-15/VALIDATION.md#e1-真实键盘取消与阅读锚点增量--2026-11-15仍为-713)               | 浅深各 10 段走完但发生播放重试，passed=false；合成长列表／锚点另记                                                               |
-| [早期完整 Web 历史主链](docs/history/2026-11-15/VALIDATION.md#e1-chromium-真实主链终轮与清理复审--2026-11-15仍为-713) | 当轮 18 段真实流程与持久快照通过，仅对应其源码及范围，不能覆盖后来的失败                                                         |
-| [详情真实流程](docs/history/2026-11-15/VALIDATION.md#真实数据验收标准与详情正向补验--2026-11-15)                      | 正式入口真实搜索／相关返回；演员、切季及平台边界分别保留                                                                         |
-| [TV 独立真实业务](docs/history/2026-11-15/VALIDATION.md#c31--tv-原生官网观看与持久续播)                               | 固定 API34、当时 APK、无电脑 API／reverse、三组 watch18＋resume7 及 SQLite，含有限重试；非物理 TV                                |
-| [旧工程／T0／迁移前结果](docs/history/2026-11-15/VALIDATION.md)                                                       | 只保留当时平台、入口、源码与数据来源，不能当作当前产品已验收                                                                     |
-| [组件还原与覆盖](docs/design/component-implementation.md)                                                             | 当前公共实现及已知限制；逐轮审查从该页进入历史，不重复维护全局完成状态                                                           |
+| 证据                                                                                                               | 来源与限制                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| [门禁与发布记录](./history/2026-11-20/gate-and-release.md)                                                         | 2026-11-20 工程门禁、master CI、首次发布产物实测与账号页构图评语；当前状态见本页矩阵                                             |
+| [账号会话批次](./history/2026-11-15/account-session.md)                                                            | 真实扫码／同库恢复／退出的局部成功、账号历史整轮失败、游客公开路径与浅深色四图；工程门禁另记，不代证完整账号验收                 |
+| [账号片库同步批次](./history/2026-11-15/account-library-sync.md)                                                   | 正常应用目录持久登录、真实云端历史及收藏往返已验；离线回归单列，播放、游客合并与平台视觉仍开放                                   |
+| [账号追更批次](./history/2026-11-15/account-follow.md)                                                             | 固定协议、scope／凭证／失响应审查与正式共享入口；合成边界、真实只读及授权云写分开记账                                            |
+| [账号更新提醒批次](./history/2026-11-16/account-notifications.md)                                                  | 真实来源协议与本机通知工程实现、三端 UI／状态回归；未替代正式账号变化、已读、重启和 owner 隔离验收                               |
+| [账号预约批次](./history/2026-11-16/account-reservations.md)                                                       | 两组预约读取、item／series 身份、失败对账和共享 UI 的工程／源码审查；真实列表、云写、宿主和物理 TV 仍待验                        |
+| [原生核心收尾审查](./history/2026-11-16/native-core-review.md)                                                     | C3.3 完整 verify、codegen、OpenSpec strict 与安全门禁结果；Desktop C3.2、物理 TV、安全发行仍待验                                 |
+| [观看统计批次](./history/2026-11-16/account-watch-statistics.md)                                                   | 独立存储、真实 Player 采集、共享 History UI、完整 verify 和三端回归；真实播放、重启／重置和物理 TV 仍待验                        |
+| [详情演员与相关作品批次](./history/2026-11-16/detail-actors-related.md)                                            | Web fixture 4/4、TV 输入适配 light/dark/1.3 通过；正式匿名 Web 因锁屏未进入搜索，不能代替真实验收                                |
+| [排行榜与雷达统一设计批次](./history/2026-11-17/rankings-radar-unified-design.md)                                  | 原型桌面／TV 与产品端统一结构、macOS 宿主 radar 4／4 与 rankings 8／8、TV 视觉捕获 2／2；真实流程、物理 TV 与读屏仍未验          |
+| [首页加载态统一批次](./history/2026-11-17/home-loading-unification.md)                                             | 静帧骨架状态模型、共享原语与 token、三端构建与组件回归；宿主 fixture 浅深色／TV 首屏 4／4；失败路径、读屏与正式宿主仍未验        |
+| [设置页还原批次](./history/2026-11-17/settings-page.md)                                                            | 单列设置页与真实偏好、NSH Storage 持久化、当批源码三端套件与 Web／macOS／Android TV 模拟器截图；物理端、真实播放与签名升级仍待验 |
+| [最新播放与最终工程检查](./history/2026-11-15/VALIDATION.md#实际播放进度确认--2026-11-15局部真实流程)              | Web 真实轮次失败、原生 409、一次原生诊断恢复、实际图像复核与最终 verify；诊断不算完整验收                                        |
+| [播放状态与早期失败](./history/2026-11-15/VALIDATION.md#播放状态与原始失败诊断--2026-11-15真实复验未通过)          | 合成四态、搜索 504、只读准备 probe、磁盘不足和前序工程失败分开保留                                                               |
+| [真实键盘管理](./history/2026-11-15/VALIDATION.md#e1-真实键盘取消与阅读锚点增量--2026-11-15仍为-713)               | 浅深各 10 段走完但发生播放重试，passed=false；合成长列表／锚点另记                                                               |
+| [早期完整 Web 历史主链](./history/2026-11-15/VALIDATION.md#e1-chromium-真实主链终轮与清理复审--2026-11-15仍为-713) | 当轮 18 段真实流程与持久快照通过，仅对应其源码及范围，不能覆盖后来的失败                                                         |
+| [详情真实流程](./history/2026-11-15/VALIDATION.md#真实数据验收标准与详情正向补验--2026-11-15)                      | 正式入口真实搜索／相关返回；演员、切季及平台边界分别保留                                                                         |
+| [TV 独立真实业务](./history/2026-11-15/VALIDATION.md#c31--tv-原生官网观看与持久续播)                               | 固定 API34、当时 APK、无电脑 API／reverse、三组 watch18＋resume7 及 SQLite，含有限重试；非物理 TV                                |
+| [旧工程／T0／迁移前结果](./history/2026-11-15/VALIDATION.md)                                                       | 只保留当时平台、入口、源码与数据来源，不能当作当前产品已验收                                                                     |
+| [组件还原与覆盖](./design/component-implementation.md)                                                             | 当前公共实现及已知限制；逐轮审查从该页进入历史，不重复维护全局完成状态                                                           |
 
 ## 后续怎样更新
 
 只更新受影响范围的状态与未验要点；一个结果只维护一处，不向 README、路线、每份设计交接同步长篇叙事。需要保留新完整运行记录时放在 `docs/history/` 的对应批次文件或忽略的 artifact，并从本页链接。证据关联源码身份、入口／包、真实／合成数据来源、平台、时间、操作、结果和限制。
 
-产品／契约／共享控件／宿主变化后按影响更新适用证据；纯文档整理不重跑产品构建，也不改写 OpenSpec 任务或验收结论。下一开发批次遵循[实施路线](docs/implementation-roadmap.md)。
+产品／契约／共享控件／宿主变化后按影响更新适用证据；纯文档整理不重跑产品构建，也不改写 OpenSpec 任务或验收结论。下一开发批次遵循[实施路线](./implementation-roadmap.md)。

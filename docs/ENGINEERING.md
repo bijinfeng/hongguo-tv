@@ -1,22 +1,24 @@
 # 工程工具链与交付规范
 
-现行工程要求；实际命令以根package.json／工程脚本及[运行手册](docs/development.md)为准，实现状态看[台账](docs/feature-ledger.md)，实际结果看[VALIDATION](VALIDATION.md)。本文件不维护每日实施进度；TV 验收分层见 §5，定向命令见[运行手册](docs/development.md#tv-定向验证)。
+现行工程要求；实际命令以根package.json／工程脚本及[运行手册](./development.md)为准，实现状态看[台账](./feature-ledger.md)，实际结果看[VALIDATION](./VALIDATION.md)。本文件不维护每日实施进度；TV 验收分层见 §5，定向命令见[运行手册](./development.md#tv-定向验证)。
 
 ## 1. 工具链所有权与版本
 
 pnpm 提供统一入口，各语言工具保留自身职责。开发机和 CI 使用相同的版本文件、参数与报告格式。
 
-| 范围         | 版本/配置入口                              | 策略                                                                               |
-| ------------ | ------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Node         | `.node-version`、`engines`                 | 初始锁定当前已验证的 26.12.1；其他版本经矩阵验证后再声明支持                       |
-| pnpm         | 根 `package.json#packageManager`           | 初始锁定已验证的 `pnpm@11.1.3`；提交单一 `pnpm-lock.yaml`                          |
-| NSH          | `.nsh-version`                             | 保持 0.7.0；CLI、runtime、Rust `nsh-*` 依赖保持一致                                |
-| Rust         | `rust-toolchain.toml`                      | 固定 1.97.0，包含 rustfmt、clippy；宿主兼容性按目标实际构建与验收                  |
-| Rust 包      | 根 `Cargo.toml`、`Cargo.lock`              | Edition 2024、resolver 3；显式成员、共享依赖与 lints；应用锁文件提交               |
-| JS 工具      | 根 devDependencies + pnpm lock             | Oxlint、Oxfmt、Lefthook、commitlint、契约生成器使用精确版本                        |
-| 原生辅助工具 | `tooling/tools.json`                       | nextest、cargo-deny、cargo-llvm-cov、cargo-fuzz、扫描/发布工具锁定版本与下载校验值 |
-| 契约         | Rust DTO/路由 + 生成的 OpenAPI/TS types    | utoipa 与 openapi-typescript 锁定版本；离线导出，不启动真实服务                    |
-| Android      | Gradle Wrapper、版本目录、SDK/NDK/JDK 清单 | 与选定 NSH Android 宿主实际兼容后锁定所有精确版本，不能使用动态 `+` 版本           |
+| 范围 | 版本/配置入口                    | 策略                                                         |
+| ---- | -------------------------------- | ------------------------------------------------------------ |
+| Node | `.node-version`、`engines`       | 初始锁定当前已验证的 26.12.1；其他版本经矩阵验证后再声明支持 |
+| pnpm | 根 `package.json#packageManager` | 初始锁定已验证的 `pnpm@11.1.3`；提交单一 `pnpm-lock.yaml`    |
+| NSH  | `.nsh-version`                   | 保持 0.7.0；CLI、runtime、Rust `nsh-*` 依赖保持一致          |
+
+NSH 上游修复是否可用，只认「该修复的提交是目标 tag 的祖先」这一条证据，且必须对 tag 源码树核对，不看 release notes、issue 状态或 PR 合并状态：nsh 的 release notes 由 `main` 生成，发行 tag 却打在 `release/<minor>` 分支上，两者可以长期分叉（0.7.2 与 `main` 分叉 217 个提交）；issue 也会因指向 `main` 的 PR 合并而自动关闭，尚未随任何 tag 发布。核对用 `gh api repos/longbridge/nsh/compare/<fix-sha>...<tag>`（`behind_by` 为 0 才是已发布），再用 tag 源码树确认修复代码与测试存在。
+| Rust | `rust-toolchain.toml` | 固定 1.97.0，包含 rustfmt、clippy；宿主兼容性按目标实际构建与验收 |
+| Rust 包 | 根 `Cargo.toml`、`Cargo.lock` | Edition 2024、resolver 3；显式成员、共享依赖与 lints；应用锁文件提交 |
+| JS 工具 | 根 devDependencies + pnpm lock | Oxlint、Oxfmt、Lefthook、commitlint、契约生成器使用精确版本 |
+| 原生辅助工具 | `tooling/tools.json` | nextest、cargo-deny、cargo-llvm-cov、cargo-fuzz、扫描/发布工具锁定版本与下载校验值 |
+| 契约 | Rust DTO/路由 + 生成的 OpenAPI/TS types | utoipa 与 openapi-typescript 锁定版本；离线导出，不启动真实服务 |
+| Android | Gradle Wrapper、版本目录、SDK/NDK/JDK 清单 | 与选定 NSH Android 宿主实际兼容后锁定所有精确版本，不能使用动态 `+` 版本 |
 
 版本文件是工具链要求，不代表所有平台已验收。Android 的 JDK、AGP、Gradle、NDK 组合在宿主工程固定，按目标通过干净环境构建；不以 `latest`、滚动 `stable` 或不明全局版本代替锁定。
 
@@ -48,9 +50,9 @@ Oxfmt 初期关闭未验证的 import/class 自动排序，避免重排有副作
 
 ### 图标资源与依赖
 
-NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)和[组件交接](docs/design/component-design.md)，实际公共 API／用法见 [包规范](packages/ui/README.md)，覆盖与宿主证据见 [实施验收](docs/design/component-implementation.md)。
+NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](../DESIGN.md)和[组件交接](./design/component-design.md)，实际公共 API／用法见 [包规范](../packages/ui/README.md)，覆盖与宿主证据见 [实施验收](./design/component-implementation.md)。
 
-- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](DESIGN.md#统一图标) 为准。NSH 侧经 `nsh-icon` 的 `<Icon>` 绘制，图标集为 `nsh-icon-lucide`；调用方从图标集导入常量再交给 `packages/ui` 的 `Icon`（`<Icon icon={Search} />` 或 `icon={Search}`），`packages/ui` 只适配尺寸与颜色。业务页面和各端入口不复制图标路径。
+- 应用图标仅使用 Lucide 官方 SVG，视觉与使用规则以 [DESIGN.md「统一图标」](../DESIGN.md#统一图标) 为准。NSH 侧经 `nsh-icon` 的 `<Icon>` 绘制，图标集为 `nsh-icon-lucide`；调用方从图标集导入常量再交给 `packages/ui` 的 `Icon`（`<Icon icon={Search} />` 或 `icon={Search}`），`packages/ui` 只适配尺寸与颜色。业务页面和各端入口不复制图标路径。
 - 三端 `nsh.json` 声明 `nsh-icon`／`nsh-icon-lucide`（`^0.2.2`），解析结果由各端 `nsh.lock` 锁定并随应用提交；`nsh add` 同时写入应用 crate 的 Cargo 依赖。只打包实际使用的图标，不依赖运行时 CDN；升级时用 `nsh upgrade` 更新锁文件，并跑 `pnpm ui:icons:check` 确认随源提交的官方 SVG 与记录哈希一致。
 - 不引入 `lucide-react`、DOM 图标运行时或其他 npm UI 依赖。不在 `packages/ui` 维护名称到图形的清单，也不按计算出的名称取图标：NSH 由导入静态裁剪，字符串查表会让整个图标集进包。图标常量直接出现在 JSX 与数据行里，打包内容因此等于实际引用。颜色经 `tone` 映射到 `text-*` 类字面量，由文字色继承。
 - Lucide 官方 SVG 源位于 `packages/ui/assets/lucide/`（Lucide 1.43.0、ISC 许可证、逐图 SHA256）；`pnpm ui:icons` 与 `pnpm ui:icons:check` 都只做校验：逐图重算 SHA 与来源清单比对，禁止手工修改几何数据。
@@ -62,7 +64,7 @@ NSH 基础组件使用单一 `@hongguo/ui`，设计依据见 [DESIGN](DESIGN.md)
 - 一个package共用API／值／状态，端型主题由 app 的 `nsh.json` 选择（`theme.json`／`theme.tv.json`，由 DESIGN.md 生成），尺寸集中于 foundation 并读主题 token；组件不读端型，TV 行为由调用方传显式 props；只有真实输入／宿主边界适配，不复制业务控制器，不拆 desktop-ui／tv-ui。
 - `pnpm ui:check` 同时检查并构建全部验收入口（desktop、tv 与 harness）；`pnpm ui:test` 检验公共控件行为；`pnpm ui:host:desktop`／`ui:host:tv` 在macOS分别观察桌面临时密度与TV密度，一条命令只开一个后台窗口、不抢键盘；`pnpm ui:preview` 才激活前台，每个端复用固定端口，重复启动替换上一次预览，不再叠加窗口。它不代表Android TV或遥控／输入法验收。
 - `pnpm visual:tv` 是常规视觉验收入口：TV 页面与组件板一次出齐，默认无头 Chrome 零窗口，`--android` 在固定模拟器上验证 Android 自身绘制。截图不等于逐帧动效、读屏、遥控或真实数据验收；`ui:host:*` 只在需要观察 AppKit 窗口时使用。
-- 不维护与产品并行的 HTML/CSS 设计稿：视觉真相只在本文件的契约与产品代码里（见 [DESIGN：没有第二份渲染](DESIGN.md)）。要看或改界面就走真实入口——`ui:host:*`、`ui:preview`、`visual:tv`、`dev --target`。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
+- 不维护与产品并行的 HTML/CSS 设计稿：视觉真相只在本文件的契约与产品代码里（见 [DESIGN：没有第二份渲染](../DESIGN.md)）。要看或改界面就走真实入口——`ui:host:*`、`ui:preview`、`visual:tv`、`dev --target`。浏览器实现不导入NSH运行时，NSH不导入DOM/CSS库。
 
 ## 3. Rust
 
@@ -308,7 +310,7 @@ macOS 使用 Developer ID 签名/公证，Windows 使用 Authenticode，Android 
 
 ## 11. 文档与Agent协作
 
-文档职责与按任务阅读入口见[docs/README](docs/README.md)。规则、当前实现、计划和验收分别维护；其他文档链接唯一来源，不复制完整条款或逐轮进度。产品PRD不复制API／状态机／任务，变更技术方案归对应OpenSpec design，只有重要架构取舍建立ADR。
+文档职责与按任务阅读入口见[docs/README](./README.md)。规则、当前实现、计划和验收分别维护；其他文档链接唯一来源，不复制完整条款或逐轮进度。产品PRD不复制API／状态机／任务，变更技术方案归对应OpenSpec design，只有重要架构取舍建立ADR。
 
 历史方案、被替代决策和完整运行记录保留来源、日期与证据限制，归入history／ADR／OpenSpec archive；历史开头注明非当前指令和现行入口。迁移先核对有效条款及平台差异，再改引用，不通过删文档隐藏失败。
 
