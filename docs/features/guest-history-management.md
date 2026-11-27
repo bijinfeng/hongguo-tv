@@ -76,4 +76,4 @@ HTTP 断连或 native cancel 不等于 SQLite 回滚。Rust 在同步注册和�
 
 2026-11-15 键盘增量修复回收行选择／移除 ref 的身份所有权，焦点恢复在滚动前复查意图；快照变化不再自动恢复滚动锚点，管理密度切换保留稳定记录及偏移。正式 App 的真实取消流程发现全局 Escape 抢先返回首页，现交由 NSH 顶层弹层优先关闭，桌面根页面再处理返回。真实补验 `artifacts/live-history/2026-11-15T08-29-22-483Z/` 浅深各 10 段走完，三类确认默认 Enter 取消、再次 Enter 重开同一来源、Escape 取消，全选 2→0、单选 mixed、退出／重进管理清选择；两色均零管理写入且持久快照完整一致。但深色第二部播放首次失败，一次显式 UI 重试后才实际播放，因此 `journeyCompleted=true`、`passed=false`，不能表述为整轮通过。错误与先前失败均保留；长列表实际截图来自合成边界，不能扩大真实主验收范围，E1 仍 7／13。
 
-2026-11-16 的 Chromium 复查记录在[真实浏览器复查](history/2026-11-16/guest-history-live-recheck.md)：真实浅色流程在 `1004` 普通短剧上完成首播、取消、单删、重播、第二部播放和 API 重启恢复；浏览器 Checkbox 的 selector／Space 激活仍受 NSH web driver 限制，HTTP 504 和不支持的 `content_type=1` 均原样保留。候选筛选已与当前播放协议收紧到 `1004`，未改生产 History UI；4.2/4.3 和完整 MVP 继续开放。
+2026-11-16 的 Chromium 复查记录在[真实浏览器复查](../history/2026-11-16/guest-history-live-recheck.md)：真实浅色流程在 `1004` 普通短剧上完成首播、取消、单删、重播、第二部播放和 API 重启恢复；浏览器 Checkbox 的 selector／Space 激活仍受 NSH web driver 限制，HTTP 504 和不支持的 `content_type=1` 均原样保留。候选筛选已与当前播放协议收紧到 `1004`，未改生产 History UI；4.2/4.3 和完整 MVP 继续开放。

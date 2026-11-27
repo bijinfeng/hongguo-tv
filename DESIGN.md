@@ -517,7 +517,7 @@ rounded:
 | 播放控制层                           | 共享短透明度过渡；隐藏后不可聚焦，暂停／错误／编辑时保留操作    | 即时显隐         |
 | Spinner／不确定进度                  | 只表示实际等待，不能虚构完成比例                                | 静态可读状态     |
 
-不增加界面音效、装饰循环、海报缩放或逐条错峰动画。每个新流程编码前补状态／动效清单，实际宿主逐项观察；旧批次记录和静态截图不证明逐帧表现。功能级动效清单归属于各功能文档，不在这里复制：发现与播放见[日历](docs/calendar-browsing.md#状态与动效清单)、[系列／季](docs/season-browsing.md#动效清单)、[榜单雷达](docs/radar-snapshots.md#动效清单)、[排行榜](docs/rankings-browsing.md#动效清单)、[详情演员与相关作品](docs/detail-discovery.md#动效清单)、[历史管理](docs/guest-history-management.md#动效清单)、[追更](docs/features/following.md#动效与交互清单)与[预约](docs/features/reservations.md#动效与交互清单)。
+不增加界面音效、装饰循环、海报缩放或逐条错峰动画。每个新流程编码前补状态／动效清单，实际宿主逐项观察；旧批次记录和静态截图不证明逐帧表现。功能级动效清单归属于各功能文档，不在这里复制：发现与播放见[日历](docs/features/calendar-browsing.md#状态与动效清单)、[系列／季](docs/features/season-browsing.md#动效清单)、[榜单雷达](docs/features/radar-snapshots.md#动效清单)、[排行榜](docs/features/rankings-browsing.md#动效清单)、[详情演员与相关作品](docs/features/detail-discovery.md#动效清单)、[历史管理](docs/features/guest-history-management.md#动效清单)、[追更](docs/features/following.md#动效与交互清单)与[预约](docs/features/reservations.md#动效与交互清单)。
 
 ## Voice & Content Strategy
 
