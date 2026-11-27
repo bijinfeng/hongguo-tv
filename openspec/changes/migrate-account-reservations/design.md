@@ -42,7 +42,7 @@ POST `/reading/bookapi/search/uncover_subscribe/v`，gzip 精确数字 JSON `{it
 | 错误／unknown                   | 原位 Notice／只读刷新／显式重试    | 不抢焦点，不用成功 toast         |
 | 进入／返回                      | 既有 NavStack                      | 复用减少动态，不新增弹层、声音   |
 
-TV 与桌面复用语义和组件，密度与输入仅由既有适配处理；TV 主焦点使用可用 Tab，避免等待接口结束才有可达入口。具体细节见 `docs/design/reservations.md`。
+TV 与桌面复用语义和组件，密度与输入仅由既有适配处理；TV 主焦点使用可用 Tab，避免等待接口结束才有可达入口。具体细节见 `docs/features/reservations.md`。
 
 ## Risks / Trade-offs
 

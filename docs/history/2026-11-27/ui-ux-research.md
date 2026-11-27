@@ -1,10 +1,10 @@
 # 商业视频产品 UI/UX 调研
 
-> 2026-11-14 范围更新：本文保留历史研究／验收记录；当前设计以[页面地图](ui-map.md)与[DESIGN](../../DESIGN.md) 为准。评论、回复、弹幕、剧评、点赞已由用户排除；离线任务与任意缓存容量未获证据支持，不能从本文恢复为当前要求。
+> 2026-11-14 范围更新：本文保留历史研究／验收记录；当前设计以[页面地图](../../design/ui-map.md)与[DESIGN](../../../DESIGN.md) 为准。评论、回复、弹幕、剧评、点赞已由用户排除；离线任务与任意缓存容量未获证据支持，不能从本文恢复为当前要求。
 
 调研日期：2026-11-13。用于下一轮原型修订；本文的设计建议尚未实现，也不是用户测试结果。功能范围继续以 PRODUCT.md 和原客户端行为为准。
 
-参考产品池已补充开源仓库、实际截图与局部源码核查，见 [UI 参考产品候选](ui-reference-products.md)。下面的布局建议保留为待评审方向，最终主样本尚未锁定。
+参考产品池已补充开源仓库、实际截图与局部源码核查，见 [UI 参考产品候选](../../design/ui-reference-products.md)。下面的布局建议保留为待评审方向，最终主样本尚未锁定。
 
 ## 设计结论
 
@@ -90,7 +90,7 @@ Netflix 将续播、待看和提醒归入个人入口；Apple TV 也提供继续
 
 TV 的侧栏与顶部导航均作为候选，结合遥控路径和内容层级独立评审，不沿用桌面的侧栏，也不提前固定五个主入口。Netflix TV 与 Android TV 导航分别提供参考。[Android TV 导航规范](https://developer.android.com/design/ui/tv/guides/components/navigation-drawer)
 
-焦点表示“按确认将操作哪里”，选中表示“当前页面／正在播放哪一集”，两者必须可区分。面板关闭、播放返回和翻页后恢复确定位置。TV 的独立设计范围见 [TV 设计简报](../history/2026-11-15/design/tv-design-brief.md)。TV 尺寸及安全区依据平台规范，最终在真实宿主验证。[焦点规范](https://developer.android.com/design/ui/tv/guides/styles/focus-system)、[布局规范](https://developer.android.com/design/ui/tv/guides/styles/layouts)
+焦点表示“按确认将操作哪里”，选中表示“当前页面／正在播放哪一集”，两者必须可区分。面板关闭、播放返回和翻页后恢复确定位置。TV 的独立设计范围见 [TV 设计简报](../2026-11-15/design/tv-design-brief.md)。TV 尺寸及安全区依据平台规范，最终在真实宿主验证。[焦点规范](https://developer.android.com/design/ui/tv/guides/styles/focus-system)、[布局规范](https://developer.android.com/design/ui/tv/guides/styles/layouts)
 
 ## 当前原型的修订清单
 
