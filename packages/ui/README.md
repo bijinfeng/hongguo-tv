@@ -2,7 +2,7 @@
 
 红果桌面与 TV 的共享 NSH 样式层。业务页面从包根导入；NSH `nsh/base` 提供行为，本包拥有主题、尺寸、图标、部件样式与必要输入适配。它不依赖 `packages/app`、网络、存储、媒体会话或其他应用入口。
 
-基础组件规范还原、打开弹层、真实封面与动效的本轮结果见[修复与补审记录](../../docs/design/component-spec-conformance-fixes.md)；当前规则仍以根 DESIGN 为准。
+基础组件规范还原、打开弹层、真实封面与动效的本轮结果见[修复与补审记录](../../docs/history/2026-11-15/design/component-spec-conformance-fixes.md)；当前规则仍以根 DESIGN 为准。
 
 ## 两端使用
 
@@ -63,7 +63,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。控件档�
 
 普通布局用 `View` 的配方，不给每个原语建立改名包装。日期条、账号验证、榜单和媒体状态仍是 app 组合与业务，不因设计样板存在就进入基础包。
 
-字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
+字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/history/2026-11-15/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
 
 ### SettingsRow
 
@@ -155,7 +155,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 图标经 `nsh-icon-lucide`（Lucide 1.43.0）绘制，三端 `nsh.json` 的 `dependencies` 声明、`nsh.lock` 锁定。调用方从图标集导入常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 不维护名称清单，打包内容等于源码实际导入的常量，未引用的图标不进包。原始 SVG 和生成结果都不能手工改图形；升级时同步 `nsh upgrade` 的锁文件。
 
-组件板就是生产组件本身：`pnpm ui:host:desktop`／`ui:host:tv` 在各宿主观察，`pnpm ui:preview` 在浏览器里跟改。不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
+组件板就是生产组件本身：`pnpm ui:host:desktop`／`ui:host:tv` 在各宿主观察，`pnpm ui:preview` 在浏览器里跟改。不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/history/2026-11-15/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 
 ## 验证
 

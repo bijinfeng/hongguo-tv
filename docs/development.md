@@ -54,7 +54,6 @@ HTTP 开发 API 仅监听 loopback，校验精确 Host／Origin，不能直接�
 
 check／build／test 可加 `--target harness|desktop|tv`，默认三个工程；`dev`／`dev:fixture`／`package` 只接受 `desktop|tv`，因为 harness 不发行。开发中运行改动层的专项检查；批次代码稳定后由一个执行者运行完整 verify，详见[批次流程](implementation-roadmap.md#每批怎样执行)。纯文档调整只检查格式、链接和适用的 OpenSpec，不重跑产品构建。
 
-
 真实匿名流程使用现有工具，不注入合成响应或直接伪造观看记录：
 
 ```sh
@@ -66,6 +65,23 @@ node tooling/src/live-history-host.mjs web --anonymous-live
 macos 参数在 `apps/harness` 里用原生窗口跑 HTTP 入口，不是 Desktop native；web 参数用 Chromium 和精确 Origin。历史来自实际媒体进度并核对持久结果；每段结果和整轮结果分别记录，重试恢复不抹去原失败。当前证明了哪些流程，查 VALIDATION，勿从命令存在推断通过。
 
 真实 runner 每次 API 启动保留独立 stderr，附件位置在 `result.json` 的 `apiStarts[].diagnostics`。诊断只记安全阶段／来源／错误分类；内部来源失败可能随后恢复，不等于最终播放失败。原生专项诊断需 `NSH_VERBOSE=1`，默认 NSH test 隐藏原生 stderr。不得记录签名媒体 URL、凭据或原始敏感错误；准备成功也不代替实际解码／播放。
+
+### TV 定向验证
+
+先执行 doctor 并确认唯一目标设备；SDK、设备或目标身份缺失须失败，不能让固定 CLI 误选另一台设备。doctor 通过不等于解码、遥控或安装通过。
+
+```sh
+pnpm doctor --target tv
+adb devices -l
+pnpm dev:tv
+pnpm check --target tv
+pnpm build --target tv
+pnpm package:tv
+```
+
+宿主模式与安装包边界见 [Android 宿主](../apps/tv/android/README.md)；各专项命令能证明什么、不能证明什么见该 README。T0 内置视频不能代替真实媒体，headless 不能代替 Android 输入，HTTP fixture 不能代替 native 独立业务。
+
+`test:tv-native-business` 重新打包并核对实际安装 APK／bytecode，使用固定 API34 TV 模拟器、真实目录／媒体和宿主 SQLite。分阶段强停后取新 SQLite／WAL／SHM 快照，检查实际时钟增长、暂停稳定、定位和重启持久化；播放错误有限重试且保留原失败。正常／失败／SIGINT／SIGTERM 恢复所属配置，SIGKILL 不保证清理；不把强停测试用于用户正在观看的会话。当前结果和重试边界在 VALIDATION。
 
 ## 发行与迁移对照
 

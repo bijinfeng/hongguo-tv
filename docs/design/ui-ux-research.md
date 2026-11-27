@@ -90,7 +90,7 @@ Netflix 将续播、待看和提醒归入个人入口；Apple TV 也提供继续
 
 TV 的侧栏与顶部导航均作为候选，结合遥控路径和内容层级独立评审，不沿用桌面的侧栏，也不提前固定五个主入口。Netflix TV 与 Android TV 导航分别提供参考。[Android TV 导航规范](https://developer.android.com/design/ui/tv/guides/components/navigation-drawer)
 
-焦点表示“按确认将操作哪里”，选中表示“当前页面／正在播放哪一集”，两者必须可区分。面板关闭、播放返回和翻页后恢复确定位置。TV 的独立设计范围见 [TV 设计简报](tv-design-brief.md)。TV 尺寸及安全区依据平台规范，最终在真实宿主验证。[焦点规范](https://developer.android.com/design/ui/tv/guides/styles/focus-system)、[布局规范](https://developer.android.com/design/ui/tv/guides/styles/layouts)
+焦点表示“按确认将操作哪里”，选中表示“当前页面／正在播放哪一集”，两者必须可区分。面板关闭、播放返回和翻页后恢复确定位置。TV 的独立设计范围见 [TV 设计简报](../history/2026-11-15/design/tv-design-brief.md)。TV 尺寸及安全区依据平台规范，最终在真实宿主验证。[焦点规范](https://developer.android.com/design/ui/tv/guides/styles/focus-system)、[布局规范](https://developer.android.com/design/ui/tv/guides/styles/layouts)
 
 ## 当前原型的修订清单
 

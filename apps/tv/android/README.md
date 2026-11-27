@@ -18,7 +18,7 @@ services. `HONGGUO_CORE_ORIGIN=… pnpm package:tv` builds the explicit external
 preview. The **T0 technical probe** requires `HONGGUO_RUNTIME_MODE=t0`; it bundles
 original synthetic H.264/AAC media and the Rust bridge probe, with no API server,
 network, Node process or adb reverse rule at runtime. These modes have separate
-acceptance scopes; see [TV development](../../../TV_DEVELOPMENT.md).
+acceptance scopes; see [TV targeted verification](../../../docs/development.md#tv-定向验证) and the acceptance matrix in [ENGINEERING §9](../../../ENGINEERING.md#验收宿主矩阵).
 
 The host defaults to a debug-signed APK. A release build is selected with
 `HONGGUO_TV_BUILD_TYPE=release` and fails closed unless the Gradle process receives

@@ -92,6 +92,10 @@ Rust拥有持久历史和目标账号状态，TSX消费已提交快照并派生�
 
 TV独立运行不依赖电脑API或adb reverse。默认native、显式HTTP preview与T0的选择及命令见[运行手册](docs/development.md#运行模式与数据)。初始化／停止、后台／恢复、JNI所有权、遥控返回／焦点、解码和安装包分别验收。MVP 的 TV 验收宿主是固定 API34 AVD 模拟器，模拟器注入的遥控与输入属于验收范围；物理电视、硬解与 4K 按平台限制记录，不能用模拟器结果宣称为物理设备通过。webOS／Tizen／tvOS不因共享仓库自动获得支持。
 
+Android TV／盒子复用 packages/app 与 packages/ui；Android adapter 拥有输入、媒体 surface、系统安装与生命周期。Desktop／TV 共用 Rust 核心和 native bridge，不新增 TV 业务副本、Go 子进程或第二套状态机。最低运行范围 API26，target SDK 与渠道要求单独管理；arm64 是首批目标，armv7 须在可构建且真实 32 位运行环境验收后才声明支持。固定工具链、版本、ABI 与构建入口归 [Android 宿主](apps/tv/android/README.md)，不在架构层复制一张易漂移的版本表。
+
+APK 内受限 loopback 媒体路由不是电脑 API 依赖；独立验收时电脑 API 停止、reverse 为空，不能清库绕过失败。
+
 ## 契约、数据与安全边界
 
 Rust HTTP DTO和路由是OpenAPI／TypeScript wire types的唯一编辑源；生成结果提交并检查漂移。NSH原生API由真实Rust导出生成；HTTP／native共用业务用例和契约场景，未知／缺失字段、错误码、取消、超时、载荷上限、媒体路径和206／416都需覆盖。
