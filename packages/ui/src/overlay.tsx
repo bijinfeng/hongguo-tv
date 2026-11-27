@@ -378,6 +378,7 @@ export function SidePanel(props: SidePanelProps) {
             icon={X}
             iconOnly
             variant="quiet"
+            testID={props.testID ? `${props.testID}-close` : undefined}
             onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
           />
         </View>
@@ -432,6 +433,7 @@ export interface MenuProps {
 export function Menu(props: MenuProps) {
   const localOpen = signal(false);
   const open = () => props.open ?? localOpen();
+  let trigger: ViewRef | undefined;
   return (
     <BaseMenu
       testID={props.testID}
@@ -454,16 +456,29 @@ export function Menu(props: MenuProps) {
         if (props.open === undefined) localOpen.set(event.open);
         props.onOpenChange?.(event);
       }}
-      onClose={props.returnFocus}
+      // A menu that closes leaves the keyboard nowhere; return it to the trigger first, then let
+      // the caller move it somewhere better if it wants to.
+      onClose={() => {
+        trigger?.focus();
+        props.returnFocus?.();
+      }}
       trigger={
         <Button
+          buttonRef={(ref) => (trigger = ref)}
           label={props.label}
           dropdown
           popupOpen={open()}
           expanded={open()}
           disabled={props.disabled}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          onPress={() => {}}
+          // The trigger carries a dropdown affordance, so a primary press has to open it. NSH's
+          // `trigger` only wires the secondary button, long press and Shift+F10; without this the
+          // left click did nothing and `localOpen` could never be set by the pointer.
+          onPress={() => {
+            if (props.disabled) return;
+            if (props.open === undefined) localOpen.set(!localOpen());
+            props.onOpenChange?.({ open: !open(), reason: 'triggerPress' });
+          }}
         />
       }
     >
@@ -573,7 +588,14 @@ export function Popover(props: PopoverProps) {
           expanded={open()}
           buttonRef={(ref) => (trigger = ref)}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          onPress={() => {}}
+          // The trigger carries a dropdown affordance, so a primary press has to open it. NSH's
+          // `trigger` only wires the secondary button, long press and Shift+F10; without this the
+          // left click did nothing and `localOpen` could never be set by the pointer.
+          onPress={() => {
+            if (props.disabled) return;
+            if (props.open === undefined) localOpen.set(!localOpen());
+            props.onOpenChange?.({ open: !open(), reason: 'triggerPress' });
+          }}
         />
       }
     >

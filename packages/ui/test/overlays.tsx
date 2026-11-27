@@ -131,7 +131,7 @@ export function registerOverlayTests(entry: string, options: OverlayTestOptions 
     await app.wait(32);
     await app.keyboard.press('enter');
     await app.waitFor('text:共 80 集 · 已完结');
-    await app.press('role:button[关闭]');
+    await app.press('id:gallery-panel-close');
     await app.waitFor('text:共 80 集 · 已完结', { state: 'gone' });
     app.dispose();
   });
