@@ -63,7 +63,8 @@
     "ui:host:tv": "node tooling/src/ui-components.mjs host-tv",
     "ui:preview": "node tooling/src/ui-components.mjs preview",
     "coverage": "node tooling/src/cli.mjs coverage",
-    "dev": "node tooling/src/cli.mjs dev --target desktop"
+    "dev": "node tooling/src/cli.mjs dev --target desktop",
+    "setup:runtime": "node tooling/src/cli.mjs prepare"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",

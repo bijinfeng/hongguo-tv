@@ -283,6 +283,12 @@ try {
       ]);
       break;
     }
+    case 'prepare':
+      // Writes the gitignored runtime config the app entry imports. CI runs `nsh test` directly
+      // (ci.yml, "Behavior in <target>"), which skips `nsh check`/`build` — the commands that
+      // would otherwise write this file — so the job calls `pnpm setup:runtime` first.
+      for (const app of selected) await runtimeConfig(app);
+      break;
     case 'dev':
       // `dev` runs the code, not a release: the harness is the development surface now, so it is
       // allowed here while `package` still refuses it (the harness never ships).
