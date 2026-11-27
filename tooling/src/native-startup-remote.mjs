@@ -1,19 +1,13 @@
 import assert from 'node:assert/strict';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { nsh, output, root, run } from './process.mjs';
-import { packageTvHost, tvHostEnvironment } from './tv-host.mjs';
+import { nsh, root, run } from './process.mjs';
+import { packageTvHost, tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 // The real TV adapter with a synthetic failed open; never independent-business evidence.
 const env = tvHostEnvironment();
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-const devices = output(adb, ['devices'])
-  .split('\n')
-  .slice(1)
-  .filter((line) => line.trim());
-assert(devices.length === 1 && /^emulator-\d+\s+device$/.test(devices[0]), 'Start one TV emulator');
-const serial = devices[0].split(/\s+/)[0];
-const device = (args) => output(adb, ['-s', serial, ...args]);
+const { device } = tvEmulator({ adb, message: 'Start one TV emulator' });
 assert.equal(device(['shell', 'getprop', 'ro.build.version.sdk']), '34');
 assert.equal(device(['reverse', '--list']), '', 'Remove computer reverse rules before this test');
 const previousNight = device(['shell', 'cmd', 'uimode', 'night']).match(/Night mode: (\S+)/)?.[1];

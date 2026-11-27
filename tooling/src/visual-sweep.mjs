@@ -6,7 +6,7 @@ import { browsingFixture } from './browsing-fixture.mjs';
 import { calendarFixture } from './calendar-fixture.mjs';
 import { radarFixture } from './radar-fixture.mjs';
 import { executable, output, root, run, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 /**
  * One visual pass for the whole product, in one command and one app.
@@ -32,14 +32,11 @@ if (
 const adb =
   host === 'android' ? resolve(tvHostEnvironment().ANDROID_HOME, 'platform-tools/adb') : undefined;
 if (adb) {
-  const devices = output(adb, ['devices'])
-    .split('\n')
-    .slice(1)
-    .filter((line) => line.trim());
-  if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-    throw new Error(
+  tvEmulator({
+    adb,
+    message:
       'Start the pinned Android TV API34 emulator (adb devices must list exactly one) before --android.',
-    );
+  });
   if (
     displayProfiles &&
     output(adb, ['emu', 'avd', 'name']).split('\n')[0].trim() !== 'hongguo-tv-api34-arm64'

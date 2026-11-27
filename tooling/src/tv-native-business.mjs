@@ -4,20 +4,13 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { connect } from 'node:net';
 import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { output, root } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { root } from './process.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
 
 const env = tvHostEnvironment();
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-const devices = output(adb, ['devices'])
-  .split('\n')
-  .slice(1)
-  .filter((line) => line.trim());
-if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-  throw new Error('Start exactly one Android TV emulator.');
-const serial = devices[0].split(/\s+/)[0];
-const device = (args) => output(adb, ['-s', serial, ...args]);
+const { serial, device } = tvEmulator({ adb });
 if (
   !device(['shell', 'pm', 'list', 'features']).includes('android.software.leanback_only') ||
   device(['shell', 'getprop', 'ro.build.version.sdk']) !== '34'

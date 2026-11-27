@@ -38,6 +38,34 @@ export function tvBuildType(env = process.env) {
 // The upstream AAR is immutable and checked before extracting its embedding classes.
 const archiveHash = '89d0c979d1a457b57118b32b5f8312e45c856377501816b37069ad9d36c77033';
 
+/**
+ * Twelve TV suites each opened with the same paragraph: resolve adb from the SDK, list targets,
+ * insist on exactly one ready emulator, then build a `device(args)` helper pinned to its serial.
+ * The copies drifted only in error wording and whether `env` was forwarded, so both are parameters
+ * here. `avd` pins the image by name, which the component matrix needs and the other suites do not.
+ *
+ * Passing `env` also resolves adb from that environment's SDK; callers that already have a path can
+ * pass `adb` directly.
+ */
+export function tvEmulator({ adb, message, env, avd } = {}) {
+  const options = env ? { env } : undefined;
+  const command = adb ?? resolve((env ?? process.env).ANDROID_HOME, 'platform-tools/adb');
+  const devices = output(command, ['devices'], options)
+    .split('\n')
+    .slice(1)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
+    throw new Error(message ?? 'Start exactly one Android TV emulator.');
+  const serial = devices[0].split(/\s+/)[0];
+  const device = (args) => output(command, ['-s', serial, ...args], options);
+  if (avd) {
+    const actual = device(['emu', 'avd', 'name']).split('\n')[0].trim();
+    if (actual !== avd) throw new Error(`Requires the pinned ${avd} test AVD, got ${actual}.`);
+  }
+  return { serial, device };
+}
+
 /** The custom Android host consumes the same icon as NSH's other packages. */
 export async function prepareTvBranding(metadata, appDirectory, generated) {
   if (typeof metadata.icon !== 'string' || !metadata.icon.trim())

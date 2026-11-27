@@ -1,18 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { executable, output, root, run, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { executable, root, run, rustEnvironment } from './process.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-const devices = output(adb, ['devices'])
-  .split('\n')
-  .slice(1)
-  .filter((line) => line.trim());
-if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-  throw new Error('Start exactly one Android TV emulator.');
-const serial = devices[0].split(/\s+/)[0];
-const device = (args) => output(adb, ['-s', serial, ...args]);
+const { device } = tvEmulator({ adb, message: 'Start exactly one Android TV emulator.' });
 const previous = device(['shell', 'settings', 'get', 'system', 'font_scale']);
 const app = resolve(root, 'apps/tv');
 const artifacts = resolve(root, 'artifacts/playback/native-startup-android');
