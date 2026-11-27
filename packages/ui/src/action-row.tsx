@@ -41,7 +41,9 @@ export function ActionRow(props: ActionRowProps) {
       accessibilityDescription={props.description}
       disabled={props.disabled}
       onFocus={props.onFocus}
-      onPress={() => props.onPress()}
+      onPress={() => {
+        if (!props.disabled) props.onPress();
+      }}
       class={`w-full flex-row items-center justify-between ${focusRingClass(4)} ${props.disabled ? '' : 'hover:bg-muted active:bg-border'}`}
       style={{
         minHeight: props.description ? undefined : rowMinHeight(),

@@ -1,6 +1,6 @@
 import { Text, token, View, type JSX } from 'nsh';
 import { controlMetrics, space, weight, type ControlSize } from './foundation';
-import { textSize } from './typography';
+import { textLineHeight, textSize } from './typography';
 
 /** A visible field label, control and its adjacent help or error. The caller owns validation. */
 export interface FieldProps {
@@ -37,6 +37,7 @@ export function Field(props: FieldProps) {
           role={props.error ? 'alert' : 'text'}
           style={{
             fontSize: textSize('meta'),
+            lineHeight: textLineHeight('meta'),
             fontWeight: weight.regular(),
             color: token(props.error ? 'destructive' : 'muted-foreground'),
           }}
@@ -75,6 +76,7 @@ export function FieldGroup(props: FieldGroupProps) {
         <Text
           style={{
             fontSize: textSize('meta'),
+            lineHeight: textLineHeight('meta'),
             fontWeight: weight.regular(),
             color: token('muted-foreground'),
           }}
@@ -88,6 +90,7 @@ export function FieldGroup(props: FieldGroupProps) {
           role="alert"
           style={{
             fontSize: textSize('meta'),
+            lineHeight: textLineHeight('meta'),
             fontWeight: weight.regular(),
             color: token('destructive'),
           }}

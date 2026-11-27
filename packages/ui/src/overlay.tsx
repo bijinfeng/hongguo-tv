@@ -471,11 +471,9 @@ export function Menu(props: MenuProps) {
           expanded={open()}
           disabled={props.disabled}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          // The trigger carries a dropdown affordance, so a primary press has to open it. NSH's
-          // `trigger` only wires the secondary button, long press and Shift+F10; without this the
-          // left click did nothing and `localOpen` could never be set by the pointer.
+          // A primary press has to open it too: NSH's `trigger` only wires the secondary button,
+          // a long press and Shift+F10, which left the dropdown chevron unresponsive.
           onPress={() => {
-            if (props.disabled) return;
             if (props.open === undefined) localOpen.set(!localOpen());
             props.onOpenChange?.({ open: !open(), reason: 'triggerPress' });
           }}
@@ -588,11 +586,9 @@ export function Popover(props: PopoverProps) {
           expanded={open()}
           buttonRef={(ref) => (trigger = ref)}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          // The trigger carries a dropdown affordance, so a primary press has to open it. NSH's
-          // `trigger` only wires the secondary button, long press and Shift+F10; without this the
-          // left click did nothing and `localOpen` could never be set by the pointer.
+          // A primary press has to open it too: NSH's `trigger` only wires the secondary button,
+          // a long press and Shift+F10, which left the dropdown chevron unresponsive.
           onPress={() => {
-            if (props.disabled) return;
             if (props.open === undefined) localOpen.set(!localOpen());
             props.onOpenChange?.({ open: !open(), reason: 'triggerPress' });
           }}
