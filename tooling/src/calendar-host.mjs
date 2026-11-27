@@ -1,30 +1,16 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { executable, root, run, rustEnvironment } from './process.mjs';
+import { hostArgs } from './host-args.mjs';
 import { calendarFixture } from './calendar-fixture.mjs';
 
-const [host, ...raw] = process.argv.slice(2);
-const foreground = raw.includes('--foreground');
-const filterIndex = raw.indexOf('--filter');
-const filter = filterIndex < 0 ? undefined : raw[filterIndex + 1];
-if (filterIndex >= 0 && (!filter || filter.startsWith('--')))
-  throw new Error('Expected --filter text');
-const rest = raw.filter(
-  (value, index) =>
-    value !== '--foreground' &&
-    (filterIndex < 0 || (index !== filterIndex && index !== filterIndex + 1)),
-);
-if (foreground && host !== 'macos') throw new Error('--foreground is available only on macos');
-if (!['headless', 'web', 'macos'].includes(host))
-  throw new Error(
-    'Expected headless|web|macos; Android production acceptance uses its isolated TV harness.',
-  );
-if (
-  rest.length &&
-  (rest.length !== 2 || rest[0] !== '--product' || !['desktop', 'tv'].includes(rest[1]))
-)
-  throw new Error('Expected --product desktop|tv');
-const product = rest[1] ?? 'desktop';
+const { host, foreground, filter, flags } = hostArgs({
+  hosts: ['headless', 'web', 'macos'],
+  options: { product: { type: 'string' } },
+  message: 'Expected --product desktop|tv',
+});
+const product = flags.get('--product') ?? 'desktop';
+if (!['desktop', 'tv'].includes(product)) throw new Error('Expected --product desktop|tv');
 const application = resolve(root, 'apps/harness');
 const artifacts = resolve(root, `artifacts/calendar-ui/${host}/${product}`);
 await mkdir(resolve(application, '.nsh'), { recursive: true });

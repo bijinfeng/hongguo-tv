@@ -1,24 +1,13 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { executable, root, run, rustEnvironment } from './process.mjs';
+import { hostArgs } from './host-args.mjs';
 import { rankingsFixture } from './rankings-fixture.mjs';
 
-const [host, ...raw] = process.argv.slice(2);
-if (!['headless', 'web', 'macos'].includes(host)) throw new Error('Expected headless|web|macos');
-const foreground = raw.includes('--foreground');
-if (foreground && host !== 'macos') throw new Error('--foreground is available only on macos');
-const filterIndex = raw.indexOf('--filter');
-const filter = filterIndex < 0 ? undefined : raw[filterIndex + 1];
-if (filterIndex >= 0 && (!filter || filter.startsWith('--')))
-  throw new Error('Expected --filter text');
-if (
-  raw.some(
-    (value, index) =>
-      value !== '--foreground' &&
-      (filterIndex < 0 || (index !== filterIndex && index !== filterIndex + 1)),
-  )
-)
-  throw new Error('Expected only --foreground and/or --filter text');
+const { host, foreground, filter } = hostArgs({
+  hosts: ['headless', 'web', 'macos'],
+  message: 'Expected only --foreground and/or --filter text',
+});
 
 const application = resolve(root, 'apps/harness');
 const artifacts = resolve(root, `artifacts/rankings-ui/${host}/desktop`);

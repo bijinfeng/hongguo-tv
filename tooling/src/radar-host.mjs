@@ -1,24 +1,13 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { executable, root, run, rustEnvironment } from './process.mjs';
+import { hostArgs } from './host-args.mjs';
 import { radarFixture } from './radar-fixture.mjs';
 
-const [host, ...args] = process.argv.slice(2);
-if (!['web', 'macos'].includes(host)) throw new Error('Expected web|macos');
-const foreground = args.includes('--foreground');
-const filterIndex = args.indexOf('--filter');
-const filter = filterIndex >= 0 ? args[filterIndex + 1] : undefined;
-if (foreground && host !== 'macos') throw new Error('--foreground requires macos');
-if (filterIndex >= 0 && (!filter || filter.startsWith('--')))
-  throw new Error('Expected --filter text');
-if (
-  args.some(
-    (value, index) =>
-      value !== '--foreground' &&
-      (filterIndex < 0 || (index !== filterIndex && index !== filterIndex + 1)),
-  )
-)
-  throw new Error('Expected --foreground and/or --filter text');
+const { host, foreground, filter } = hostArgs({
+  hosts: ['web', 'macos'],
+  message: 'Expected --foreground and/or --filter text',
+});
 const application = resolve(root, 'apps/harness');
 const artifacts = resolve(root, `artifacts/radar-ui/${host}/desktop`);
 await mkdir(resolve(application, '.nsh'), { recursive: true });
