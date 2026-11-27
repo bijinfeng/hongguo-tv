@@ -71,6 +71,18 @@ export function registerCategoryTests() {
     await app.press('完成当前');
     expect(app.shows('id:category-owner')).toBe(false);
   });
+  test('a visible inactive category owner still reads its first page', async () => {
+    // `inactive` means another window has focus, not that the page is out of sight: the reader can
+    // still see this grid, so it must not sit on a skeleton until they click. Only `background`
+    // cancels. Category shares this rule with calendar, rankings, radar and season browsing.
+    const app = await open('./CategoryStatePreview.tsx');
+    await app.setLifecycle('inactive');
+    await app.press('激活分类');
+    await app.waitUntil(() => app.texts().some((t) => t.includes('read1:')));
+    expect(app.texts().some((t) => t.includes('abort1'))).toBe(false);
+    await app.press('完成首屏');
+    await app.waitFor('text:ids:1,2');
+  });
   test('category background cancels pending work, retains successful pages and bounds shown to the last 128 exact ids', async () => {
     const app = await open('./CategoryStatePreview.tsx');
     await app.press('激活分类');
