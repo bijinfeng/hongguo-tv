@@ -1,5 +1,15 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText, space } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  ContentArrival,
+  Cover,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  space,
+} from '@hongguo/ui';
 import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
@@ -279,6 +289,35 @@ export function Following(props: { store: Store }) {
         </View>
       </If>
       <FollowNotice store={props.store} active={active()} testID="following-state" />
+      {/* First load: the row geometry it is about to replace, so nothing jumps when data lands.
+          Without this the page is blank between mount and the first snapshot. */}
+      <If when={signedIn() && follow.loading() && !follow.snapshot()}>
+        <SkeletonRegion
+          label="正在读取追更"
+          testID="following-pending"
+          class="flex-col"
+          style={{ gap: space('sm') }}
+        >
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center border-b border-border"
+                style={{
+                  gap: rowTextGap(props.store.target === 'tv'),
+                  paddingVertical: space('sm'),
+                }}
+              >
+                <SkeletonBlock {...rowCoverSize('row', props.store.target === 'tv')} radius={6} />
+                <View class="flex-1" style={{ gap: space('xs') }}>
+                  <SkeletonBlock width="40%" height={16} radius={4} />
+                  <SkeletonBlock width="26%" height={12} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
+      </If>
       <If when={signedIn() && follow.snapshot() && !items().length}>
         <Notice message={follow.stale() ? '上次读取时没有追更。' : '暂时没有追更。'} />
         <View class="self-start">

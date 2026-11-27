@@ -9,7 +9,17 @@ import {
   type ListRef,
   type ViewRef,
 } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText, space } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  ContentArrival,
+  Cover,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  space,
+} from '@hongguo/ui';
 import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
@@ -305,6 +315,34 @@ export function Reservations(props: { store: Store }) {
         </View>
       </If>
       <ReservationNotice store={props.store} active={active()} testID="reservations-state" />
+      {/* First load: the row geometry it is about to replace, so nothing jumps when data lands. */}
+      <If when={signedIn() && reservations.loading() && !reservations.snapshot()}>
+        <SkeletonRegion
+          label="正在读取预约"
+          testID="reservations-pending"
+          class="flex-col"
+          style={{ gap: space('sm') }}
+        >
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center border-b border-border"
+                style={{
+                  gap: rowTextGap(props.store.target === 'tv'),
+                  paddingVertical: space('sm'),
+                }}
+              >
+                <SkeletonBlock {...rowCoverSize('row', props.store.target === 'tv')} radius={6} />
+                <View class="flex-1" style={{ gap: space('xs') }}>
+                  <SkeletonBlock width="40%" height={16} radius={4} />
+                  <SkeletonBlock width="26%" height={12} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
+      </If>
       <If when={signedIn() && reservations.snapshot() && !items().length}>
         <Notice
           message={

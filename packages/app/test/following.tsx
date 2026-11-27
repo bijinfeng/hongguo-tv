@@ -222,6 +222,19 @@ export function registerFollowingTests(target: 'desktop' | 'tv', entry: string) 
         app.dispose();
       }
     });
+  test('first follow load shows the row skeleton instead of a blank page', async () => {
+    // Between mount and the first snapshot the page used to render nothing at all. A waiting reader
+    // needs the region it is about to get, in the geometry the rows will occupy.
+    const f = fixture();
+    f.delayRead(1200);
+    const app = await start(f);
+    await app.waitFor('id:following-pending');
+    expect(app.shows('id:following-pending')).toBe(true);
+    await app.wait(1500);
+    // The settled list replaces it: the skeleton is a first-load state, not a permanent frame.
+    expect(app.shows('id:following-pending')).toBe(false);
+    app.dispose();
+  });
   test('guest follow entrance uses the existing account flow without reads or automatic writes', async () => {
     const f = fixture(false);
     const app = await start(f);
