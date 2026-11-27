@@ -9,11 +9,22 @@ import {
   type ListRef,
   type ViewRef,
 } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText, space } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  ContentArrival,
+  Cover,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  space,
+} from '@hongguo/ui';
 import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
 import { PageScroll } from '../shell/PageScroll';
+import { rowCoverSize, rowGap, rowTextGap } from '../business-row';
 import { RefreshCw } from 'nsh-icon-lucide';
 
 type Mode = 'upcoming' | 'online';
@@ -304,6 +315,34 @@ export function Reservations(props: { store: Store }) {
         </View>
       </If>
       <ReservationNotice store={props.store} active={active()} testID="reservations-state" />
+      {/* First load: the row geometry it is about to replace, so nothing jumps when data lands. */}
+      <If when={signedIn() && reservations.loading() && !reservations.snapshot()}>
+        <SkeletonRegion
+          label="正在读取预约"
+          testID="reservations-pending"
+          class="flex-col"
+          style={{ gap: space('sm') }}
+        >
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center border-b border-border"
+                style={{
+                  gap: rowTextGap(props.store.target === 'tv'),
+                  paddingVertical: space('sm'),
+                }}
+              >
+                <SkeletonBlock {...rowCoverSize('row', props.store.target === 'tv')} radius={6} />
+                <View class="flex-1" style={{ gap: space('xs') }}>
+                  <SkeletonBlock width="40%" height={16} radius={4} />
+                  <SkeletonBlock width="26%" height={12} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
+      </If>
       <If when={signedIn() && reservations.snapshot() && !items().length}>
         <Notice
           message={
@@ -391,23 +430,18 @@ function ReservationRow(props: {
       testID={`reservations-row-${reservationItemId(props.item)}`}
       class="flex-row flex-wrap items-center border-b border-border"
       style={{
-        gap: props.store.target === 'tv' ? 10 : 20,
-        paddingVertical: props.store.target === 'tv' ? 10 : 20,
+        gap: rowGap('row', props.store.target === 'tv'),
+        paddingVertical: rowGap('row', props.store.target === 'tv'),
       }}
     >
-      <View
-        style={{
-          width: props.store.target === 'tv' ? 54 : 88,
-          height: props.store.target === 'tv' ? 76 : 112,
-        }}
-      >
+      <View style={rowCoverSize('row', props.store.target === 'tv')}>
         <Cover
           src={props.item.cover_fallback || props.item.cover}
           title={title()}
           class="w-full h-full"
         />
       </View>
-      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 6 : 12 }}>
+      <View class="flex-1 min-w-0" style={{ gap: rowTextGap(props.store.target === 'tv') }}>
         <UiText role="content-title">{title()}</UiText>
         <If when={reservationPublishLabel(props.item)}>
           <UiText tone="muted">{reservationPublishLabel(props.item)}</UiText>

@@ -1,9 +1,20 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText, space } from '@hongguo/ui';
+import {
+  Button,
+  CardControls,
+  ContentArrival,
+  Cover,
+  Notice,
+  SkeletonBlock,
+  SkeletonRegion,
+  UiText,
+  space,
+} from '@hongguo/ui';
 import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
 import { PageScroll } from '../shell/PageScroll';
+import { rowCoverSize, rowTextGap } from '../business-row';
 import { RefreshCw } from 'nsh-icon-lucide';
 
 /** These labels are remote observations, never local playback checkpoints or inferred schedules. */
@@ -278,6 +289,35 @@ export function Following(props: { store: Store }) {
         </View>
       </If>
       <FollowNotice store={props.store} active={active()} testID="following-state" />
+      {/* First load: the row geometry it is about to replace, so nothing jumps when data lands.
+          Without this the page is blank between mount and the first snapshot. */}
+      <If when={signedIn() && follow.loading() && !follow.snapshot()}>
+        <SkeletonRegion
+          label="正在读取追更"
+          testID="following-pending"
+          class="flex-col"
+          style={{ gap: space('sm') }}
+        >
+          <Each of={[0, 1, 2]}>
+            {() => (
+              <View
+                accessibilityElementsHidden
+                class="flex-row items-center border-b border-border"
+                style={{
+                  gap: rowTextGap(props.store.target === 'tv'),
+                  paddingVertical: space('sm'),
+                }}
+              >
+                <SkeletonBlock {...rowCoverSize('row', props.store.target === 'tv')} radius={6} />
+                <View class="flex-1" style={{ gap: space('xs') }}>
+                  <SkeletonBlock width="40%" height={16} radius={4} />
+                  <SkeletonBlock width="26%" height={12} radius={4} />
+                </View>
+              </View>
+            )}
+          </Each>
+        </SkeletonRegion>
+      </If>
       <If when={signedIn() && follow.snapshot() && !items().length}>
         <Notice message={follow.stale() ? '上次读取时没有追更。' : '暂时没有追更。'} />
         <View class="self-start">
@@ -364,12 +404,7 @@ function FollowRow(props: {
       class="flex-row flex-wrap items-center border-b border-border"
     >
       <If when={props.item.drama}>
-        <View
-          style={{
-            width: props.store.target === 'tv' ? 54 : 88,
-            height: props.store.target === 'tv' ? 76 : 112,
-          }}
-        >
+        <View style={rowCoverSize('row', props.store.target === 'tv')}>
           <Cover
             src={props.item.drama?.cover_fallback || props.item.drama?.cover}
             title={title()}
@@ -377,7 +412,7 @@ function FollowRow(props: {
           />
         </View>
       </If>
-      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 6 : 12 }}>
+      <View class="flex-1 min-w-0" style={{ gap: rowTextGap(props.store.target === 'tv') }}>
         <UiText role="content-title">{title()}</UiText>
         <If when={followCaption(props.item)}>
           <UiText tone="muted">{followCaption(props.item)}</UiText>
