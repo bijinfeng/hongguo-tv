@@ -308,10 +308,13 @@ test('installed hook wrapper never hides unstaged content or creates a stash', (
       resolve(dir, 'commitlint.config.mjs'),
       await readFile(resolve(root, 'commitlint.config.mjs')),
     );
+    // Only the pre-commit command is swapped; the pre-push whole-tree gate stays as written so
+    // this fixture keeps asserting that the wrapper runs hooks without touching the worktree.
     const config = (await readFile(resolve(root, 'lefthook.yml'), 'utf8')).replace(
-      'pnpm hooks:check',
-      'node visible.cjs',
+      /run: pnpm exec lint-staged --no-stash --concurrent 1/,
+      'run: node visible.cjs',
     );
+    assert.doesNotMatch(config, /lint-staged/, 'the fixture must actually replace the command');
     await writeFile(resolve(dir, 'lefthook.yml'), config);
     await writeFile(
       resolve(dir, 'visible.cjs'),
