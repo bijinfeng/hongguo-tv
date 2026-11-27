@@ -8,7 +8,7 @@ See proposal.md for motivation. `core-client` currently has one HTTP origin and 
 
 **Goals:** Keep one shared UI and business semantics while adding a native transport; explicit session/request/media ownership; production native defaults and repeatable isolated acceptance.
 
-**Non-Goals:** Account migration, new discovery pages, UI redesign, legacy data import, separate backend processes, physical-device certification or publication. A/B open host checks remain open.
+**Non-Goals:** Account migration, new discovery pages, UI redesign, legacy data import, separate backend processes, physical-device certification or publication. Physical-device certification is recorded as a platform limit; A/B open host checks remain open.
 
 ## Decisions
 

@@ -52,4 +52,4 @@ HTTP／native 使用同一 `GET /api/v1/radar`。只接受空查询与无请求�
 
 最终完整 `pnpm verify` 已通过：工程工具 37／37、Rust 224／224（默认跳过显式联网 probe）、Web 126／126、Desktop／TV 各 128／128，并含三端正式入口 check／build 和新列宽表格各 3 项回归。独立表格 preview 又完成三端最终 build；严格 OpenSpec 校验通过，日志见 `verify-final.log`、`table-build-warning-final.log`、`openspec-final.log`。609 个主仓源码／契约／测试输入的摘要见 `artifacts/radar-ui/source-manifest.json`，最终 TV 输入哈希与主仓逐项一致。
 
-最终列宽另独立复核 8 张 TV／macOS／Web 关键图，确认状态、完整数值、较后长标题与焦点外圈可读。两端 mixed headless runner 的 warning 已以 `-v` 展开，均为 macOS linker 的 `__eh_frame` 超过 compact unwind 编码上限提示；不是零警告构建，不修改 NSH 或放宽门禁。截图不证明全部动效／减少动态、连续 hover／pressed、完整横向滚轮行为、读屏或物理观看距离；本批宿主与合成 HTTP 也不代表媒体、正式安装包或发行通过。最终实际范围见 VALIDATION.md。
+最终列宽另独立复核 8 张 TV／macOS／Web 关键图，确认状态、完整数值、较后长标题与焦点外圈可读。两端 mixed headless runner 的 warning 已以 `-v` 展开，均为 macOS linker 的 `__eh_frame` 超过 compact unwind 编码上限提示；不是零警告构建，不修改 NSH 或放宽门禁。截图不证明全部动效／减少动态、连续 hover／pressed、完整横向滚轮行为或读屏；物理观看距离按平台限制记录。本批宿主与合成 HTTP 也不代表媒体、正式安装包或发行通过。最终实际范围见 VALIDATION.md。

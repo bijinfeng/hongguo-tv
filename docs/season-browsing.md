@@ -49,4 +49,4 @@ node tooling/src/seasons-tv-remote.mjs run
 
 图形宿主使用真实 HTTP 和本地自制 mp4，覆盖两尺寸浅深、精确重试、迟到响应、浏览与播放隔离、实际解码结束与暂停取消；`--filter pause-next` 可单独复验末集后暂停，`--filter same-selection-next` 复验再次确认当前季取消后继。TV 使用生产 Java 输入适配层的独立安装 ID，浅深及100%／130%／200%文字档位；可用 `--suite details|mismatch|player-browse`、`--profile light|dark|large-text|extra-large-text` 缩小范围。脚本核对输入 SHA、生产 APK 字节与设备设置恢复，不能降低磁盘或恢复门禁。
 
-组件、组合、缓存与控制器的独立入口为三端 `SeasonChoicePreview`、`SeasonComponentsPreview`、`SeasonDetailPreview`、`SeasonsStatePreview`；公共 preview／testing exports 与产品路由分离。运行范围、失败分类和最终证据统一以 VALIDATION 为准；合成宿主不证明真实账号、独立官网业务、物理电视、人工 IME 或辅助技术通过。
+组件、组合、缓存与控制器的独立入口为三端 `SeasonChoicePreview`、`SeasonComponentsPreview`、`SeasonDetailPreview`、`SeasonsStatePreview`；公共 preview／testing exports 与产品路由分离。运行范围、失败分类和最终证据统一以 VALIDATION 为准；合成宿主不证明真实账号、独立官网业务、人工 IME 或辅助技术通过；物理电视按平台限制记录。

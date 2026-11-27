@@ -26,7 +26,7 @@ Compose the account profile and local-history entry from shared UI controls; the
 | QR or MFA content arrival        | Existing ContentArrival transition                 | No translation; do not replay on every poll                                         |
 | Poll status, expiry and cooldown | Update text in place, without a new animation loop | No automatic focus movement; expired QR removed                                     |
 
-No sound, drag, gesture or continuous animation is added. Static screenshots prove geometry only; motion, screen-reader and physical-TV limitations remain explicit in validation.
+No sound, drag, gesture or continuous animation is added. Static screenshots prove geometry only; motion and screen-reader limitations remain explicit in validation, and physical-TV limits are recorded as platform limits.
 
 ## Risks / Trade-offs
 

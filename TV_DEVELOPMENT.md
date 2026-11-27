@@ -1,6 +1,6 @@
 # Android TV开发与交付
 
-本文件只维护TV特有的宿主、设备和交付要求；共享规则见[ENGINEERING](ENGINEERING.md)，当前进度与证据见[台账](docs/feature-ledger.md)和[VALIDATION](VALIDATION.md)，实施顺序见[路线](docs/implementation-roadmap.md)。T0、真实业务、当前APK及物理电视分别记账；旧阶段表和实施过程见[历史记录](docs/history/2026-11-15/TV_DEVELOPMENT.md)。
+本文件只维护TV特有的宿主、设备和交付要求；共享规则见[ENGINEERING](ENGINEERING.md)，当前进度与证据见[台账](docs/feature-ledger.md)和[VALIDATION](VALIDATION.md)，实施顺序见[路线](docs/implementation-roadmap.md)。T0、真实业务与当前APK分别记账。MVP 的 TV 验收环境是固定 API34 AVD 模拟器（见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)）；物理电视、真实遥控、硬解与 4K 作为平台限制记录，不阻塞 MVP。旧阶段表和实施过程见[历史记录](docs/history/2026-11-15/TV_DEVELOPMENT.md)。
 
 ## 宿主与运行边界
 

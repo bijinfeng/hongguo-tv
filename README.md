@@ -1,6 +1,6 @@
 # 红果 · NSH
 
-NSH TSX + Rust 的桌面和 Android TV 客户端，采用 pnpm／Cargo 工作区。两端共享业务与基础组件，按键鼠和遥控器适配界面，默认使用包内 Rust。官方产品已有 Web 端，本仓库不重复实现：`apps/harness` 只是无头浏览器验收宿主，不是产品入口。
+NSH TSX + Rust 的桌面和 Android TV 客户端，采用 pnpm／Cargo 工作区。两端共享业务与基础组件，按键鼠和遥控器适配界面，默认使用包内 Rust。MVP 的验收宿主是 macOS 真机与固定 API34 AVD 模拟器，Windows／Linux 与物理电视按平台限制记录（见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)）。官方产品已有 Web 端，本仓库不重复实现：`apps/harness` 只是无头浏览器验收宿主，不是产品入口。
 
 完整 MVP 尚未完成。当前实现见[功能台账](docs/feature-ledger.md)，真实验收、开放失败和平台限制见[VALIDATION.md](VALIDATION.md)，下一批见[实施路线](docs/implementation-roadmap.md)。
 

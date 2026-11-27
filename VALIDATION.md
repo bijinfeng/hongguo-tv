@@ -6,6 +6,8 @@
 
 2026-11-26 起 Web 不再是产品端（官方产品已有 Web），原 `apps/web` 改名 `apps/harness`。本页与历史记录里的「Web 轮次」「Web fixture」「Web 套件」指的都是这个无头 Chromium 验收宿主；其源码、命令与产物路径按当时名称保留，不改写，向下按「宿主」读即可。
 
+2026-11-27 起 MVP 验收宿主收窄为两种：桌面为 macOS 真机，TV 为固定 API34 arm64 AVD 模拟器。物理电视（真实遥控、硬解、4K、真实 overscan、观看距离）与 Windows／Linux 真机安装升级改为平台限制，仍在本页保留事实与原因，但不再是 MVP 验收条件。规则见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)。TV 的 DPAD／媒体键／系统 IME 由模拟器注入，属于 MVP 范围，不因「非物理设备」回到待验收。
+
 ## 状态总览
 
 | 范围                     | 状态             | 未验要点                                               |
@@ -14,21 +16,23 @@
 | 宿主内容发现／详情       | 部分验收         | 分类／榜单／日历／推荐、真实切季逐项待验               |
 | 取源协议（共享 core）    | 已修复待宿主实看 | 模型与媒体就绪已验；首帧／进度／后台未验               |
 | 宿主真实播放             | 部分验收         | 后续详情／系列超时；深色与清空未执行                   |
-| Desktop native           | 部分验收         | 旧 409 未解释；续播入口、全屏、后台、稳定性            |
-| TV v4组件化重设计        | 已实现、部分验收 | 上游真实播放失败；账号、完整IME、读屏、物理TV与4K待验  |
-| TV native                | 部分验收         | 仅当时 APK；当前包、物理 TV、纯遥控、硬解、长播        |
+| Desktop native（macOS）  | 部分验收         | 旧 409 未解释；续播入口、全屏、后台、稳定性            |
+| TV v4组件化重设计        | 已实现、部分验收 | 上游真实播放失败；账号、完整IME、读屏与4K待验          |
+| TV native                | 部分验收         | 仅当时 APK；当前包、纯遥控、硬解、长播                 |
 | 游客历史 E1              | 部分验收 12／13  | 完整真实焦点／长列表／后台、Desktop native／当前 TV 包 |
 | 基础组件／还原           | 部分验收         | 全状态截图、人工 IME、读屏、大字、逐帧动效             |
 | 首页加载／占位           | 部分验收         | 失败／隐藏分支、读屏、真实慢网、正式宿主               |
-| 排行榜／榜单雷达         | 部分验收         | 真实账号流程、物理遥控、读屏、真实时延                 |
+| 排行榜／榜单雷达         | 部分验收         | 真实账号流程、遥控模拟、读屏、真实时延                 |
 | 账号／云同步／个人记录   | 已实现待真实验收 | 账号播放／进度上传、游客合并授权、其他端登录           |
-| 我的账号页面构图         | 已实现待正式验收 | 真实登录／同步、物理遥控、系统大字                     |
+| 我的账号页面构图         | 已实现待正式验收 | 真实登录／同步、模拟遥控、系统大字                     |
 | 账号追更／预约／更新提醒 | 已实现待真实验收 | 真实账号变化、预约写读、已读、重启、owner 隔离         |
-| 观看统计                 | 部分验收         | Desktop／TV、重启恢复、重置、账号切换、物理 TV         |
-| 设置／维护／更新         | 部分验收         | 物理端设置、真实播放偏好、签名升级、诊断／许可         |
-| TV 诊断上报              | 部分验收         | 业务失败实际上报、未捕获异常进程收敛、物理 TV          |
-| 平台与发行               | 首发完成         | Windows／Linux、签名公证、N-1 升级、SBOM               |
+| 观看统计                 | 部分验收         | Desktop／TV、重启恢复、重置、账号切换                  |
+| 设置／维护／更新         | 部分验收         | 真实播放偏好、签名升级、诊断／许可                     |
+| TV 诊断上报              | 部分验收         | 业务失败实际上报、未捕获异常进程收敛                   |
+| 平台与发行               | 首发完成         | macOS 签名公证、N-1 升级、SBOM                         |
 | 安全                     | 根门禁通过       | 宿主锁文件不在根图；两条 advisory 无修复版本           |
+
+平台限制项（不计入上表状态，不阻塞 MVP）：物理 Android TV 的真实遥控、硬解、4K、overscan 与观看距离；Windows／Linux 真机安装与升级。两者的事实和原因见「未验与阻塞」对应小节。
 
 ## 未验与阻塞
 
@@ -57,24 +61,29 @@
 2026-11-24 修复 Mobile-v5 签名缺项后，真实取源恢复。核心证据：`playback_probe --live` 对「重生」「甜宠」「逆袭」「穿越」四个真实搜索入口均取得模型并准备出媒体（HEVC 1080P／720P，3.94–10.16 MB）；正式 `GET /api/v1/play/info` 返回 `ok:true`／`hevc`／`1080P`，媒体代理 Range 为 `206` + `video/mp4`，下载整文件经 `ffprobe`（HEVC 1920×1080 + AAC 91.37 秒）与 `ffmpeg -f null` 全片解码无错误。
 
 - 修复前同一入口在「重生」上 9 路来源全部 `PLAYBACK_SOURCE_EMPTY` 并失败；`video_tab` 在修复后仍为空，实际取得模型的是 v5，因此不能把结论外推到其它来源。
-- 这是取源与媒体准备证据。各宿主播放器首帧、进度、暂停恢复、后台、硬解与物理设备仍分别按 harness／Desktop／TV 小节验收，不因本条视为播放已通过。
+- 这是取源与媒体准备证据。各宿主播放器首帧、进度、暂停恢复与后台仍分别按 harness／Desktop／TV 小节验收，不因本条视为播放已通过；硬解与物理设备限制单列。
 - 本机未执行三端 UI 实看；结论限于上述命令与 HTTP 入口。
 
 ### Desktop native
+
+MVP 桌面验收平台为 macOS 真机（见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)），以下 Linux 记录作为平台限制保留，不阻塞 MVP。
 
 正式入口真实搜索／详情成功；最新同账号同剧实际播放 8→87 秒、暂停后恢复至 160 秒，SQLite 进度和同步 ACK 已观察。
 
 - 旧 409 仍未解释，首帧截图／远端原始进度回读未验。
 - 随后重开遇到热更新后进程存活但零窗口，未能观察续播入口。
-- 完整管理、后台、全屏、稳定性继续待验。
-- **NSH 0.7.0 的 Linux `lifecycle()` 缺陷使桌面首页恒为骨架屏（2026-11-26 定位）**：`nsh-platform-linux` 用隐藏宿主窗口的 `surface.root.is_mapped()` 计算 `lifecycle()`，桌面窗口模型下宿主从不 map，因此 Linux 应用整个运行期间只报 `background`。本仓 40+ 处以 `lifecycle() === 'active'` 门控读取（含 `packages/app/src/category.ts:25` 的首页目录），条件恒假时 effect 走 `cancel()` 且不设错误，界面停在骨架屏且不显示失败态；探针实测 `lifecycle` 在 X11 与 Wayland 下均为 `background`，移除 `titleBar` 后不变，故与标题栏改动无关。上游已修（[#3239](https://github.com/longbridge/nsh/issues/3239)，PR [#3252](https://github.com/longbridge/nsh/pull/3252) `5ffa0bf984`），但**不在 0.7.1 内**：逐条核对 0.7.1 的 23 个提交无此项，`main` 领先 0.7.1 共 138 个提交，11-25 的 nightly 早于修复。Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)、[#3300](https://github.com/longbridge/nsh/pull/3300)），macOS 按整个应用计算不受影响。结论：骨架屏不是本仓缺陷，升到含修复的版本前桌面真实数据验收不可通过。
-- **Linux 隐藏标题栏时 GTK 窗口按钮在浅色下不可见（2026-11-26 观察，已报上游 [#3381](https://github.com/longbridge/nsh/issues/3381)）**：`chrome.rs::apply_title_bar` 只设 margin 与 decoration layout，不设颜色或 CSS class，按钮前景取 GTK 主题值。浅色下三个字形为纯白 `#ffffff`、无底色，在 `#f9f9f9` 栏面上对比度 **1.05:1**（纯白栏面为 1.0:1）；深色下 `#b3b4b4` on `#101111` 为 **9.1:1** 且有实心圆底。同一截图中应用自身文字为 `#171717` 满强度，排除未聚焦变暗。用 `nsh init --template ts` 独立最小工程实测复现（三个按钮均在，产品截图中「最小化缺失」是账号图标位置重叠造成的误判）。`titleBar: { style: "hidden" }` 在 Linux 浅色下的可用性等上游修复再判。
+- 完整管理、后台、全屏、稳定性继续待验；这些需在 macOS 真机上补齐才算 MVP 通过。
+- **NSH 0.7.0 的 Linux `lifecycle()` 缺陷使桌面首页恒为骨架屏（2026-11-26 定位，Linux 平台限制）**：`nsh-platform-linux` 用隐藏宿主窗口的 `surface.root.is_mapped()` 计算 `lifecycle()`，桌面窗口模型下宿主从不 map，因此 Linux 应用整个运行期间只报 `background`。本仓 40+ 处以 `lifecycle() === 'active'` 门控读取（含 `packages/app/src/category.ts:25` 的首页目录），条件恒假时 effect 走 `cancel()` 且不设错误，界面停在骨架屏且不显示失败态；探针实测 `lifecycle` 在 X11 与 Wayland 下均为 `background`，移除 `titleBar` 后不变，故与标题栏改动无关。上游已修（[#3239](https://github.com/longbridge/nsh/issues/3239)，PR [#3252](https://github.com/longbridge/nsh/pull/3252) `5ffa0bf984`），但**不在 0.7.1 内**：逐条核对 0.7.1 的 23 个提交无此项，`main` 领先 0.7.1 共 138 个提交，11-25 的 nightly 早于修复。Windows 有同类缺陷（[#3287](https://github.com/longbridge/nsh/issues/3287)、[#3300](https://github.com/longbridge/nsh/pull/3300)），macOS 按整个应用计算不受影响。结论：骨架屏不是本仓缺陷；它只阻塞 Linux 实时数据观察，而 Linux 不在 MVP 验收宿主内，因此不构成 MVP 阻塞，macOS 真机不受影响。
+- **Linux 隐藏标题栏时 GTK 窗口按钮在浅色下不可见（2026-11-26 观察，已报上游 [#3381](https://github.com/longbridge/nsh/issues/3381)，Linux 平台限制）**：`chrome.rs::apply_title_bar` 只设 margin 与 decoration layout，不设颜色或 CSS class，按钮前景取 GTK 主题值。浅色下三个字形为纯白 `#ffffff`、无底色，在 `#f9f9f9` 栏面上对比度 **1.05:1**（纯白栏面为 1.0:1）；深色下 `#b3b4b4` on `#101111` 为 **9.1:1** 且有实心圆底。同一截图中应用自身文字为 `#171717` 满强度，排除未聚焦变暗。用 `nsh init --template ts` 独立最小工程实测复现（三个按钮均在，产品截图中「最小化缺失」是账号图标位置重叠造成的误判）。`titleBar: { style: "hidden" }` 在 Linux 浅色下的可用性等上游修复再判。
 
 ### TV native
 
+TV 的 MVP 验收宿主为固定 API34 arm64 AVD 模拟器；物理电视相关项记为平台限制。
+
 C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续播有证据，包含有限重试恢复。
 
-- 仅对应当时 APK 和所列操作；当前包完整新功能／E1 主链、物理 TV／纯遥控全流程／硬解／长播未验。
+- 仅对应当时 APK 和所列操作；当前包完整新功能／E1 主链、纯遥控全流程／长播未验。
+- 物理电视上的真实遥控、硬解、4K、overscan 与观看距离未验，按平台限制记录，不阻塞 MVP。
 
 ### TV v4 组件化重设计
 
@@ -87,9 +96,9 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 | Android 页面与组件       | 2026-11-26，`ce908cc64`／NSH 0.7.0 在固定 API34 arm64 AVD 上完成 `pnpm visual:tv --android`：浅深色各 20 个产品页面／子视图及八组同源组件，共 56 张截图；证据 `artifacts/tv-visual/android/manifest.json`。抽查找剧、搜索与组件图标，未发现本轮图标兼容回归。此前标准浅深色同样覆盖 20 个产品页面／子视图和八组同源组件。另有 720p 100%／130%／200%、1080p 130%／200% 五组，各完成 28 张截图。只证明所列页面就绪和截取视口，不代表所有滚动内容、所有状态或读屏已验。                                                                                                                                                                                                  |
 | 保守安全区与大字矩阵     | 1080p／200% 的浅深色另完成 20 个页面／子视图及八组同源组件，共 56 张截图；通过 NSH Android 测试宿主注入安全区并实际读回 `27／48／27／48`，每组文字倍率读回为 2，120 点宽控件布局为 120×56。人工复核两组 20 个页面首视口的字级、换行、间距、对齐、配色及可见反馈；长内容仍由页面滚动承载，不将首视口当作全部内容验收。证据为 `artifacts/tv-visual/android-conservative/manifest.json`；它证明受控安全区环境中的 Android 绘制，不证明物理过扫描或非零真实系统 insets。                                                                                                                                                                                                  |
 | 原生逻辑尺度             | 1080p／density 320：window 960×540 points、pixelRatio 2；720p／density 213：约 961.50×540.85 points、pixelRatio 1.33125。系统字号 1／1.3／2 下，120 点宽的按钮实测最小高度约 36／41.3／56 点；字号只缩放一次。系统 insets 当轮均为 0；标准内容安全边距和焦点余量在根应用。                                                                                                                                                                                                                                                                                                                                                                                            |
-| 焦点与影院               | `pnpm test:tv-player` 浅色、深色和 130% 各 26／26；安装的是显式 HTTP fixture 预览 APK，真实 Android media surface 解码自制 12 秒视频，覆盖暂停、定位预览／取消、媒体键、原生参数层与嵌套选择、逐层返回及来源恢复，新增顶部设置入口的原生返回检查。截图观察到单一焦点框，不能外推为所有控件动态失能恢复、人工 IME 或物理遥控已验。                                                                                                                                                                                                                                                                                                                                     |
+| 焦点与影院               | `pnpm test:tv-player` 浅色、深色和 130% 各 26／26；安装的是显式 HTTP fixture 预览 APK，真实 Android media surface 解码自制 12 秒视频，覆盖暂停、定位预览／取消、媒体键、原生参数层与嵌套选择、逐层返回及来源恢复，新增顶部设置入口的原生返回检查。截图观察到单一焦点框，不能外推为所有控件动态失能恢复或人工 IME 已验。模拟器注入的 DPAD／媒体键属于 MVP 验收；物理遥控按平台限制记录。                                                                                                                                                                                                                                                                               |
 | 原生浏览交互             | 当前可交互 AVD 的浅色 100%、深色 100% 和 130% 各 73／73。显式 HTTP fixture 覆盖网格虚拟化、分页失败／重试／末页、精确来源、较新意图、演员及中文输入；组合使用无障碍定位与 DPAD，定位目标须进入实际视口后才允许聚焦。原助手过滤屏外已挂载节点，并在大字减列后被固定总时限提前中断；现复用同帧树，以视口进展检测停滞并限制遍历页数，未减少业务断言。最新逐组结果、日志和源码摘要在 `artifacts/browsing/current-reveal-verification.json`；旧失败保留在 `artifacts/tv-input-native/focus-source-native-gates.json` 及所列日志。合成 HTTP 不计真实服务验收。                                                                                                              |
-| 200% 追加交互            | 系列／季 33 项、综合浏览 76 项及演员专项 25 项通过；播放器 27 项通过，最新出口与原生包恢复均通过，见 `artifacts/tv-visual/extra-large-native-gates.json`。演员首个作品返回曾落到返回按钮：同排长标题撑高整行，按整行居中使较短源卡片移出视口。共享集合现按准确卡片、List 视口与当前滚动位置修正偏移；保留可见范围、集合和新意图检查。定向集合回归 4／4、最新三端工程门禁及综合原生复验通过；原始失败日志、截图与原生树在 `artifacts/browsing/unequal-row-before/`。错误、关键词、重试及播放动作／选集分别滚动验证，不要求大字下同时出现在同一视口；浏览仍检查返回后保留第59集所在段。数据为合成，真实服务与物理设备限制继续开放。                                     |
+| 200% 追加交互            | 系列／季 33 项、综合浏览 76 项及演员专项 25 项通过；播放器 27 项通过，最新出口与原生包恢复均通过，见 `artifacts/tv-visual/extra-large-native-gates.json`。演员首个作品返回曾落到返回按钮：同排长标题撑高整行，按整行居中使较短源卡片移出视口。共享集合现按准确卡片、List 视口与当前滚动位置修正偏移；保留可见范围、集合和新意图检查。定向集合回归 4／4、最新三端工程门禁及综合原生复验通过；原始失败日志、截图与原生树在 `artifacts/browsing/unequal-row-before/`。错误、关键词、重试及播放动作／选集分别滚动验证，不要求大字下同时出现在同一视口；浏览仍检查返回后保留第59集所在段。数据为合成，真实服务限制继续开放；物理设备按平台限制记录，不阻塞 MVP。           |
 | 原生组件交互             | `pnpm test:tv-components` 把同源 Gallery 装入生产 TV 宿主；浅深 × 100%／130%／200% 六组共 139 项检查通过，最后一组关闭系统动画并读回 reduced motion。覆盖四类弹层初始／返回焦点、静态正文拒绝动作焦点、pending 焦点交接／拒绝程序聚焦／恢复、长中文 InputConnection 组合提交、遥控字母／数字、退格与清空。覆盖设置错误旁恢复动作、恢复不改原值、恢复按钮移除后的有效焦点。修复了 Dialog 无名背景遮罩抢占候选与背景窗口旧轮廓未及时重绘。截图复核单一轮廓；系统设置和正式入口安装均已恢复。此结果不覆盖人工 IME 候选选择、TalkBack 或真实业务。                                                                                                                        |
 | 正式设置与信息页         | 同一原生包在浅色100%、深色130%、浅色200%、深色200%四组，每组顶栏3项，加DPAD确认与无障碍focus/click两条设置信息路径各16项，共140项通过。使用完整原生View bounds核对六个顶栏入口不重叠、不出界；遥控遍历末项、读取真实版本与许可、进入只读区域并滚至MIT、确认不动作、Left回原分类、Back回设置来源并保留首页实际滚动位置均通过。未改变保存偏好或用户记录。证据为 `artifacts/tv-input-native/focus-source-matrix/`。                                                                                                                                                                                                                                                      |
 | 正式原生包与真实服务     | 当前正式入口的原生 debug 包，无电脑 API／adb reverse；真实中文查询、上游结果、遥控聚焦、详情及开始观看操作共通过 7 项。第一集播放在一次可见重试后仍显示“播放失败：服务暂时不可用，请稍后重试”，未取得首帧；进度、后台、SQLite／重启链未执行。证据为 `artifacts/playback/native-business-tv/focus-source-recheck/`，日志 `.local/tv-real-primary-watch-after-focus-fix.log`。脚本原先假定首屏可见第1集，486集长详情使该前提失败；现使用实际“开始观看”主操作，不跳过媒体时钟检查。                                                                                                                                                                                      |
@@ -98,20 +107,20 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 | 真实筛选与日历返回       | 正式原生包的真实类型、题材、排序切换已观察：漫剧有真实结果，漫剧＋动作＋最新返回诚实空状态；切回真人剧后返回真实结果并保留最新排序，无效题材由原 controller 协调。日历切至 20261119 后内容更新，DPAD 进入真实详情再 Back，原日期及精确卡片焦点恢复。未写片库或观看历史；证据为 `artifacts/tv-visual/real-browsing/`。                                                                                                                                                                                                                                                                                                                                                 |
 | 真实首页与错误恢复       | 当前正式原生包观察到真实 Hero、目录和已有账号的三条续播内容。通过 [Android Emulator 网络模拟](https://developer.android.com/studio/run/emulator-console)向这台测试 AVD 注入时延／限速：冷启动首页呈现加载、失败时不补造推荐、重试后恢复真实 Hero／目录；找剧保留上次结果并说明筛选未生效，恢复网络重试后显示所选漫剧；日历保留选中日期、不混入其他日期卡片，重试后取得该日期真实内容。网络已恢复无限速／零时延。证据为 `artifacts/tv-visual/real-home/` 与 `real-network-recovery/`。这是实际入口和真实服务上的故障注入，不是自然上游故障或 HTTP fixture。                                                                                                            |
 | 个人入口与次级导航       | 新原生包用 DPAD 确认进入观看记录／收藏／追更／预约／更新提醒，Back 均恢复“我的”对应按钮；只读观看统计页与正式雷达入口可达，未删除记录、重置统计或标记通知。修复前遥控进入历史后返回落到 `nav-mine`；现在 store 单独保存“我的”来源回调，详情卡片返回不覆盖它，切换主入口清除。共享回归另覆盖五入口、详情和重复返回。真实证据为 `artifacts/tv-visual/real-navigation/`，修复前证据为 `real-navigation-before-source-fix/`。演员页沿用上述三档浏览 fixture，提醒／雷达浅深及大字视口见页面矩阵；未观察的真实演员与完整提醒操作仍开放。                                                                                                                                   |
-| 系列／季原生浏览         | 复用生产 App 和 Java 适配层的独立测试包，浅色、深色、130% 各 33 项，另补 200% 33 项通过；涵盖方向移动不提交、确认切季、待上线／不可观看、503 重试、真实可见选集身份、详情返回及浏览不写历史。脚本使用 TV 主题和生产品牌资源／诊断依赖，诊断 DSN 为空；严格 fixture 仅新增当前首页目录的精确只读请求。大字恢复后先遥控滚动到选集，再验证身份，不能将屏外节点当作可见成功。证据为 `artifacts/seasons-ui/current-tv-v4.json`，恢复错误为空。数据与媒体为合成，不替代真实系列、续季、账号或物理设备验收。                                                                                                                                                                 |
-| 4K 模拟限制              | AVD 请求 3840×2160／density 640 后，截图仍为 1920×1080，宿主实测 window 480×270、pixelRatio 4，导航布局截断且页面切换检查失败。该 override 不构成可用的 4K UI 输出；保留失败并恢复原分辨率／density／字号，物理 4K 继续未验。                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 系列／季原生浏览         | 复用生产 App 和 Java 适配层的独立测试包，浅色、深色、130% 各 33 项，另补 200% 33 项通过；涵盖方向移动不提交、确认切季、待上线／不可观看、503 重试、真实可见选集身份、详情返回及浏览不写历史。脚本使用 TV 主题和生产品牌资源／诊断依赖，诊断 DSN 为空；严格 fixture 仅新增当前首页目录的精确只读请求。大字恢复后先遥控滚动到选集，再验证身份，不能将屏外节点当作可见成功。证据为 `artifacts/seasons-ui/current-tv-v4.json`，恢复错误为空。数据与媒体为合成，不替代真实系列、续季或账号验收；物理设备按平台限制记录。                                                                                                                                                   |
+| 4K 模拟限制              | AVD 请求 3840×2160／density 640 后，截图仍为 1920×1080，宿主实测 window 480×270、pixelRatio 4，导航布局截断且页面切换检查失败。该 override 不构成可用的 4K UI 输出；保留失败并恢复原分辨率／density／字号。4K 输出与物理 4K 按平台限制记录，不阻塞 MVP。                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 共享偏好回归用Storage stub验证第一次保存失败、连续重试仍定位原字段、成功后按原意图持久并重开读回；这不是原生真实磁盘故障验收。SettingsRow仅提供受控恢复动作，theme、普通播放偏好、quietWatching及autoCheckUpdates沿用原保存owner；诊断同意仍按宿主授权处理。直接ACTION_FOCUS后立即ACTION_CLICK打开设置曾在返回时落到旧海报；宿主现于来源被移除时保留同一来源记录，并推迟到pre-draw处理焦点，避免页面更新中途聚焦旧内容。负向检查发现只恢复目标仍会把首页垂直位置从0滚到565像素；修复后200%深色的同一路径16项通过，位置为0→0。对照证据为 `artifacts/tv-input-native/focus-source-before/`；完整TalkBack遍历、播报与输入仍未验。
 
-正式原生包还完成了系统 Gboard 12.8 TV 的中文候选流程：临时启用简体中文，输入 `chongsheng` 后出现真实拼音组合及“重生”候选，DPAD 上键选择、确认提交，Back 仅关闭输入法并保留草稿，Enter 提交后得到真实搜索结果。输入法已恢复“使用系统语言”，临时中文语言已关闭，原英文设置保留。证据为 `artifacts/tv-input-native/`；这证明所列模拟按键下的系统 IME 流程，不是产品拼音转写能力或物理遥控验收。其他 IME、200% 下的完整候选路径与完整读屏仍待补。
+正式原生包还完成了系统 Gboard 12.8 TV 的中文候选流程：临时启用简体中文，输入 `chongsheng` 后出现真实拼音组合及“重生”候选，DPAD 上键选择、确认提交，Back 仅关闭输入法并保留草稿，Enter 提交后得到真实搜索结果。输入法已恢复“使用系统语言”，临时中文语言已关闭，原英文设置保留。证据为 `artifacts/tv-input-native/`；这证明所列模拟按键下的系统 IME 流程，不是产品拼音转写能力。其他 IME、200% 下的完整候选路径与完整读屏仍待补。
 
-系统 TalkBack 14.0 leanback 的局部验收发现绿色系统框与宿主外框叠加，宿主现随公开 `AccessibilityManager` 触摸探索状态让出绘制权，并在模式变化时重绘、销毁时解除监听。实际原生包验证：同一导航控件的应用外框像素从 208 降为 0，系统绿色框保留；方向键只移动焦点、确认进入找剧，Back 返回精选，再打开退出确认时取消获得系统焦点。关闭 TalkBack 后同一页面恢复应用外框，系统绿色框消失。已恢复原无障碍设置。证据为 `artifacts/tv-input-native/talkback-*.png` 与 `talkback-summary.json`。TTS 引擎已连接，但 AVD 使用 `-no-audio`，本轮没有听辨或转录播报；完整遍历、读屏输入和物理设备仍未验。
+系统 TalkBack 14.0 leanback 的局部验收发现绿色系统框与宿主外框叠加，宿主现随公开 `AccessibilityManager` 触摸探索状态让出绘制权，并在模式变化时重绘、销毁时解除监听。实际原生包验证：同一导航控件的应用外框像素从 208 降为 0，系统绿色框保留；方向键只移动焦点、确认进入找剧，Back 返回精选，再打开退出确认时取消获得系统焦点。关闭 TalkBack 后同一页面恢复应用外框，系统绿色框消失。已恢复原无障碍设置。证据为 `artifacts/tv-input-native/talkback-*.png` 与 `talkback-summary.json`。TTS 引擎已连接，但 AVD 使用 `-no-audio`，本轮没有听辨或转录播报；完整遍历与读屏输入仍未验。
 
 原生宿主已避开匿名容器生成完整模态可访问子树的递归路径；此前在可交互 AVD 观察到两次输入 ANR，现只在对话框定位时过滤匿名布局，Select portal 继续按公开 ListView 语义识别。当前播放器三组各 26 项、同源组件六组共 139 项通过；来源移除与 pre-draw 交接修复另由上述 140 项覆盖。相关旧失败在 `.local/tv-player-current-host.log`、`.local/tv-player-semantic-scope.log`、`.local/tv-player-list-scope.log`，只保留作追溯，不把单轮通过当作压力稳定性证明。
 
 可交互配置的后段分页定位经助手修正后，最新三档各 73 项通过；旧失败与当时源码摘要保留，结果以表中当前记录为准。旧组件末组未进入编辑已补实际获得焦点及 UI idle 等待，最新六组通过；旧播放器末次媒体键切集失败在最新三组未复现，但偶发触发均未完全锁定。失败证据保留在 `artifacts/ui-components/native-tv-interactive-focus-failure/`、`.local/tv-components-after-screen-reader.log`、`.local/tv-components-observed-focus.log`、`.local/tv-redesign-player-before-retry.log`、`.local/tv-redesign-browsing-before-*.log` 与 `.local/tv-redesign-browsing-large-debug.log`；一次截图返回空也未据此宣称根因已解。
 
-圆角、字级、间距、对齐、配色与可见状态已用所列浅深／大字视口复核；hover／pressed 另有共享回归。完整逐帧动效、全部减少动效路径、完整 TalkBack 遍历／播报／输入、其他 IME 及 200% 候选流程、物理 overscan／非零真实系统 insets、物理遥控和观看距离仍未覆盖。用户确认目前只有模拟器，物理 TV／4K 保持未验；账号仅覆盖表中局部写读，未清空原有记录。
+圆角、字级、间距、对齐、配色与可见状态已用所列浅深／大字视口复核；hover／pressed 另有共享回归。完整逐帧动效、全部减少动效路径、完整 TalkBack 遍历／播报／输入、其他 IME 及 200% 候选流程仍未覆盖。物理 overscan／非零真实系统 insets、物理遥控和观看距离按平台限制保留，不阻塞 MVP；账号仅覆盖表中局部写读，未清空原有记录。
 
 证据在本机 ignored 目录：`artifacts/tv-visual/android/manifest.json`、`artifacts/tv-visual/android-matrix/manifest.json`、`artifacts/tv-visual/web/manifest.json`、`artifacts/playback/tv-apk/`、`artifacts/ui-components/native-tv/summary.json` 与 `artifacts/playback/native-business-tv/installed-native.json`。矩阵 manifest 保留最新五组各 28 张完成截图与 4K 失败（总计 141 张，含 4K 局部截图）；当前工程门禁日志为 `.local/tv-final-verify-after-unequal-card-fix.log`，网络恢复日志为 `.local/tv-real-timeout-recovery.log` 与 `.local/tv-real-home-timeout.log`；其他旧命令保留在 `.local/tv-redesign-*.log`。真实业务各轮安装包与截图保留在对应证据目录，不能将旧包的流程结果当作当前包的全量复验。当前正式入口的独立 native debug 预览包身份统一记录在 `artifacts/tv-visual/current-native-package.json`；对应 `current-native-home.png`，不在此复制易过期的摘要。该包仍是调试预览，不是签名正式发行。
 
@@ -136,8 +145,8 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 统一为静帧骨架模型，含 `skeleton`／`skeleton-surface` token 与 `SkeletonBlock`／`SkeletonRegion`；当批三端应用回归与宿主 fixture 截图见[批次记录](docs/history/2026-11-17/home-loading-unification.md)。
 
 - fixture 未制造继续观看失败与精选区隐藏。
-- 读屏实际播报、物理遥控与物理 TV、真实慢网／失败、正式 harness／Desktop 宿主截图未验证；骨架高度差只有视觉复核，未逐像素测量。
-- Desktop 上骨架屏永不退出的成因不是本节的加载态缺陷，而是 NSH 0.7.0 的 Linux `lifecycle()` 恒为 `background` 使读取从未发起，见[Desktop native](#desktop-native)；在含上游修复的 NSH 版本上重新验收本节。
+- 读屏实际播报、真实慢网／失败、正式 harness／Desktop 宿主截图未验证；骨架高度差只有视觉复核，未逐像素测量。遥控输入由模拟器覆盖；物理设备按平台限制记录。
+- Desktop 上骨架屏永不退出的成因不是本节的加载态缺陷，而是 NSH 0.7.0 的 Linux `lifecycle()` 恒为 `background` 使读取从未发起，见[Desktop native](#desktop-native)；这是 Linux 平台限制，需在含上游修复的 NSH 版本上重新观察，macOS 真机验收不受影响。
 
 ### 排行榜／榜单雷达（统一设计）
 
@@ -147,7 +156,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 - 宿主截图：TV `pnpm visual:tv --web` 960×540dp 浅／深（`artifacts/tv-visual/web/tv-rankings-{light,dark}.png`，viewport 记在同目录 `manifest.json`，source `f5cd6e8`）；桌面现存 `artifacts/rankings-ui/web/desktop/`，`artifacts/radar-ui/` 与 macos 目录已不在本机，原 radar 4／4 截图不可复现。
 - 本机 `cargo nextest` 全量并行时 `lifecycle_tests::a_directory_alias_reopen_waits_for_the_original_session_to_drain` 偶发失败（单独运行 50／50 通过），属既有目录锁时序不稳定，与榜单链路无关。
 
-- 正式入口真实账号流程；物理 TV／真实遥控的大字与 DPAD 全流程；读屏播报。
+- 正式入口真实账号流程；模拟器上的大字与 DPAD 全流程；读屏播报。物理电视按平台限制记录。
 - 真实慢网与雷达过期／缓存提示；桌面列窗口在真实列宽下的可读性；TV 官方榜首屏密度。
 
 ### 账号／云同步／个人记录
@@ -161,7 +170,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 
 桌面与 TV 构图、深浅色、登录弹窗已截图并完成四轮视觉复评；过程、评语与三端账号回归见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
 
-- TV 本轮已观察真实登录后的账号与同步状态，证据见 TV v4 项；物理遥控、真实账号系统大字及完整同步仍待验。旧构图评审使用合成服务响应。
+- TV 本轮已观察真实登录后的账号与同步状态，证据见 TV v4 项；真实账号系统大字及完整同步仍待验，模拟遥控已覆盖，物理遥控按平台限制记录。旧构图评审使用合成服务响应。
 - TV 以轻标题＋按钮带替代第二列与卡片容器属端型适配，不作为桌面还原度的一部分。
 
 ### 账号追更／预约／更新提醒
@@ -175,7 +184,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 独立 owner／epoch SQLite、批次幂等／重置围栏、真实 Player advancing stream 接入、History 共享页面、HTTP/native parity、三端 check、core／app 边界回归、完整 verify 通过；真实宿主浅色首播约 30.6 秒已产生统计并在面板显示。
 
 - 正式宿主整轮因后续上游 `/play/info` 重播失败而未通过。
-- Desktop／TV、跨主题／重启恢复、重置后不删历史、账号切换及物理 TV 尚未验收；合成数据不作为功能通过依据。
+- Desktop／TV、跨主题／重启恢复、重置后不删历史、账号切换尚未验收；合成数据不作为功能通过依据。
 
 ### 设置／维护／更新
 
@@ -184,7 +193,7 @@ C3.1 的固定 API34 模拟器三组真实观看／切集／后台／重启续�
 - 三端 app settings 回归各 4／4；三端套件 233（Web）／244（Desktop）／246（TV，1 跳过）在 `f5cd6e8` 源码上通过（`870f7e5` 提交说明另记「Web 142, Desktop 149, TV 151」，与本批口径不同且无留存日志可仲裁；当前工作树的套件总数本次未留存，不以任一旧数代当前值），`pnpm check`、`pnpm build`、`cargo nextest` 408／408 通过。
 - 截图由三端设置宿主脚本（`nsh test … --target <web／macos／android>`，`tooling/src/settings-host.mjs:41`；Android 由设备自报尺寸，脚本不设窗口，`:15`）在 2026-11-17 生成，存于 `artifacts/design/settings/`；该目录当前不在本机，截图不可复现；同年 11-19 的 TV 960×540dp 浅／深设置页见 `artifacts/tv-visual/web/tv-settings-{light,dark}.png`。共享更新状态回归 7／7（含暂存、提前重启失败仍保留暂存、回执只报告一次）。
 - 语言／缓存／预取／诊断／许可无真实数据源不展示。
-- 物理 Android TV／桌面真机设置与遥控操作、安静观看／自动播放／续播行为的真实播放实看、正式签名升级仍开放。
+- 模拟器上的设置与遥控操作、安静观看／自动播放／续播行为的真实播放实看、macOS 正式签名升级仍开放。物理 Android TV 与 Windows／Linux 桌面真机按平台限制记录。
 - 桌面真实「准备安装 → 退出 → 下次启动为新版本」、强杀后回执报告「上次更新未完成」、立即重启失败后退出仍完成换入均未验。
 - 离线剧集能力待核对，不以预取代证。
 
@@ -195,7 +204,7 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 - 工程门禁：`pnpm verify` 退出码 0（Web 255／Desktop 257／TV 182 项 NSH 测试，TV 1 项历史跳过；含本轮新增脱敏、旧偏好兼容与宿主通道用例）；`pnpm security` 退出码 0（cargo-deny advisories／bans／licenses／sources 全 ok）。
 - TSX→宿主契约（TV 入口 `apps/tv/App.test.tsx`，用真实 category 失败路径，不是 mock）：未同意时零 `diagnostics.report`；同意后一次失败恰好一条上报，`category=catalog`、`operation=加载分类`，序列化结果不含 `http://`、`sign=` 或 `/api/v1/`，且 `category-error` 恢复界面照常出现。
 - 2026-11-24 API 34 arm64 模拟器（`hongguo-tv-api34-arm64`）：同意关闭时启动无 `cache/sentry`、无 SDK 初始化；打开开关后 SDK 初始化，`.options-cache/release.json` 为 `"0.1.5+6"`、`environment.json` 为 `"production"`；重启后已存同意自动重放，`cache/sentry` 重新出现。直接向 DSN 端点投递 envelope 返回 `200` 与 event id，Sentry 问题列表出现对应条目（`HONGGUO-TV-1`）。
-- **未验证**：引擎致命错误经 `NshView` 转发到 Sentry 的设备侧证据；后端不可达时用户可见行为不变；未捕获异常被 SDK 接管后的进程收敛。这三项需要能精确注入网络故障的环境（当前模拟器无 root，`/etc/hosts` 与 iptables 均不可用），留待物理设备。ANR 与 NDK 崩溃不在本变更范围。
+- **未验证**：引擎致命错误经 `NshView` 转发到 Sentry 的设备侧证据；后端不可达时用户可见行为不变；未捕获异常被 SDK 接管后的进程收敛。这三项需要能精确注入网络故障的环境（当前模拟器无 root，`/etc/hosts` 与 iptables 均不可用），保留为未验项与平台限制，不阻塞 MVP。ANR 与 NDK 崩溃不在本变更范围。
 - 真机踩到的两处与设计不符已在 `openspec/changes/add-diagnostics-reporting/design.md` 更正：纯 Java `io.sentry:sentry` 在 Android 上拒绝初始化；`sentry-android` 的 `SentryInitProvider` 会绕过同意，须以 `io.sentry.auto-init=false` 关闭。
 - 桌面 `nsh.json` 未声明 `capabilities`，而 NSH 一旦出现该块就默认拒绝未列出的能力；因此诊断宿主测试注册在 TV 入口（TV 已有完整能力白名单），桌面 manifest 保持原样，不为其引入能力收紧风险。
 
@@ -203,15 +212,15 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 
 2026-11-20 首次正式发布 `v0.1.0`；2026-11-21 从 master 发布 `v0.1.1`（源码 `722cbd8`，run 44764824518）。两次的 `quality`／`security` 前置 job 均通过，两端构建成功；`v0.1.1` 的产物已下载实测：APK 证书 `8d34d7e8…` 与 `tooling/release-policy.json` 一致（`CN=Hongguo TV Release`），两端 SHA-256 与各自清单一致，两份更新清单的 Ed25519 签名以配置公钥验签通过。发布细节与逐项未验见[门禁与发布记录](docs/history/2026-11-20/gate-and-release.md)。
 
-- Windows／Linux 实际安装、正式签名／公证／SBOM、无 Go 干净环境及完整产品矩阵未完成。2026-11-22 接入两平台的工程门禁：ci.yml entry 在 windows-2025／ubuntu-24.04 跑桌面行为测试，release-preview 的 `windows-preview`／`linux-preview` 产出未签名预览 ZIP／归档；两者首次流水线运行与产物真机验收均未完成，不据此宣称平台支持。
-- **桌面发布流水线已扩到三平台（2026-11-24，仅源码改动，尚未跑过发布）**：`release-publish.yml` 的 `desktop` 改为 macOS／Windows／Linux 矩阵，各平台产 `<os>-<arch>` 命名的归档，由新增 `desktop-manifest` job 生成一份三平台 `latest.json`；新增 `tooling/src/desktop-archive.mjs` 按 `nsh-updater` 暂存规则复核归档（单一顶层目录、可执行文件、`nsh/app.json` 的应用 ID），preview 与 publish 共用。**证据只到工具层**：`update-manifest` 回归 7 项全部通过（本机装的是 NSH 0.6.1、仓库固定 0.6.0，固定版本那条断言只在把 `.nsh-version` 临时指向 0.6.1 时通过；已还原为 0.6.0，CI 装固定版本不受影响），`desktop-archive` 2 项通过；校验器对真实 `apps/desktop/.nsh/out/红果.tar.gz` 通过；用临时密钥对三平台归档（真实 Linux 包 + 合成的 macOS／Windows 包）跑通「生成记录 → 壳层签名 → 复验」，并确认删掉 Windows 平台键后即使签名正确仍被拒绝。**Windows runner 打包、三平台同时发布、Windows／Linux 真机安装与 N-1 → N 升级均未验，不宣称两平台已支持。**
+- Windows／Linux 实际安装、正式签名／公证／SBOM、无 Go 干净环境未完成；这些不阻塞 MVP，但也不得宣称两平台已支持。2026-11-22 接入两平台的工程门禁：ci.yml entry 在 windows-2025／ubuntu-24.04 跑桌面行为测试，release-preview 的 `windows-preview`／`linux-preview` 产出未签名预览 ZIP／归档；两者首次流水线运行与产物真机验收均未完成。
+- **桌面发布流水线已扩到三平台（2026-11-24，仅源码改动，尚未跑过发布）**：`release-publish.yml` 的 `desktop` 改为 macOS／Windows／Linux 矩阵，各平台产 `<os>-<arch>` 命名的归档，由新增 `desktop-manifest` job 生成一份三平台 `latest.json`；新增 `tooling/src/desktop-archive.mjs` 按 `nsh-updater` 暂存规则复核归档（单一顶层目录、可执行文件、`nsh/app.json` 的应用 ID），preview 与 publish 共用。**证据只到工具层**：`update-manifest` 回归 7 项全部通过（本机装的是 NSH 0.6.1、仓库固定 0.6.0，固定版本那条断言只在把 `.nsh-version` 临时指向 0.6.1 时通过；已还原为 0.6.0，CI 装固定版本不受影响），`desktop-archive` 2 项通过；校验器对真实 `apps/desktop/.nsh/out/红果.tar.gz` 通过；用临时密钥对三平台归档（真实 Linux 包 + 合成的 macOS／Windows 包）跑通「生成记录 → 壳层签名 → 复验」，并确认删掉 Windows 平台键后即使签名正确仍被拒绝。**Windows runner 打包、三平台同时发布、Windows／Linux 真机安装与 N-1 → N 升级均未验，按平台限制记录；不宣称两平台已支持，也不阻塞 MVP。**
 - **Linux x64 源码构建与打包已在本机 Ubuntu 26.04（GTK 4.22／WebKitGTK 6.0 2.52）通过**（2026-11-23）：`pnpm setup:workspace`、`pnpm check --target desktop`、`pnpm build --target desktop`、`pnpm package:desktop` 均退出码 0，产出 `apps/desktop/.nsh/out/红果` 与 `红果.tar.gz`；包内 `App` 的 `ldd` 无缺失库，启动后真实 GTK 窗口渲染出侧边栏与首页骨架，并在 `~/.local/share/dev.hongguo.desktop/` 建立 `guest.sqlite3`／`account.sqlite3`／`watch-statistics.sqlite3` 与媒体 lease 目录；`strace` 记录到 DNS 与多条 443 外连，说明 native core 的真实上游请求已发出。**限制：本机无 GTK 开发头文件，构建借用 `/tmp` 之外的隔离 sysroot（解包的 `libgtk-4-dev`／`libwebkitgtk-6.0-dev`／GStreamer dev 包）而非系统安装，因此该结论不等于「干净宿主按文档可构建」；安装包交互（桌面文件安装、启动器、N-1 升级）、真实数据能否在界面完成加载、以及窗口装饰仍未验收。**
 - **桌面默认窗口尺寸此前缺失，本次修正**：`apps/desktop/nsh.json` 未配置 `"window"`，NSH 的 Linux 宿主回退到其内部 `390×844` 手机尺寸（`nsh-platform-linux-0.6.0/src/app.rs:207`），与 DESIGN「390px 窄窗口已退出产品范围／正式桌面按 1180×780、1440×1000 检查」冲突。已按 1180×780 写入 `window.defaultSize`，打包后 `app.json` 携带该值，X11 实测窗口尺寸由 390×844 变为 1180×780。**该尺寸只在 X11／XWayland 量化确认；GNOME Wayland 原生窗口未取得窗口几何证据。**
-- **Linux 窗口无边框／阴影：0.6.1 未改变，且原先的 Yaru 归因被受控实验证伪**。`nsh-platform-linux` 的 `src/system.rs`（运行时改写 `gtk-application-prefer-dark-theme`／`gtk-interface-color-scheme` 处）在 0.6.0 与 0.6.1 之间 md5 一致；该 crate 两版唯一源码改动是 `src/native.rs` 的视频 `paused` 状态。0.6.1 打包后窗口仍报 `Theme parser error: Failed to import resource:///com/ubuntu/themes/Yaru/4.0/gtk.css`，`_GTK_FRAME_EXTENTS` 仍为 `25,25,25,25`。**该警告不影响装饰绘制**：PyGObject 探针执行与 NSH 相同的两个 `set_property`（报该警告）与不执行（不报）两种模式，其窗口 `xwd` 输出逐字节相同（450×387，md5 一致）。**真正待判的是合成器**：本机 X 会话 `_NET_WM_CM_S0` 为 `not found`（无合成器），16/24 位 `xwd` 的 25px 边距区读到纯黑且不含 alpha，因此**窗口装饰在本机仍未取得通过或失败的可靠视觉证据**。下一步：在带合成器环境（GNOME Wayland 原生会话或 Xvfb+picom）取 32 位 ARGB 截图判定，再决定是否需报 NSH 上游。
+- **Linux 窗口无边框／阴影：0.6.1 未改变，且原先的 Yaru 归因被受控实验证伪**（Linux 平台限制，不阻塞 MVP）。`nsh-platform-linux` 的 `src/system.rs`（运行时改写 `gtk-application-prefer-dark-theme`／`gtk-interface-color-scheme` 处）在 0.6.0 与 0.6.1 之间 md5 一致；该 crate 两版唯一源码改动是 `src/native.rs` 的视频 `paused` 状态。0.6.1 打包后窗口仍报 `Theme parser error: Failed to import resource:///com/ubuntu/themes/Yaru/4.0/gtk.css`，`_GTK_FRAME_EXTENTS` 仍为 `25,25,25,25`。**该警告不影响装饰绘制**：PyGObject 探针执行与 NSH 相同的两个 `set_property`（报该警告）与不执行（不报）两种模式，其窗口 `xwd` 输出逐字节相同（450×387，md5 一致）。**真正待判的是合成器**：本机 X 会话 `_NET_WM_CM_S0` 为 `not found`（无合成器），16/24 位 `xwd` 的 25px 边距区读到纯黑且不含 alpha，因此**窗口装饰在本机仍未取得通过或失败的可靠视觉证据**。下一步：在带合成器环境（GNOME Wayland 原生会话或 Xvfb+picom）取 32 位 ARGB 截图判定，再决定是否需报 NSH 上游。
 - **NSH 0.6.1 升级的影响面已逐项核查**（2026-11-23，本机 Ubuntu 26.04）：`.nsh-version`、`Cargo.toml` 三个 `nsh-*`、`tooling/tv-toolchain.json`（version+commit `2f51d86`）、CLI 与 `Cargo.lock` 五处一致。`Cargo.lock` 仅 8 个 `nsh-*` 包换版本号与 checksum，**无新增／删除包，第三方依赖未动**。`pnpm verify` 退出码 0：245 项 NSH 测试全过（web 75.6s／desktop 785.2s／tv 675.5s），`release:check` 返回 ok；`pnpm security` 退出码 0。`nsh-updater` 源码与 0.6.0 完全相同（仅 `Cargo.toml` 版本行），更新清单签名格式不变。**未验证／受影响项**：①本机无 `~/.nsh/runtime/android`，TV 打包与真机验证未做；②`packages/app/test/history-management.tsx:481` 那条仅为 TV 跳过的用例在 0.6.1 下**仍失败**（临时启用后 177/178，`id:history-fixture-detail-return` 5s 未出现；`active:true` 已能正确上报，但详情面板仍未切换），跳过标记保留；③Windows／Linux 真机安装与 N-1 升级仍未验。
-- macOS 为 ad hoc 签名，无 Developer ID／公证，按已确认决定由用户手动放行。
+- macOS 为 ad hoc 签名，无 Developer ID／公证，按已确认决定由用户手动放行；MVP 发行验收需在 macOS 真机上补齐签名路径。
 - `v0.1.0` 的 tag 在功能分支上，不符合发布规范；`v0.1.1` 是第一个从 master 发布的版本。
-- **N-1 → N 桌面升级已在真实宿主机通过**（2026-11-21，本机 `/Applications/红果.app`）：机器上原装 `0.1.0`（build 1），经应用内更新路径升级后 `Contents/Info.plist` 为 `0.1.1`（build 2），`updates/` 目录 mtime 与换入时刻一致（08:49），`update-expected-version` 回执已被启动流程消费（读一次即删，符合 `apps/desktop/native/src/updates.rs` 的 `confirm`），升级后的 `0.1.1` 新进程正常启动并成为活动窗口（pid 40300）。服务端侧同步核对：`releases/latest` 302 到 `v0.1.1`，`latest.json` 返回 version `0.1.1`、URL 与 sha256 均指向该 Release。**该结论只覆盖 macOS arm64 与应用内更新路径；强制终止后回执报「上次更新未完成」、立即重启失败后退出仍完成换入两条分支，以及 Windows／Linux 升级仍未验。**
+- **N-1 → N 桌面升级已在真实宿主机通过**（2026-11-21，本机 `/Applications/红果.app`）：机器上原装 `0.1.0`（build 1），经应用内更新路径升级后 `Contents/Info.plist` 为 `0.1.1`（build 2），`updates/` 目录 mtime 与换入时刻一致（08:49），`update-expected-version` 回执已被启动流程消费（读一次即删，符合 `apps/desktop/native/src/updates.rs` 的 `confirm`），升级后的 `0.1.1` 新进程正常启动并成为活动窗口（pid 40300）。服务端侧同步核对：`releases/latest` 302 到 `v0.1.1`，`latest.json` 返回 version `0.1.1`、URL 与 sha256 均指向该 Release。**该结论只覆盖 macOS arm64 与应用内更新路径；强制终止后回执报「上次更新未完成」、立即重启失败后退出仍完成换入两条分支仍待补，Windows／Linux 升级按平台限制记录。**
 - `release-signing` environment 保护为空，发布 job 不挂 environment；无 SBOM／provenance／NOTICE。
 
 ### 安全
@@ -224,15 +233,15 @@ TV 设置页「诊断数据 → 发送诊断数据」默认关闭；打开后宿
 
 ## 开放问题与下一步
 
-| 问题                                 | 证据／影响                                                                                                       | 下一步                                                      |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| 原生 409／PLAYBACK_IDENTITY_MISMATCH | `desktop-native-2026-11-15T10-19-31Z/` 及 `account-live/public-media-probe-diagnostic-2026-11-15.log`            | 保留身份校验；用已有诊断区分来源；后来的成功不解释旧失败    |
-| 真实详情／系列超时                   | 最新 Web 轮次 `2026-11-15T09-27-22-243Z/` 在管理后打开保留项详情超时                                             | 最小复现并区分上游／产品／环境，针对受影响路径补验          |
-| 真实播放间歇失败                     | `2026-11-15T08-21-31-073Z/` 和 `08-29-22-483Z/`，后者一次 UI 重试恢复但整轮仍失败                                | 保留原始失败与安全诊断，单列恢复路径；不宣称稳定性通过      |
-| 封面加载与 UI 证据不足               | 最新 Web 历史和失败详情仍有灰占位，原生错误页焦点仍在搜索框                                                      | 补实际成功加载与错误／重试焦点观察；不从 JSON 或静态图推断  |
-| E1／平台剩余流程                     | 当前通知变更任务除 4.3 外已完成；三端 NSH 检查／构建／测试及通知功能／UI 审查通过                                | 按端补正式入口真实流程；账号通知 4.3 仍开放，不自动关闭 E1  |
-| 供应链与发行阻塞                     | 根 `pnpm security` 通过，但两条 advisory 无修复版本、宿主锁文件不在根图；Windows／Linux 无安装包                 | 按依赖责任处理并保留门禁；签名、安装与升级通道各自验收      |
-| Linux 窗口无边框／阴影               | 0.6.1 未修复（`system.rs` 与 0.6.0 逐字节相同）；Yaru 归因已被受控实验证伪；本机无合成器，装饰未取得可靠视觉证据 | 在带合成器环境取 32 位 ARGB 截图判定，再决定是否报 NSH 上游 |
+| 问题                                 | 证据／影响                                                                                                       | 下一步                                                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 原生 409／PLAYBACK_IDENTITY_MISMATCH | `desktop-native-2026-11-15T10-19-31Z/` 及 `account-live/public-media-probe-diagnostic-2026-11-15.log`            | 保留身份校验；用已有诊断区分来源；后来的成功不解释旧失败                                                   |
+| 真实详情／系列超时                   | 最新 Web 轮次 `2026-11-15T09-27-22-243Z/` 在管理后打开保留项详情超时                                             | 最小复现并区分上游／产品／环境，针对受影响路径补验                                                         |
+| 真实播放间歇失败                     | `2026-11-15T08-21-31-073Z/` 和 `08-29-22-483Z/`，后者一次 UI 重试恢复但整轮仍失败                                | 保留原始失败与安全诊断，单列恢复路径；不宣称稳定性通过                                                     |
+| 封面加载与 UI 证据不足               | 最新 Web 历史和失败详情仍有灰占位，原生错误页焦点仍在搜索框                                                      | 补实际成功加载与错误／重试焦点观察；不从 JSON 或静态图推断                                                 |
+| E1／平台剩余流程                     | 当前通知变更任务除 4.3 外已完成；三端 NSH 检查／构建／测试及通知功能／UI 审查通过                                | 按端补正式入口真实流程；账号通知 4.3 仍开放，不自动关闭 E1                                                 |
+| 供应链与发行阻塞                     | 根 `pnpm security` 通过，但两条 advisory 无修复版本、宿主锁文件不在根图；Windows／Linux 无安装包                 | 按依赖责任处理并保留门禁；macOS 与 TV 模拟器的签名、安装与升级通道按 §9 矩阵验收；两平台桌面按平台限制记录 |
+| Linux 窗口无边框／阴影               | 0.6.1 未修复（`system.rs` 与 0.6.0 逐字节相同）；Yaru 归因已被受控实验证伪；本机无合成器，装饰未取得可靠视觉证据 | 平台限制，不阻塞 MVP；如需支持该平台，在带合成器环境取 32 位 ARGB 截图后报 NSH 上游                        |
 
 ## 证据索引
 

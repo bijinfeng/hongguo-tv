@@ -24,4 +24,4 @@
 
 ## Impact
 
-`crates/core`、HTTP/native 装配、生成契约、core-client 写会话及 `packages/app` 账号状态／页面。固定参考源码只读，不引入 Go 或新 UI 工具链。云同步、收藏／追更／预约继续后续完整 MVP 批次；公开 Web 部署已由 `remove-web-product` 移出范围，但 owner／epoch 隔离仍是 HTTP 与 native 共用同一 core 实例的必要条件，物理 TV 与发行仍单独验收。
+`crates/core`、HTTP/native 装配、生成契约、core-client 写会话及 `packages/app` 账号状态／页面。固定参考源码只读，不引入 Go 或新 UI 工具链。云同步、收藏／追更／预约继续后续完整 MVP 批次；公开 Web 部署已由 `remove-web-product` 移出范围，但 owner／epoch 隔离仍是 HTTP 与 native 共用同一 core 实例的必要条件；TV 以固定 API34 模拟器为验收宿主，物理 TV 与发行按平台限制另行记录。

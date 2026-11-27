@@ -51,7 +51,7 @@ pnpm security
 
 2026-11-20 按精确版本补齐 `deny.toml` 例外后，根工作区 `pnpm security` 通过，`v0.1.0` 即在 `quality`／`security` 两前置 job 通过后签名构建；独立 `pnpm audit --audit-level moderate` 无已知漏洞。NSH CLI 生成的宿主工作区锁文件不在根门禁内，不能把根图结论外推成发行二进制已移除某依赖，分析与剩余范围见 [原生发行依赖检查](dependencies/native-release-security.md)。签名 environment 的六个 secret 名称已只读确认，未输出或提交值。
 
-正式签名 N-1 → N、macOS 实际退出换入／Developer ID 与公证、Android 真正未知来源授权／系统安装／拒绝／进程重启升级、物理 TV／硬解／长播、Windows／Linux、人工读屏和减少动态仍未验收。`v0.1.0`（2026-11-20）是首个公开 Release，同时是唯一一版；N-1 → N 升级、回执与真实安装仍未验，不能宣称自动更新端到端完成。`v0.1.0` 的 tag 指向 `f19a6af`，经 PR #1 squash 合并后不在 `master` 历史，内容已随 `0ecca76` 进入 `master`。
+正式签名 N-1 → N、macOS 实际退出换入／Developer ID 与公证、Android 真正未知来源授权／系统安装／拒绝／进程重启升级、人工读屏和减少动态仍未验收；物理 TV／硬解／长播与 Windows／Linux 按平台限制记录。`v0.1.0`（2026-11-20）是首个公开 Release，同时是唯一一版；N-1 → N 升级、回执与真实安装仍未验，不能宣称自动更新端到端完成。`v0.1.0` 的 tag 指向 `f19a6af`，经 PR #1 squash 合并后不在 `master` 历史，内容已随 `0ecca76` 进入 `master`。
 
 桌面暂存新增的未验项：真实「准备安装 → 退出 → 下次启动为新版本」，强杀或崩溃后回执留在磁盘、下次启动报告「上次更新未完成」，以及「立即重启更新」失败后退出仍能完成换入。`.nsh-updater-staged-*` 目录由 NSH 清理，本仓不再自行删除。
 

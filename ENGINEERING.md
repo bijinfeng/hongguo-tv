@@ -114,7 +114,7 @@ TV 工程包含真正可重复构建的原生宿主，而不止 `--target androi
 - 提交 Gradle Wrapper、精确的 AGP/Kotlin 版本、依赖锁定与校验配置；JDK/SDK/build-tools/NDK/CMake 按实际需求列入目标清单。
 - Kotlin/Android 代码启用 Android Lint 与对应版本的静态检查/格式规则；新增原生代码时立即接入，不留为事后任务。
 - Rust Android target、NDK linker、JNI/NSH embedding 的工具版本和 ABI 显式指定；归档 Rust native library 与 Android 宿主产物的来源及校验值。
-- 建立 arm64 真机验收，按实际设备需求决定是否发布 armv7；x86_64 模拟器只用于适用的自动化测试。
+- 建立 arm64 模拟器验收（固定 API34 AVD），按实际设备需求决定是否发布 armv7；x86_64 模拟器只用于适用的自动化测试。物理电视验收保留为平台限制，不是 MVP 条件。
 - 验证 Leanback 入口、触屏非必需、遥控键路由、焦点恢复、视频 surface 生命周期、后台恢复、音频焦点及内存压力。
 - Android API 26 是当前 NSH 范围下限；最终 min/target SDK 与分发渠道要求分别管理，不能把最低运行版本当成 target SDK。
 
@@ -195,6 +195,8 @@ hooks 不执行 `git add`、不隐式 `--fix`、不批量 stash/reset，不将�
 
 只有已经接通并验收的目标才宣称受支持；支持的目标失败不能改成 allow-failure。新增目标先完成工作流与验收，再加入支持矩阵。
 
+按 §9 的验收宿主矩阵，`desktop-macos` 与 `tv-android` 的结果才能作为 MVP 功能验收依据；`desktop-windows`／`desktop-linux` 只证明这两平台仍能编译并启动，不构成 MVP 验收，其失败仍按构建兼容问题处理而不是功能回退。TV 行的模拟器可自动化场景即 MVP 的 TV 验收入口。
+
 共享包、契约、锁文件、工具链、CI 配置或核心变更触发完整适用矩阵。纯端侧改动可缩减到该端与公共检查；Rust crate 图不能只用 pnpm 的 changed filter 推导影响。默认全跑，矩阵稳定后再优化路径过滤。
 
 路径过滤由 `tooling/src/ci-paths.mjs` 实现，`pnpm ci:jobs` 输出 `rust`／`desktop`／`tv` 三个 job 是否适用。规则只允许「可证明受限」的裁剪：`docs/`、`design/`、`openspec/`、`upstream/` 与根级声明文档不触发构建；`apps/harness/` 不触发目标 job（`workspace` 仍 check/build 它）；`apps/{desktop,tv}/` 只触发该端；`apps/{desktop,tv}/native/` 属于 Rust 工作区成员，触发 Rust 矩阵。其余位置（packages、contracts、crates、services、tooling、根配置与锁文件）一律返回完整矩阵，Git 范围不可用时同样回退完整矩阵——判错只会多跑，不会少跑。
@@ -231,7 +233,21 @@ CI 上传按语言区分的测试/覆盖率、NSH 构建日志、安装冒烟日
 
 `pnpm verify` 是工程门禁；通过不会把缺少真实流程证据的功能改为“已验收”。
 
-测试分为纯逻辑、语言集成、跨语言契约、宿主/安装、真机/真实媒体五层。默认自动测试使用可重复 fixtures，不以随机的真实短剧标题和封面为断言。真实内容验证单独记录时间、平台和局限。
+### 验收宿主矩阵
+
+MVP 的功能验收只在这两个宿主上成立，其余平台与设备按平台限制记录，不作为 MVP 完成条件：
+
+| 端         | MVP 验收宿主                                                        | 不在 MVP 验收条件内                                                   |
+| ---------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 桌面       | macOS 真机，经正式入口、真实数据与实际播放完成流程                  | Windows／Linux 真机安装、升级与宿主行为；两者仍保留 check／build 门禁 |
+| Android TV | 固定 API34 arm64 AVD 模拟器（`hongguo-tv-api34-arm64`），经正式入口 | 物理电视、真实遥控、硬解、4K、真实 overscan 与观看距离                |
+| 验收宿主   | `apps/harness` 无头 Chromium，仅用于开发期视觉与 fixture 核对       | 不能替代上述两个宿主的流程验收                                        |
+
+TV 的遥控与输入验收在模拟器上完成：DPAD／媒体键／硬件 Escape／系统 IME 均由模拟器注入，属于 MVP 范围；「未在物理电视观察」只作为环境限制记录，不使已通过的模拟器流程回到待验收。物理设备项保留在 VALIDATION 的未验要点与原因里，既不删除也不阻塞 MVP。
+
+桌面同理：macOS 真机通过即满足 MVP；Windows／Linux 仍是构建目标，产物继续出未签名预览包，但真机安装、签名与 N-1 升级不作为 MVP 验收条件，其状态与原因保留在未验要点中。NSH 在 Linux 上的宿主缺陷只影响该平台，不构成 MVP 阻塞。
+
+测试分为纯逻辑、语言集成、跨语言契约、宿主/安装、真机与真实媒体五层；其中宿主层对应上表，不再把未列入 MVP 的设备当成必验层。默认自动测试使用可重复 fixtures，不以随机的真实短剧标题和封面为断言。真实内容验证单独记录时间、平台和局限。
 
 关键不变量优先于虚高的全仓覆盖率：历史请求大小、实际播放后才写进度、异步旧响应不覆盖、进度串行写入、账号隔离、媒体 Range、宿主退出清理、FFI 所有权和升级兼容必须有测试。建立实际覆盖基线后，约束关键模块及变更覆盖回退；不为凑数字测试实现细节。
 
@@ -261,7 +277,7 @@ flowchart LR
 
 桌面/TV 完整产物链接匹配的 Rust 核心。用户不需要 Node、Rust 编译器、NSH CLI 或本地开发服务。干净构建与发行环境不安装 Go；验收宿主与 `services/core-api` 只在本机运行，不构成发行物。
 
-macOS 使用 Developer ID 签名/公证，Windows 使用 Authenticode，Android 使用受保护 keystore；Linux 发布校验摘要及适用的签名。NSH 更新清单签名、平台代码签名、供应链来源证明分别验证，互不替代。
+macOS 使用 Developer ID 签名/公证，Windows 使用 Authenticode，Android 使用受保护 keystore；Linux 发布校验摘要及适用的签名。NSH 更新清单签名、平台代码签名、供应链来源证明分别验证，互不替代。MVP 的发行验收在 macOS 真机与 Android TV 模拟器上完成；Windows／Linux 产物按未签名预览归档继续产出，其签名、安装与 N-1 升级不阻塞 MVP，但也不得标成正式发行或已支持。
 
 发布记录包含产品版本、Git SHA、行为参考来源、NSH 版本、Rust/Node/pnpm 版本、target/ABI/SDK、协议版本、构建 job、摘要与已完成的验收。使用锁定 Syft 生成覆盖实际 Rust/JS/Android/原生依赖的 SBOM，校验许可证和第三方 NOTICE。构建 provenance/签名通过受控 CI 身份生成。
 

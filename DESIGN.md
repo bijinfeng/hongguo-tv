@@ -823,4 +823,4 @@ Lucide 1.43.0 官方 SVG 的源、许可证与逐图 SHA 位于 `packages/ui/ass
 - 变更同步规则、主题／组件源和原生验收页。可操作样板是生产组件本身：`pnpm ui:host:tv`／`ui:host:desktop` 打开组件板，`pnpm ui:preview` 在浏览器里跟改；组合细节见[设计交接](docs/design/component-design.md)。不另维护一份 HTML 稿：视觉真相只存在于本文件与产品代码，稿一旦与代码并行就必然漂移。
 - UI 修改执行各入口 check **和** build、现有组件行为回归与相关真实宿主观察；根门禁按工程规范执行。依赖变化另跑 security，缺工具不能静默跳过。
 - 视觉检查覆盖浅深主题、字级、边界、对齐、长文、状态叠加、焦点裁切、字号放大和减少动态效果。保存实际源码／宿主／尺寸与证据，未验项明确记录。
-- 不将浏览器、headless、macOS TV 密度、Android 模拟器和物理电视相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。
+- 不将浏览器、headless、macOS TV 密度与 API34 模拟器相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。MVP 的验收宿主为 macOS 真机（桌面）与固定 API34 AVD（TV），见 [ENGINEERING §9](ENGINEERING.md#验收宿主矩阵)；物理电视与 Windows／Linux 真机按平台限制记录，不阻塞 MVP。

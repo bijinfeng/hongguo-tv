@@ -90,7 +90,7 @@ Rust拥有持久历史和目标账号状态，TSX消费已提交快照并派生�
 
 `services/core-api`只监听loopback，为验收宿主与原生`http-preview`提供同一HTTP契约，不是可公网部署的服务。它仍按认证用户实例化独立上下文：即使多用户共享一个进程，也不能共享单账号全局状态，因为多条验收会话会同时连同一实例。
 
-TV独立运行不依赖电脑API或adb reverse。默认native、显式HTTP preview与T0的选择及命令见[运行手册](docs/development.md#运行模式与数据)。初始化／停止、后台／恢复、JNI所有权、遥控返回／焦点、解码和安装包分别验收；模拟器、纯遥控和物理电视不能互相代证。webOS／Tizen／tvOS不因共享仓库自动获得支持。
+TV独立运行不依赖电脑API或adb reverse。默认native、显式HTTP preview与T0的选择及命令见[运行手册](docs/development.md#运行模式与数据)。初始化／停止、后台／恢复、JNI所有权、遥控返回／焦点、解码和安装包分别验收。MVP 的 TV 验收宿主是固定 API34 AVD 模拟器，模拟器注入的遥控与输入属于验收范围；物理电视、硬解与 4K 按平台限制记录，不能用模拟器结果宣称为物理设备通过。webOS／Tizen／tvOS不因共享仓库自动获得支持。
 
 ## 契约、数据与安全边界
 
