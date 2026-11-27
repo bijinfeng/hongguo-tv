@@ -53,7 +53,10 @@ export function Cover(props: CoverProps) {
   });
   return (
     <View
-      accessibilityLabel={`${props.title}封面`}
+      // The card already carries the drama's name and its own action; a cover that also announced
+      // "《title》封面" made a row of posters read as two labels per card, and on failure it said
+      // "封面" while the visible text said the cover was unavailable.
+      accessibilityElementsHidden
       style={{
         pointerEvents: 'none',
         ...(props.height ? { height: props.height } : {}),
