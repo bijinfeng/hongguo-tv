@@ -13,6 +13,7 @@ import {
 import type { NotificationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PageScroll } from '../shell/PageScroll';
+import { rowCoverSize, rowGap } from '../business-row';
 import { RefreshCw } from 'nsh-icon-lucide';
 
 export function notificationLabel(item: NotificationItem): string {
@@ -224,8 +225,7 @@ export function Notifications(props: { store: Store }) {
                 style={{ gap: space('sm'), paddingVertical: space('sm') }}
               >
                 <SkeletonBlock
-                  width={props.store.target === 'tv' ? 36 : 64}
-                  height={props.store.target === 'tv' ? 48 : 80}
+                  {...rowCoverSize('compact', props.store.target === 'tv')}
                   radius={6}
                 />
                 <View class="flex-1" style={{ gap: space('xs') }}>
@@ -335,9 +335,8 @@ function NotificationRow(props: {
       <View
         class="shrink-0"
         style={{
-          width: props.store.target === 'tv' ? 36 : 64,
-          height: props.store.target === 'tv' ? 48 : 80,
-          marginRight: props.store.target === 'tv' ? 8 : 12,
+          ...rowCoverSize('compact', props.store.target === 'tv'),
+          marginRight: rowGap('compact', props.store.target === 'tv'),
         }}
       >
         <Cover src={item.drama?.cover} title={item.title} variant="poster" class="w-full h-full" />

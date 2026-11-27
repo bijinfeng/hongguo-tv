@@ -14,6 +14,7 @@ import type { ReservationItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { ReservationNotice, sameReservationTarget } from '../ReservationAction';
 import { PageScroll } from '../shell/PageScroll';
+import { rowCoverSize, rowGap, rowTextGap } from '../business-row';
 import { RefreshCw } from 'nsh-icon-lucide';
 
 type Mode = 'upcoming' | 'online';
@@ -391,23 +392,18 @@ function ReservationRow(props: {
       testID={`reservations-row-${reservationItemId(props.item)}`}
       class="flex-row flex-wrap items-center border-b border-border"
       style={{
-        gap: props.store.target === 'tv' ? 10 : 20,
-        paddingVertical: props.store.target === 'tv' ? 10 : 20,
+        gap: rowGap('row', props.store.target === 'tv'),
+        paddingVertical: rowGap('row', props.store.target === 'tv'),
       }}
     >
-      <View
-        style={{
-          width: props.store.target === 'tv' ? 54 : 88,
-          height: props.store.target === 'tv' ? 76 : 112,
-        }}
-      >
+      <View style={rowCoverSize('row', props.store.target === 'tv')}>
         <Cover
           src={props.item.cover_fallback || props.item.cover}
           title={title()}
           class="w-full h-full"
         />
       </View>
-      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 6 : 12 }}>
+      <View class="flex-1 min-w-0" style={{ gap: rowTextGap(props.store.target === 'tv') }}>
         <UiText role="content-title">{title()}</UiText>
         <If when={reservationPublishLabel(props.item)}>
           <UiText tone="muted">{reservationPublishLabel(props.item)}</UiText>

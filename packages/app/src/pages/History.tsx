@@ -21,6 +21,7 @@ import { historyProgress, playbackTime } from '../format';
 import { errorMessage } from '../error-messages';
 import { LibrarySyncNotice } from '../LibrarySyncNotice';
 import { PageScroll } from '../shell/PageScroll';
+import { rowCoverSize } from '../business-row';
 
 type Entry = Library['entries'][number];
 type LibraryItem = Entry | FavoriteEntry;
@@ -78,12 +79,7 @@ export function HistoryItem(props: {
       selected={false}
       onPress={props.managing ? undefined : open}
     >
-      <View
-        style={{
-          width: props.store.target === 'tv' ? 54 : 88,
-          height: props.store.target === 'tv' ? 76 : 112,
-        }}
-      >
+      <View style={rowCoverSize('row', props.store.target === 'tv')}>
         <Cover
           src={props.entry.drama.cover_fallback || props.entry.drama.cover}
           title={props.entry.drama.title}
@@ -175,11 +171,7 @@ export function LibraryStatus(props: {
                   class="flex-row items-center"
                   style={{ gap: space('sm'), paddingVertical: space('sm') }}
                 >
-                  <SkeletonBlock
-                    width={props.store.target === 'tv' ? 54 : 88}
-                    height={props.store.target === 'tv' ? 76 : 112}
-                    radius={6}
-                  />
+                  <SkeletonBlock {...rowCoverSize('row', props.store.target === 'tv')} radius={6} />
                   <View class="flex-1" style={{ gap: space('xs') }}>
                     <SkeletonBlock width="40%" height={16} radius={4} />
                     <SkeletonBlock width="28%" height={12} radius={4} />

@@ -4,6 +4,7 @@ import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
 import { PageScroll } from '../shell/PageScroll';
+import { rowCoverSize, rowTextGap } from '../business-row';
 import { RefreshCw } from 'nsh-icon-lucide';
 
 /** These labels are remote observations, never local playback checkpoints or inferred schedules. */
@@ -364,12 +365,7 @@ function FollowRow(props: {
       class="flex-row flex-wrap items-center border-b border-border"
     >
       <If when={props.item.drama}>
-        <View
-          style={{
-            width: props.store.target === 'tv' ? 54 : 88,
-            height: props.store.target === 'tv' ? 76 : 112,
-          }}
-        >
+        <View style={rowCoverSize('row', props.store.target === 'tv')}>
           <Cover
             src={props.item.drama?.cover_fallback || props.item.drama?.cover}
             title={title()}
@@ -377,7 +373,7 @@ function FollowRow(props: {
           />
         </View>
       </If>
-      <View class="flex-1 min-w-0" style={{ gap: props.store.target === 'tv' ? 6 : 12 }}>
+      <View class="flex-1 min-w-0" style={{ gap: rowTextGap(props.store.target === 'tv') }}>
         <UiText role="content-title">{title()}</UiText>
         <If when={followCaption(props.item)}>
           <UiText tone="muted">{followCaption(props.item)}</UiText>
