@@ -49,7 +49,7 @@ async function requireFile(file) {
   return file;
 }
 
-const { command, target } = parseArgs(process.argv.slice(2));
+const { command, target, entry } = parseArgs(process.argv.slice(2));
 const selected = target ? [target] : targets;
 /**
  * `dev` and `package` run and ship a product; the harness only exists to be tested, so asking
@@ -288,9 +288,11 @@ try {
       for (const app of selected) await runtimeConfig(app);
       break;
     case 'dev':
-      requireProduct('dev');
+      // `dev` runs the code, not a release: the harness is the development surface now, so it is
+      // allowed here while `package` still refuses it (the harness never ships).
+      if (!target) throw new Error('dev requires --target harness|desktop|tv');
       await doctor();
-      await dev(target, runtimeMode(target));
+      await dev(target, runtimeMode(target), entry);
       break;
     case 'dev:fixture':
       requireProduct('dev:fixture');

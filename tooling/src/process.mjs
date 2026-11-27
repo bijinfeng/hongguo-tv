@@ -56,12 +56,16 @@ export const products = ['desktop', 'tv'];
 export function parseArgs(args) {
   const [command, ...rest] = args;
   let target;
-  if (rest.length) {
-    if (rest.length !== 2 || rest[0] !== '--target' || !targets.includes(rest[1]))
-      throw new Error('Expected --target harness|desktop|tv');
-    target = rest[1];
+  let entry;
+  for (let index = 0; index < rest.length; index += 2) {
+    const flag = rest[index];
+    const value = rest[index + 1];
+    if (flag === '--target' && targets.includes(value)) target = value;
+    else if (flag === '--entry' && value) entry = value;
+    else throw new Error(`Expected --target harness|desktop|tv [--entry <module>], got ${flag}`);
   }
-  return { command, target };
+  // Only present when asked for: `check` and friends return exactly `{ command, target }`.
+  return entry === undefined ? { command, target } : { command, target, entry };
 }
 /** The NSH platform a project builds for; the harness renders in a browser engine. */
 export function nativeTarget(target, platform = process.platform) {

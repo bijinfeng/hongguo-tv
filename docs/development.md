@@ -23,7 +23,16 @@ Windows 按官方 PowerShell 安装说明设置 NSH_VERSION，其余 pnpm 命令
 
 ## 运行模式与数据
 
-`pnpm dev:api` 启动 loopback Rust API（验收宿主与 http-preview 使用）。Desktop／TV 的 dev 和 package 默认使用包内 Rust，不要求电脑 API 或 adb reverse。
+**开发在 web 端，验收在真实端。** 两端的界面开发与状态核对走 `apps/harness`（浏览器里跑同一份产品代码），只有验收才起 `desktop`／`tv` 的真实宿主。真实端常有本机不具备的条件——桌面 native 数据受 NSH `lifecycle()` 缺陷影响、`ui:host:desktop` 要 macOS 宿主、`apps/tv` 的 Rust crate 编不到 wasm——把迭代绑在真实端会让视觉判断停滞。
+
+```sh
+pnpm dev:web      # 桌面端型，浏览器打开打印出的地址
+pnpm dev:web:tv   # TV 端型（TvApp.tsx），同一套热更新
+```
+
+两条命令都会拉起 loopback Rust API 并打印 `→ open in a browser: http://127.0.0.1:<port>/`。TV 入口同时切端型与主题：`target="tv"` 选 `TvShell` 与遥控交互，`setTheme(theme.tv.json)` 选 TV 密度，两者不可只设其一。首次运行要为 web runtime 编译 `nsh-icon`，需要系统装有 `clang` 与 `llvm-ar`，约数分钟；之后增量。harness 不进发行包，`package` 仍拒绝它。
+
+`pnpm dev:api` 单独启动 loopback Rust API（验收宿主与 http-preview 使用）。Desktop／TV 的 dev 和 package 默认使用包内 Rust，不要求电脑 API 或 adb reverse。
 
 `pnpm dev:fixture:desktop|tv` 用 `tooling/src/browsing-fixture.mjs` 的本地合成 core 启动同一入口，只用于开发与回归（接口契约、布局、状态切换）；启动时明确标注 synthetic data，不能作为功能验收证据，验收使用 `pnpm dev:*` 或正式包连真实 core。
 
