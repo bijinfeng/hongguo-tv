@@ -1,19 +1,11 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { executable, root, run, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+/**
+ * Runs the player controls host suite. See player-suite.mjs for the shared implementation.
+ *
+ * Kept as a thin entry for the same reason as player-host.mjs: the history records name it.
+ *
+ *   node tooling/src/player-controls-host.mjs web|macos|android
+ */
+import { playerHost } from './player-suite.mjs';
 
 const target = process.argv[2];
-if (!['web', 'macos', 'android'].includes(target)) throw new Error('Expected web|macos|android');
-const app = resolve(root, target === 'android' ? 'apps/tv' : 'apps/harness');
-const artifacts = resolve(root, `artifacts/playback/controls-${target}`);
-await mkdir(artifacts, { recursive: true });
-const file = resolve(app, `.nsh/PlayerControlsHost-${target}.test.tsx`);
-await writeFile(
-  file,
-  `import { registerPlayerControlsHost } from '@hongguo/app/testing/player-controls-host';\nregisterPlayerControlsHost('../PlayerPreview.tsx', ${JSON.stringify(artifacts)}, '${target}');\n`,
-);
-await run(executable('nsh'), ['test', file, '--target', target], {
-  cwd: app,
-  env: rustEnvironment(target === 'android' ? tvHostEnvironment() : process.env),
-});
+await playerHost('controls', target);
