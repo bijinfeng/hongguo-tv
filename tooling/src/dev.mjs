@@ -75,11 +75,14 @@ export async function stop(subprocess) {
     clearTimeout(timer);
   }
 }
-export async function nativeDev(target, mode, base = root) {
+export async function nativeDev(target, mode, base = root, entry) {
   await runtimeConfig(target, undefined, base, mode);
+  // `t0` has its own probe entry; anything else may name one (the harness runs the TV target
+  // through `TvApp.tsx`, while its default `App.tsx` is the desktop one).
+  const module = entry ?? (mode === 't0' ? 'T0Probe.tsx' : undefined);
   const host = child(
     executable('nsh'),
-    ['run', ...(mode === 't0' ? ['T0Probe.tsx'] : []), '--target', nativeTarget(target)],
+    ['run', ...(module ? [module] : []), '--target', nativeTarget(target)],
     { cwd: resolve(base, 'apps', target), env: rustEnvironment() },
   );
   let closing = false;
@@ -100,8 +103,8 @@ export async function nativeDev(target, mode, base = root) {
     process.off('SIGTERM', close);
   }
 }
-export async function dev(target, mode) {
-  if (mode !== 'http-preview') return nativeDev(target, mode);
+export async function dev(target, mode, entry) {
+  if (mode !== 'http-preview') return nativeDev(target, mode, root, entry);
   await cargo(['build', '--locked', '-p', 'hongguo-core-api']);
   const port = await freePort();
   const binary = resolve(
@@ -146,7 +149,7 @@ export async function dev(target, mode) {
     );
     host = child(
       executable('nsh'),
-      ['run', '--target', nativeTarget(target), '--port', String(port)],
+      ['run', ...(entry ? [entry] : []), '--target', nativeTarget(target), '--port', String(port)],
       { cwd: resolve(root, 'apps', target), env: rustEnvironment() },
     );
     await Promise.race([

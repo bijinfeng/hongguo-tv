@@ -5,6 +5,7 @@ export {
   focusRing,
   focusRingClass,
   focusWithinClass,
+  overlayShadow,
   radius,
   space,
   weight,
@@ -18,7 +19,7 @@ export { Logo } from './branding';
 export { Button, IconButton, type ButtonProps, type ButtonVariant } from './button';
 export { NavigationItem, type NavigationItemProps } from './navigation-item';
 export { SafeFrame, type SafeFrameProps } from './safe-frame';
-export { textLineHeight } from './typography';
+export { textLineHeight, textSize } from './typography';
 export { RemoteKeyboard, type RemoteKeyboardProps } from './remote-keyboard';
 export { ActionRow, type ActionRowProps } from './action-row';
 export { BackButton, type BackButtonProps, type BackButtonTone } from './back-button';

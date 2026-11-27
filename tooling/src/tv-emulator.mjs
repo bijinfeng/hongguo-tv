@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { nsh, output, root, run } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const adb = resolve(
@@ -10,14 +10,10 @@ const adb = resolve(
   'platform-tools',
   process.platform === 'win32' ? 'adb.exe' : 'adb',
 );
-const devices = output(adb, ['devices'])
-  .split('\n')
-  .slice(1)
-  .filter((line) => line.trim());
-if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-  throw new Error('Start exactly one Android TV emulator; disconnect other adb targets.');
-const serial = devices[0].split(/\s+/)[0];
-const device = (args) => output(adb, ['-s', serial, ...args]);
+const { device } = tvEmulator({
+  adb,
+  message: 'Start exactly one Android TV emulator; disconnect other adb targets.',
+});
 if (
   !device(['shell', 'pm', 'list', 'features']).includes('android.software.leanback_only') ||
   device(['shell', 'getprop', 'ro.build.version.sdk']) !== '34' ||

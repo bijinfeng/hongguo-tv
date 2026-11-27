@@ -1,15 +1,19 @@
-# --no-stage-fixed in the wrapper also disables implicit stashing.
+# The wrapper passes --no-stage-fixed: hooks never stash or rewrite the index themselves.
 lefthook: node tooling/src/lefthook.mjs
 assert_lefthook_installed: true
 pre-commit:
   commands:
-    quality:
-      run: pnpm hooks:check
+    # Only the staged files. Measuring the whole worktree here blocks every commit while a
+    # parallel session has one unrelated file half-edited; contracts and whole-tree checks are
+    # the pre-push gate's job.
+    staged:
+      run: pnpm exec lint-staged --no-stash --concurrent 1
 commit-msg:
   commands:
     convention:
       run: pnpm exec commitlint --edit {1}
 pre-push:
   commands:
+    # The full gate: whole-tree formats, lint, contract drift, and package boundaries.
     quality:
       run: pnpm hooks:check

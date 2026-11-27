@@ -41,7 +41,7 @@ pnpm security
 - TV 生产入口独立 debug APK 重设计后模拟器验收 9/9（light／dark／1.3 字号三轮，`artifacts/client-updates/tv/`）：实际 Android 版本桥接、非法私有路径拒绝且不创建 session、合成回执不能冒称成功／实际版本匹配只消费一次、账号页入口打开更新弹窗并显示真实版本、检查结果对当前 Release 状态诚实（无可用 Release 报可重试失败；已有旧 Release 报「已是最新版本」）、弹窗主按钮原生聚焦、遥控 BACK 关闭弹窗并恢复入口焦点。该模拟器状态下主机焦点引擎拒绝外部 ACTION_FOCUS 且吞页面内方向键（摘除本次新增根弹窗的对照构建同样复现，非本次回归），脚本重试后以系统指针点击兜底激活，真实遥控走查确认弹窗可开、可关、焦点恢复。启动自动弹出、真实升级路径尚未验收；测试 `adb install -r` 保留应用数据并恢复主题／字号，没有把打开安装器或模拟回执计为真实升级。
 - 圆角、字阶、间距、对齐和浅深表面复用既有主题与控件，并检查上述实屏；hover 已在 macOS 观察，键盘和遥控主动作通过。页面入场与按钮反馈复用共享动效，进度原位变化；静态截图不证明逐帧动效、减少动态或 VoiceOver／TalkBack 人工验收。
 
-当前源码验证结果与开放问题统一见 [VALIDATION](../VALIDATION.md)，旧运行细节按批次保存在历史／artifact，不继续在根文档追加完整日志。更新专项日志和截图保存在 ignored `artifacts/client-updates/`，不会进入源码或 Release。
+当前源码验证结果与开放问题统一见 [VALIDATION](./VALIDATION.md)，旧运行细节按批次保存在历史／artifact，不继续在根文档追加完整日志。更新专项日志和截图保存在 ignored `artifacts/client-updates/`，不会进入源码或 Release。
 
 ## 正式发布通道
 
@@ -49,9 +49,17 @@ pnpm security
 
 正式 workflow 在创建草稿前确保 tag 已指向源码 SHA：不存在时只创建新 ref，已存在时拒绝不同提交，不改写 tag，再用 `gh release create --verify-tag` 创建草稿。上传前仍复核 tag，避免依赖草稿阶段自动建 tag 的时机。实际 workflow 的 shell 已通过 5 种模拟 CLI 场景（首发／正确旧 tag／错误旧 tag／API 失败／并发建 tag 冲突）；这是本地控制流验证，未写入远端。命令语义见 [GitHub CLI](https://cli.github.com/manual/gh_release_create)。
 
-2026-11-20 按精确版本补齐 `deny.toml` 例外后，根工作区 `pnpm security` 通过，`v0.1.0` 即在 `quality`／`security` 两前置 job 通过后签名构建；独立 `pnpm audit --audit-level moderate` 无已知漏洞。NSH CLI 生成的宿主工作区锁文件不在根门禁内，不能把根图结论外推成发行二进制已移除某依赖，分析与剩余范围见 [原生发行依赖检查](dependencies/native-release-security.md)。签名 environment 的六个 secret 名称已只读确认，未输出或提交值。
+2026-11-20 按精确版本补齐 `deny.toml` 例外后，根工作区 `pnpm security` 通过，`v0.1.0` 即在 `quality`／`security` 两前置 job 通过后签名构建；独立 `pnpm audit --audit-level moderate` 无已知漏洞。NSH CLI 生成的宿主工作区锁文件不在根门禁内，不能把根图结论外推成发行二进制已移除某依赖，分析与剩余范围见 [原生发行依赖检查](./dependencies/native-release-security.md)。签名 environment 的六个 secret 名称已只读确认，未输出或提交值。
 
-正式签名 N-1 → N、macOS 实际退出换入／Developer ID 与公证、Android 真正未知来源授权／系统安装／拒绝／进程重启升级、物理 TV／硬解／长播、Windows／Linux、人工读屏和减少动态仍未验收。`v0.1.0`（2026-11-20）是首个公开 Release，同时是唯一一版；N-1 → N 升级、回执与真实安装仍未验，不能宣称自动更新端到端完成。`v0.1.0` 的 tag 指向 `f19a6af`，经 PR #1 squash 合并后不在 `master` 历史，内容已随 `0ecca76` 进入 `master`。
+正式签名 N-1 → N、macOS 实际退出换入／Developer ID 与公证、Android 真正未知来源授权／系统安装／拒绝／进程重启升级、人工读屏和减少动态仍未验收；物理 TV／硬解／长播与 Windows／Linux 按平台限制记录。`v0.1.0`（2026-11-20）是首个公开 Release，同时是唯一一版；N-1 → N 升级、回执与真实安装仍未验，不能宣称自动更新端到端完成。`v0.1.0` 的 tag 指向 `f19a6af`，经 PR #1 squash 合并后不在 `master` 历史，内容已随 `0ecca76` 进入 `master`。
+
+## 产物与候选边界
+
+预览、正式候选和发布的 workflow 职责只在[GitHub分发](./github-delivery-and-updates.md)维护；不能由配置存在推导远端成功、签名或升级通过。
+
+产物最少包含 APK、摘要、版本／build、源码 SHA、工具链／SDK／ABI 和已运行／未运行项目。源码、依赖、签名或包字节变化后旧证据不能继承。预览包名／签名隔离以实际产物为准，不假定 Debug 与正式包可互相覆盖。正式 N-1 → N 测试使用相同生产签名并保留数据，不能用卸载／清库修复升级。TSX 更新包不代替含 Rust／JNI 变更的完整 APK 升级；不新增独立 UI 热更新渠道。
+
+系统安装只在包名、版本、ABI／minSdk、大小、哈希和签名身份均验证后开始；打开安装器不算成功，以重启后的实际安装版本确认。未知来源授权、拒绝／取消、厂商安装器、断网／空间不足与失败恢复按真实设备分别验证。
 
 桌面暂存新增的未验项：真实「准备安装 → 退出 → 下次启动为新版本」，强杀或崩溃后回执留在磁盘、下次启动报告「上次更新未完成」，以及「立即重启更新」失败后退出仍能完成换入。`.nsh-updater-staged-*` 目录由 NSH 清理，本仓不再自行删除。
 

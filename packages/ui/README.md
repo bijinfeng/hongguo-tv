@@ -2,7 +2,7 @@
 
 红果桌面与 TV 的共享 NSH 样式层。业务页面从包根导入；NSH `nsh/base` 提供行为，本包拥有主题、尺寸、图标、部件样式与必要输入适配。它不依赖 `packages/app`、网络、存储、媒体会话或其他应用入口。
 
-基础组件规范还原、打开弹层、真实封面与动效的本轮结果见[修复与补审记录](../../docs/design/component-spec-conformance-fixes.md)；当前规则仍以根 DESIGN 为准。
+基础组件规范还原、打开弹层、真实封面与动效的本轮结果见[修复与补审记录](../../docs/history/2026-11-15/design/component-spec-conformance-fixes.md)；当前规则仍以根 DESIGN 为准。
 
 ## 两端使用
 
@@ -37,21 +37,21 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。控件档�
 
 ## 模块与接口
 
-| 模块                                                | 责任                                                                                                                                                                          |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| foundation                                          | `controlMetrics(size)`、`space(name)`、`radius(name)`、`border`；数值来自 app 的主题文件（桌面 `theme.json`／TV `theme.tv.json`），名称与使用规则见 [DESIGN](../../DESIGN.md) |
-| icon / assets/lucide                                | `Icon`：包装 `nsh-icon` 的 `<Icon>`，调用方传 `nsh-icon-lucide` 常量；`tone` 映射文本色类，尺寸取 `size` 档位；`assets/lucide` 供浏览器原型                                   |
-| button                                              | Button／IconButton，有限 variant 与 size；`navigation` 变体让当前目的地保持 foreground、其余降一档                                                                            |
-| back-button                                         | 页面级返回：箭头加目的地名，无静止表面，页面／影院两档色调                                                                                                                    |
-| text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                                                                                                                            |
-| select / checkbox / switch                          | 受控选择、复选与开关；开关支持隐藏可视标签并按端缩放                                                                                                                          |
-| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）；Tabs 的标签由 `UiText` 绘制，未选中项使用 muted 色调                                                                              |
-| overlay                                             | Dialog／Confirm／SidePanel、Menu／Popover、提示、操作栏、折叠、链接                                                                                                           |
-| display / frequent                                  | 字级、静态表面、反馈与高频基础组合                                                                                                                                            |
-| settings-row / settings-section                     | 设置行与分区：分隔列表或独立卡片，控件和值由调用方提供                                                                                                                        |
-| content / player                                    | 既有内容与影院控件：`CinemaStage`（竖片居中＋同图模糊补边）、`CinemaControls` 的 bar／band／overlay、`CinemaEpisodeButton`、影院变体的 `EpisodeRange`／`EpisodeRail`          |
-| card-controls / select-focus / focused-removal-root | 已有宿主焦点问题的内部适配                                                                                                                                                    |
-| dev / test                                          | 显式验收入口和行为测试，不挂载到产品路由                                                                                                                                      |
+| 模块                                                | 责任                                                                                                                                                                                    |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| foundation                                          | `controlMetrics(size)`、`space(name)`、`radius(name)`、`border`；数值来自 app 的主题文件（桌面 `theme.json`／TV `theme.tv.json`），名称与使用规则见 [DESIGN](../../DESIGN.md)           |
+| icon / assets/lucide                                | `Icon`：包装 `nsh-icon` 的 `<Icon>`，调用方传 `nsh-icon-lucide` 常量；`tone` 映射文本色类，尺寸取 `size` 档位；`assets/lucide` 保存官方 SVG 源与逐图 SHA，供 `pnpm ui:icons:check` 校验 |
+| button                                              | Button／IconButton，有限 variant 与 size；`navigation` 变体让当前目的地保持 foreground、其余降一档                                                                                      |
+| back-button                                         | 页面级返回：箭头加目的地名，无静止表面，页面／影院两档色调                                                                                                                              |
+| text-input / field                                  | 文本输入、搜索组合、字段标签与说明                                                                                                                                                      |
+| select / checkbox / switch                          | 受控选择、复选与开关；开关支持隐藏可视标签并按端缩放                                                                                                                                    |
+| choice-group / tabs / slider                        | 选项组、分页签与数值滑杆（含 TV 调整模式）；Tabs 的标签由 `UiText` 绘制，未选中项使用 muted 色调                                                                                        |
+| overlay                                             | Dialog／Confirm／SidePanel、Menu／Popover、提示、操作栏、折叠、链接                                                                                                                     |
+| display / frequent                                  | 字级、静态表面、反馈与高频基础组合                                                                                                                                                      |
+| settings-row / settings-section                     | 设置行与分区：分隔列表或独立卡片，控件和值由调用方提供                                                                                                                                  |
+| content / player                                    | 既有内容与影院控件：`CinemaStage`（竖片居中＋同图模糊补边）、`CinemaControls` 的 bar／band／overlay、`CinemaEpisodeButton`、影院变体的 `EpisodeRange`／`EpisodeRail`                    |
+| card-controls / select-focus / focused-removal-root | 已有宿主焦点问题的内部适配                                                                                                                                                              |
+| dev / test                                          | 显式验收入口和行为测试，不挂载到产品路由                                                                                                                                                |
 
 `src/index.tsx` 只做公共导出。内部文件直接导入拥有者，禁止反向导入 barrel 造成循环。只有包根用于产品；`./preview` 与 `./testing` 是开发入口，不能用于业务页面。新增控件与 Props 同名、公开事件用对象载荷，值由调用方控制，行为局部状态只保留一份。props 和信号在绑定／回调读取，不在组件 body 解构为快照。
 
@@ -63,7 +63,7 @@ TV 入口只需在 `nsh.json` 指向 `theme.tv.json`（已配置）。控件档�
 
 普通布局用 `View` 的配方，不给每个原语建立改名包装。日期条、账号验证、榜单和媒体状态仍是 app 组合与业务，不因设计样板存在就进入基础包。
 
-字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
+字段与状态契约见 [DESIGN](../../DESIGN.md#无障碍语义与状态验收)：Field 不自动向 children 注入名称或错误说明，调用方给 TextInput 显式传入一致的 label、invalid 与 description；具名组合负责完整传递。TV 入口在编辑前传递相同说明、invalid 与 disabled，编辑后由输入持有语义。`SearchInputProps.description` 由 app 提供当前校验原因。Button pending 默认显示“处理中…”，可用 displayLabel 提供具体动作；纯图标等待使用静态 loader-circle。SearchField 显示“搜索中…”并在所属区域暴露 busy，保留草稿并阻止重复提交。选择控件禁用后保留可辨认的当前值。完整导出家族矩阵、初审与修复证据见[专项审查](../../docs/history/2026-11-15/design/design-system-accessibility-state-copy-audit.md)，读屏输出按目标宿主另验。
 
 ### SettingsRow
 
@@ -149,13 +149,13 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 
 ## 资源与演进
 
-安装图标共用 [品牌资源](assets/brand/README.md)，由各 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
+安装图标共用 [品牌资源](./assets/brand/README.md)，由各 NSH manifest 与 Android TV 宿主消费；品牌图形不经过 Lucide 的界面图标生成器。
 
-主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs`，同步浏览器组件稿主题；不手改生成 CSS。
+主题唯一源是 `theme.json`。所有可操作控件共用 `input` 边界：浅色取与分隔线同族的浅灰，深色比分隔线高一档，让按钮、选集、输入框与 Select 读作同一种线；识别由表面、文字与 3:1 焦点环承担。内容分区、禁用边界与装饰使用 `border`。修改主题后跑 `pnpm design:codegen` 重新生成两份 theme 与 `tokens.generated.ts`；不手改生成文件，也不为某一份稿另补颜色。
 
-图标经 `nsh-icon-lucide`（Lucide 1.43.0）绘制，三端 `nsh.json` 的 `dependencies` 声明、`nsh.lock` 锁定。调用方从图标集导入常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 不维护名称清单，打包内容等于源码实际导入的常量，未引用的图标不进包。浏览器原型用同版本官方 SVG：ISC 许可证及每图 SHA256 位于 `assets/lucide/`，`pnpm ui:icons` 生成原型图标并校验源，`pnpm ui:icons:check` 检查漂移。原始 SVG 和生成结果都不能手工改图形；升级时同步 `nsh upgrade` 的锁文件与原型资源版本。
+图标经 `nsh-icon-lucide`（Lucide 1.43.0）绘制，三端 `nsh.json` 的 `dependencies` 声明、`nsh.lock` 锁定。调用方从图标集导入常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 不维护名称清单，打包内容等于源码实际导入的常量，未引用的图标不进包。原始 SVG 和生成结果都不能手工改图形；升级时同步 `nsh upgrade` 的锁文件。
 
-浏览器产品设计稿与组件板复用 `design/prototype/visual-redesign-real/shared`。HTML 与 NSH 使用各自渲染适配，共享视觉契约和图标来源；不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
+组件板就是生产组件本身：`pnpm ui:host:desktop`／`ui:host:tv` 在各宿主观察，`pnpm ui:preview` 在浏览器里跟改。不可把 DOM/CSS 运行时导入 NSH。新增状态同步更新 [设计交接](../../docs/design/component-design.md)、[覆盖清单](../../docs/history/2026-11-15/design/component-coverage-audit.md)、[演进规划](../../docs/design/component-roadmap.md) 与原生验收页。
 
 ## 验证
 
@@ -165,7 +165,7 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 - `pnpm ui:preview --target desktop`：显式组件预览；可选 harness／tv。每个端固定一个端口，重复启动替换上一次预览窗口而不是再开一个；`--display 2`、`--window-size 1440x960` 原样传给 `nsh run`。
 - 完整工程仍运行 `pnpm verify`；依赖变化运行 `pnpm security`。缺工具必须失败。
 
-还原度检查比较原设计与宿主中的颜色、字级、几何、对齐、状态、图标及动效；完整度检查逐项映射公共导出、样例、状态和行为证据。编译通过或 headless 通过均不能替代视觉与真机。待验收项如读屏、系统大字、真实遥控、输入法、物理电视必须明确记录。
+还原度检查比较原设计与宿主中的颜色、字级、几何、对齐、状态、图标及动效；完整度检查逐项映射公共导出、样例、状态和行为证据。编译通过或 headless 通过均不能替代视觉与真机。待验收项如读屏、系统大字、真实遥控与输入法必须明确记录；MVP 的验收宿主为 macOS 真机与固定 API34 AVD 模拟器，物理电视按平台限制记录。
 
 ### RadarTable
 
@@ -214,6 +214,6 @@ app 的 `SeasonPicker` 负责完整服务顺序、实际 playingId／resume 标�
 - `ResultCard.onPress` 缺省时是静态内容行，不显示“查看详情”或整行按钮语义；管理模式只聚焦选择、明确的详情入口与删除动作。`ChoiceList.orientation="vertical"` 复用同一稳定选项和焦点契约，供有界侧栏使用。
 - Android TV 每个原生窗口共用 `TvRemote` 作为焦点轮廓拥有者；内部 `RemoteFocusScope` 通过公开 `nativeComponent` 注册弹层窗口，其他宿主为空视图。内层 Select 先处理返回，关闭弹层再恢复原入口；控件不重复画父子焦点环。禁用／等待阻止激活与程序恢复焦点，恢复后重新可达。
 
-业务组合与列数规则见 [TV 技术方案](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)，实际验证范围见 [VALIDATION](../../VALIDATION.md)。画廊中的宿主度量读取真实环境，仅供开发验收，不进入产品界面。
+业务组合与列数规则见 [TV 技术方案](../../openspec/changes/compose-tv-v4-from-shared-components/design.md)，实际验证范围见 [VALIDATION](../../docs/VALIDATION.md)。画廊中的宿主度量读取真实环境，仅供开发验收，不进入产品界面。
 
 `textLineHeight(role)` 是只读的语义行高度量，供业务集合计算文字槽位与虚拟化估计；它不改变字号、主题或系统缩放，也不是页面绘制覆盖参数。

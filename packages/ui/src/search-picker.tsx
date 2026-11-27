@@ -14,7 +14,7 @@ import { CardControls, CardRoot } from './card-controls';
 import { Icon } from './icon';
 import { border, focusRing, radius, space, weight } from './foundation';
 import { motionTokens } from './motion';
-import { textSize, textWeight } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 /** Enough rows to scan before the list itself scrolls. */
 const SUGGESTION_MAX_HEIGHT = 360;
@@ -112,6 +112,7 @@ export function SearchSuggestionRow(props: {
         <Text
           style={{
             fontSize: textSize('meta'),
+            lineHeight: textLineHeight('meta'),
             fontWeight: textWeight('meta'),
             color: token('foreground'),
             numberOfLines: 1,
@@ -123,6 +124,7 @@ export function SearchSuggestionRow(props: {
           <Text
             style={{
               fontSize: textSize('meta'),
+              lineHeight: textLineHeight('meta'),
               fontWeight: weight.regular(),
               color: token('muted-foreground'),
               numberOfLines: 1,

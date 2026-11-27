@@ -24,4 +24,4 @@
 
 ## Impact
 
-涉及 crates/native-bridge、apps/desktop/native、apps/tv/native、两端薄入口、packages/core-client、http-api 的媒体专用路由与工程脚本；继续使用锁定 NSH/Tokio/SQLite/HTTP 依赖，不引入 Go、sidecar、React 或新 UI。Rust DTO 变化时生成并检查契约。macOS 锁屏、物理设备、辅助技术、账号和正式签名发行的边界单独记录，C 验收不能覆盖 A/B 的未完成项。
+涉及 crates/native-bridge、apps/desktop/native、apps/tv/native、两端薄入口、packages/core-client、http-api 的媒体专用路由与工程脚本；继续使用锁定 NSH/Tokio/SQLite/HTTP 依赖，不引入 Go、sidecar、React 或新 UI。Rust DTO 变化时生成并检查契约。macOS 锁屏、辅助技术、账号和正式签名发行的边界单独记录；物理设备按平台限制记录。C 验收不能覆盖 A/B 的未完成项。

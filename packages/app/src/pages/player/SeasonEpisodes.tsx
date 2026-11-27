@@ -1,7 +1,16 @@
 import { Lock } from 'nsh-icon-lucide';
 import { Scroll, Text, View, effect, signal, untracked } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
-import { Button, CinemaEpisodeButton, CinemaSelect, EpisodeRange, Notice } from '@hongguo/ui';
+import {
+  Button,
+  CinemaEpisodeButton,
+  CinemaSelect,
+  EpisodeRange,
+  Notice,
+  space,
+  textLineHeight,
+  textSize,
+} from '@hongguo/ui';
 import type { Store } from '../../store';
 import type { SeasonsController } from '../../seasons';
 import type { createSeasonDetail } from '../../season-detail';
@@ -66,7 +75,10 @@ function CinemaSeasonLabel(props: {
     <If when={current()}>
       {(row) => (
         <View testID={`season-${row().drama.series_id}`} class="flex-row items-center">
-          <Text class="text-cinema-foreground" style={{ fontSize: 14 }}>
+          <Text
+            class="text-cinema-foreground"
+            style={{ fontSize: textSize('meta'), lineHeight: textLineHeight('meta') }}
+          >
             {row().label?.trim() || row().drama.title}
           </Text>
         </View>
@@ -114,14 +126,14 @@ export function Episodes(props: {
       {/* `items-start` keeps the trigger at its own width; the grid keeps the lane's and scrolls. */}
       <Scroll
         class={props.cinema ? 'flex-1 min-h-0 w-full' : 'flex-1'}
-        contentStyle={{ width: '100%', paddingBottom: 12 }}
+        contentStyle={{ width: '100%', paddingBottom: space('sm') }}
       >
         <View
           class="flex-row flex-wrap"
           onLayout={({ bounds }) => {
             if (bounds.size.width > 0) width.set(bounds.size.width);
           }}
-          style={{ rowGap: 8 }}
+          style={{ rowGap: space('xs') }}
         >
           <Each
             of={episodes().slice(segment() * size, (segment() + 1) * size)}
@@ -131,7 +143,7 @@ export function Episodes(props: {
               <View
                 style={{
                   width: `${100 / (props.target === 'tv' ? tvColumns('episodes', width()) : 4)}%`,
-                  paddingRight: 8,
+                  paddingRight: space('xs'),
                 }}
               >
                 <If

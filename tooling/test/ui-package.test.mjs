@@ -19,18 +19,16 @@ test('UI implementation imports owners without cycling through its public entry'
   }
 });
 
-test('prototype glyphs derive from the verified official SVG sources', async () => {
+test('the vendored icon sources still match the hashes recorded beside them', async () => {
   const source = resolve(root, 'packages/ui/assets/lucide');
   const manifest = JSON.parse(await readFile(resolve(source, 'provenance.json'), 'utf8'));
   assert.equal(manifest.package, 'lucide-static');
   assert.equal(manifest.version, '1.43.0');
-  const { icons } =
-    await import('../../design/prototype/visual-redesign-real/components/assets/icons.js');
-  assert.deepEqual(Object.keys(icons).sort(), Object.keys(manifest.svgSha256).sort());
+  // Every recorded name resolves to a source whose bytes still hash to the recorded value: a
+  // hand-edited path, a half-finished upgrade, or a stray file all fail here.
   for (const [name, hash] of Object.entries(manifest.svgSha256)) {
     const svg = await readFile(resolve(source, `${name}.svg`), 'utf8');
     assert.equal(createHash('sha256').update(svg).digest('hex'), hash, name);
-    assert.equal(icons[name], svg, name);
   }
   assert.match(await readFile(resolve(source, 'LICENSE'), 'utf8'), /ISC License/);
 });
@@ -63,4 +61,30 @@ test('icons reach the UI only as imported constants, never as a name table', asy
       `${name} passes an icon name instead of a constant`,
     );
   }
+});
+
+test('every text style that sets a font size also sets its line height', async () => {
+  // A label measured only by its font size takes the host's default line box: measured on the web
+  // host that is about 1.14x, against the 1.5 the type roles declare, so a 14pt label stood 16px
+  // tall in a control and 21px in a `UiText`. The rule is checked here because it had already
+  // spread to nineteen sites in eleven files without anything going red.
+  const src = resolve(root, 'packages/ui/src');
+  const violations = [];
+  for (const name of await readdir(src)) {
+    if (!/\.tsx?$/.test(name)) continue;
+    const lines = (await readFile(resolve(src, name), 'utf8')).split('\n');
+    for (const [index, line] of lines.entries()) {
+      if (!line.includes('fontSize:')) continue;
+      // Token-name maps (`fontSize: 'control-md-font'`) and signatures (`fontSize: number`) are
+      // not styles; a style always assigns an expression, not a bare quoted name or a type.
+      if (/fontSize:\s*['"][a-z-]+['"],?\s*$/.test(line)) continue;
+      if (/fontSize:\s*(number|string)\b/.test(line)) continue;
+      // A style object is short: look ahead a few lines for the matching line height, and stop at
+      // the closing brace so one object's line height cannot satisfy its neighbour.
+      const window = lines.slice(index, index + 5).join('\n');
+      const untilClose = window.split('}')[0];
+      if (!untilClose.includes('lineHeight')) violations.push(`${name}:${index + 1}`);
+    }
+  }
+  assert.deepEqual(violations, [], `styles missing lineHeight: ${violations.join(', ')}`);
 });

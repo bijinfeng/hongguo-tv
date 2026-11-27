@@ -138,6 +138,7 @@ export function Slider(props: SliderProps) {
         <Text
           style={{
             fontSize: size().fontSize,
+            lineHeight: size().lineHeight,
             fontWeight: weight.regular(),
             color: token('foreground'),
           }}

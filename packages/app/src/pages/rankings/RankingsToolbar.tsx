@@ -155,7 +155,7 @@ export function RankingsToolbar(props: {
       <Scroll
         testID="ranking-filters"
         class="flex-1 min-h-0"
-        contentStyle={{ gap: space('md'), padding: 6 }}
+        contentStyle={{ gap: space('md'), padding: space('xxs') }}
       >
         {rows()}
       </Scroll>
@@ -233,7 +233,7 @@ export function RankingsToolbarSkeleton(props: { target: ProductTarget; rowHeigh
       class="border-b border-border"
       style={{ flexShrink: 0 }}
     >
-      <View style={{ gap: 4, paddingBottom: space('xs') }}>
+      <View style={{ gap: space('xxs'), paddingBottom: space('xs') }}>
         <Each of={rows}>
           {(row) => (
             <View class="flex-row items-center gap-2" style={{ height: rowHeight }}>

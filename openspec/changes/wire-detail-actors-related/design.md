@@ -22,7 +22,7 @@ See proposal.md for motivation. The fixed Go reference supplies actors and inlin
 - [Nested scroll and TV focus] → Explicit collection viewport and safe insets; test later entries and layered return on actual hosts.
 - [Supplied episodes hide missing metadata] → Separate complete metadata predicate and add episodes-only / complete-empty regressions.
 - [Remote payload variability] → Fixed upstream-grounded aliases, bounded pure JSON parser and synthetic inline/deferred/invalid fixtures.
-- [Host-only checks overstate completion] → Record actual Web/macOS/TV adapter scope and keep physical TV, screen reader and live-network limits explicit.
+- [Host-only checks overstate completion] → Record actual harness/macOS/API34-emulator adapter scope and keep screen-reader and live-network limits explicit; physical TV is a recorded platform limit.
 
 ## Migration Plan
 

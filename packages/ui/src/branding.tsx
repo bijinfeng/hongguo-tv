@@ -27,6 +27,7 @@ export function Logo(props: { mark: ImageAsset; class?: string; size?: 'default'
       <Text
         style={{
           fontSize: compact() ? WORDMARK_SIZE_COMPACT : WORDMARK_SIZE,
+          lineHeight: Math.round((compact() ? WORDMARK_SIZE_COMPACT : WORDMARK_SIZE) * 1.2),
           fontWeight: textWeight('title'),
           color: token('foreground'),
         }}

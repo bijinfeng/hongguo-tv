@@ -15,6 +15,7 @@ const textTokens = {
   'content-title': 'text-content-title',
   body: 'text-body',
   meta: 'text-meta',
+  caption: 'text-caption',
   numeric: 'text-numeric',
 } as const;
 

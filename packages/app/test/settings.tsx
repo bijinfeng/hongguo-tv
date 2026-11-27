@@ -65,11 +65,26 @@ export function registerSettingsTests(target: 'desktop' | 'tv' = 'desktop', entr
     return app;
   };
 
+  if (target === 'desktop')
+    test('desktop settings close with the app version and offer no dead auxiliary entries', async () => {
+      // Desktop stacks every module on one page instead of offering a panel rail. The version is
+      // the last thing there; tipping and third-party app promotion were removed by product
+      // decision, so neither may reappear as a label, a panel or a placeholder row.
+      const app = await openSettings();
+      await app.waitFor('id:settings-about');
+      expect(app.texts().some((text) => /构建版本|开源许可/.test(text))).toBe(true);
+      expect(app.texts().some((text) => /打赏|应用推荐/.test(text))).toBe(false);
+    });
+
   test('settings page lists only real preferences and persists a playback change', async () => {
     const app = await openSettings();
     for (const section of ['外观', '播放', '账号', '本机数据']) {
       expect(app.texts().some((text) => text.includes(section))).toBe(true);
     }
+    // Tipping and third-party app promotion are out of scope, so no panel or placeholder remains.
+    expect(app.shows('id:settings-panel-support')).toBe(false);
+    expect(app.shows('id:settings-panel-recommendations')).toBe(false);
+    expect(app.texts().some((text) => /打赏|应用推荐/.test(text))).toBe(false);
     // The headless entry has no update adapter, so the update section stays absent.
     expect(app.shows('id:settings-auto-updates-row')).toBe(false);
     await selectPanel(app, 'playback');

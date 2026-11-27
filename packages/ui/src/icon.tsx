@@ -39,12 +39,21 @@ export interface IconProps {
   tone?: IconTone;
 }
 
+/**
+ * Stroke in the icon's 24-point grid. The official Lucide value is 2, which renders 1.67pt at
+ * a 20pt icon and 1.33pt at 16 — heavier than the 1.1–1.4pt stems of the 14–16pt CJK text these
+ * icons sit beside, so a row reads as an icon list with captions. 1.75 puts the 20pt case at
+ * 1.46pt: the official geometry, now at the same optical weight as its label.
+ */
+const STROKE_WIDTH = 1.75;
+
 /** Official Lucide geometry, drawn in the inherited text color. */
 export function Icon(props: IconProps) {
   return (
     <Glyph
       icon={props.icon}
       size={controlMetrics(props.size).iconSize}
+      strokeWidth={STROKE_WIDTH}
       class={toneClass[props.tone ?? 'foreground']}
     />
   );

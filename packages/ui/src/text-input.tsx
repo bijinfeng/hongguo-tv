@@ -25,6 +25,7 @@ import {
 import { Button } from './button';
 import { Icon } from './icon';
 import { Field } from './field';
+import { textLineHeightRatio } from './typography';
 
 /** A controlled text field. Input changes belong to the caller, including during composition. */
 export interface TextInputProps {
@@ -198,6 +199,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           style={{
             minHeight: size().height,
             fontSize: size().fontSize,
+            lineHeight: size().lineHeight,
             color: token('foreground'),
             // The host placeholder default is too dim on the dark surface.
             placeholderColor: token('muted-foreground'),
@@ -220,6 +222,7 @@ function InputFrame(props: TextInputProps & { search?: boolean; onClear?: () => 
           <Text
             style={{
               fontSize: size().fontSize,
+              lineHeight: Math.round(size().fontSize * textLineHeightRatio('body')),
               fontWeight: weight.regular(),
               color: token(props.value ? 'foreground' : 'muted-foreground'),
             }}

@@ -3,8 +3,8 @@ import { cp, mkdir, readFile, rm, statfs, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { calendarFixture } from './calendar-fixture.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
-import { executable, nshVersion, output, root, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { executable, nshVersion, root, rustEnvironment } from './process.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 // One isolated package, production Java adapter sources, no Cargo or production APK replacement.
 const mode = process.argv[2] || 'prepare';
@@ -105,15 +105,11 @@ if (mode === 'prepare') {
 } else {
   const env = rustEnvironment(tvHostEnvironment());
   const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-  const devices = output(adb, ['devices'], { env })
-    .split('\n')
-    .slice(1)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-    throw new Error('Requires one ready Android TV emulator');
-  const serial = devices[0].split(/\s+/)[0];
-  const device = (args) => output(adb, ['-s', serial, ...args], { env });
+  const { serial, device } = tvEmulator({
+    adb,
+    env,
+    message: 'Requires one ready Android TV emulator',
+  });
   if (
     device(['shell', 'getprop', 'ro.build.version.sdk']) !== '34' ||
     !device(['shell', 'pm', 'list', 'features']).includes('android.software.leanback_only')

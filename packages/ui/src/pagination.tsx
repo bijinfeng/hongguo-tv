@@ -61,7 +61,7 @@ export function Pagination(props: PaginationProps) {
         style={{ gap: metrics.gap }}
         itemClass={`flex-row items-center justify-center ${focusRingClass(4)}`}
         // The item style is text-only; the content below gives the item its Button-sized box.
-        itemStyle={{ fontSize: metrics.fontSize }}
+        itemStyle={{ fontSize: metrics.fontSize, lineHeight: metrics.lineHeight }}
         renderItem={(item) => (
           <View
             class={`flex-row items-center justify-center border ${transition(item)} ${itemSurface(item)}`}
@@ -79,6 +79,7 @@ export function Pagination(props: PaginationProps) {
                 accessibilityElementsHidden
                 style={{
                   fontSize: metrics.fontSize,
+                  lineHeight: metrics.lineHeight,
                   fontWeight: weight.regular(),
                   color: token('muted-foreground'),
                 }}
@@ -96,6 +97,7 @@ export function Pagination(props: PaginationProps) {
                 <Text
                   style={{
                     fontSize: metrics.fontSize,
+                    lineHeight: metrics.lineHeight,
                     fontWeight: weight.regular(),
                     color: token(item.disabled ? 'muted-foreground' : 'foreground'),
                   }}
@@ -108,6 +110,7 @@ export function Pagination(props: PaginationProps) {
               <Text
                 style={{
                   fontSize: metrics.fontSize,
+                  lineHeight: metrics.lineHeight,
                   fontWeight: item.current ? weight.strong() : weight.regular(),
                   color: token(pageTone(item)),
                 }}
@@ -123,6 +126,7 @@ export function Pagination(props: PaginationProps) {
           <Text
             style={{
               fontSize: metrics.fontSize,
+              lineHeight: metrics.lineHeight,
               fontWeight: weight.regular(),
               color: token('muted-foreground'),
             }}

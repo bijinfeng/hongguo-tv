@@ -44,8 +44,8 @@ cargo run -p hongguo-core --example playback_probe -- --live <搜索词> .local/
 
 2026-11-24 本机复验（Ubuntu，`master` @ `9d704e4` 加本次修复）：修复前对「重生」「甜宠」两个真实入口分别得到 9 路 `PLAYBACK_SOURCE_EMPTY` 并最终失败；修复后 `video_tab` 仍空，但 `MobileV5` 直接返回模型，「重生」「甜宠」「逆袭」「穿越」四剧分别准备出 7.95 MB／10.16 MB／3.94 MB／6.34 MB 的 HEVC 媒体（1080P／720P）。同一路径经正式 HTTP 入口 `GET /api/v1/play/info` 返回 `ok:true`、`video_codec:hevc`、`quality:1080P`，代理 Range 请求返回 `206` + `video/mp4`，`ffprobe` 识别 HEVC 1920×1080 + AAC 91.37 秒，`ffmpeg -f null` 全片解码无错误。
 
-以上是取源与媒体准备的证据，不等于各宿主播放器已实看：Web／Desktop／TV 的首帧、进度、暂停恢复、后台和物理设备仍需按 VALIDATION 分别验收。
+以上是取源与媒体准备的证据，不等于各宿主播放器已实看：macOS 桌面与 TV 模拟器的首帧、进度、暂停恢复和后台仍需按 VALIDATION 分别验收；物理设备按平台限制记录。
 
 ## 许可
 
-本模块的互操作常量（magic／key／SBox／hash 表）与协议形状来自参考实现，见[第三方声明](../../THIRD_PARTY_NOTICES.md)。`crates/core/src/playback/sign_v5.rs` 与 `provider/mobile_v5.rs` 是在阅读上游 GPL-3.0-only 实现后编写的 Rust 实现，**不是** clean-room 复现；该部分的许可归属需在公开发行前由项目所有者或法务确认，不得仅凭仓库根 LICENSE 推定。
+本模块的互操作常量（magic／key／SBox／hash 表）与协议形状来自参考实现，见[第三方声明](../THIRD_PARTY_NOTICES.md)。`crates/core/src/playback/sign_v5.rs` 与 `provider/mobile_v5.rs` 是在阅读上游 GPL-3.0-only 实现后编写的 Rust 实现，**不是** clean-room 复现；该部分的许可归属需在公开发行前由项目所有者或法务确认，不得仅凭仓库根 LICENSE 推定。

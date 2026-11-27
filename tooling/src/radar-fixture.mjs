@@ -141,15 +141,12 @@ export async function radarFixture({
       send(res, 500, { ok: false, error: String(error) });
     }
   });
-  await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
+  const { origin } = await listenLoopback(server, { port });
   return {
-    origin: `http://127.0.0.1:${server.address().port}`,
+    origin,
     requests,
     async close() {
-      server.closeAllConnections();
-      await new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
-      );
+      await closeFixtureServer(server);
       await official.close();
     },
     assertReadOnly() {

@@ -1,6 +1,6 @@
 import { View } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
-import { CinemaText, EpisodeRail } from '@hongguo/ui';
+import { CinemaText, EpisodeRail, space } from '@hongguo/ui';
 import type { Store } from '../../store';
 import type { createSeasonDetail } from '../../season-detail';
 import type { SeasonsController } from '../../seasons';
@@ -23,7 +23,7 @@ export function PlayerEpisodeRail(props: {
 }) {
   return (
     <EpisodeRail cinema>
-      <View class="flex-1 min-h-0" style={{ padding: 16, gap: 16 }}>
+      <View class="flex-1 min-h-0" style={{ padding: space('md'), gap: space('md') }}>
         <CinemaText variant="title" testID="player-episodes-title">
           选集
         </CinemaText>

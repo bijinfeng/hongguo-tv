@@ -9,8 +9,12 @@ import { windowSize } from 'nsh';
 export const PLAYER_RAIL_WIDTH = 316;
 export const PLAYER_RAIL_GAP = 24;
 
-/** Chrome around the picture: page padding, crumb, transport band and the action line. */
-const CHROME = 428;
+/**
+ * Chrome around the picture: page padding, crumb, transport band and the action line. The window's
+ * own bar is part of it: it was an 86-high top bar and is now a 48-high title bar, so this budget
+ * drops by the same 38 and the picture gets that height back.
+ */
+const CHROME = 390;
 const MIN_PICTURE = 320;
 const MAX_PICTURE = 660;
 /** In full screen the picture leaves this much of the window to the transport band under it. */

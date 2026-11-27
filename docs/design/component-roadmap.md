@@ -1,6 +1,6 @@
 # 基础组件候选与准入
 
-公共视觉／交互归[DESIGN](../../DESIGN.md)，实际API归[UI包](../../packages/ui/README.md)，已有实现与组合归[单一覆盖矩阵](component-implementation.md)。本页只维护尚未触发的候选，不再描述已实现组件的重复契约。
+公共视觉／交互归[DESIGN](../../DESIGN.md)，实际API归[UI包](../../packages/ui/README.md)，已有实现与组合归[单一覆盖矩阵](./component-implementation.md)。本页只维护尚未触发的候选，不再描述已实现组件的重复契约。
 
 ## 准入条件
 

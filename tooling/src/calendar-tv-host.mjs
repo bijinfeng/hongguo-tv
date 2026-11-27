@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { calendarFixture } from './calendar-fixture.mjs';
 import { executable, output, root, run, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 // Pure TSX on the installed NSH development host. No production APK replacement or Rust build.
 const suite = process.argv[2] || 'all';
@@ -11,14 +11,11 @@ if (!['all', 'live', 'focus'].includes(suite))
   throw new Error('Expected calendar-tv-host.mjs [all|live|focus]');
 const env = rustEnvironment(tvHostEnvironment());
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-const devices = output(adb, ['devices'], { env })
-  .split('\n')
-  .slice(1)
-  .map((line) => line.trim())
-  .filter(Boolean);
-if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-  throw new Error('Requires exactly one ready Android TV emulator.');
-const serial = devices[0].split(/\s+/)[0];
+const { serial } = tvEmulator({
+  adb,
+  env,
+  message: 'Requires exactly one ready Android TV emulator.',
+});
 env.ANDROID_SERIAL = serial;
 const device = (args) => output(adb, ['-s', serial, ...args], { env });
 const deviceRun = (args) => run(adb, ['-s', serial, ...args], { env });

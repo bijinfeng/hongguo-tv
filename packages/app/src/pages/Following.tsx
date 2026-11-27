@@ -1,5 +1,5 @@
 import { List, View, cleanup, effect, fontScale, lifecycle, type ListRef, type ViewRef } from 'nsh';
-import { Button, CardControls, ContentArrival, Cover, Notice, UiText } from '@hongguo/ui';
+import { Button, CardControls, ContentArrival, Cover, Notice, UiText, space } from '@hongguo/ui';
 import type { FollowItem } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { FollowNotice } from '../FollowAction';
@@ -93,6 +93,19 @@ export function Following(props: { store: Store }) {
       }
     });
   };
+  /** The first row's action takes the entry target once rows exist; re-read on every data change. */
+  const claimEntry = () => {
+    if (props.store.target !== 'tv' || !active()) return;
+    const first = items()[0];
+    if (!first) return;
+    const candidates = refs.get(`${first.drama ? 'open' : 'cancel'}:${first.series_id}`);
+    const primary = candidates?.values().next().value;
+    if (!primary) return;
+    props.store.primaryRef('following', primary);
+    // The pending entry plan is consumed once, and rows register after mount: telling the store the
+    // target is ready here is what actually moves focus onto it.
+    props.store.primaryReady('following');
+  };
   const register = (key: string, ref?: ViewRef, previous?: ViewRef) => {
     const candidates = refs.get(key) ?? new Set<ViewRef>();
     if (ref) candidates.add(ref);
@@ -100,6 +113,9 @@ export function Following(props: { store: Store }) {
     if (candidates.size) refs.set(key, candidates);
     else refs.delete(key);
     if (waiting && key === `${waiting.kind}:${waiting.id}`) reveal();
+    // The effect above reacts to data, but a ref registering is not reactive: when a row's action
+    // arrives after its data, this is what retries the entry claim for that first row.
+    if (ref && items().length) claimEntry();
   };
   const capture = async () => {
     const owns = guard();
@@ -166,14 +182,18 @@ export function Following(props: { store: Store }) {
   };
   let previousScope = scope();
   let wasActive = false;
+  /** Entry focus: the first row's own action, or the single recovery action when there are none. */
   effect(() => {
-    if (
-      props.store.target === 'tv' &&
-      active() &&
-      !follow.loading() &&
-      follow.mutation()?.state !== 'pending'
-    )
-      props.store.primaryReady('following');
+    if (props.store.target !== 'tv' || !active()) return;
+    if (follow.loading() || follow.mutation()?.state === 'pending') return;
+    if (items().length) {
+      claimEntry();
+      return;
+    }
+    const fallback = signedIn() ? emptyRef : loginRef;
+    if (!fallback) return;
+    props.store.primaryRef('following', fallback);
+    props.store.primaryReady('following');
   });
   effect(() => {
     const blocked = follow.busy() || follow.stale();
@@ -191,10 +211,6 @@ export function Following(props: { store: Store }) {
       cancelAnimationFrame(frame);
     }
     const nextActive = active();
-    if (nextActive && props.store.target === 'tv') {
-      const primary = signedIn() ? refreshRef : loginRef;
-      if (primary) props.store.primaryRef('following', primary);
-    }
     if (!nextActive) {
       waiting = undefined;
       cancelAnimationFrame(frame);
@@ -291,7 +307,7 @@ export function Following(props: { store: Store }) {
             keyExtractor={(item) => item.series_id}
             estimatedItemSize={(props.store.target === 'tv' ? 114 : 180) * fontScale()}
             class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
-            contentStyle={{ padding: 8, gap: props.store.target === 'tv' ? 6 : 12 }}
+            contentStyle={{ padding: space('xs'), gap: space('sm') }}
             onLayout={() => {
               if (waiting) reveal();
             }}

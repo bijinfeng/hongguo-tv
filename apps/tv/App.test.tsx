@@ -6,6 +6,7 @@ import {
   registerAccountTests,
   registerSettingsTests,
   registerBrowsingTests,
+  registerLayoutContractTests,
 } from '@hongguo/app/testing';
 import { expect, open, test } from 'nsh/test';
 
@@ -31,6 +32,8 @@ registerBrowsingTests('tv', './HttpFixture.tsx');
 
 registerAccountTests('tv', './HttpFixture.tsx');
 registerSettingsTests('tv', './HttpFixture.tsx');
+// The TV shell's token-owned geometry, read from the real app rather than a prototype.
+registerLayoutContractTests('./HttpFixture.tsx');
 
 // Diagnostics reporting is a TV change: the host channel is granted in this app's nsh.json.
 import { registerDiagnosticsHostTests } from '@hongguo/app/testing';

@@ -29,7 +29,7 @@ import { controlMetrics, radius, space, weight, focusRingClass } from './foundat
 import { motionTokens } from './motion';
 import { SelectFocus } from './select-focus';
 import { selectItemClass, SelectItemLabel, selectItemLineHeight } from './select';
-import { textSize, textWeight } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 const CinemaEnabled = context<() => boolean>(() => true);
 
@@ -94,7 +94,10 @@ export function CinemaButton(props: {
       </If>
       <If when={!props.iconOnly}>
         <Text
-          style={{ fontSize: controlMetrics().fontSize }}
+          style={{
+            fontSize: controlMetrics().fontSize,
+            lineHeight: controlMetrics().lineHeight,
+          }}
           class={
             blocked()
               ? 'text-cinema-muted'
@@ -240,7 +243,11 @@ export function CinemaSelect(props: {
           <SelectFocus open={open()} gap={controlMetrics().gap} stretch>
             <Text
               class={props.disabled || !enabled() ? 'text-cinema-muted' : 'text-cinema-foreground'}
-              style={{ fontSize: controlMetrics().fontSize, flexShrink: 1 }}
+              style={{
+                fontSize: controlMetrics().fontSize,
+                lineHeight: controlMetrics().lineHeight,
+                flexShrink: 1,
+              }}
             >
               {props.items.find((item) => item.value === props.value)?.title ?? props.label}
             </Text>
@@ -259,6 +266,7 @@ export function CinemaSelect(props: {
           class="text-muted-foreground"
           style={{
             fontSize: controlMetrics().fontSize,
+            lineHeight: controlMetrics().lineHeight,
             fontWeight: weight.regular(),
             paddingHorizontal: space('sm'),
             paddingVertical: space('xs'),
@@ -365,6 +373,16 @@ export function CinemaText(props: {
   variant?: 'title' | 'stage' | 'time' | 'preview';
   testID?: string;
 }) {
+  /** The type role each cinema context reads at, so the size and its line height stay paired. */
+  const role = () =>
+    props.variant === 'stage'
+      ? 'page'
+      : props.variant === 'title'
+        ? 'title'
+        : props.variant === 'preview'
+          ? 'body'
+          : 'meta';
+  const roleSize = () => textSize(role());
   return (
     <Text
       testID={props.testID}
@@ -372,14 +390,8 @@ export function CinemaText(props: {
       accessibilityLevel={props.variant === 'stage' ? 1 : undefined}
       class={props.variant === 'title' ? 'line-clamp-2' : ''}
       style={{
-        fontSize:
-          props.variant === 'stage'
-            ? textSize('page')
-            : props.variant === 'title'
-              ? textSize('title')
-              : props.variant === 'preview'
-                ? textSize('body')
-                : textSize('meta'),
+        fontSize: roleSize(),
+        lineHeight: textLineHeight(role()),
         fontWeight:
           props.variant === 'stage' || props.variant === 'title'
             ? textWeight('section')
@@ -513,6 +525,7 @@ export function CinemaEpisodeButton(props: {
       <Text
         style={{
           fontSize: controlMetrics('sm').fontSize,
+          lineHeight: controlMetrics('sm').lineHeight,
           fontWeight: props.selected ? weight.strong() : weight.regular(),
           color: token(tone()),
           fontVariant: ['tabular-nums'],

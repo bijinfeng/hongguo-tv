@@ -1,6 +1,6 @@
 # GitHub构建、分发与更新
 
-本文件维护同仓库Releases的发行方案与操作边界；当前门禁、安装／升级及远端运行结果只维护在[VALIDATION](../VALIDATION.md)。客户端状态和宿主安装细节见[客户端更新](client-updates.md)，产品内界面规则见[DESIGN](../DESIGN.md)。早期调研、签名工具实验和逐轮实施／远端结果保存在[历史记录](history/2026-11-15/github-delivery-and-updates.md)。
+本文件维护同仓库Releases的发行方案与操作边界；当前门禁、安装／升级及远端运行结果只维护在[VALIDATION](./VALIDATION.md)。客户端状态和宿主安装细节见[客户端更新](./client-updates.md)，产品内界面规则见[DESIGN](../DESIGN.md)。早期调研、签名工具实验和逐轮实施／远端结果保存在[历史记录](./history/2026-11-15/github-delivery-and-updates.md)。
 
 源码、版本与工作流使用bijinfeng/hongguo-tv，桌面和TV从同仓库公开Release资产下载，客户端无GitHub token，不新增发行仓库、Pages或业务API依赖。单通道不保证所有地区家庭网络可达，发行前实际测量。
 
@@ -16,7 +16,7 @@ pnpm release:record --input <候选描述JSON> --repository bijinfeng/hongguo-tv
 pnpm release:verify-record --record release.json --artifact-dir <下载目录> --repository bijinfeng/hongguo-tv --source-sha <源码SHA>
 ```
 
-参数与字节校验边界见[发行摘要](release-metadata-validation.md)。预览使用debug／ad-hoc签名，候选和正式签名、元数据验签、实际安装与两版升级各有证据，不能互相代替。
+参数与字节校验边界见[发行摘要](./release-metadata-validation.md)。预览使用debug／ad-hoc签名，候选和正式签名、元数据验签、实际安装与两版升级各有证据，不能互相代替。
 
 ## 仓库、清单与版本
 
@@ -160,9 +160,9 @@ GITHUB_TOKEN 触发的常见仓库事件不会再次启动工作流，因此发�
 
 ## 双端更新职责
 
-桌面使用NSH updater，TV使用Rust验签／下载和Android PackageInstaller；清单签名与平台安装签名分别核验。客户端状态机、进度写排空、授权／取消／安装确认、焦点及交互的唯一说明在[client-updates](client-updates.md)，这里不复制实现和视觉状态。
+桌面使用NSH updater，TV使用Rust验签／下载和Android PackageInstaller；清单签名与平台安装签名分别核验。客户端状态机、进度写排空、授权／取消／安装确认、焦点及交互的唯一说明在[client-updates](./client-updates.md)，这里不复制实现和视觉状态。
 
-正式发布前需同一源码的verify／Clippy／security及最终签名资产验收，缺失或失败阻止晋级；安全工作区和生成宿主范围见[依赖检查](dependencies/native-release-security.md)。支持平台、真实两版升级、数据保留和恢复演练按工程规范与当前矩阵逐项验证，工作流存在不等于发行已完成。
+正式发布前需同一源码的verify／Clippy／security及最终签名资产验收，缺失或失败阻止晋级；安全工作区和生成宿主范围见[依赖检查](./dependencies/native-release-security.md)。支持平台、真实两版升级、数据保留和恢复演练按工程规范与当前矩阵逐项验证，工作流存在不等于发行已完成。
 
 ## 故障、撤回与数据
 

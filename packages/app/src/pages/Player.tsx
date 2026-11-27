@@ -38,6 +38,7 @@ import {
   CinemaSettingRow,
   EpisodePanel,
   radius,
+  space,
 } from '@hongguo/ui';
 import { SeasonEpisodes } from './player/SeasonEpisodes';
 import { PlayerActions } from './player/PlayerActions';
@@ -198,6 +199,11 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
     return [`第 ${props.episode.index} 集`, total ? `共 ${total} 集` : '', ...(drama.tags ?? [])]
       .filter(Boolean)
       .join(' · ');
+  };
+  /** The TV title already names the episode, so this line carries only the rest. */
+  const episodeTotal = () => {
+    const total = props.drama.episode_count ?? props.drama.episodes?.length;
+    return total ? `共 ${total} 集` : '';
   };
   const session = progressSession((time, total, finished) => {
     void props.store.save(playingDrama, playingEpisode, time, total, finished);
@@ -603,7 +609,10 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
   return (
     <View testID="player" class={tv ? 'flex-1 bg-cinema' : 'flex-1 bg-cinema'}>
       <If when={!tv && !fullScreen()}>
-        <View class="items-start" style={{ paddingHorizontal: 40, paddingTop: 16 }}>
+        <View
+          class="items-start"
+          style={{ paddingHorizontal: space('2xl'), paddingTop: space('md') }}
+        >
           <BackButton
             testID="player-back"
             tone="cinema"
@@ -618,7 +627,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           paddingHorizontal: tv || fullScreen() ? 0 : 40,
           paddingTop: tv || fullScreen() ? 0 : 4,
           paddingBottom: tv || fullScreen() ? 0 : 24,
-          gap: 24,
+          gap: space('lg'),
         }}
       >
         <Scroll
@@ -626,7 +635,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
           class="flex-1 min-h-0 min-w-0"
           contentStyle={{
             width: '100%',
-            gap: 20,
+            gap: space('lg'),
             flexGrow: 1,
           }}
         >
@@ -849,10 +858,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       <CinemaText variant="title">
                         {props.drama.title} · 第 {props.episode.index} 集
                       </CinemaText>
-                      <CinemaText>
-                        第 {props.episode.index} 集 / 共{' '}
-                        {props.drama.episode_count ?? props.drama.episodes?.length ?? 0} 集
-                      </CinemaText>
+                      <CinemaText>{episodeTotal()}</CinemaText>
                     </View>
                     <BackButton
                       testID="player-controls-back"
@@ -1018,7 +1024,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
               </CinemaControls>
             </View>
             <If when={!tv && !fullScreen()}>
-              <View style={{ paddingTop: 16, gap: 12 }}>
+              <View style={{ paddingTop: space('md'), gap: space('sm') }}>
                 <If when={!tv}>
                   <View
                     class="gap-1"

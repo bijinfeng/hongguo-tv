@@ -50,6 +50,7 @@ export function Switch(props: SwitchProps) {
         <Text
           style={{
             fontSize: size().fontSize,
+            lineHeight: size().lineHeight,
             fontWeight: weight.regular(),
             color: token(props.disabled ? 'muted-foreground' : 'foreground'),
           }}

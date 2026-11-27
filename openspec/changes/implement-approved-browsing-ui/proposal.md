@@ -31,4 +31,4 @@ Web／桌面与 TV 的浏览器原型已由用户确定，但生产 NSH 仍是�
 - 主要涉及 `packages/ui`、`packages/app`、`packages/app/test` 和三端薄入口；legacy 脚本复用验收宿主 `apps/harness`，不再保留根级 demo 入口。
 - `packages/core-client` 保持现有 HTTP 协议；仅在实际装配需要时增加最小端型参数，不预建原生传输框架。
 - 复用 NSH 与现有工具，不引入 React、Vite、DOM 或 npm UI。Rust DTO／数据库无预期变化；若实施发现必须改变契约，应先修订范围并执行生成与漂移检查。
-- 生产设计规范按实现批次更新，原型与验证记录保留各自边界。UI 验收需真实 Web／桌面宿主及 Android TV 模拟器；物理电视硬解与正式发行另行验收。
+- 生产设计规范按实现批次更新，原型与验证记录保留各自边界。UI 验收需真实 macOS 桌面宿主及 Android TV 模拟器；物理电视硬解与正式发行按平台限制另行记录。

@@ -1,5 +1,5 @@
 import { Image, Text, View, resource, signal, effect, lifecycle, type ViewRef } from 'nsh';
-import { BackButton, Notice, UiText } from '@hongguo/ui';
+import { BackButton, Notice, UiText, space } from '@hongguo/ui';
 import { captureRequest, type ActorWorksResult } from '@hongguo/core-client';
 import type { Store } from '../store';
 import { PosterPage } from './PosterPage';
@@ -76,8 +76,8 @@ export function Actor(props: { store: Store; actorId: string; title: string; act
       selected={selected()}
       onNavigate={props.store.noteFocusIntent}
       focusGuard={props.store.focusGuard}
-      frame={{ top: 16, gap: 28 }}
-      tvFrame={{ top: 6, gap: 14 }}
+      frame={{ top: space('md'), gap: space('xl') }}
+      tvFrame={{ top: space('xxs'), gap: space('md') }}
       caption={(drama) => (drama.episode_count ? `${drama.episode_count} 集` : undefined)}
       onOpen={(drama, restore) => {
         selected.set(drama.series_id);

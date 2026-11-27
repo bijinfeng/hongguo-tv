@@ -183,7 +183,27 @@ export function registerFollowingTests(target: 'desktop' | 'tv', entry: string) 
     ).toBe('已完结 · 每周三更新 · 上次看到第 4 集 · 已看到最新集');
   });
   if (target === 'tv')
+    test('follow entry focus lands on the first row action, not the refresh utility', async () => {
+      // A remote's first confirm states intent. The test API cannot read focus directly, so this
+      // presses confirm on entry and checks the effect: opening the first row's detail, not a
+      // re-read. Before the fix the primary was 刷新, so confirm spent the intent on a refresh.
+      const f = fixture();
+      const app = await start(f);
+      await app.waitFor('id:following-open-123');
+      await app.wait(120);
+      const readsBefore = f.reads();
+      await app.keyboard.press('enter');
+      await app.wait(200);
+      // The first row's own action opened its detail, and no re-read was spent instead.
+      expect(app.shows('id:detail-scroll')).toBe(true);
+      expect(f.reads()).toBe(readsBefore);
+      app.dispose();
+    });
+  if (target === 'tv')
     test('slow follow entry restores its enabled primary after loading without stealing newer navigation', async () => {
+      // The primary is the first row's own action, so a restored entry opens that row, and a user
+      // who navigated away is not pulled back into it. Both invariants are asserted by effect: the
+      // test API cannot read focus, and pressing confirm is what a remote does with it.
       for (const moved of [false, true]) {
         const f = fixture();
         f.delayRead(1200);
@@ -194,8 +214,12 @@ export function registerFollowingTests(target: 'desktop' | 'tv', entry: string) 
         await app.wait(1500);
         await app.keyboard.press('enter');
         await app.wait(80);
-        expect(f.reads()).toBe(moved ? 1 : 2);
+        // Not moved: confirm opened the first row's detail, and nothing was re-read.
+        // Moved: the app stayed where the user went, with no write and no re-read.
+        expect(app.shows('id:detail-scroll')).toBe(!moved);
+        expect(f.reads()).toBe(1);
         expect(f.writes).toEqual([]);
+        app.dispose();
       }
     });
   test('guest follow entrance uses the existing account flow without reads or automatic writes', async () => {

@@ -8,29 +8,80 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 ## Overview
 
-视觉方向为“红果官网式观看空间”：深色与白色内容区都以封面、剧名、明确操作和连续观看建立层级；黑／白表面、炭灰层级和红果橙主动作由语义 token 表达，系统字体、平面表面与稳定几何保持跨端一致。减少装饰、重复副标题和工程说明。
+视觉方向为“红果官网式观看空间”：深色与白色内容区都以封面、剧名、明确操作和连续观看建立层级；黑／白表面、炭灰层级和红果橙主动作由语义 token 表达，系统字体、平面表面与稳定几何保持稳定。减少装饰、重复副标题和工程说明。
 
-适用桌面与 Android TV。桌面用键鼠布局，TV 适配遥控与观看距离；无头浏览器验收宿主渲染桌面端型，不是独立产品。明确使用 `desktop`／`tv` 端型，不以 Android OS 推断。产品不增加手机或窄窗布局。
+**两端共享语义，不共享色值。** 同一角色在两端含义相同（`accent` 永远是「选中」、`ring` 永远是「焦点」），但值可以不同，因为观看条件不同：桌面在明亮的近距离环境，TV 在暗室的 2–3 米外。差异必须逐项有理由且只到必要程度——`ring` 改白是因为橙色轮廓在暗室远距离辨识不足，`primary` 提亮是因为大屏低亮度下橙色发暗。没有这类理由的角色保持两端同值；「TV 顺手调一下」不是理由。
+
+适用桌面与 Android TV。桌面用键鼠布局，TV 适配遥控与观看距离；验收宿主渲染桌面端型，不是独立产品。明确使用 `desktop`／`tv` 端型，不以 Android OS 推断。产品不增加手机或窄窗布局。
 
 基础组件只接收 `size`，不读端型；`sm`／`md`／`lg` 只描述几何，TV 的确认编辑、行焦点、影院控制层等行为用显式 props。端型到主题、尺寸和行为的映射只在 app 根发生。
 
 ### 来源与维护
 
-| 内容                 | 唯一职责与入口                                                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 产品范围与真实能力   | [PRODUCT.md](PRODUCT.md)；固定上游只作行为证据，不因原型样例新增能力                                                                                         |
-| 公共视觉与交互规则   | 本文件；任务相关的原型、组件交接补充组合细节，不能覆盖公共规则                                                                                               |
-| 运行时主题           | [theme.json](packages/ui/theme.json)（桌面）与 [theme.tv.json](packages/ui/theme.tv.json)（TV），由本文件经 `pnpm design:codegen` 生成；组件不写裸色、裸数值 |
-| Token 名称、值与用法 | 本文件各节的 YAML 块；YAML 是唯一编辑源，运行时以生成的两份 theme 为准                                                                                       |
-| 普通控件档位／文字   | [foundation.ts](packages/ui/src/foundation.ts)、[typography.ts](packages/ui/src/typography.ts)、[display.tsx](packages/ui/src/display.tsx)                   |
-| 实际公共 API         | [UI 包规范](packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                     |
-| 已验证行为与限制     | [VALIDATION.md](VALIDATION.md)、[组件实施验收](docs/design/component-implementation.md)                                                                      |
+| 内容                 | 唯一职责与入口                                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 产品范围与真实能力   | [PRODUCT.md](./docs/PRODUCT.md)；固定上游只作行为证据，不因原型样例新增能力                                                                                      |
+| 公共视觉与交互规则   | 本文件；任务相关的组件交接补充组合细节，不能覆盖公共规则                                                                                                         |
+| 运行时主题           | [theme.json](./packages/ui/theme.json)（桌面）与 [theme.tv.json](./packages/ui/theme.tv.json)（TV），由本文件经 `pnpm design:codegen` 生成；组件不写裸色、裸数值 |
+| Token 名称、值与用法 | 本文件各节的 YAML 块；YAML 是唯一编辑源，运行时以生成的两份 theme 为准                                                                                           |
+| 普通控件档位／文字   | [foundation.ts](./packages/ui/src/foundation.ts)、[typography.ts](./packages/ui/src/typography.ts)、[display.tsx](./packages/ui/src/display.tsx)                 |
+| 实际公共 API         | [UI 包规范](./packages/ui/README.md)及包根导出；NSH API 以各端生成类型为准                                                                                       |
+| 已验证行为与限制     | [VALIDATION.md](./docs/VALIDATION.md)、[组件实施验收](./docs/design/component-implementation.md)                                                                 |
 
 规则有明确所有者，示例使用真实 API，修复在共享源生效。规范与实现不一致时先明确差异，不把实现偶然值或旧快照默认为新规则。机器可读值只保留在 YAML 块。
 
+### 没有第二份渲染
+
+视觉真相只有两处：本文件（契约）与产品代码（渲染）。不维护与产品并行的 HTML/CSS 设计稿。原因是可验证的：并行实现有自己的变量表，同名 token 会被写进不同的值，整条间距阶梯可以悄悄错开一档，而任何一份文档都不会因此变红。要看界面就打开产品——`pnpm dev --target …`、`pnpm ui:host:tv`／`ui:host:desktop` 的组件板，或 `pnpm visual:tv` 的锁定矩阵。
+
+构图意图（哪几屏、什么次序、一块内容占多少视觉重量）写进本文件和对应功能文档，不写进第二套 CSS。token 拥有的尺寸由 [layout-contract 测试](./packages/app/test/layout-contract.tsx)在真实应用上断言，期望值从 token 推导，因此改 token 会同时移动实现与断言；没有 token 拥有的构图只靠宿主观察记录，不伪装成自动化结论。
+
+### 改界面的做法
+
+这一节是给后续 agent 的操作顺序。跳过任一步都会把「看起来对了」当成「对上了」。
+
+**1. 先读，再改。** 本节的 token 与档位 → 相关功能文档 → 目标页面的当前源码。不要从截图、记忆或旧稿推断当前值。
+
+**2. 确定这条视觉事实归谁。**
+
+| 要改的东西                       | 改哪儿                                           | 不改哪儿                     |
+| -------------------------------- | ------------------------------------------------ | ---------------------------- |
+| 颜色、字号、间距、圆角、控件档位 | 本文件 YAML → `pnpm design:codegen` → 两份 theme | 组件里的裸值、页面的内联数值 |
+| 控件内部的边界、焦点、状态外观   | `packages/ui/src` 的组件与 foundation            | 页面 CSS／内联样式           |
+| 哪几屏、什么次序、内容占多少分量 | `packages/app/src` 的页面与 shell                | 主题 token                   |
+| 真实能力有没有、显示什么数据     | PRODUCT 与功能台账                               | 视觉文档                     |
+
+一个值同时出现在两处，就还没定下来。先合并到唯一所有者，再动。
+
+**3. 用真实入口看结果。** 分工固定：**开发与设计阶段用 web 端**，**验收时才用真实端**（`pnpm dev --target desktop|tv`、`ui:host:tv`／`ui:host:desktop`）。
+
+这样分工是因为真实端常不具备开发条件——桌面 native 数据受 NSH `lifecycle()` 缺陷影响、`ui:host:desktop` 要 macOS 宿主、`apps/tv` 的 Rust crate 根本不能编到 wasm（tokio 的 mio 没有 wasm 目标）——把迭代绑在真实端会让视觉判断几乎停滞。harness 跑的是同一份产品代码，几何与 token 完全一致，足以支撑设计与开发；它不证明宿主行为，所以验收仍须回到真实端。
+
+两端在 harness 上的入口：`apps/harness/App.tsx`（桌面端型）与 `apps/harness/TvApp.tsx`（TV 端型）。**TV 入口必须同时切两样**——`target="tv"` 决定 `TvShell` 与遥控交互模型，`setTheme(theme.tv.json)` 决定 TV 密度；只设其中一样得到的不是会发货的界面（manifest 只能携带一个主题，所以 TV 主题由 `setTheme` 在首帧前换上）。截图用 `nsh test <file> --target web`，需要系统装有 `clang` 与 `llvm-ar`。
+
+不要凭代码推断渲染结果：token 写 40px，实际渲染可能是 43px，差额来自文字行高与边界。
+
+**4. 让闸门回答「有没有漂移」。** `pnpm test` 里的 layout-contract 用例会读真实应用的 `layout()` 与 `viewStyle()`。它失败时看的是差在哪个元素、差多少，不是「视觉回归了」这种笼统结论。要加新断言，期望值从 `token()` 与 `textLineHeight()` 推导，不写死数字——写死的数字会在下一次合法的 token 调整时变成假警报。
+
+**5. 分开记录证据。** 通过 `pnpm test` ≠ 在宿主看过 ≠ 真机通过。三者写在不同行，注明数据来源、平台、源码与限制。缺真实流程证据时写「已实现待真实验收」。
+
+### 不这么做会怎样
+
+以下都是本仓库实际发生过的，不是假设：
+
+| 做法                                     | 后果                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------- |
+| 另建一套 HTML/CSS 稿                     | 自建 43 个变量名，24 个与产品同名不同值；`--space-*` 整条阶梯错位一档 |
+| 稿用页面属性区分端型，而组件读的是另一套 | TV 档位从未生效，TV 页面一直按桌面控件密度渲染                        |
+| 深色手工调、浅色照着感觉编               | 深色 29 个 token 对齐，浅色 13 个全不匹配                             |
+| 生成脚本只服务一处、不进 verify          | 生成物缺 46 个 token，无人发现                                        |
+| 拿 token 的声明值当渲染值                | 漏掉 40px 声明渲染成 43px 这类差额                                    |
+
+判据很简单：**同一条视觉事实如果存在两份，其中一份就会是错的，而且不会有任何东西变红。**
+
 ### 真实能力边界
 
-- 安静观看：排除评论、回复、弹幕、剧评、点赞及其入口／设置；保留收藏、追更和预约。
+- 安静观看：排除评论、回复、弹幕、剧评、点赞及其入口／设置；保留收藏、追更和预约。支持与打赏、应用推荐同样排除，不设入口、占位或空态说明。
 - 评分、热度、演员、相关推荐、榜单和日期只显示实际数据。第三方榜单快照仍按真实字段单独迁移。
 - 待上线季、预约 ID、列表位置、未知季号不能当作可播依据。收藏、追更、预约、历史和实际累计观看统计分别表达。
 - 清晰度、全屏、解码、预取和更新按真实宿主能力提供；不虚构离线剧集队列、任意缓存容量或统一 1080P。
@@ -38,7 +89,30 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 
 ## Colors
 
-页面和控件只消费语义 token，裸色只定义在生成的 theme 中。浅色、深色分别配对，影院语境独立于页面外观。YAML 中不带后缀的是浅色值，`-dark` 是深色覆盖；组件引用基础名，深色模式按同名 `-dark` 替换。深色页面使用 `background`／`card`／`popover` 的黑到炭灰层级，浅色页面使用白色页面与浅灰辅助表面。
+页面和控件只消费语义 token，裸色只定义在生成的 theme 中。浅色、深色分别配对，影院语境独立于页面外观。YAML 中不带后缀的是浅色值，`-dark` 是深色覆盖；组件引用基础名，深色模式按同名 `-dark` 替换。
+
+### 两端是两套主题，不是一套主题的覆盖
+
+桌面与 TV 共享**同一套角色名和同一套使用规则**，但色值是两套独立标定，因为观看条件不同：桌面在 60–100cm 的明亮环境，纯黑背景不刺眼且能压住周围界面；TV 在 2–3m 的暗室，纯黑会让画面与边框界线消失，且大屏低亮度下纯黑大面积会显得脏。因此 TV 抬高了整个表面阶梯（`background` 到 `#141619`），并把品牌色提亮到 `#ff874d`、焦点改为白色——远距离和低亮度下，橙色轮廓的辨识度不足。
+
+`theme.tv.json` 用 `colors-tv` 覆盖组表达这套值，但它是**完整标定**而非个别补丁：10 个核心角色全部与桌面不同，逐项列在下方对照表里。不要把它读成「TV 只改了这几个」。
+
+| 角色         | 桌面深色  | TV 深色   | 为什么不同                                        |
+| ------------ | --------- | --------- | ------------------------------------------------- |
+| `background` | `#000000` | `#141619` | 暗室大屏用纯黑会让画面与边框界线消失              |
+| `card`       | `#101111` | `#212428` | 跟随抬高后的页面基底，保持同一级差                |
+| `popover`    | `#212323` | `#212428` | TV 上浮层与卡片同表面，靠投影而非色差分           |
+| `muted`      | `#1a1c1c` | `#2c3035` | 同上级差比例                                      |
+| `border`     | `#2b2d2d` | `#3b4048` | 远距离下细线需要更高对比才可见                    |
+| `input`      | `#3f4242` | `#525861` | 同上                                              |
+| `ring`       | `#ff9233` | `#ffffff` | 遥控焦点轮廓用白色，橙色在暗室远距离辨识不足      |
+| `primary`    | `#fa7705` | `#ff874d` | 大屏低亮度下提高明度，避免橙色发暗                |
+| `accent`     | `#3a2415` | `#5a3a22` | 同为品牌暖褐，TV 提亮到在 `card` 上可辨（1.53:1） |
+| `foreground` | `#f5f5f5` | `#f4f4f5` | 近乎相同；仅 TV 略降明度以减屏幕溢出感            |
+
+两端共享的部分：角色清单、配对规则、对比度门槛、影院语境、以及 `destructive`／`skeleton-*` 的语义。
+
+### 角色
 
 | 角色                                          | 用途                                                         |
 | --------------------------------------------- | ------------------------------------------------------------ |
@@ -56,11 +130,77 @@ description: 内容优先、清晰克制的多端观看界面；桌面与 Androi
 | `skeleton`／`skeleton-surface`                | 骨架块与承载骨架的表面                                       |
 | `cinema-*`                                    | 影院背景、文字、控制层、轨道、焦点和透明渐变配对             |
 
-`primary-strong` 只用于复选、部分选中和开关这类需要与浅色标记成对的小面积实底；`accent` 只承担选中和轻量强调。组件不直接写品牌色，具体值只存在于 theme。组件稿的 `components/assets/theme.css` 由 theme 生成，运行 `node design/prototype/visual-redesign-real/components/sync-theme.mjs` 同步；不手改生成 CSS，不在页面另补颜色。
+`primary-strong` 只用于复选、部分选中和开关这类需要与浅色标记成对的小面积实底；`accent` 只承担选中和轻量强调。组件不直接写品牌色，具体值只存在于 theme。
 
 普通文字及占位文字至少 4.5:1；大文字至少 3:1。识别控件和状态所必需的边界、图标和焦点至少与相邻颜色达到 3:1。选中实底与它的勾选标记、开关轨道与拇指同样按 3:1 成对量测，不用过浅的实底换取白色标记。装饰分隔线不套用控件边界要求，禁用态保留可理解文案。依据：[WCAG 非文本对比度](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)。
 
 控件边界（`input`）在浅色取与分隔线同族的浅灰，在深色比分隔线高一档，让输入框、下拉、复选和按钮读作同一种线；可操作识别由表面、文字、形状和独立的 3:1 焦点环承担，边界不单独承担识别。禁用控件边界与内容分隔线使用 `border`；进入 `muted` 表面的控件按禁用处理。影院滑杆和焦点使用影院角色另验。对比度计算验证 token 配对，真实宿主还要观察细线、缩放、焦点裁切和状态组合。
+
+### 页面里不写裸色
+
+渐变、阴影和半透明遮罩同样只是配色，必须走 token。唯一例外是带实际图片内容的艺术效果（如海报环境光），但它的色相仍须取自品牌色或语义角色，不能另立一套颜色：现存的 `HomeHero`／`RankingsHero` 渐变与影院遮罩属于这类例外，改动它们需要同步本节。
+
+```yaml
+colors:
+  background: '#ffffff'
+  background-dark: '#000000'
+  foreground: '#171717'
+  foreground-dark: '#f5f5f5'
+  card: '#f9f9f9'
+  card-dark: '#101111'
+  card-foreground: '#202020'
+  card-foreground-dark: '#f5f5f5'
+  popover: '#ffffff'
+  popover-dark: '#212323'
+  popover-foreground: '#202020'
+  popover-foreground-dark: '#f5f5f5'
+  primary: '#fa7705'
+  primary-dark: '#fa7705'
+  primary-foreground: '#111111'
+  primary-foreground-dark: '#111111'
+  primary-strong: '#ea6400'
+  primary-strong-dark: '#ea6400'
+  primary-strong-foreground: '#ffffff'
+  primary-strong-foreground-dark: '#ffffff'
+  muted: '#f2f3f3'
+  muted-dark: '#1a1c1c'
+  muted-foreground: '#686868'
+  muted-foreground-dark: '#a0a0a0'
+  skeleton: '#e9eaea'
+  skeleton-dark: '#232525'
+  skeleton-surface: '#f4f5f5'
+  skeleton-surface-dark: '#151616'
+  border: '#e8e9e9'
+  border-dark: '#2b2d2d'
+  input: '#c4c6c6'
+  input-dark: '#3f4242'
+  ring: '#c85e00'
+  ring-dark: '#ff9233'
+  accent: '#fff1e8'
+  accent-dark: '#3a2415'
+  accent-foreground: '#a34b00'
+  accent-foreground-dark: '#ffb36d'
+  destructive: '#c93727'
+  destructive-dark: '#ff6b57'
+  cinema: '#000000'
+  cinema-dark: '#000000'
+  cinema-foreground: '#f7f7f7'
+  cinema-foreground-dark: '#f5f5f5'
+  cinema-muted: '#9a9a9a'
+  cinema-muted-dark: '#9a9a9a'
+  cinema-control: '#212323'
+  cinema-control-dark: '#212323'
+  cinema-hover: '#2b2d2d'
+  cinema-hover-dark: '#2b2d2d'
+  cinema-active: '#3a3c3c'
+  cinema-active-dark: '#3a3c3c'
+  cinema-track: '#676b6b'
+  cinema-track-dark: '#676b6b'
+  cinema-focus: '#ff9233'
+  cinema-focus-dark: '#ff9233'
+  cinema-transparent: '#00000000'
+  cinema-transparent-dark: '#00000000'
+```
 
 ```yaml
 colors-tv:
@@ -78,110 +218,57 @@ colors-tv:
   input-dark: '#525861'
   primary-dark: '#ff874d'
   primary-foreground-dark: '#24130b'
-  accent-dark: '#3c4148'
-  accent-foreground-dark: '#ffffff'
+  accent-dark: '#5a3a22'
+  accent-foreground-dark: '#ffb36d'
   ring: '#1c2026'
   ring-dark: '#ffffff'
   destructive-dark: '#ffafa5'
 ```
 
-`colors-tv` is an optional TV-only override. Keys must already exist in `colors`; omitted roles inherit the shared color. The generator rejects unknown override keys and keeps desktop/Web colors unchanged.
-
-```yaml
-colors:
-  background: '#ffffff'
-  background-dark: '#000000'
-  foreground: '#171717'
-  foreground-dark: '#f5f5f5'
-  card: '#ffffff'
-  card-dark: '#131414'
-  card-foreground: '#202020'
-  card-foreground-dark: '#f5f5f5'
-  popover: '#ffffff'
-  popover-dark: '#1d1e1e'
-  popover-foreground: '#202020'
-  popover-foreground-dark: '#f5f5f5'
-  primary: '#fa7705'
-  primary-dark: '#fa7705'
-  primary-foreground: '#111111'
-  primary-foreground-dark: '#111111'
-  primary-strong: '#ea6400'
-  primary-strong-dark: '#ea6400'
-  primary-strong-foreground: '#ffffff'
-  primary-strong-foreground-dark: '#ffffff'
-  muted: '#f7f7f7'
-  muted-dark: '#292a2a'
-  muted-foreground: '#686868'
-  muted-foreground-dark: '#a0a0a0'
-  skeleton: '#e8e8e8'
-  skeleton-dark: '#2d2f2f'
-  skeleton-surface: '#f3f3f3'
-  skeleton-surface-dark: '#1c1d1d'
-  border: '#e5e5e5'
-  border-dark: '#2a2c2c'
-  input: '#d9d9d9'
-  input-dark: '#424242'
-  ring: '#c85e00'
-  ring-dark: '#ff9233'
-  accent: '#fff1e8'
-  accent-dark: '#3a2415'
-  accent-foreground: '#a34b00'
-  accent-foreground-dark: '#ffb36d'
-  destructive: '#c93727'
-  destructive-dark: '#ff6b57'
-  cinema: '#000000'
-  cinema-dark: '#000000'
-  cinema-foreground: '#f7f7f7'
-  cinema-foreground-dark: '#f5f5f5'
-  cinema-muted: '#9a9a9a'
-  cinema-muted-dark: '#9a9a9a'
-  cinema-control: '#1d1e1e'
-  cinema-control-dark: '#1d1e1e'
-  cinema-hover: '#292a2a'
-  cinema-hover-dark: '#292a2a'
-  cinema-active: '#3a3c3c'
-  cinema-active-dark: '#3a3c3c'
-  cinema-track: '#676b6b'
-  cinema-track-dark: '#676b6b'
-  cinema-focus: '#ff9233'
-  cinema-focus-dark: '#ff9233'
-  cinema-transparent: '#00000000'
-  cinema-transparent-dark: '#00000000'
-```
+The generator rejects keys in `colors-tv` that do not already exist in `colors`, and leaves the desktop theme untouched. A role omitted here inherits the shared value — which is why only the ten roles that genuinely differ appear above.
 
 ## Typography
 
 使用宿主系统 UI 字体。文字、图标、间距和目标尺寸由同一档位协调，不为单个页面复制字号。TV 使用 `theme.tv.json` 给出的 dp 值，与桌面同量级。
 
-| `UiText` 角色 | 桌面         | TV           | 字重 | 行高 | 用途                          |
-| ------------- | ------------ | ------------ | ---- | ---- | ----------------------------- |
-| display       | 44           | 28           | 400  | 1.4  | 首页／精选主标题；字距 0.06em |
-| page          | 32           | 22           | 600  | 1.3  | 页面标题                      |
-| section       | 24           | 18           | 600  | 1.5  | 栏目标题                      |
-| title         | 20           | 18           | 600  | 1.5  | 小节／面板标题                |
-| content-title | 18           | 14           | 600  | 1.5  | 海报与续播卡剧名              |
-| body          | 16           | 14           | 400  | 1.5  | 正文                          |
-| meta          | 14           | 12           | 400  | 1.5  | 元信息、说明、错误            |
-| numeric       | 16，等宽数字 | 14，等宽数字 | 400  | 1.5  | 时间、进度、榜位              |
+| `UiText` 角色 | 桌面         | TV           | 字重 | 行高 | 用途                     |
+| ------------- | ------------ | ------------ | ---- | ---- | ------------------------ |
+| display       | 44           | 28           | 500  | 1.15 | 精选剧名；字距 −0.01em   |
+| page          | 32           | 22           | 600  | 1.3  | 页面标题                 |
+| section       | 24           | 18           | 600  | 1.5  | 栏目标题                 |
+| title         | 20           | 18           | 600  | 1.5  | 小节／面板标题           |
+| content-title | 18           | 14           | 600  | 1.5  | 海报与续播卡剧名         |
+| body          | 16           | 14           | 400  | 1.6  | 正文                     |
+| meta          | 14           | 12           | 400  | 1.5  | 元信息、说明、错误       |
+| caption       | 12           | 12           | 400  | 1.4  | 角标、密集表格、辅助标注 |
+| numeric       | 16，等宽数字 | 14，等宽数字 | 400  | 1.5  | 时间、进度、榜位         |
 
-`title` 用于小节／面板标题，`content-title` 用于海报与续播卡的剧名；内容标题不因字号自动成为页面标题层级。时间、进度和榜位使用等宽数字。长剧名采用明确限行或换行；完整内容需要阅读时提供展开，不用无意义副标题补充。系统字号放大时允许容器增长，不固定高度裁掉文字。
+大字号不用正向字距：衬线的 +0.06em 搬到系统无衬线上会散开，display 因此取 −0.01em、紧凑行高 1.15。display 用 500 而非 400，否则 44/400 在视觉上比它上面的 32/600 更轻，视线会先落在问候语而不是精选内容。
 
-控件文字不另造句级角色：字号由 `controlMetrics(size).fontSize` 取 14／16／18，字重按 Button 的 variant／selected／current 决定，行高 1.5；不要用 `text-sm`、`text-xs` 或 `text-xl` 绕过。
+`title` 用于小节／面板标题，`content-title` 用于海报与续播卡的剧名；内容标题不因字号自动成为页面标题层级。低于 `meta` 的文字走 `caption`，不再就地写 12／13。时间、进度和榜位使用等宽数字。长剧名采用明确限行或换行；完整内容需要阅读时提供展开，不用无意义副标题补充。系统字号放大时允许容器增长，不固定高度裁掉文字。
+
+### 字号只有一个入口
+
+页面文字走 `UiText role`，控件文字走 `controlMetrics(size).fontSize`。这两条之外没有第三条路：不要写 `fontSize: 14`，不要用 `text-sm`／`text-lg`／`text-[13px]`。原因不是洁癖——`role` 和 `controlMetrics` 会在桌面与 TV 两套主题间自动换值，写死的数字不会，于是同一个页面在两端长得不一样。
+
+实测现状：`packages/ui` 里有 46 处 `textSize()` 调用，而 `packages/app` 里是 0 处；app 侧目前全靠 `UiText role` 和 95 处 `role=` 属性，一旦有人绕过就会写裸值。已存在的越界点（`SearchForm` 的 `text-sm`、`SeasonEpisodes` 的 `text-lg`、若干 `fontSize: 12/14`）属于待收敛项，不在本规范追认。
+
+控件文字不另造句级角色：字号由 `controlMetrics(size).fontSize` 取 14／16／22（见下方档位表；TV 三档同为 14），字重按 Button 的 variant／selected／current 决定，行高 1.5；不要用 `text-sm`、`text-xs` 或 `text-xl` 绕过。
 
 ```yaml
 typography:
   display-desktop:
     fontFamily: system-ui
     fontSize: 44px
-    fontWeight: 400
-    lineHeight: 1.4
-    letterSpacing: 0.06em
+    fontWeight: 500
+    lineHeight: 1.15
+    letterSpacing: -0.01em
   display-tv:
     fontFamily: system-ui
     fontSize: 28px
-    fontWeight: 400
-    lineHeight: 1.4
-    letterSpacing: 0.06em
+    fontWeight: 500
+    lineHeight: 1.15
+    letterSpacing: -0.01em
   page-desktop:
     fontFamily: system-ui
     fontSize: 32px
@@ -226,12 +313,12 @@ typography:
     fontFamily: system-ui
     fontSize: 16px
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.6
   body-tv:
     fontFamily: system-ui
     fontSize: 14px
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.6
   meta-desktop:
     fontFamily: system-ui
     fontSize: 14px
@@ -242,6 +329,16 @@ typography:
     fontSize: 12px
     fontWeight: 400
     lineHeight: 1.5
+  caption-desktop:
+    fontFamily: system-ui
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 1.4
+  caption-tv:
+    fontFamily: system-ui
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 1.4
   numeric-desktop:
     fontFamily: system-ui
     fontSize: 16px
@@ -264,10 +361,10 @@ typography:
 
 | 组合       | 沿用的布局约束                                                                                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| 桌面外壳   | 176 侧栏、86 顶栏、360 搜索区、内容最大宽 1660                                                                   |
+| 桌面外壳   | 176 侧栏、48 自绘标题栏（系统标题栏隐藏）、360 搜索区、内容最大宽 1660                                           |
 | 桌面内容   | 12 列网格；继续观看三列；片库为流体海报网格（最小卡宽 180、2–8 列；1180 为 4 列、1440 为 5 列）；详情最大宽 1000 |
 | 详情选集   | 桌面每段 24 集／八列；TV 每段 24 集，列数上限按文字档位为10／8／6，局部空间不足继续减列；播放器侧面板独立四列    |
-| 桌面播放器 | 整页暗色观看带；画面高 `clamp(320, 视口高−428, 660)`、选集栏 316、间距 24；画面下方独立播控带                    |
+| 桌面播放器 | 整页暗色观看带；画面高 `clamp(320, 视口高−390, 660)`、选集栏 316、间距 24；画面下方独立播控带                    |
 | TV 外壳    | 标准横向36／纵向24，保守48／27，与系统insets取较大值后另留6点焦点余量；顶栏最小52，随文字和换行增高              |
 | TV 播放器  | 可用舞台等比容纳竖片；方向／确认／返回操作控制层和选集                                                           |
 
@@ -311,13 +408,50 @@ spacing:
 
 这些是选择依据，不是逐项增加公共 token。先复用共享组合；页面只决定排列与区域关系。PosterCard 图文间距 12／14、影院左内距 44 等既有配方例外由所属组件维护，不能扩散为页面自由值。
 
+### 间距档位是唯一刻度
+
+数值只有两处来源：`space(name)` 读档位，或组件自己的布局常量。页面里不写 `gap: 12`、`padding: 20`——即使数值恰好等于某档，也要写成 `space('sm')`。理由和字号一样：档位在两端会换值，数字不会。
+
+实测现状（2026-11-27 复核）：`packages/app` 剩 9 处直接写在 `style` 里的间距，裸 `fontSize` 与 Tailwind 字号类已归零，裸 `borderRadius` 仅余 `RadarTable` 的 0（表格行必须直角）。
+
+那 9 处全部是**组件布局常量**，不是遗留违规：`Sidebar` 的 `geometry`、`RankingsHero` 按窗口高度分的 16／24／36、`HomeHero` 与 `desktopHero()` 配套的 36，以及三处 `padding: 0`。规范允许这类值，因为它们描述的是某个组件自己的几何，而不是页面随手挑的间距。
+
+收敛完成的记录：2026-11-26 的基线是 84 处，分三批降到 9。过程中修掉两类真问题——三处 `target === 'tv' ? { fontSize: 12 }` 的分支改走 `textSize('meta')`（原来桌面 14、TV 硬压到 12，而 `meta` 角色两端本来就是 14／12）；`CatalogSection` 手写的 `minHeight: 36` + `fontSize: 14` 比共享 `Select` 高 4 点，改成调用 `selectItemStyle(controlMetrics('sm'))`，并把该配方从 `Select` 内部提取成导出函数，两处不再各写一份。
+
+`textSize` 此前没有从 `@hongguo/ui` 导出，页面要按角色取字号时无路可走，只能写裸数字——这也是上面那些分支的成因之一，现已导出。
+
+TV 的 `spacing-tv` 目前与共享档位同值（4/8/12/16/24/32/40/48），保留该覆盖组是为了让 TV 以后能独立调节而不改桌面；在它真的分叉之前，不要假设两端间距不同。
+
 ### 端型边界
 
-几何值只有两个来源：theme 里的 `--space-*`、`--radius-*`、`--text-*`、`--control-*`，以及组件自己的布局常量。组件不读端型，也不做运行时缩放；换端只换主题文件。
+几何值只有两个来源：theme 里的 `--space-*`、`--radius-*`、`--text-*`、`--control-*`，以及组件自己的布局常量。`packages/ui/src` 不出现端型判断；换端只换主题文件。
+
+端型判断允许出现在 `packages/app`，但只用于**结构与交互**，不用于几何：
+
+| 允许         | 例子                                                 |
+| ------------ | ---------------------------------------------------- |
+| 结构差异     | 侧栏 vs 顶部导航；海报网格 vs 横向车道               |
+| 交互差异     | 遥控方向键焦点、`activation="confirm"`、Tooltip 禁用 |
+| 布局常量差异 | 侧栏 176 vs TV 车道高度                              |
+
+| 不允许                                                 | 为什么                                         |
+| ------------------------------------------------------ | ---------------------------------------------- |
+| `target === 'tv' ? 12 : 16` 这类间距／字号／圆角三元式 | 这些已经由主题给出；再判断一次就要维护两份真值 |
+| 组件内部读端型改几何                                   | 换端应只换 `theme.json`／`theme.tv.json`       |
+
+实测现状：`packages/app` 有 186 处 `target === 'tv'` 判断，而 `space()` 只有 61 处调用。这意味着相当一部分端型差异写在 JS 里而不是主题里——它们不会随主题调整而更新，也是「两端越长越不一样」的主要来源。收敛方向：几何类判断逐步换成 token，结构类保留。本规范记录该边界，不要求一次性重写。
 
 ## Elevation & Depth
 
-平面优先：背景、留白与细边界表达层级，不增加装饰投影、发光或玻璃效果。菜单、建议层、Dialog、Sheet 和 Popover 使用统一语义表面与 NSH 承载，模态需要明确遮挡与焦点边界。影院以暗色内容区建立层级，视频保持等比显示，不因弹层重建。
+平面优先，但分层只有**一个机制**：表面色差 + 留白。边框不承担内容分层。
+
+表面按固定阶梯排列：页面（`background`）→ 卡片（`card`）→ 悬停／次要区（`muted`）→ 浮层（`popover`）。桌面每级相差 1.08–1.11，落在 1.05–1.15 内；TV 每级约 1.17，略高于该区间，因为 TV 从纯黑附近起步，同比例需要更大的绝对变化才看得出。浅色主题同样成立：`card` 必须与页面不同，否则 hero、卡片和搜索框会变成白底白框，只剩细线在撑。`popover` 永远在 `muted` 之上，浮层不能比它所覆盖的悬停表面更暗。
+
+TV 是这条阶梯的唯一例外：`card` 与 `popover` 同为 `#212428`，浮层靠 `overlayShadow` 而不是色差分与卡片区分。这是有意的——大屏暗室里把浮层再拉一级色差会显得脏，投影在远处更容易读。桌面严格走色差阶梯。
+
+`border` 只作装饰性分隔（表格行、分组线），亮度低于 `input`；`input` 是控件识别边界，与任何表面至少 1.5:1。内容区之间不用线，用留白和表面差。
+
+浮层与遮挡：菜单、建议层、Dialog、Sheet 和 Popover 使用统一语义表面、共享 `overlayShadow` 两层投影与 NSH 承载，模态需要明确遮挡与焦点边界。投影只给真正浮起的层，平静表面不加投影。影院以暗色内容区建立层级，视频保持等比显示，不因弹层重建。
 
 | `Surface` 变体  | 何时使用                       | 内容配对                                          |
 | --------------- | ------------------------------ | ------------------------------------------------- |
@@ -331,6 +465,8 @@ spacing:
 ## Shapes
 
 普通控件及内容表面的基准圆角为 `xl`（12）；紧凑控件、密集组合和 `Button sm` 使用 `lg`（8）；Badge 与局部小表面使用 `md`（6）；骨架文字行、封面内元素使用 `sm`（4）；头像与滑杆拇指为 `full`。不向页面开放任意圆角覆盖。
+
+大面积内容带（首页 hero、榜单 hero 这类整幅横向区块）取 `lg`，不取 `xl`：355 高、上千宽的面上 6 是一道硬切，12 会让它读成可点的浮层，8 才读作「被切圆的版面」。这条按**元素面积**而不是「卡片／浮层」归类，所以它和海报卡同族，而不和弹层同族。
 
 ```yaml
 rounded-tv:
@@ -354,11 +490,21 @@ rounded:
 | ------------- | ---------------------------------------------------------------- |
 | `radius-sm`   | 骨架文字行、封面内元素、紧凑内部块                               |
 | `radius-md`   | Badge、局部小表面                                                |
-| `radius-lg`   | 紧凑影院控件、Button sm、有限组合                                |
+| `radius-lg`   | 大面积内容带（hero）、紧凑影院控件、Button sm、有限组合          |
 | `radius-xl`   | 控件、Surface、Dialog/Sheet/Popover 的默认圆角（NSH `--radius`） |
 | `radius-full` | 头像、滑杆拇指、进度条胶囊                                       |
 
 边界通常 1 单位，焦点使用独立轮廓；TV 使用自己的主题值。hover、pressed、selected 和 focus 不改变占位。嵌套表面圆角与内距协调，内容裁切服从容器边界，外侧焦点轮廓不得被裁掉。Button 焦点 offset 4、输入焦点 offset 3 暂作组件配方保留。
+
+### 圆角同样只有档位
+
+`radius('sm'|'md'|'lg'|'xl'|'full')`，没有第六个值。
+
+两端共享同一套尺度：`sm` 4、`md` 6、`lg` 8、`xl` 12。`rounded-tv` 目前逐项与共享值相同——保留覆盖组是为了以后能独立调节，不是现在就有差异，不要假设 TV 的 `lg` 与桌面不同。
+
+有差异的是**控件档位自带的圆角**：`control-sm/md/lg-radius` 在桌面是 8／12／12，在 TV 三档统一 6。TV 按钮不随档位改圆角，因为远距离下 8 与 6 读不出差别，统一反而减少噪声；`radius()` 的尺度档位仍按元素面积使用，两端一致。
+
+实测有三处越界：`HomeHero` 的 `borderRadius: 3`、`SearchForm` 与 `ContinueSection` 的 `8`、`RadarTable` 的 `0`。它们分别是骨架内元素、搜索框内层和表格单元格——都有合理的就地理由，但应按「骨架内元素取 `sm`／表头不取圆角」写进所属组件的配方，而不是在页面里写裸数字。本规范把它们记为待收敛项，不追认成新档位。
 
 ## Motion & Micro-interaction
 
@@ -371,7 +517,7 @@ rounded:
 | 播放控制层                           | 共享短透明度过渡；隐藏后不可聚焦，暂停／错误／编辑时保留操作    | 即时显隐         |
 | Spinner／不确定进度                  | 只表示实际等待，不能虚构完成比例                                | 静态可读状态     |
 
-不增加界面音效、装饰循环、海报缩放或逐条错峰动画。每个新流程编码前补状态／动效清单，实际宿主逐项观察；旧批次记录和静态截图不证明逐帧表现。功能级动效清单归属于各功能文档，不在这里复制：发现与播放见[日历](docs/calendar-browsing.md#状态与动效清单)、[系列／季](docs/season-browsing.md#动效清单)、[榜单雷达](docs/radar-snapshots.md#动效清单)、[排行榜](docs/rankings-browsing.md#动效清单)、[详情演员与相关作品](docs/detail-discovery.md#动效清单)、[历史管理](docs/guest-history-management.md#动效清单)、[追更](docs/design/following.md#动效与交互清单)与[预约](docs/design/reservations.md#动效与交互清单)。
+不增加界面音效、装饰循环、海报缩放或逐条错峰动画。每个新流程编码前补状态／动效清单，实际宿主逐项观察；旧批次记录和静态截图不证明逐帧表现。功能级动效清单归属于各功能文档，不在这里复制：发现与播放见[日历](./docs/features/calendar-browsing.md#状态与动效清单)、[系列／季](./docs/features/season-browsing.md#动效清单)、[榜单雷达](./docs/features/radar-snapshots.md#动效清单)、[排行榜](./docs/features/rankings-browsing.md#动效清单)、[详情演员与相关作品](./docs/features/detail-discovery.md#动效清单)、[历史管理](./docs/features/guest-history-management.md#动效清单)、[追更](./docs/features/following.md#动效与交互清单)与[预约](./docs/features/reservations.md#动效与交互清单)。
 
 ## Voice & Content Strategy
 
@@ -397,19 +543,29 @@ rounded:
 
 `packages/ui/src` 不出现端型判断；基础组件只通过 `size` 取得几何。数值来自 app 级主题：桌面（含验收宿主）用 `theme.json`，TV 用 `theme.tv.json`，组件只读 `--space-*`、`--radius-*`、`--text-*`、`--control-*` 这些 token。
 
+**桌面档位**
+
 | 档位 | 高度 | 字号 | 水平／垂直内距 | gap | 圆角 | 图标 |
 | ---- | ---- | ---- | -------------- | --- | ---- | ---- |
 | sm   | 32   | 14   | 12／4          | 6   | 8    | 16   |
 | md   | 40   | 16   | 16／8          | 8   | 12   | 20   |
-| lg   | 60*  | 22*  | 24／12*        | 12  | 12   | 26*  |
+| lg   | 60   | 22   | 24／12         | 12  | 12   | 26   |
+
+**TV 档位**
+
+| 档位 | 高度 | 字号 | 水平／垂直内距 | gap | 圆角 | 图标 |
+| ---- | ---- | ---- | -------------- | --- | ---- | ---- |
+| sm   | 32   | 14   | 12／4          | 6   | 6    | 16   |
+| md   | 36   | 14   | 16／6          | 8   | 6    | 18   |
+| lg   | 40   | 14   | 18／8          | 8   | 6    | 20   |
 
 - `size` 只决定几何，不决定交互；不能写 `if (size === 'lg')` 触发遥控行为。
-- 40 是桌面鼠标密度：16 号字、1.5 行高（24）加 8×2 垂直内距正好 40；44 是移动端触控目标，桌面偏大。32 容纳 14 号字、1.5 行高（21）加 4×2 垂直内距，并留 3px 余量。
-- TV 的设计基线是 960×540 points；实际 windowSize、pixelRatio、字号和安全区按宿主度量核对，不能把浏览器或单台模拟器结果推广到所有 4K 设备。`theme.tv.json` 使用紧凑的 TV 档位：sm 32／14、md 36／14、lg 40／14；控件随语义选择档位，不再把所有按钮放大到同一个 48 高度。文字放大时允许内容增高，不整体放大画布。
-- `lg` 的桌面值只在确有超大动作时使用；标 * 的值在 TV 上不生效。
+- 桌面 40 是鼠标密度：16 号字、1.5 行高（24）加 8×2 垂直内距正好 40；44 是移动端触控目标，桌面偏大。32 容纳 14 号字、1.5 行高（21）加 4×2 垂直内距，并留 3px 余量。
+- 桌面 `lg` 只在确有超大动作时使用（60 高、22 号字），不是常规动作的放大档。
+- TV 的设计基线是 960×540 points；实际 windowSize、pixelRatio、字号和安全区按宿主度量核对，不能把浏览器或单台模拟器结果推广到所有 4K 设备。TV 三档都停在 14 号字，靠**高度与内距**区分层级而不是靠字号——观看距离固定，字号变大只带来换行风险。文字放大时允许内容增高，不整体放大画布。
 - `controlMetrics(size)` 读 `--control-<size>-*`；`space(name)`、`radius(name)`、`textSize(role)` 读对应 token。没有 `unit()`／`adaptive()`／`Scale`。
 - 选集是组件配方，不新增档位：桌面详情 48、播放器面板 42、TV 48。Badge 28、RankingCard 42 也归配方。
-- `Avatar` 的 `sm`／`md`／`lg` 分别取 32／40／64，与 `control sm`、默认控件高度和大号卡片同档；头像与其他控件同排时与它们同高、同中线。三档都是正圆；无图、加载中或失败显示首字，未登录显示轮廓图标而不是臆造的首字。账号头像只接受核心校验过的公开 HTTPS 图片；本机不自行拼接或信任上游原始字段。
+- `Avatar` 的 `sm`／`md`／`lg` 分别取 32／40／64，与 `control sm`、默认控件高度和大号卡片同高、同中线。三档都是正圆；无图、加载中或失败显示首字，未登录显示轮廓图标而不是臆造的首字。账号头像只接受核心校验过的公开 HTTPS 图片；本机不自行拼接或信任上游原始字段。
 
 ```yaml
 controls:
@@ -653,9 +809,9 @@ components:
 
 固定 `nsh-icon-lucide@^0.2.2`（Lucide 1.43.0），三端 `nsh.json` 声明、`nsh.lock` 锁定，经 `nsh-icon` 的 `<Icon>` 绘制。调用方从 `nsh-icon-lucide` 导入图标常量再传给 `Icon`（`<Icon icon={Search} />`、`icon={Search}`）；`packages/ui` 只做尺寸与颜色的适配，不维护第二份名称表，也不按字符串查图标。禁止手写、临摹或修改 SVG/path，不混图标库、emoji 或字符图标；缺图先用文字。
 
-浏览器原型用同一 Lucide 1.43.0 官方 SVG：资源、许可证和逐图 SHA 位于 `packages/ui/assets/lucide/`，`pnpm ui:icons` 再生并校验，`pnpm ui:icons:check` 检查漂移。打包内容等于源码导入的图标常量：`nsh-icon` 按导入裁剪，未引用的图标不进包；不要用计算出的名字取图标，那会拉进整个集合。
+Lucide 1.43.0 官方 SVG 的源、许可证与逐图 SHA 位于 `packages/ui/assets/lucide/`；`pnpm ui:icons:check` 重算每张图的 SHA 并与来源清单比对，改动任何 path 都会失败。打包内容等于源码导入的图标常量：`nsh-icon` 按导入裁剪，未引用的图标不进包；不要用计算出的名字取图标，那会拉进整个集合。
 
-保留官方 24×24 网格与几何，显示尺寸使用共享档位，不为页面改路径或线宽。颜色由语义 token 提供：`Icon` 的 `tone` 取对应 `text-*` 类并经文字色继承，不为图标单独传色值；纯图标动作有可访问名称，装饰图标不重复朗读。品牌、内容封面和系统原生控件自带图标除外。
+保留官方 24×24 网格与几何，显示尺寸使用共享档位，不为页面改路径。描边统一 1.75（`Icon` 传给 `nsh-icon` 的 `strokeWidth`）：官方 2 在 20 档渲染成 1.67pt、16 档 1.33pt，比 14–16 号中文的 1.1–1.4pt 竖笔更粗，整行会读成图标加说明；1.75 在 20 档为 1.46pt，与标签同重。颜色由语义 token 提供：`Icon` 的 `tone` 取对应 `text-*` 类并经文字色继承，不为图标单独传色值；纯图标动作有可访问名称，装饰图标不重复朗读。品牌、内容封面和系统原生控件自带图标除外。
 
 ## Do's and Don'ts
 
@@ -664,7 +820,7 @@ components:
 - 尺寸只取 `sm`／`md`／`lg`；不要在页面写 44／36 等旧档位，也不要用 `style` 改控件内距、字号或圆角。
 - token 名称和值以本文件 YAML 与表格为准；改 YAML 后跑 `pnpm design:codegen` 生成两份 theme 与 `tokens.generated.ts`，组件里不写裸 hex、`dark:` 补丁或第二套字号。
 - 以真实数据组织找剧、详情和安静观看；保留输入、卡片身份、列表位置、实际播放进度和精确来源焦点。
-- 变更同步规则、主题／组件源、浏览器样板和原生验收页。可操作样板见[组件板](design/prototype/visual-redesign-real/components/index.html)，组合细节见[设计交接](docs/design/component-design.md)。
+- 变更同步规则、主题／组件源和原生验收页。可操作样板是生产组件本身：`pnpm ui:host:tv`／`ui:host:desktop` 打开组件板，`pnpm ui:preview` 在浏览器里跟改；组合细节见[设计交接](./docs/design/component-design.md)。不另维护一份 HTML 稿：视觉真相只存在于本文件与产品代码，稿一旦与代码并行就必然漂移。
 - UI 修改执行各入口 check **和** build、现有组件行为回归与相关真实宿主观察；根门禁按工程规范执行。依赖变化另跑 security，缺工具不能静默跳过。
 - 视觉检查覆盖浅深主题、字级、边界、对齐、长文、状态叠加、焦点裁切、字号放大和减少动态效果。保存实际源码／宿主／尺寸与证据，未验项明确记录。
-- 不将浏览器、headless、macOS TV 密度、Android 模拟器和物理电视相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。
+- 不将浏览器、headless、macOS TV 密度与 API34 模拟器相互替代；组件通过不等于整页、真实账号、媒体解码、独立安装包或正式发行通过。MVP 的验收宿主为 macOS 真机（桌面）与固定 API34 AVD（TV），见 [ENGINEERING §9](./docs/ENGINEERING.md#验收宿主矩阵)；物理电视与 Windows／Linux 真机按平台限制记录，不阻塞 MVP。

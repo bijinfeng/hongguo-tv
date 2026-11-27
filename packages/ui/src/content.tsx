@@ -53,7 +53,10 @@ export function Cover(props: CoverProps) {
   });
   return (
     <View
-      accessibilityLabel={`${props.title}封面`}
+      // The card already carries the drama's name and its own action; a cover that also announced
+      // "《title》封面" made a row of posters read as two labels per card, and on failure it said
+      // "封面" while the visible text said the cover was unavailable.
+      accessibilityElementsHidden
       style={{
         pointerEvents: 'none',
         ...(props.height ? { height: props.height } : {}),
@@ -71,6 +74,7 @@ export function Cover(props: CoverProps) {
             class={`${props.variant === 'feature' ? 'text-cinema-muted' : 'text-muted-foreground'} text-center`}
             style={{
               fontSize: textSize('meta'),
+              lineHeight: textLineHeight('meta'),
               padding: space('md'),
             }}
           >
@@ -259,6 +263,9 @@ export function ContinueCard(props: {
   fit?: CoverProps['fit'];
   testID?: string;
 }) {
+  // An unknown total draws no bar at all. A bar without a denominator animates forever, which at
+  // viewing distance reads as "still loading" rather than "no position yet".
+  const known = () => props.duration !== undefined && props.duration > 0;
   return (
     <If
       when={props.density === 'compact'}
@@ -297,12 +304,18 @@ export function ContinueCard(props: {
             </Text>
             <Text
               class="text-muted-foreground"
-              style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+              style={{
+                fontSize: textSize('meta'),
+                lineHeight: textLineHeight('meta'),
+                fontWeight: textWeight('meta'),
+              }}
             >
               {props.subtitle}
             </Text>
             <View style={{ paddingTop: space('sm') }}>
-              <Progress position={props.position} duration={props.duration} />
+              <If when={known()}>
+                <Progress position={props.position} duration={props.duration} />
+              </If>
             </View>
             <View class="items-start" style={{ paddingTop: space('sm') }}>
               <Button
@@ -340,7 +353,9 @@ export function ContinueCard(props: {
           <UiText role="meta" lines={2}>
             {props.subtitle}
           </UiText>
-          <Progress position={props.position} duration={props.duration} />
+          <If when={known()}>
+            <Progress position={props.position} duration={props.duration} />
+          </If>
         </View>
       </CardRoot>
     </If>
@@ -388,6 +403,7 @@ export function StoryFeature(props: {
         <Text
           style={{
             fontSize: textSize('page'),
+            lineHeight: textLineHeight('page'),
             fontWeight: textWeight('page'),
             color: token('cinema-foreground'),
           }}
@@ -395,12 +411,18 @@ export function StoryFeature(props: {
         >
           {props.title}
         </Text>
-        <Text style={{ fontSize: textSize('title') }} class="text-cinema-muted">
+        <Text
+          style={{ fontSize: textSize('title'), lineHeight: textLineHeight('title') }}
+          class="text-cinema-muted"
+        >
           {props.meta}
         </Text>
         <If when={props.description}>
           <Text
-            style={{ fontSize: textSize('content-title') }}
+            style={{
+              fontSize: textSize('content-title'),
+              lineHeight: textLineHeight('content-title'),
+            }}
             class="text-cinema-foreground line-clamp-2"
           >
             {props.description}
@@ -408,7 +430,10 @@ export function StoryFeature(props: {
         </If>
         <View class="items-start">{props.children}</View>
         <If when={props.footer}>
-          <Text style={{ fontSize: textSize('title') }} class="text-cinema-muted">
+          <Text
+            style={{ fontSize: textSize('title'), lineHeight: textLineHeight('title') }}
+            class="text-cinema-muted"
+          >
             {props.footer}
           </Text>
         </If>

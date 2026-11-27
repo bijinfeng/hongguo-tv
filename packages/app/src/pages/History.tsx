@@ -166,21 +166,21 @@ export function LibraryStatus(props: {
             label={favorites() ? '正在读取收藏' : '正在读取观看记录'}
             testID="library-pending"
             class="flex-col"
-            style={{ gap: 12 }}
+            style={{ gap: space('sm') }}
           >
             <Each of={[0, 1, 2]}>
               {() => (
                 <View
                   accessibilityElementsHidden
                   class="flex-row items-center"
-                  style={{ gap: 12, paddingVertical: 12 }}
+                  style={{ gap: space('sm'), paddingVertical: space('sm') }}
                 >
                   <SkeletonBlock
                     width={props.store.target === 'tv' ? 54 : 88}
                     height={props.store.target === 'tv' ? 76 : 112}
                     radius={6}
                   />
-                  <View class="flex-1" style={{ gap: 8 }}>
+                  <View class="flex-1" style={{ gap: space('xs') }}>
                     <SkeletonBlock width="40%" height={16} radius={4} />
                     <SkeletonBlock width="28%" height={12} radius={4} />
                   </View>
@@ -331,7 +331,7 @@ export function WatchStatisticsPanel(props: { store: Store; open: boolean; onClo
             <Notice message="这个周期还没有观看统计。开始观看后会显示在这里。" />
           </If>
           <If when={hasPeriodData()}>
-            <View class="flex-row flex-wrap" style={{ gap: 20 }}>
+            <View class="flex-row flex-wrap" style={{ gap: space('lg') }}>
               <View class="min-w-[160px]" style={{ gap: space('xxs') }}>
                 <UiText role="meta" tone="muted">
                   累计观看
@@ -1000,7 +1000,7 @@ export function History(props: { store: Store }) {
         keyExtractor={(entry) => `${category()}:${entry.drama.series_id}`}
         estimatedItemSize={managing() ? 210 : 154}
         class={props.store.target === 'tv' ? 'flex-1' : 'w-full'}
-        contentStyle={{ gap: props.store.target === 'tv' ? 6 : 12, padding: 8 }}
+        contentStyle={{ gap: space('sm'), padding: space('xs') }}
       >
         {(entry) => (
           <HistoryItem

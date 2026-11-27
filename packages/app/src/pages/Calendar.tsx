@@ -26,6 +26,7 @@ import {
   SkeletonRegion,
   UiText,
   PosterCard,
+  space,
   type ProductTarget,
 } from '@hongguo/ui';
 import type { CalendarItem, Drama } from '@hongguo/core-client';
@@ -254,8 +255,8 @@ export function Calendar(props: {
       class="flex-1"
       style={
         props.target === 'tv'
-          ? { paddingTop: 16, gap: 12 }
-          : desktopContentFrame({ top: 24, gap: 24 })
+          ? { paddingTop: space('md'), gap: space('sm') }
+          : desktopContentFrame({ top: space('lg'), gap: space('lg') })
       }
     >
       {/* One name for one destination: the rail and crumb say 上新日历, so this page does too. */}
@@ -504,7 +505,7 @@ export function Calendar(props: {
           class="flex-col"
           style={{ gap: props.target === 'tv' ? 12 : 20 }}
         >
-          <View class="flex-row" style={{ gap: 12 }}>
+          <View class="flex-row" style={{ gap: space('sm') }}>
             <Each of={[0, 1, 2]}>
               {() => (
                 <SkeletonBlock width={props.target === 'tv' ? 120 : 180} height={84} radius={10} />
@@ -516,14 +517,14 @@ export function Calendar(props: {
               <View
                 accessibilityElementsHidden
                 class="flex-row items-center"
-                style={{ gap: 20, paddingVertical: 12 }}
+                style={{ gap: space('lg'), paddingVertical: space('sm') }}
               >
                 <SkeletonBlock
                   width={props.target === 'tv' ? 50 : 80}
                   height={props.target === 'tv' ? 70 : 112}
                   radius={8}
                 />
-                <View class="flex-1" style={{ gap: 8 }}>
+                <View class="flex-1" style={{ gap: space('xs') }}>
                   <SkeletonBlock width="45%" height={20} radius={4} />
                   <SkeletonBlock width="30%" height={14} radius={4} />
                 </View>
@@ -602,7 +603,9 @@ export function Calendar(props: {
             {(row) => (
               <View
                 style={
-                  props.target === 'tv' ? { width: '100%', padding: 6 } : { paddingVertical: 8 }
+                  props.target === 'tv'
+                    ? { width: '100%', padding: space('xxs') }
+                    : { paddingVertical: space('xs') }
                 }
               >
                 <CardControls

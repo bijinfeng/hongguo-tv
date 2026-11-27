@@ -5,8 +5,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seasonsFixture } from './seasons-fixture.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
-import { executable, nshVersion, output, root, rustEnvironment } from './process.mjs';
-import { prepareTvBranding, tvHostEnvironment } from './tv-host.mjs';
+import { executable, nshVersion, root, rustEnvironment } from './process.mjs';
+import { prepareTvBranding, tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 /** Server evidence is required in addition to the real adapter's native assertions. */
 export function verifySeasonRequests(fixture, suite) {
@@ -245,15 +245,11 @@ dependencies {
   } else {
     const env = rustEnvironment(tvHostEnvironment());
     const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-    const devices = output(adb, ['devices'], { env })
-      .split('\n')
-      .slice(1)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-      throw new Error('Requires one ready Android TV emulator');
-    const serial = devices[0].split(/\s+/)[0];
-    const device = (args) => output(adb, ['-s', serial, ...args], { env });
+    const { serial, device } = tvEmulator({
+      adb,
+      env,
+      message: 'Requires one ready Android TV emulator',
+    });
     if (
       device(['shell', 'getprop', 'ro.build.version.sdk']) !== '34' ||
       !device(['shell', 'pm', 'list', 'features']).includes('android.software.leanback_only')

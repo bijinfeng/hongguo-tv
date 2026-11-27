@@ -535,7 +535,7 @@ Rust PlaybackService 已装配实际 web-api，初始化失败不 ready；播放
 ### 设计真实性与安静观看审查（2026-11-14）
 
 - 产品实施按用户要求暂停，仅修订 `design/prototype` 与产品／设计文档；未改 `apps/`、`packages/`、`crates/` 或固定上游。本轮不继续 `/tmp/hongguo-discovery-ui` 中冻结的实施半成品，不提交或推送。
-- 以 `upstream.lock.json` 的 `de9712bf358dcbdf8a188e26cba711e3e5354e8a` 核对真实能力。按用户要求排除评论／回复／弹幕／剧评／点赞；移除无依据五轴、离线任务和任意缓存容量。设计修订与来源见 [真实性审查](../../design/reality-audit.md)。
+- 以 `upstream.lock.json` 的 `de9712bf358dcbdf8a188e26cba711e3e5354e8a` 核对真实能力。按用户要求排除评论／回复／弹幕／剧评／点赞；移除无依据五轴、离线任务和任意缓存容量。设计修订与来源见 [真实性审查](../2026-11-26/design/reality-audit.md)。
 - `node --test design/prototype/prototype.test.mjs design/prototype/reality.test.mjs`：24／24通过，涵盖搜索分类隔离、分型建议／演员身份、分页保留与重试、预约待确认、系列身份、独立统计、TV输入／返回、安静观看以及既有更新演示隔离。VM 替身不等于真实浏览器／服务通过。
 - `app.js`、`desktop.js`、`tv.js` 的 `node --check` 通过；27份所改原型／设计文档定向 Oxfmt 检查通过；`git diff --check` 通过。无依赖变更，未运行生产 check/build/verify/security。此前完整工程结果与阻塞仍按各自历史记录，不被本轮原型检查覆盖。
 - IAB 浏览器实际观察：桌面／TV安静播放器、榜单快照、待上线第三季不可播放、默认1×、演员搜索联想通过方向键与确认打开作品、Esc恢复输入焦点、双端找剧筛选优先。截图保存并重新读取检查于 `artifacts/design-reality-audit/`；原型全部使用明确样例，没有真实视频、登录、短信、扫码或预约请求。

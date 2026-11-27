@@ -8,7 +8,7 @@ import {
   Search,
 } from 'nsh-icon-lucide';
 import { View } from 'nsh';
-import { CardControls, NavigationItem } from '@hongguo/ui';
+import { CardControls, NavigationItem, radius } from '@hongguo/ui';
 import type { Section, Store } from '../store';
 
 type NavItem = {
@@ -146,6 +146,8 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                 // Both bars carry `current`; the TV top bar asks for the contrast pairing so the
                 // destination reads as a filled pill at TV distance, while the desktop rail keeps
                 // the muted shared surface.
+                // The desktop rail's capsule is direction C's geometry; the TV header keeps the
+                // shared control radius so its own 48dp recipe is untouched.
                 return (
                   <NavigationItem
                     presentation={props.layout === 'tv' ? 'bar' : 'rail'}
@@ -157,6 +159,9 @@ export function Navigation(props: { store: Store; layout: 'desktop' | 'tv' }) {
                     current={on()}
                     currentSurface={props.layout === 'tv' ? 'contrast' : undefined}
                     class={props.layout === 'desktop' ? 'w-full justify-start' : undefined}
+                    style={
+                      props.layout === 'desktop' ? { borderRadius: radius('full') } : undefined
+                    }
                     onPress={() => {
                       if (item().onPress) item().onPress!(props.store);
                       else props.store.navigate(item().name);

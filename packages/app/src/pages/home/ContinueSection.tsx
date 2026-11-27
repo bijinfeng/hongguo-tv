@@ -9,7 +9,9 @@ import {
   Icon,
   Notice,
   Progress,
+  radius,
   SkeletonBlock,
+  space,
   SkeletonRegion,
   Surface,
   UiText,
@@ -47,6 +49,12 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
   const progress = () => (
     <Progress position={position()} duration={duration()} accessibilityLabel="已看进度" />
   );
+  /** The episode is only named when the record has one; unknown is not episode 1. */
+  const episodeLabel = () => {
+    const episode = entry().episode ?? 0;
+    return episode > 0 ? `第 ${episode} 集` : '';
+  };
+  const subtitle = () => `${episodeLabel()}${remaining()}`;
   const cover = (width: number) => (
     <Image
       src={coverSource()}
@@ -55,7 +63,7 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
         objectPosition: 'top',
         width,
         height: width * 0.625,
-        borderRadius: 8,
+        borderRadius: radius('lg'),
       }}
     />
   );
@@ -69,7 +77,7 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
         style={{ padding: 0 }}
         class={`flex-1 min-w-0 border border-border rounded-(--radius) bg-card hover:bg-muted active:bg-border ${focusRingClass(4)}`}
       >
-        <View class="flex-row items-center" style={{ padding: 10, gap: 15 }}>
+        <View class="flex-row items-center" style={{ padding: space('xs'), gap: space('md') }}>
           {cover(width)}
           {content()}
         </View>
@@ -79,14 +87,14 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
   );
   if (tv()) {
     return (
-      <View style={{ width: props.width, gap: 4 }}>
+      <View style={{ width: props.width, gap: space('xxs') }}>
         <ContinueCard
           density="compact"
           fit="contain"
           testID={`home-continue-${entry().drama.series_id}`}
           title={entry().drama.title}
           image={coverSource()}
-          subtitle={`第 ${entry().episode ?? 1} 集${remaining()}`}
+          subtitle={subtitle()}
           position={position()}
           duration={duration()}
           label="继续观看"
@@ -106,12 +114,12 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
     );
   }
   return card(114, () => (
-    <View class="flex-1 min-w-0" style={{ gap: 8 }}>
+    <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
       <UiText role="content-title" lines={1}>
         {entry().drama.title}
       </UiText>
       <UiText role="meta" lines={1}>
-        第 {entry().episode ?? 1} 集{remaining()}
+        {subtitle()}
       </UiText>
       <If when={known()}>{progress()}</If>
     </View>
@@ -167,11 +175,14 @@ function ContinueSkeleton(props: { store: Store; width: number; count: number })
         {() =>
           tv() ? (
             <View
-              style={{ width: Math.max(1, (props.width - (count() - 1) * 16) / count()), gap: 4 }}
+              style={{
+                width: Math.max(1, (props.width - (count() - 1) * 16) / count()),
+                gap: space('xxs'),
+              }}
             >
-              <View class="flex-row items-center" style={{ gap: 12 }}>
+              <View class="flex-row items-center" style={{ gap: space('sm') }}>
                 <SkeletonBlock width={47} height={64} radius={8} />
-                <View class="flex-1" style={{ gap: 4 }}>
+                <View class="flex-1" style={{ gap: space('xxs') }}>
                   <SkeletonBlock width="72%" height={18} radius={4} />
                   <SkeletonBlock width="46%" height={12} radius={4} />
                   <SkeletonBlock width="100%" height={2} radius={1} />
@@ -183,10 +194,10 @@ function ContinueSkeleton(props: { store: Store; width: number; count: number })
             <View style={{ width: continueTileWidth() }}>
               <View
                 class="flex-row items-center border border-border rounded-(--radius) bg-card"
-                style={{ padding: 10, gap: 15 }}
+                style={{ padding: space('xs'), gap: space('md') }}
               >
                 <SkeletonBlock width={114} height={114 * 0.625} radius={8} />
-                <View class="flex-1 min-w-0" style={{ gap: 8 }}>
+                <View class="flex-1 min-w-0" style={{ gap: space('xs') }}>
                   <View class="justify-center" style={{ height: 27 }}>
                     <SkeletonBlock width="64%" height={14} radius={4} />
                   </View>
@@ -233,7 +244,10 @@ export function ContinueSection(props: { store: Store; showAll?: boolean }) {
         if (bounds.size.width > 0) width.set(bounds.size.width);
       }}
     >
-      <View class="flex-row flex-wrap items-center justify-between" style={{ marginBottom: 16 }}>
+      <View
+        class="flex-row flex-wrap items-center justify-between"
+        style={{ marginBottom: space('md') }}
+      >
         <UiText role={tv() ? 'section' : 'title'}>继续观看</UiText>
         <If when={props.showAll !== false}>
           <Button

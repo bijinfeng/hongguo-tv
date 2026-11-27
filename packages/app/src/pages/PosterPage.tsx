@@ -9,7 +9,7 @@ import {
   type ScrollRef,
   type ViewRef,
 } from 'nsh';
-import { CardControls, PosterCard, type ProductTarget } from '@hongguo/ui';
+import { CardControls, PosterCard, space, type ProductTarget } from '@hongguo/ui';
 import type { Drama } from '@hongguo/core-client';
 import { POSTER_GAP, posterGrid } from '../shell/poster-grid';
 import { PageScroll } from '../shell/PageScroll';
@@ -152,7 +152,13 @@ export function PosterPage(props: {
       contentStyle={{ gap: tv() ? 6 : 12 }}
     >
       {(entry) => (
-        <View style={tv() ? { width: 138, paddingHorizontal: 4 } : { paddingVertical: 8 }}>
+        <View
+          style={
+            tv()
+              ? { width: 138, paddingHorizontal: space('xxs') }
+              : { paddingVertical: space('xs') }
+          }
+        >
           <CardControls
             onNavigate={props.onNavigate}
             label={props.label}

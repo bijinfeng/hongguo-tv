@@ -11,6 +11,7 @@ import {
   none,
   select,
   changedPaths,
+  entryMatrix,
   selectJobs,
 } from '../src/ci-paths.mjs';
 
@@ -36,13 +37,18 @@ test('documentation is the only class that skips every build job', () => {
   for (const path of [
     'docs/playback-v5.md',
     'docs/history/2026-11-20/gate-and-release.md',
-    'design/prototype/visual-redesign-real/shared/icons.js',
+    'docs/design/tv-redesign.md',
     'openspec/specs/playback/spec.md',
     'upstream/hongguo/core/cmd/hongguotv/minireel.go',
     'README.md',
-    'PRODUCT.md',
     'THIRD_PARTY_NOTICES.md',
     'LICENSE',
+    // The four contracts moved under docs/, so they are covered by the prefix rule rather than
+    // the root-file allowlist; keep one here to prove the move did not open a build path.
+    'docs/PRODUCT.md',
+    'docs/ARCHITECTURE.md',
+    'docs/ENGINEERING.md',
+    'docs/VALIDATION.md',
   ]) {
     assert.deepEqual(classify(path), none, path);
   }
@@ -147,4 +153,45 @@ test('a first push without a base describes its own commits', async () => {
 
 test('an unavailable Git range keeps the full matrix', async () => {
   assert.equal(await selectJobs({ base: 'not-a-sha', cwd: resolve(tmpdir(), 'missing') }), all);
+});
+
+test('the entry matrix lists one row per product host, filtered by selection', () => {
+  // Nothing tested this and it decides which platforms a run builds on. A regression here either
+  // drops a platform (silently unverified) or adds a job the selection said to skip.
+  assert.deepEqual(entryMatrix(all), [
+    { target: 'desktop', os: 'macos-15' },
+    { target: 'desktop', os: 'windows-2025' },
+    { target: 'desktop', os: 'ubuntu-24.04' },
+    { target: 'tv', os: 'macos-15' },
+  ]);
+  assert.deepEqual(entryMatrix({ ...none, desktop: true }), [
+    { target: 'desktop', os: 'macos-15' },
+    { target: 'desktop', os: 'windows-2025' },
+    { target: 'desktop', os: 'ubuntu-24.04' },
+  ]);
+  assert.deepEqual(entryMatrix(none), []);
+});
+
+test('a pull request drops the Windows host but a push keeps it', () => {
+  // Windows desktop is 8m44s of cold Rust plus a 7m30s runner build — most of a PR's wall clock
+  // for a compatibility row no reviewer reads. It still gates every merge.
+  const pullRequest = entryMatrix({ ...none, desktop: true }, { event: 'pull_request' });
+  assert.deepEqual(pullRequest, [
+    { target: 'desktop', os: 'macos-15' },
+    { target: 'desktop', os: 'ubuntu-24.04' },
+  ]);
+  const push = entryMatrix({ ...none, desktop: true }, { event: 'push' });
+  assert.equal(
+    push.some(({ os }) => os === 'windows-2025'),
+    true,
+    'a merge must still be gated on Windows',
+  );
+});
+
+test('an unknown event keeps the full host list', () => {
+  // Without an event name the matrix must not be trimmed: trimming on a guess is how a platform
+  // stops being checked without anyone deciding that.
+  const withoutEvent = entryMatrix({ ...none, desktop: true });
+  assert.equal(withoutEvent.length, 3);
+  assert.equal(entryMatrix({ ...none, desktop: true }, {}).length, 3);
 });

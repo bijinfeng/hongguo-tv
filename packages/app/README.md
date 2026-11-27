@@ -16,7 +16,7 @@
 
 `test/` 是合成边界和宿主回归入口，不是产品入口。Node 队列测试使用最小信号端口，仅证明顺序、身份和错误屏障；三端 check/build、实际宿主、真实数据及云写授权必须另行验证。
 
-详情收藏、共享片库 Tabs／管理与 AccountLibrary 的公共组件和动效交接见[观看记录与收藏](../../docs/design/library-favorites.md)。两端共用状态与交互，页面只持有确认、选择和阅读锚点，不复制片库 membership。
+详情收藏、共享片库 Tabs／管理与 AccountLibrary 的公共组件和动效交接见[观看记录与收藏](../../docs/features/library-favorites.md)。两端共用状态与交互，页面只持有确认、选择和阅读锚点，不复制片库 membership。
 
 TV 呈现由 shell 中的局部宽度／字号策略驱动；业务组件继续使用现有 controller。`collection-visibility` 允许大于视口的卡片在充分可见时恢复来源，仍受原 focusGuard 约束；管理行的明确详情动作承接返回，静态容器不承接动作焦点。`./testing/episode-grid` 只组合生产选集控件，验证千集浏览、锁定与播放身份边界，不创建媒体会话或观看记录。
 

@@ -17,6 +17,7 @@ const typeRoles = [
   'content-title',
   'body',
   'meta',
+  'caption',
   'numeric',
 ];
 const sizes = ['sm', 'md', 'lg'];

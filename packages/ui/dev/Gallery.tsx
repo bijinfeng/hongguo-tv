@@ -133,9 +133,15 @@ function Section(props: {
   children?: JSX.Element;
   /** Lets the flat gallery scroll a whole group into view by its first section. */
   viewRef?: (ref: ViewRef) => void;
+  /** Stable anchor for the acceptance tests, which scroll a group in before pressing it. */
+  sheet?: string;
 }) {
   return (
-    <View class="gap-4" ref={props.viewRef}>
+    <View
+      class="gap-4"
+      ref={props.viewRef}
+      testID={props.sheet ? `gallery-sheet-${props.sheet}` : undefined}
+    >
       <UiText role="section">{props.title}</UiText>
       {props.children}
     </View>

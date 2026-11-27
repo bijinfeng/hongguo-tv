@@ -27,7 +27,7 @@ const design = (overrides = {}) => {
 `;
   const typography =
     overrides.typography ??
-    ['display', 'page', 'section', 'title', 'content-title', 'body', 'meta', 'numeric']
+    ['display', 'page', 'section', 'title', 'content-title', 'body', 'meta', 'caption', 'numeric']
       .flatMap((role) =>
         ['desktop', 'tv'].map(
           (surface) =>
@@ -147,7 +147,7 @@ test('the checked-in generated file matches DESIGN.md', async () => {
     await readFile(resolve(import.meta.dirname, '../../packages/ui/theme.json'), 'utf8'),
   );
   const tokens = compile(source, actualTheme);
-  assert.equal(Object.keys(tokens.ratios).length, 8);
+  assert.equal(Object.keys(tokens.ratios).length, 9);
   assert.equal(tokens.themes.desktop.cssVars.theme['radius-xl'], '12px');
   assert.equal(tokens.themes.desktop.cssVars.theme['space-2xl'], '40px');
 });

@@ -22,7 +22,9 @@ export function createCategory(request: ReturnType<typeof captureRequest>, activ
   let revision = 0;
   let disposed = false;
   const key = () => JSON.stringify(selection());
-  const enabled = () => active() && lifecycle() === 'active' && !disposed;
+  // `inactive` is visible (another window has focus), so it still reads: the reader is looking at
+  // this page and must not sit on a skeleton until they click it. Only `background` cancels.
+  const enabled = () => active() && lifecycle() !== 'background' && !disposed;
   const cancel = () => {
     revision++;
     abort?.abort();

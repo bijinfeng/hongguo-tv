@@ -12,7 +12,43 @@ export const rustVersion = readFileSync(resolve(root, 'rust-toolchain.toml'), 'u
 )[1];
 const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 const pnpmVersion = packageManifest.packageManager.split('@')[1];
-const nodeVersion = readFileSync(resolve(root, '.node-version'), 'utf8').trim();
+/** The versions the tooling accepts: its own `engines.node` range, not the pinned reference. */
+const nodeEngine = packageManifest.engines.node;
+/**
+ * Whether `version` falls inside a `>=a <b` engine range. The tooling has no dependencies on
+ * purpose, and this is the only form the project declares, so the subset is spelled out here
+ * rather than pulling in a semver package for one comparison.
+ */
+export function satisfies(version, range) {
+  const parts = (text) => text.split('.').map(Number);
+  const at = parts(version);
+  for (const clause of range.trim().split(/\s+/)) {
+    const match = clause.match(/^(>=|<=|>|<|=)\s*(\d+(?:\.\d+){0,2})$/);
+    if (!match) throw new Error(`Unsupported engine clause: ${clause}`);
+    const bound = parts(match[2]);
+    // Compare only the components the bound names, so `>=24.2` does not reject 24.2.0.
+    const compare = (a, b) => {
+      for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        const [x, y] = [a[i] ?? 0, b[i] ?? 0];
+        if (x !== y) return x < y ? -1 : 1;
+      }
+      return 0;
+    };
+    const order = compare(at, bound);
+    const ok =
+      match[1] === '>='
+        ? order >= 0
+        : match[1] === '<='
+          ? order <= 0
+          : match[1] === '>'
+            ? order > 0
+            : match[1] === '<'
+              ? order < 0
+              : order === 0;
+    if (!ok) return false;
+  }
+  return true;
+}
 /** Every NSH project in the workspace. The harness is a test host, not a product. */
 export const targets = ['harness', 'desktop', 'tv'];
 /** The targets that ship to users: `dev` and `package` accept only these. */
@@ -20,12 +56,16 @@ export const products = ['desktop', 'tv'];
 export function parseArgs(args) {
   const [command, ...rest] = args;
   let target;
-  if (rest.length) {
-    if (rest.length !== 2 || rest[0] !== '--target' || !targets.includes(rest[1]))
-      throw new Error('Expected --target harness|desktop|tv');
-    target = rest[1];
+  let entry;
+  for (let index = 0; index < rest.length; index += 2) {
+    const flag = rest[index];
+    const value = rest[index + 1];
+    if (flag === '--target' && targets.includes(value)) target = value;
+    else if (flag === '--entry' && value) entry = value;
+    else throw new Error(`Expected --target harness|desktop|tv [--entry <module>], got ${flag}`);
   }
-  return { command, target };
+  // Only present when asked for: `check` and friends return exactly `{ command, target }`.
+  return entry === undefined ? { command, target } : { command, target, entry };
 }
 /** The NSH platform a project builds for; the harness renders in a browser engine. */
 export function nativeTarget(target, platform = process.platform) {
@@ -211,7 +251,10 @@ export function baseDoctor() {
     [
       'node',
       () => {
-        if (process.versions.node !== nodeVersion) throw new Error(`Expected Node ${nodeVersion}`);
+        // The declared engine range decides what may run the tooling; `.node-version` pins the
+        // reference version CI installs, so a newer local patch or major inside the range is fine.
+        if (!satisfies(process.versions.node, nodeEngine))
+          throw new Error(`Expected Node ${nodeEngine}, found ${process.versions.node}`);
         return process.version;
       },
     ],

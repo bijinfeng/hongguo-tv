@@ -2,7 +2,7 @@
 
 `openapi.json` 由 `crates/http-api` 导出，描述已实现的 `/healthz`、`/api/v1/status`、`/api/v1/search` 、`/api/v1/series/detail` 和 `/api/v1/library` GET/POST。`packages/contracts/src/generated.ts` 由 openapi-typescript 生成，使用 `pnpm codegen` 更新，`pnpm codegen:check` 只读检查漂移。
 
-`Drama`、`Episode`、`SearchResult`、`Entry`、`Library`、`HistoryChange` 从 Rust DTO 生成，`index.ts` 只导出类型别名；账号和播放仍保留手写兼容类型，对应 Rust 功能尚未开放。匿名目录行为样本、离线测试和显式官网 smoke 见 [fixtures/catalog/README.md](fixtures/catalog/README.md)。
+`Drama`、`Episode`、`SearchResult`、`Entry`、`Library`、`HistoryChange` 从 Rust DTO 生成，`index.ts` 只导出类型别名；账号和播放仍保留手写兼容类型，对应 Rust 功能尚未开放。匿名目录行为样本、离线测试和显式官网 smoke 见 [fixtures/catalog/README.md](./fixtures/catalog/README.md)。
 
 搜索只支持官网 `source=web`，offset 表示已消耗的网页页数；它不是 App 搜索游标。请求词为 1–80 个 Unicode 字符，offset 范围 0–100000；详情 ID 是 1–32 位非全零十进制字符串，创作者合集 1003 显式拒绝。验证挑战/错误数据等返回 sanitized 502，超时 504，参数错误 400；客户端不得将这些错误当成空页。响应上限搜索 4 MiB、详情 12 MiB，每次 5 秒、整体 12 秒，最多两次尝试，不携带账号凭据或跟随重定向。
 

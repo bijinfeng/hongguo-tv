@@ -1,6 +1,6 @@
 import { Bell, BellRing, CalendarDays, Heart, History } from 'nsh-icon-lucide';
 import { Scroll, View, type ViewRef } from 'nsh';
-import { Avatar, Button, CardControls, Notice } from '@hongguo/ui';
+import { Avatar, Button, CardControls, Notice, space } from '@hongguo/ui';
 import type { Store } from '../store';
 import { ContinueSection } from './home/ContinueSection';
 import { errorMessage } from '../error-messages';
@@ -14,8 +14,12 @@ export function Mine(props: { store: Store }) {
   let reservations: ViewRef | undefined;
   let notifications: ViewRef | undefined;
   return (
-    <Scroll testID="mine-scroll" class="flex-1 min-h-0" contentStyle={{ paddingVertical: 8 }}>
-      <View style={{ gap: 20 }}>
+    <Scroll
+      testID="mine-scroll"
+      class="flex-1 min-h-0"
+      contentStyle={{ paddingVertical: space('xs') }}
+    >
+      <View style={{ gap: space('lg') }}>
         <View class="items-start">
           <Button
             testID="mine-account"

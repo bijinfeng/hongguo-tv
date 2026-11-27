@@ -16,6 +16,10 @@ import {
   SearchInput,
   SearchPicker,
   SearchSuggestionRow,
+  radius,
+  space,
+  textLineHeight,
+  textSize,
 } from '@hongguo/ui';
 import type { SearchSuggestion } from '@hongguo/core-client';
 import { suggestionAction, suggestionIdentity } from './search-suggestions';
@@ -162,9 +166,9 @@ export function SearchForm(props: { store: Store }) {
           props.store.target === 'desktop'
             ? {
                 minHeight: 44,
-                paddingHorizontal: 12,
+                paddingHorizontal: space('sm'),
                 borderWidth: 1,
-                borderRadius: 8,
+                borderRadius: radius('lg'),
                 borderColor: token(focused() ? 'ring' : 'border'),
               }
             : undefined
@@ -216,8 +220,8 @@ export function SearchForm(props: { store: Store }) {
         <Text
           testID="search-validation"
           role="alert"
-          class="text-sm text-destructive"
-          style={props.store.target === 'tv' ? { fontSize: 12 } : undefined}
+          class="text-destructive"
+          style={{ fontSize: textSize('meta'), lineHeight: textLineHeight('meta') }}
         >
           {props.store.searchError()}
         </Text>

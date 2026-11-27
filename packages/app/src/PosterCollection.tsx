@@ -218,10 +218,10 @@ function Collection(props: PosterCollectionProps) {
         <View
           style={
             shelf()
-              ? { width: cardWidth(), paddingVertical: 8 }
+              ? { width: cardWidth(), paddingVertical: space('xs') }
               : props.target === 'tv'
-                ? { width: '100%', paddingVertical: 8 }
-                : { paddingVertical: 8 }
+                ? { width: '100%', paddingVertical: space('xs') }
+                : { paddingVertical: space('xs') }
           }
         >
           <CardControls

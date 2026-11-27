@@ -1,6 +1,6 @@
 import { View, lifecycle } from 'nsh';
 import type { Drama, Episode } from '@hongguo/core-client';
-import { CinemaButton, CinemaText, Notice } from '@hongguo/ui';
+import { CinemaButton, CinemaText, Notice, space } from '@hongguo/ui';
 import type { Store } from '../../store';
 import { createDetailFavorite } from '../../detail-favorite';
 import { FollowAction, FollowNotice } from '../../FollowAction';
@@ -25,8 +25,8 @@ export function PlayerActions(props: {
   );
   const live = () => props.active() && lifecycle() === 'active';
   return (
-    <View style={{ gap: 12 }}>
-      <View class="flex-row flex-wrap items-center" style={{ gap: 8 }}>
+    <View style={{ gap: space('sm') }}>
+      <View class="flex-row flex-wrap items-center" style={{ gap: space('xs') }}>
         <CinemaButton
           testID="player-favorite"
           label={favorite.selected() ? '已收藏' : '收藏'}
@@ -46,7 +46,7 @@ export function PlayerActions(props: {
         />
       </View>
       <If when={favorite.message()}>
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: space('sm') }}>
           <Notice testID="player-favorite-error" error message={favorite.message() ?? ''} />
           <If when={favorite.retryable()}>
             <View class="flex-row">

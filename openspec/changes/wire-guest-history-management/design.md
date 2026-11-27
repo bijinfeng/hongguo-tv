@@ -68,7 +68,7 @@ progress、整个所选 job、clear 和失败 checkpoint 重试共用写 tail，
 - [已有 resource 的迟到发布或更新重试绕队列] → controller 控制发布 revision 与唯一写 tail，测试覆盖初次加载、刷新、prepareUpdate 和离页的真实顺序。
 - [清空误伤之后新观看或其他记录] → 比较 progress 原序号与删除边界；仅 history/guest，保留 recent_searches；未来账号／收藏迁移另处理其成员关系。
 - [虚拟行删除造成错卡或焦点被抢] → 稳定 ID、动态 accessor、布局驱动恢复及新意图围栏；真实宿主检查后段、最后一项、全空与完整外框。
-- [夹具成功被写作原生独立业务／完整 MVP] → 分开记录合成数据、实际 SQLite 重启、原生 transport 与宿主交互证据，保留 C3.2、物理 TV、安全和账号等开放项。
+- [夹具成功被写作原生独立业务／完整 MVP] → 分开记录合成数据、实际 SQLite 重启、原生 transport 与宿主交互证据，保留 C3.2、安全与账号等开放项；物理 TV 按平台限制记录。
 
 ## Migration Plan
 

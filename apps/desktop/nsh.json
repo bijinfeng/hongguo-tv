@@ -11,7 +11,12 @@
     "defaultSize": {
       "width": 1180,
       "height": 780
-    }
+    },
+    "titleBar": {
+      "style": "hidden",
+      "height": 48
+    },
+    "title": "红果"
   },
   "updater": {
     "github": "bijinfeng/hongguo-tv",

@@ -8,7 +8,7 @@
 
 首期目标仍为 `PRODUCT.md` 中的完整功能对齐。Web／桌面和 Android TV 采用已确定的两套界面，共享业务、数据契约和记录规则；TV 独立组织页面、焦点和播放操作，不采用桌面放大布局。
 
-设计依据为 [原型规格](../design/prototype-system.md)、[页面地图](../design/ui-map.md)、[桌面修复](../design/desktop-review-fixes.md) 和 [TV 修复](../design/tv-review-fixes.md)。`design/prototype/` 是交互参考，演示数据、DOM 实现及模拟成功状态不进入生产。`DESIGN.md` 顶部 A 批映射记录当前实现，下方保留迁移前快照。不能把定稿等同于已通过 NSH 宿主验收。
+设计依据为 [原型规格](2026-11-26/design/prototype-system.md)、[页面地图](../design/ui-map.md)、[桌面修复](../design/desktop-review-fixes.md) 和 [TV 修复](../design/tv-review-fixes.md)。`design/prototype/` 是交互参考，演示数据、DOM 实现及模拟成功状态不进入生产。`DESIGN.md` 顶部 A 批映射记录当前实现，下方保留迁移前快照。不能把定稿等同于已通过 NSH 宿主验收。
 
 2026-11-14 设计范围纠正：产品实施暂缓，先审查并修正设计。后续设计以红果实际能力、固定 `aston314/hongguo-tv` 源码行为及真实数据为依据，无能力／数据支撑的不做，不为原型造协议、评分、状态或成功结果；已证实但尚未迁移的功能继续保留。原型五轴雷达评分已取消，不能记为“五维协议缺失待完成 MVP”；上游 `radar.go` 第三方榜单快照／增长列表仍按固定源码范围待迁移，不扩维评分。日历人群筛选、离线任务队列／仅 Wi-Fi 下载及任意缓存上限不进入确认设计；离线能力继续核对，不以播放预取／更新包／推荐应用下载代证。详情演员／剧评／相关推荐、显式合并登录前历史、按集点赞、独立观看统计及宿主设置分支纳入设计核对。本条不改写以下历史实现与验证记录，也不关闭未完成项。
 
@@ -65,7 +65,7 @@
 
 ## 当前可执行起点
 
-2026-11-14 暂停交接（历史记录）：当时先完成设计真实性修订，按 [设计审查](../design/reality-audit.md) 核对后续切片。用户已于后续恢复实施；当前进度以文末增量、功能台账及 VALIDATION 为准，不把这段历史暂停当作现行指令。
+2026-11-14 暂停交接（历史记录）：当时先完成设计真实性修订，按 [设计审查](2026-11-26/design/reality-audit.md) 核对后续切片。用户已于后续恢复实施；当前进度以文末增量、功能台账及 VALIDATION 为准，不把这段历史暂停当作现行指令。
 
 继续 [B tasks](../../openspec/changes/migrate-rust-playback/tasks.md)：定稿 Player 已进入共享生产路由，Web 官网及合成解码证据见 VALIDATION B4b；TV APK 的 DPAD／定位确认取消／媒体键已接通，最终回归证据见 B4c；macOS Select／焦点／全屏／官网验收仍开着，此前 CUA 确认 Mac 锁屏，未反复请求解锁。A 字体缩放与跨端辅助技术仍保持未完成。C 的独立 OpenSpec `embed-native-core` 中，C1 transport／Rust 会话与媒体专用路由、C2 mixed 导出／生产入口／开发打包已实施；最终 verify、原生包与启动重试／既有 TV fixture 证据见 VALIDATION C2.2／C2.3。C3 的 TV native APK 已在电脑 API 停止、reverse 为空时完成真实搜索／观看／后台／重启续播，浅色、深色和字号 1.3 共三组，原始失败及重试恢复如实保留；macOS 宿主与最终安全门禁仍单列开放。下一独立切片为 D 的匿名内容发现，先核对官网分页与定稿搜索交互；不因 Mac 锁屏删除 C3 未完成项。不得将 HTTP fixture、合成启动或包构建视为原生独立业务通过。
 

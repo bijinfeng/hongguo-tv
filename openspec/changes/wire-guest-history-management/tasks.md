@@ -22,10 +22,10 @@
 ## 4. 跨层集成与验收
 
 - [x] 4.1 使用真实 guest SQLite，经 HTTP 与 native transport 验证 remove／clear、owner 冲突、精确 ID、失败恢复和重启持久性；复用并按缺口补集成回归，检查 recent_searches 保留、未读取 legacy、无账号／云端／目录／媒体副作用；验证 generated 契约与现有 core 语义一致，并将证据关联至前述模块说明。
-- [ ] 4.2 以正式入口及真实内容实际播放形成的历史／实际持久化主流程为主验收，另以合成数据补边界；在 harness、macOS 和 Android TV 实际宿主完成长列表、管理选择、取消、部分失败重试、离页 pending、清空与完整焦点边界的集成验收；分开记录夹具、真实存储、原生 transport 和宿主证据，更新 VALIDATION、feature ledger 与实施路线的本切片结果及剩余范围；验证不把 E1 等同完整 MVP、C3.2、物理 TV 或正式发行通过。
+- [ ] 4.2 以正式入口及真实内容实际播放形成的历史／实际持久化主流程为主验收，另以合成数据补边界；在 harness、macOS 和 Android TV 实际宿主完成长列表、管理选择、取消、部分失败重试、离页 pending、清空与完整焦点边界的集成验收；分开记录夹具、真实存储、原生 transport 和宿主证据，更新 VALIDATION、feature ledger 与实施路线的本切片结果及剩余范围；验证不把 E1 等同完整 MVP、C3.2 或正式发行通过；物理 TV 按平台限制记录。
 - [x] 4.3 在最终源码上完成对应端 check 和 build、codegen:check、完整 pnpm verify、严格 OpenSpec 校验与独立范围评审；如依赖变化则运行 pnpm security，并将既有阻塞与本次失败分开记录；核对文档与真实证据一致、所有未验证项明确、仅本切片文件进入本地提交且未推送／归档／发布。
 
-2026-11-16 工程门禁补验：冻结源码上的 `pnpm verify` 通过，三端 check/build、Rust 405/405、App Web/Desktop/TV 232/239/240、codegen:check、格式、包边界和 release check 均通过。4.2 的正式 Web／Desktop native／当前 TV 包长列表、后台、焦点和物理 TV 真实验收仍未完成，保持未勾选。
+2026-11-16 工程门禁补验：冻结源码上的 `pnpm verify` 通过，三端 check/build、Rust 405/405、App Web/Desktop/TV 232/239/240、codegen:check、格式、包边界和 release check 均通过。4.2 的正式 Web／macOS native／当前 TV 包长列表、后台与焦点真实验收仍未完成，保持未勾选；物理 TV 按平台限制记录。
 
 ## Workflow follow-up
 

@@ -38,9 +38,17 @@ import {
   type ToastTransitionStatus,
 } from 'nsh/base';
 import { Button } from './button';
-import { border, controlMetrics, radius, space, weight, focusRingClass } from './foundation';
+import {
+  border,
+  controlMetrics,
+  overlayShadow,
+  radius,
+  space,
+  weight,
+  focusRingClass,
+} from './foundation';
 import { Icon } from './icon';
-import { textSize, textWeight } from './typography';
+import { textLineHeight, textSize, textWeight } from './typography';
 
 /** Popups stop short of the window edges and of a two-line hint. */
 const TOOLTIP_MAX_WIDTH = 320;
@@ -153,6 +161,7 @@ export function Dialog(props: DialogProps) {
         class="m-auto bg-popover border border-input"
         backdropClass="bg-cinema/40"
         style={{
+          boxShadow: overlayShadow,
           borderWidth: border,
           width: Math.max(
             0,
@@ -171,6 +180,7 @@ export function Dialog(props: DialogProps) {
             class="flex-1 text-popover-foreground"
             style={{
               fontSize: textSize('section'),
+              lineHeight: textLineHeight('section'),
               fontWeight: textWeight('section'),
             }}
           >
@@ -189,7 +199,11 @@ export function Dialog(props: DialogProps) {
         <If when={props.description}>
           <Text
             class="text-muted-foreground"
-            style={{ fontSize: textSize('body'), fontWeight: textWeight('body') }}
+            style={{
+              fontSize: textSize('body'),
+              lineHeight: textLineHeight('body'),
+              fontWeight: textWeight('body'),
+            }}
           >
             {props.description}
           </Text>
@@ -283,7 +297,11 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         <Text
           role="alert"
           class="text-destructive"
-          style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+          style={{
+            fontSize: textSize('meta'),
+            lineHeight: textLineHeight('meta'),
+            fontWeight: textWeight('meta'),
+          }}
         >
           {props.error}
         </Text>
@@ -336,6 +354,7 @@ export function SidePanel(props: SidePanelProps) {
         closeOnSwipe={false}
         popupClass="bg-popover"
         popupStyle={{
+          boxShadow: overlayShadow,
           width: Math.min(440, windowSize().width),
           padding: space('xl'),
           gap: space('lg'),
@@ -358,6 +377,7 @@ export function SidePanel(props: SidePanelProps) {
             class="flex-1 text-popover-foreground"
             style={{
               fontSize: textSize('section'),
+              lineHeight: textLineHeight('section'),
               fontWeight: textWeight('section'),
             }}
           >
@@ -368,6 +388,7 @@ export function SidePanel(props: SidePanelProps) {
             icon={X}
             iconOnly
             variant="quiet"
+            testID={props.testID ? `${props.testID}-close` : undefined}
             onPress={() => props.onOpenChange({ open: false, reason: 'cancel' })}
           />
         </View>
@@ -422,6 +443,7 @@ export interface MenuProps {
 export function Menu(props: MenuProps) {
   const localOpen = signal(false);
   const open = () => props.open ?? localOpen();
+  let trigger: ViewRef | undefined;
   return (
     <BaseMenu
       testID={props.testID}
@@ -430,6 +452,7 @@ export function Menu(props: MenuProps) {
       margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
+        boxShadow: overlayShadow,
         minWidth: MENU_MIN_WIDTH,
         maxWidth: Math.max(0, windowSize().width - space('lg')),
         padding: space('xs'),
@@ -443,16 +466,27 @@ export function Menu(props: MenuProps) {
         if (props.open === undefined) localOpen.set(event.open);
         props.onOpenChange?.(event);
       }}
-      onClose={props.returnFocus}
+      // A menu that closes leaves the keyboard nowhere; return it to the trigger first, then let
+      // the caller move it somewhere better if it wants to.
+      onClose={() => {
+        trigger?.focus();
+        props.returnFocus?.();
+      }}
       trigger={
         <Button
+          buttonRef={(ref) => (trigger = ref)}
           label={props.label}
           dropdown
           popupOpen={open()}
           expanded={open()}
           disabled={props.disabled}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          onPress={() => {}}
+          // A primary press has to open it too: NSH's `trigger` only wires the secondary button,
+          // a long press and Shift+F10, which left the dropdown chevron unresponsive.
+          onPress={() => {
+            if (props.open === undefined) localOpen.set(!localOpen());
+            props.onOpenChange?.({ open: !open(), reason: 'triggerPress' });
+          }}
         />
       }
     >
@@ -491,7 +525,11 @@ export function Menu(props: MenuProps) {
               </If>
               <Text
                 class={`${command().destructive ? 'text-destructive' : 'text-popover-foreground'} group-disabled:text-muted-foreground`}
-                style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.regular() }}
+                style={{
+                  fontSize: controlMetrics().fontSize,
+                  lineHeight: controlMetrics().lineHeight,
+                  fontWeight: weight.regular(),
+                }}
               >
                 {command().label}
               </Text>
@@ -536,6 +574,7 @@ export function Popover(props: PopoverProps) {
       margin={space('sm')}
       popupClass={`${popupClass} ${popupMotion()}`}
       popupStyle={{
+        boxShadow: overlayShadow,
         width: Math.max(0, Math.min(320, windowSize().width - space('lg'))),
         padding: space('lg'),
         gap: space('md'),
@@ -561,7 +600,12 @@ export function Popover(props: PopoverProps) {
           expanded={open()}
           buttonRef={(ref) => (trigger = ref)}
           testID={props.testID ? `${props.testID}-trigger` : undefined}
-          onPress={() => {}}
+          // A primary press has to open it too: NSH's `trigger` only wires the secondary button,
+          // a long press and Shift+F10, which left the dropdown chevron unresponsive.
+          onPress={() => {
+            if (props.open === undefined) localOpen.set(!localOpen());
+            props.onOpenChange?.({ open: !open(), reason: 'triggerPress' });
+          }}
         />
       }
     >
@@ -591,6 +635,7 @@ export function Tooltip(props: TooltipProps) {
       testID={props.testID}
       class={`${popupClass} ${popupMotion()}`}
       style={{
+        boxShadow: overlayShadow,
         maxWidth: TOOLTIP_MAX_WIDTH,
         paddingHorizontal: space('sm'),
         paddingVertical: space('xs'),
@@ -600,7 +645,11 @@ export function Tooltip(props: TooltipProps) {
     >
       <Text
         class="text-popover-foreground"
-        style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+        style={{
+          fontSize: textSize('meta'),
+          lineHeight: textLineHeight('meta'),
+          fontWeight: textWeight('meta'),
+        }}
       >
         {props.label}
       </Text>
@@ -638,7 +687,11 @@ export function Toast(props: ToastProps) {
     >
       <Text
         class={`flex-1 ${props.tone === 'error' ? 'text-destructive' : 'text-popover-foreground'}`}
-        style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.regular() }}
+        style={{
+          fontSize: controlMetrics().fontSize,
+          lineHeight: controlMetrics().lineHeight,
+          fontWeight: weight.regular(),
+        }}
       >
         {props.message}
       </Text>
@@ -827,7 +880,11 @@ export function Accordion(props: AccordionProps) {
               >
                 <Text
                   class="flex-1 text-foreground group-disabled:text-muted-foreground"
-                  style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.strong() }}
+                  style={{
+                    fontSize: controlMetrics().fontSize,
+                    lineHeight: controlMetrics().lineHeight,
+                    fontWeight: weight.strong(),
+                  }}
                 >
                   {section().title}
                 </Text>
@@ -920,7 +977,11 @@ export function Link(props: LinkProps) {
             ? 'text-muted-foreground'
             : 'text-foreground underline group-hover:text-accent-foreground'
         }
-        style={{ fontSize: controlMetrics().fontSize, fontWeight: weight.regular() }}
+        style={{
+          fontSize: controlMetrics().fontSize,
+          lineHeight: controlMetrics().lineHeight,
+          fontWeight: weight.regular(),
+        }}
       >
         {props.label}
       </Text>
@@ -950,6 +1011,7 @@ export function KeyHint(props: KeyHintProps) {
         class={`bg-muted text-foreground ${props.remote ? '' : 'font-mono'}`}
         style={{
           fontSize: textSize('meta'),
+          lineHeight: textLineHeight('meta'),
           fontWeight: textWeight('meta'),
           borderRadius: radius('sm'),
           paddingHorizontal: space('xs'),
@@ -960,7 +1022,11 @@ export function KeyHint(props: KeyHintProps) {
       </Text>
       <Text
         class="text-muted-foreground"
-        style={{ fontSize: textSize('meta'), fontWeight: textWeight('meta') }}
+        style={{
+          fontSize: textSize('meta'),
+          lineHeight: textLineHeight('meta'),
+          fontWeight: textWeight('meta'),
+        }}
       >
         {props.label}
       </Text>

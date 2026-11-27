@@ -1,19 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { executable, root, run, rustEnvironment } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+/**
+ * Runs the player host suite. See player-suite.mjs for the shared implementation.
+ *
+ * This file is kept as a thin entry because commands of this exact shape appear in the frozen
+ * history records; a record whose command no longer runs is not evidence.
+ *
+ *   node tooling/src/player-host.mjs web|macos|android
+ */
+import { playerHost } from './player-suite.mjs';
 
 const target = process.argv[2];
-if (!['web', 'macos', 'android'].includes(target)) throw new Error('Expected web|macos|android');
-const app = resolve(root, target === 'android' ? 'apps/tv' : 'apps/harness');
-const artifacts = resolve(root, `artifacts/playback/player-${target}`);
-await mkdir(artifacts, { recursive: true });
-const file = resolve(app, `.nsh/PlayerHost-${target}.test.tsx`);
-await writeFile(
-  file,
-  `import { registerPlayerHost } from '@hongguo/app/testing/player-host';\nregisterPlayerHost('${target === 'android' ? '../HttpFixture.tsx' : '../App.tsx'}', ${JSON.stringify(artifacts)}, '${target}');\n`,
-);
-await run(executable('nsh'), ['test', file, '--target', target], {
-  cwd: app,
-  env: rustEnvironment(target === 'android' ? tvHostEnvironment() : process.env),
-});
+await playerHost('player', target);

@@ -11,6 +11,7 @@ import {
   ExpandableText,
   Notice,
   UiText,
+  space,
 } from '@hongguo/ui';
 import { createSeasons } from '../seasons';
 import { createSeasonDetail, seasonEpisode } from '../season-detail';
@@ -220,7 +221,7 @@ export function Detail(props: {
             </View>
           }
         >
-          <View class="flex-row items-start" style={{ gap: 24 }}>
+          <View class="flex-row items-start" style={{ gap: space('lg') }}>
             <View accessibilityElementsHidden style={{ width: 132, flexShrink: 0 }}>
               <Cover
                 src={current().cover_fallback || current().cover}
@@ -230,7 +231,7 @@ export function Detail(props: {
                 fit="contain"
               />
             </View>
-            <View class="flex-1 min-w-0" style={{ gap: 12 }}>
+            <View class="flex-1 min-w-0" style={{ gap: space('sm') }}>
               <UiText role="display" lines={2}>
                 {current().title}
               </UiText>
@@ -240,7 +241,7 @@ export function Detail(props: {
                 text={current().intro || '暂无简介'}
                 collapsedLines={3}
               />
-              <View class="flex-row flex-wrap items-center" style={{ gap: 8 }}>
+              <View class="flex-row flex-wrap items-center" style={{ gap: space('xs') }}>
                 <Button
                   testID="detail-start"
                   primary

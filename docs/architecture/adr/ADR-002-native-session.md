@@ -12,4 +12,4 @@ Desktop使用NSH mixed，Android TV使用embedding／JNI，链接同一Rust core
 
 核心故障可能影响整个宿主，必须检查解析边界、panic不跨ABI、回调注销、请求取消和幂等销毁。初始化／关闭先后与持久写排空有明确所有者；不能把强杀当作完成清理。只有证实需要故障隔离时再评估独立进程，不预建第二套架构。
 
-来源：[原始架构提案](../../history/2026-11-15/ARCHITECTURE.md)、[原生变更设计](../../../openspec/changes/embed-native-core/design.md)、[现行架构](../../../ARCHITECTURE.md)。本文记录取舍，运行命令、API及逐轮验收分别维护在其唯一来源；替代时标记Superseded。
+来源：[原始架构提案](../../history/2026-11-15/ARCHITECTURE.md)、[原生变更设计](../../../openspec/changes/embed-native-core/design.md)、[现行架构](../../ARCHITECTURE.md)。本文记录取舍，运行命令、API及逐轮验收分别维护在其唯一来源；替代时标记Superseded。

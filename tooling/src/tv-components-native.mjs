@@ -2,23 +2,16 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { nsh, output, root, run } from './process.mjs';
-import { packageTvHost, tvHostEnvironment } from './tv-host.mjs';
+import { packageTvHost, tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 import { acceptanceCommand } from './acceptance-command.mjs';
 
 const env = tvHostEnvironment();
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-const devices = output(adb, ['devices'])
-  .split('\n')
-  .slice(1)
-  .filter((line) => line.trim());
-if (
-  devices.length !== 1 ||
-  !/^emulator-\d+\s+device$/.test(devices[0]) ||
-  output(adb, ['emu', 'avd', 'name']).split('\n')[0].trim() !== 'hongguo-tv-api34-arm64'
-)
-  throw new Error('Requires the pinned hongguo-tv-api34-arm64 test AVD.');
-const serial = devices[0].split(/\s+/)[0];
-const device = (args) => output(adb, ['-s', serial, ...args]);
+const { device } = tvEmulator({
+  adb,
+  message: 'Requires the pinned hongguo-tv-api34-arm64 test AVD.',
+  avd: 'hongguo-tv-api34-arm64',
+});
 if (device(['shell', 'getprop', 'ro.build.version.sdk']) !== '34')
   throw new Error('Requires API 34.');
 const artifacts = resolve(root, 'artifacts/ui-components/native-tv');

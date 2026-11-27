@@ -3,8 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { browsingFixture } from './browsing-fixture.mjs';
 import { playerFixture } from './player-fixture.mjs';
-import { output, root, run } from './process.mjs';
-import { tvHostEnvironment } from './tv-host.mjs';
+import { root, run } from './process.mjs';
+import { tvEmulator, tvHostEnvironment } from './tv-host.mjs';
 
 const env = tvHostEnvironment();
 const suite = process.argv[2] || 'browsing';
@@ -19,14 +19,7 @@ if (
 if (!['browsing', 'player', 'suggestions', 'category'].includes(suite))
   throw new Error('Expected browsing|player|suggestions|category');
 const adb = resolve(env.ANDROID_HOME, 'platform-tools/adb');
-const devices = output(adb, ['devices'])
-  .split('\n')
-  .slice(1)
-  .filter((line) => line.trim());
-if (devices.length !== 1 || !/^emulator-\d+\s+device$/.test(devices[0]))
-  throw new Error('Start exactly one Android TV emulator.');
-const serial = devices[0].split(/\s+/)[0];
-const device = (args) => output(adb, ['-s', serial, ...args]);
+const { device } = tvEmulator({ adb, message: 'Start exactly one Android TV emulator.' });
 const instrument = (args) =>
   new Promise((resolve, reject) => {
     const child = spawn(adb, ['-s', serial, ...args]);

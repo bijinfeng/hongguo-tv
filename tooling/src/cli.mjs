@@ -49,7 +49,7 @@ async function requireFile(file) {
   return file;
 }
 
-const { command, target } = parseArgs(process.argv.slice(2));
+const { command, target, entry } = parseArgs(process.argv.slice(2));
 const selected = target ? [target] : targets;
 /**
  * `dev` and `package` run and ship a product; the harness only exists to be tested, so asking
@@ -196,10 +196,12 @@ const fmt = async (check) => {
     '.vscode',
     'README.md',
     'AGENTS.md',
-    'ARCHITECTURE.md',
-    'ENGINEERING.md',
     'DESIGN.md',
-    'VALIDATION.md',
+    'THIRD_PARTY_NOTICES.md',
+    // The four contracts live here now; without this the format gate stops covering them.
+    // History is frozen evidence and keeps whatever formatting it was written with.
+    'docs/**/*.md',
+    '!docs/history/**',
     'package.json',
     'pnpm-workspace.yaml',
     'commitlint.config.mjs',
@@ -282,15 +284,17 @@ try {
       break;
     }
     case 'prepare':
-      // Writes the gitignored runtime config the app entry imports. `nsh check`/`build`/`test`
-      // reach this through `prepareNsh`, but a workflow that runs `nsh test` itself needs the
-      // file too, and `pnpm setup` would also compile the whole workspace.
+      // Writes the gitignored runtime config the app entry imports. CI runs `nsh test` directly
+      // (ci.yml, "Behavior in <target>"), which skips `nsh check`/`build` — the commands that
+      // would otherwise write this file — so the job calls `pnpm setup:runtime` first.
       for (const app of selected) await runtimeConfig(app);
       break;
     case 'dev':
-      requireProduct('dev');
+      // `dev` runs the code, not a release: the harness is the development surface now, so it is
+      // allowed here while `package` still refuses it (the harness never ships).
+      if (!target) throw new Error('dev requires --target harness|desktop|tv');
       await doctor();
-      await dev(target, runtimeMode(target));
+      await dev(target, runtimeMode(target), entry);
       break;
     case 'dev:fixture':
       requireProduct('dev:fixture');
