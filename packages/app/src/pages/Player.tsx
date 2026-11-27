@@ -200,6 +200,11 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
       .filter(Boolean)
       .join(' · ');
   };
+  /** The TV title already names the episode, so this line carries only the rest. */
+  const episodeTotal = () => {
+    const total = props.drama.episode_count ?? props.drama.episodes?.length;
+    return total ? `共 ${total} 集` : '';
+  };
   const session = progressSession((time, total, finished) => {
     void props.store.save(playingDrama, playingEpisode, time, total, finished);
   });
@@ -853,10 +858,7 @@ export function Player(props: { drama: Drama; episode: Episode; store: Store; ac
                       <CinemaText variant="title">
                         {props.drama.title} · 第 {props.episode.index} 集
                       </CinemaText>
-                      <CinemaText>
-                        第 {props.episode.index} 集 / 共{' '}
-                        {props.drama.episode_count ?? props.drama.episodes?.length ?? 0} 集
-                      </CinemaText>
+                      <CinemaText>{episodeTotal()}</CinemaText>
                     </View>
                     <BackButton
                       testID="player-controls-back"

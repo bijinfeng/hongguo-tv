@@ -263,6 +263,9 @@ export function ContinueCard(props: {
   fit?: CoverProps['fit'];
   testID?: string;
 }) {
+  // An unknown total draws no bar at all. A bar without a denominator animates forever, which at
+  // viewing distance reads as "still loading" rather than "no position yet".
+  const known = () => props.duration !== undefined && props.duration > 0;
   return (
     <If
       when={props.density === 'compact'}
@@ -310,7 +313,9 @@ export function ContinueCard(props: {
               {props.subtitle}
             </Text>
             <View style={{ paddingTop: space('sm') }}>
-              <Progress position={props.position} duration={props.duration} />
+              <If when={known()}>
+                <Progress position={props.position} duration={props.duration} />
+              </If>
             </View>
             <View class="items-start" style={{ paddingTop: space('sm') }}>
               <Button
@@ -348,7 +353,9 @@ export function ContinueCard(props: {
           <UiText role="meta" lines={2}>
             {props.subtitle}
           </UiText>
-          <Progress position={props.position} duration={props.duration} />
+          <If when={known()}>
+            <Progress position={props.position} duration={props.duration} />
+          </If>
         </View>
       </CardRoot>
     </If>

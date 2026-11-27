@@ -49,6 +49,12 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
   const progress = () => (
     <Progress position={position()} duration={duration()} accessibilityLabel="已看进度" />
   );
+  /** The episode is only named when the record has one; unknown is not episode 1. */
+  const episodeLabel = () => {
+    const episode = entry().episode ?? 0;
+    return episode > 0 ? `第 ${episode} 集` : '';
+  };
+  const subtitle = () => `${episodeLabel()}${remaining()}`;
   const cover = (width: number) => (
     <Image
       src={coverSource()}
@@ -88,7 +94,7 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
           testID={`home-continue-${entry().drama.series_id}`}
           title={entry().drama.title}
           image={coverSource()}
-          subtitle={`第 ${entry().episode ?? 1} 集${remaining()}`}
+          subtitle={subtitle()}
           position={position()}
           duration={duration()}
           label="继续观看"
@@ -113,7 +119,7 @@ function ContinueTile(props: { entry: Entry; store: Store; width?: number }) {
         {entry().drama.title}
       </UiText>
       <UiText role="meta" lines={1}>
-        第 {entry().episode ?? 1} 集{remaining()}
+        {subtitle()}
       </UiText>
       <If when={known()}>{progress()}</If>
     </View>
