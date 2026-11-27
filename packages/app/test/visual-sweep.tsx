@@ -81,12 +81,6 @@ const screens: Screen[] = [
     ready: 'id:settings-local-data-row',
   },
   { name: 'about', open: (app) => settings(app, 'about'), ready: 'id:settings-about' },
-  { name: 'support', open: (app) => settings(app, 'support'), ready: 'id:settings-support' },
-  {
-    name: 'recommendations',
-    open: (app) => settings(app, 'recommendations'),
-    ready: 'id:settings-recommendations',
-  },
   {
     name: 'detail',
     open: async (app) => {

@@ -6,7 +6,7 @@ import { diagnosticsAvailable } from '../diagnostics';
 import { SettingsAccount } from './settings/account';
 import { SettingsAppearance } from './settings/appearance';
 import { SettingsDiagnostics } from './settings/diagnostics';
-import { SettingsInformation } from './settings/information';
+import { SettingsAbout } from './settings/about';
 import { SettingsLocalData } from './settings/local-data';
 import { SettingsPlayback } from './settings/playback';
 import { SettingsUpdates } from './settings/updates';
@@ -18,9 +18,7 @@ type SettingsPanel =
   | 'updates'
   | 'local-data'
   | 'diagnostics'
-  | 'about'
-  | 'support'
-  | 'recommendations';
+  | 'about';
 const panels: { id: SettingsPanel; label: string }[] = [
   { id: 'appearance', label: '外观' },
   { id: 'playback', label: '播放' },
@@ -29,14 +27,12 @@ const panels: { id: SettingsPanel; label: string }[] = [
   { id: 'local-data', label: '本机数据' },
   { id: 'diagnostics', label: '诊断数据' },
   { id: 'about', label: '关于' },
-  { id: 'support', label: '支持与打赏' },
-  { id: 'recommendations', label: '应用推荐' },
 ];
 
 /** TV modules keep their controls in a bounded content pane; preference state stays in the store. */
 export function SettingsPage(props: { store: Store; updates?: Updates; tv: boolean }) {
   const panel = signal<SettingsPanel>('appearance');
-  const readingInformation = () => props.tv && panel() === 'about';
+  const readingAbout = () => props.tv && panel() === 'about';
   return (
     <View
       testID="settings-page"
@@ -99,10 +95,10 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
           </Scroll>
         </If>
         <View
-          testID={readingInformation() ? 'focus-region-settings-information' : undefined}
-          focusable={readingInformation()}
-          role={readingInformation() ? 'region' : undefined}
-          accessibilityLabel={readingInformation() ? '关于内容' : undefined}
+          testID={readingAbout() ? 'focus-region-settings-about' : undefined}
+          focusable={readingAbout()}
+          role={readingAbout() ? 'region' : undefined}
+          accessibilityLabel={readingAbout() ? '关于内容' : undefined}
           class="flex-1 min-h-0"
         >
           <Scroll
@@ -131,13 +127,12 @@ export function SettingsPage(props: { store: Store; updates?: Updates; tv: boole
               <If when={!props.tv || panel() === 'diagnostics'}>
                 <SettingsDiagnostics store={props.store} />
               </If>
-              <If
-                when={
-                  props.tv &&
-                  (panel() === 'about' || panel() === 'support' || panel() === 'recommendations')
-                }
-              >
-                <SettingsInformation page={panel()} updates={props.updates} />
+              <If when={props.tv && panel() === 'about'}>
+                <SettingsAbout updates={props.updates} />
+              </If>
+              {/* Desktop stacks every module on one page, so the version closes it. */}
+              <If when={!props.tv}>
+                <SettingsAbout updates={props.updates} />
               </If>
             </View>
           </Scroll>
